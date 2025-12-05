@@ -147,53 +147,34 @@ export function AnnotationSettingsPanel({
 		event.target.value = "";
 	};
 
-	return (
-		<div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
-			<div className="mb-6">
-				<div className="flex items-center justify-between mb-4">
-					<span className="text-sm font-medium text-slate-200">{t("annotation.title")}</span>
-					<span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-1 rounded-full">
-						{t("annotation.active")}
-					</span>
-				</div>
-
-				{/* Type Selector */}
-				<Tabs
-					value={annotation.type}
-					onValueChange={(value) => onTypeChange(value as AnnotationType)}
-					className="mb-6"
-				>
-					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-3 h-auto rounded-xl">
-						<TabsTrigger
-							value="text"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
-						>
-							<Type className="w-4 h-4" />
-							{t("annotation.typeText")}
-						</TabsTrigger>
-						<TabsTrigger
-							value="image"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
-						>
-							<ImageIcon className="w-4 h-4" />
-							{t("annotation.typeImage")}
-						</TabsTrigger>
-						<TabsTrigger
-							value="figure"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
-						>
-							<svg
-								className="w-4 h-4"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M4 12h16m0 0l-6-6m6 6l-6 6" strokeLinecap="round" strokeLinejoin="round" />
-							</svg>
-							{t("annotation.typeArrow")}
-						</TabsTrigger>
-					</TabsList>
+  return (
+    <div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-slate-200">Annotation Settings</span>
+          <span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-1 rounded-full">
+            Active
+          </span>
+        </div>
+        
+        {/* Type Selector */}
+        <Tabs value={annotation.type} onValueChange={(value) => onTypeChange(value as AnnotationType)} className="mb-6">
+          <TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-3 h-auto rounded-xl">
+            <TabsTrigger value="text" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2">
+              <Type className="w-4 h-4" />
+              Text
+            </TabsTrigger>
+            <TabsTrigger value="image" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Image
+            </TabsTrigger>
+            <TabsTrigger value="figure" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 12h16m0 0l-6-6m6 6l-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Arrow
+            </TabsTrigger>
+          </TabsList>
 
 					{/* Text Content */}
 					<TabsContent value="text" className="mt-0 space-y-4">
@@ -366,98 +347,94 @@ export function AnnotationSettingsPanel({
 								</ToggleGroup>
 							</div>
 
-							{/* Colors */}
-							<div className="grid grid-cols-2 gap-4">
-								<div>
-									<label className="text-xs font-medium text-slate-200 mb-2 block">
-										{t("annotation.textColor")}
-									</label>
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
-											>
-												<div
-													className="w-4 h-4 rounded-full border border-white/20"
-													style={{ backgroundColor: annotation.style.color }}
-												/>
-												<span className="text-xs text-slate-300 truncate flex-1 text-left">
-													{annotation.style.color}
-												</span>
-												<ChevronDown className="h-3 w-3 opacity-50" />
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
-											<Block
-												color={annotation.style.color}
-												colors={colorPalette}
-												onChange={(color) => {
-													onStyleChange({ color: color.hex });
-												}}
-												style={{
-													borderRadius: "8px",
-												}}
-											/>
-										</PopoverContent>
-									</Popover>
-								</div>
-								<div>
-									<label className="text-xs font-medium text-slate-200 mb-2 block">
-										{t("annotation.background")}
-									</label>
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
-											>
-												<div className="w-4 h-4 rounded-full border border-white/20 relative overflow-hidden">
-													<div className="absolute inset-0 checkerboard-bg opacity-50" />
-													<div
-														className="absolute inset-0"
-														style={{ backgroundColor: annotation.style.backgroundColor }}
-													/>
-												</div>
-												<span className="text-xs text-slate-300 truncate flex-1 text-left">
-													{annotation.style.backgroundColor === "transparent"
-														? t("annotation.none")
-														: t("annotation.color")}
-												</span>
-												<ChevronDown className="h-3 w-3 opacity-50" />
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
-											<Block
-												color={
-													annotation.style.backgroundColor === "transparent"
-														? "#000000"
-														: annotation.style.backgroundColor
-												}
-												colors={colorPalette}
-												onChange={(color) => {
-													onStyleChange({ backgroundColor: color.hex });
-												}}
-												style={{
-													borderRadius: "8px",
-												}}
-											/>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="w-full mt-2 text-xs h-7 hover:bg-white/5 text-slate-400"
-												onClick={() => {
-													onStyleChange({ backgroundColor: "transparent" });
-												}}
-											>
-												{t("annotation.clearBackground")}
-											</Button>
-										</PopoverContent>
-									</Popover>
-								</div>
-							</div>
-						</div>
-					</TabsContent>
+              {/* Colors */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-200 mb-2 block">Text Color</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
+                      >
+                        <div 
+                          className="w-4 h-4 rounded-full border border-white/20" 
+                          style={{ backgroundColor: annotation.style.color }}
+                        />
+                        <span className="text-xs text-slate-300 truncate flex-1 text-left">
+                          {annotation.style.color}
+                        </span>
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-xl">
+                      <div className="p-2 bg-[#1a1a1c] border border-white/10 rounded-xl">
+                        <Colorful
+                          color={textColorHsva}
+                          disableAlpha={true}
+                          onChange={(color) => {
+                            setTextColorHsva(color.hsva);
+                            onStyleChange({ color: hsvaToHex(color.hsva) });
+                          }}
+                          style={{ width: '100%', borderRadius: '8px' }}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-200 mb-2 block">Background</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
+                      >
+                        <div 
+                          className="w-4 h-4 rounded-full border border-white/20 relative overflow-hidden" 
+                        >
+                          <div className="absolute inset-0 checkerboard-bg opacity-50" />
+                          <div 
+                            className="absolute inset-0"
+                            style={{ backgroundColor: annotation.style.backgroundColor }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-300 truncate flex-1 text-left">
+                          {annotation.style.backgroundColor === 'transparent' ? 'None' : 'Color'}
+                        </span>
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-xl">
+                      <div className="p-2 bg-[#1a1a1c] border border-white/10 rounded-xl">
+                        <Colorful
+                          color={bgColorHsva}
+                          onChange={(color) => {
+                            setBgColorHsva(color.hsva);
+                            onStyleChange({ backgroundColor: hsvaToHex(color.hsva) });
+                          }}
+                          style={{ width: '100%', borderRadius: '8px' }}
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full mt-2 text-xs h-7 hover:bg-white/5 text-slate-400"
+                          onClick={() => {
+                            onStyleChange({ backgroundColor: 'transparent' });
+                            setBgColorHsva({ h: 0, s: 0, v: 0, a: 0 });
+                          }}
+                        >
+                          Clear Background
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+
+
+          </TabsContent>
 
 					{/* Image Upload */}
 					<TabsContent value="image" className="mt-0 space-y-4">

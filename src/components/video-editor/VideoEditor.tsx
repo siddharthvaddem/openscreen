@@ -1679,7 +1679,7 @@ export default function VideoEditor() {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-screen bg-background">
-				<div className="text-foreground">Loading video...</div>
+				<div className="text-foreground">正在加载视频...</div>
 			</div>
 		);
 	}

@@ -322,31 +322,31 @@ export function AnnotationOverlay({
 					</div>
 				);
 
-			case "image":
-				if (annotation.content && annotation.content.startsWith("data:image")) {
-					return (
-						<img
-							src={annotation.content}
-							alt="Annotation"
-							className="w-full h-full object-contain"
-							draggable={false}
-						/>
-					);
-				}
-				return (
-					<div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-						No image
-					</div>
-				);
+      case 'image':
+        if (annotation.content && annotation.content.startsWith('data:image')) {
+          return (
+            <img
+              src={annotation.content}
+              alt="Annotation"
+              className="w-full h-full object-contain"
+              draggable={false}
+            />
+          );
+        }
+        return (
+          <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+            No image
+          </div>
+        );
 
-			case "figure":
-				if (!annotation.figureData) {
-					return (
-						<div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-							No arrow data
-						</div>
-					);
-				}
+      case 'figure':
+        if (!annotation.figureData) {
+          return (
+            <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+              No arrow data
+            </div>
+          );
+        }
 
 				return (
 					<div className="w-full h-full flex items-center justify-center p-2">{renderArrow()}</div>
