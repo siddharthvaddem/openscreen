@@ -60,13 +60,16 @@ function createHudOverlayWindow() {
   return win;
 }
 function createEditorWindow() {
+  const isMac = process.platform === "darwin";
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 12, y: 12 },
+    ...isMac && {
+      titleBarStyle: "hiddenInset",
+      trafficLightPosition: { x: 12, y: 12 }
+    },
     transparent: false,
     resizable: true,
     alwaysOnTop: false,
@@ -124,6 +127,9 @@ function createSourceSelectorWindow() {
   return win;
 }
 let selectedSource = null;
+let globalMouseListenerInterval = null;
+let recordingWindow = null;
+let lastMousePosition = null;
 function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, getMainWindow, getSourceSelectorWindow, onRecordingStateChange) {
   ipcMain.handle("get-sources", async (_, opts) => {
     const sources = await desktopCapturer.getSources(opts);
@@ -180,6 +186,26 @@ function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, g
       };
     }
   });
+  ipcMain.handle("store-cursor-data", async (_, videoPath, cursorData) => {
+    try {
+      const cursorPath = `${videoPath}.cursor.json`;
+      const payload = JSON.stringify(cursorData);
+      await fs.writeFile(cursorPath, payload, "utf-8");
+      return { success: true, path: cursorPath };
+    } catch (error) {
+      console.error("Failed to store cursor data:", error);
+      return { success: false, message: "Failed to store cursor data", error: String(error) };
+    }
+  });
+  ipcMain.handle("load-cursor-data", async (_, videoPath) => {
+    try {
+      const cursorPath = `${videoPath}.cursor.json`;
+      const data = await fs.readFile(cursorPath, "utf-8");
+      return { success: true, path: cursorPath, data };
+    } catch (error) {
+      return { success: false, message: "Cursor data not found", error: String(error) };
+    }
+  });
   ipcMain.handle("get-recorded-video-path", async () => {
     try {
       const files = await fs.readdir(RECORDINGS_DIR);
@@ -200,7 +226,57 @@ function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, g
     if (onRecordingStateChange) {
       onRecordingStateChange(recording, source.name);
     }
+    if (recording) {
+      startGlobalMouseListener(getMainWindow());
+    } else {
+      stopGlobalMouseListener();
+    }
   });
+  function startGlobalMouseListener(window) {
+    if (globalMouseListenerInterval) {
+      return;
+    }
+    recordingWindow = window;
+    lastMousePosition = null;
+    globalMouseListenerInterval = setInterval(() => {
+      const targetWindow = recordingWindow || getMainWindow();
+      if (!targetWindow || targetWindow.isDestroyed()) {
+        const allWindows = BrowserWindow.getAllWindows();
+        if (allWindows.length === 0) {
+          stopGlobalMouseListener();
+          return;
+        }
+        recordingWindow = allWindows[0];
+      }
+      try {
+        const point = screen.getCursorScreenPoint();
+        const currentPosition = { x: point.x, y: point.y };
+        if (!lastMousePosition || lastMousePosition.x !== currentPosition.x || lastMousePosition.y !== currentPosition.y) {
+          const windows = BrowserWindow.getAllWindows();
+          windows.forEach((win) => {
+            if (!win.isDestroyed()) {
+              win.webContents.send("global-mouse-move", {
+                screenX: currentPosition.x,
+                screenY: currentPosition.y,
+                timestamp: Date.now()
+              });
+            }
+          });
+          lastMousePosition = currentPosition;
+        }
+      } catch (error) {
+        console.error("Error in global mouse listener:", error);
+      }
+    }, 1e3 / 60);
+  }
+  function stopGlobalMouseListener() {
+    if (globalMouseListenerInterval) {
+      clearInterval(globalMouseListenerInterval);
+      globalMouseListenerInterval = null;
+    }
+    recordingWindow = null;
+    lastMousePosition = null;
+  }
   ipcMain.handle("open-external-url", async (_, url) => {
     try {
       await shell.openExternal(url);
@@ -295,6 +371,62 @@ function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, g
   ipcMain.handle("get-platform", () => {
     return process.platform;
   });
+  ipcMain.handle("get-source-bounds", async () => {
+    try {
+      if (!selectedSource) {
+        return { success: false, message: "No source selected" };
+      }
+      const sourceId = selectedSource.id;
+      if (sourceId.startsWith("screen:")) {
+        const displays = screen.getAllDisplays();
+        const displayId = selectedSource.display_id;
+        const display = displays.find((d) => String(d.id) === String(displayId)) || screen.getPrimaryDisplay();
+        return {
+          success: true,
+          bounds: {
+            x: display.bounds.x,
+            y: display.bounds.y,
+            width: display.bounds.width,
+            height: display.bounds.height
+          },
+          scaleFactor: display.scaleFactor || 1
+        };
+      }
+      if (sourceId.startsWith("window:")) {
+        const displays = screen.getAllDisplays();
+        const displayId = selectedSource.display_id;
+        const display = displays.find((d) => String(d.id) === String(displayId)) || screen.getPrimaryDisplay();
+        return {
+          success: true,
+          bounds: {
+            x: display.bounds.x,
+            y: display.bounds.y,
+            width: display.bounds.width,
+            height: display.bounds.height
+          },
+          scaleFactor: display.scaleFactor || 1
+        };
+      }
+      const primaryDisplay = screen.getPrimaryDisplay();
+      return {
+        success: true,
+        bounds: {
+          x: primaryDisplay.bounds.x,
+          y: primaryDisplay.bounds.y,
+          width: primaryDisplay.bounds.width,
+          height: primaryDisplay.bounds.height
+        },
+        scaleFactor: primaryDisplay.scaleFactor || 1
+      };
+    } catch (error) {
+      console.error("Failed to get source bounds:", error);
+      return {
+        success: false,
+        message: "Failed to get source bounds",
+        error: String(error)
+      };
+    }
+  });
 }
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");
@@ -316,19 +448,26 @@ let mainWindow = null;
 let sourceSelectorWindow = null;
 let tray = null;
 let selectedSourceName = "";
+const defaultTrayIcon = getTrayIcon("openscreen.png");
+const recordingTrayIcon = getTrayIcon("rec-button.png");
 function createWindow() {
   mainWindow = createHudOverlayWindow();
 }
 function createTray() {
-  const iconPath = path.join(process.env.VITE_PUBLIC || RENDERER_DIST, "rec-button.png");
-  let icon = nativeImage.createFromPath(iconPath);
-  icon = icon.resize({ width: 24, height: 24, quality: "best" });
-  tray = new Tray(icon);
-  updateTrayMenu();
+  tray = new Tray(defaultTrayIcon);
 }
-function updateTrayMenu() {
+function getTrayIcon(filename) {
+  return nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC || RENDERER_DIST, filename)).resize({
+    width: 24,
+    height: 24,
+    quality: "best"
+  });
+}
+function updateTrayMenu(recording = false) {
   if (!tray) return;
-  const menuTemplate = [
+  const trayIcon = recording ? recordingTrayIcon : defaultTrayIcon;
+  const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "OpenScreen";
+  const menuTemplate = recording ? [
     {
       label: "Stop Recording",
       click: () => {
@@ -337,10 +476,27 @@ function updateTrayMenu() {
         }
       }
     }
+  ] : [
+    {
+      label: "Open",
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.isMinimized() && mainWindow.restore();
+        } else {
+          createWindow();
+        }
+      }
+    },
+    {
+      label: "Quit",
+      click: () => {
+        app.quit();
+      }
+    }
   ];
-  const contextMenu = Menu.buildFromTemplate(menuTemplate);
-  tray.setContextMenu(contextMenu);
-  tray.setToolTip(`Recording: ${selectedSourceName}`);
+  tray.setImage(trayIcon);
+  tray.setToolTip(trayToolTip);
+  tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
 }
 function createEditorWindowWrapper() {
   if (mainWindow) {
@@ -366,10 +522,10 @@ app.on("activate", () => {
 app.whenReady().then(async () => {
   const { ipcMain: ipcMain2 } = await import("electron");
   ipcMain2.on("hud-overlay-close", () => {
-    if (process.platform === "darwin") {
-      app.quit();
-    }
+    app.quit();
   });
+  createTray();
+  updateTrayMenu();
   await ensureRecordingsDir();
   registerIpcHandlers(
     createEditorWindowWrapper,
@@ -378,14 +534,9 @@ app.whenReady().then(async () => {
     () => sourceSelectorWindow,
     (recording, sourceName) => {
       selectedSourceName = sourceName;
-      if (recording) {
-        if (!tray) createTray();
-        updateTrayMenu();
-      } else {
-        if (tray) {
-          tray.destroy();
-          tray = null;
-        }
+      if (!tray) createTray();
+      updateTrayMenu(recording);
+      if (!recording) {
         if (mainWindow) mainWindow.restore();
       }
     }
