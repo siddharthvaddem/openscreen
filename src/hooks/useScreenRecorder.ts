@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { DEFAULT_CURSOR_STYLE, type CursorEvent, type CursorTrack } from "@/components/video-editor/types";
 import { fixWebmDuration } from "@fix-webm-duration/fix";
 
 type UseScreenRecorderReturn = {
@@ -12,6 +13,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<Blob[]>([]);
   const startTime = useRef<number>(0);
+  const cursorTrackRef = useRef<CursorTrack | null>(null);
+  const cursorCaptureStopRef = useRef<(() => void) | null>(null);
 
   // Target visually lossless 4K @ 60fps; fall back gracefully when hardware cannot keep up
   const TARGET_FRAME_RATE = 60;
@@ -47,6 +50,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
   const stopRecording = useRef(() => {
     if (mediaRecorder.current?.state === "recording") {
+      if (cursorCaptureStopRef.current) {
+        cursorCaptureStopRef.current();
+        cursorCaptureStopRef.current = null;
+      }
       if (stream.current) {
         stream.current.getTracks().forEach(track => track.stop());
       }
@@ -72,12 +79,176 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       if (mediaRecorder.current?.state === "recording") {
         mediaRecorder.current.stop();
       }
+      if (cursorCaptureStopRef.current) {
+        cursorCaptureStopRef.current();
+        cursorCaptureStopRef.current = null;
+      }
       if (stream.current) {
         stream.current.getTracks().forEach(track => track.stop());
         stream.current = null;
       }
     };
   }, []);
+
+  const startCursorCapture = (
+    t0: number, 
+    sourceBounds: { x: number; y: number; width: number; height: number },
+    videoSize: { width: number; height: number }
+  ) => {
+    const events: CursorEvent[] = [];
+    cursorTrackRef.current = { events, style: DEFAULT_CURSOR_STYLE };
+
+    let dragging = false;
+    let rafId: number | null = null;
+    let pendingMove: CursorEvent | null = null;
+    let currentBounds = sourceBounds;
+    let currentVideoSize = videoSize;
+    let globalMouseCleanup: (() => void) | null = null;
+
+    const normalize = (screenX: number, screenY: number) => {
+      // Calculate local coordinates relative to the source window bounds
+      const localX = screenX - currentBounds.x;
+      const localY = screenY - currentBounds.y;
+      
+      // Calculate scale factors between source bounds and video size
+      // This handles cases where the video resolution differs from the source bounds
+      const scaleX = currentVideoSize.width / currentBounds.width;
+      const scaleY = currentVideoSize.height / currentBounds.height;
+      
+      // Scale the local coordinates to match video dimensions
+      const videoX = localX * scaleX;
+      const videoY = localY * scaleY;
+      
+      // Normalize to [0, 1] range based on video size
+      const width = Math.max(1, currentVideoSize.width);
+      const height = Math.max(1, currentVideoSize.height);
+      const nx = Math.min(1, Math.max(0, videoX / width));
+      const ny = Math.min(1, Math.max(0, videoY / height));
+      
+      return { nx, ny };
+    };
+
+    const pushMove = () => {
+      if (!pendingMove) return;
+      events.push(pendingMove);
+      pendingMove = null;
+      rafId = null;
+    };
+
+    // Handle global mouse move events from main process
+    const handleGlobalMouseMove = (event: { screenX: number; screenY: number; timestamp: number }) => {
+      const { nx, ny } = normalize(event.screenX, event.screenY);
+      // Use performance.now() relative to t0 for consistent timing
+      pendingMove = {
+        tMs: performance.now() - t0,
+        nx,
+        ny,
+        kind: 'move',
+        dragging,
+      };
+
+      if (rafId == null) {
+        rafId = window.requestAnimationFrame(pushMove);
+      }
+    };
+
+    // Handle mouse button events (these still need to be captured from window events)
+    // But we'll use global coordinates when available
+    const handleDown = (event: MouseEvent) => {
+      const { nx, ny } = normalize(event.screenX, event.screenY);
+      if (pendingMove) {
+        events.push(pendingMove);
+        pendingMove = null;
+        if (rafId != null) {
+          window.cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      }
+      dragging = true;
+      events.push({
+        tMs: performance.now() - t0,
+        nx,
+        ny,
+        kind: 'down',
+        dragging,
+        button: event.button,
+      });
+    };
+
+    const handleUp = (event: MouseEvent) => {
+      const { nx, ny } = normalize(event.screenX, event.screenY);
+      if (pendingMove) {
+        events.push(pendingMove);
+        pendingMove = null;
+        if (rafId != null) {
+          window.cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      }
+      dragging = false;
+      events.push({
+        tMs: performance.now() - t0,
+        nx,
+        ny,
+        kind: 'up',
+        dragging,
+        button: event.button,
+      });
+    };
+
+    // Listen to global mouse move events from main process
+    if (window.electronAPI?.onGlobalMouseMove) {
+      globalMouseCleanup = window.electronAPI.onGlobalMouseMove(handleGlobalMouseMove);
+    }
+
+    // Still listen to button events from window (for now)
+    // In the future, we might want to add global button tracking in main process
+    window.addEventListener('mousedown', handleDown, { capture: true });
+    window.addEventListener('mouseup', handleUp, { capture: true });
+
+    // Periodically update bounds in case the window moves or resizes
+    const boundsUpdateInterval = setInterval(async () => {
+      try {
+        const boundsResult = await window.electronAPI?.getSourceBounds();
+        if (boundsResult?.success && boundsResult.bounds) {
+          currentBounds = boundsResult.bounds;
+        }
+        // Also update video size if stream is still active
+        if (stream.current) {
+          const videoTrack = stream.current.getVideoTracks()[0];
+          if (videoTrack) {
+            const settings = videoTrack.getSettings();
+            if (settings.width && settings.height) {
+              currentVideoSize = {
+                width: Math.floor(settings.width / 2) * 2, // Ensure even dimensions
+                height: Math.floor(settings.height / 2) * 2
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to update source bounds:', error);
+      }
+    }, 500);
+
+    cursorCaptureStopRef.current = () => {
+      clearInterval(boundsUpdateInterval);
+      if (globalMouseCleanup) {
+        globalMouseCleanup();
+        globalMouseCleanup = null;
+      }
+      window.removeEventListener('mousedown', handleDown, true);
+      window.removeEventListener('mouseup', handleUp, true);
+      if (rafId != null) {
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (pendingMove) {
+        events.push(pendingMove);
+        pendingMove = null;
+      }
+    };
+  };
 
   const startRecording = async () => {
     try {
@@ -161,6 +332,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
           if (videoResult.path) {
             await window.electronAPI.setCurrentVideoPath(videoResult.path);
+            const cursorTrack = cursorTrackRef.current;
+            if (cursorTrack && cursorTrack.events.length > 0) {
+              await window.electronAPI.storeCursorData(videoResult.path, cursorTrack);
+            }
           }
 
           await window.electronAPI.switchToEditor();
@@ -169,7 +344,46 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         }
       };
       recorder.onerror = () => setRecording(false);
+      
+      // Get source bounds and video size before starting cursor capture
+      let sourceBounds: { x: number; y: number; width: number; height: number };
+      try {
+        const boundsResult = await window.electronAPI?.getSourceBounds();
+        if (boundsResult?.success && boundsResult.bounds) {
+          sourceBounds = boundsResult.bounds;
+        } else {
+          // Fallback to window dimensions if bounds cannot be retrieved
+          console.warn('Failed to get source bounds, using window dimensions as fallback');
+          sourceBounds = {
+            x: 0,
+            y: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+        }
+      } catch (error) {
+        console.error('Error getting source bounds:', error);
+        // Fallback to window dimensions
+        sourceBounds = {
+          x: 0,
+          y: 0,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
+      }
+      
+      // Get actual video dimensions (already computed above)
+      const videoSize = {
+        width: Math.floor(width / 2) * 2, // Ensure even dimensions
+        height: Math.floor(height / 2) * 2
+      };
+      
+      console.log('Source bounds:', sourceBounds);
+      console.log('Video size:', videoSize);
+      
+      const cursorStart = performance.now();
       recorder.start(1000);
+      startCursorCapture(cursorStart, sourceBounds, videoSize);
       startTime.current = Date.now();
       setRecording(true);
       window.electronAPI?.setRecordingState(true);
