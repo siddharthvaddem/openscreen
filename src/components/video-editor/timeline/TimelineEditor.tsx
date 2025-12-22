@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, CursorTrack } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -22,7 +22,9 @@ import { formatShortcut } from "@/utils/platformUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
+const CURSOR_ROW_ID = "row-cursor";
 const ANNOTATION_ROW_ID = "row-annotation";
+const CURSOR_ITEM_ID = "cursor-track";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 
@@ -48,6 +50,9 @@ interface TimelineEditorProps {
   onAnnotationDelete?: (id: string) => void;
   selectedAnnotationId?: string | null;
   onSelectAnnotation?: (id: string | null) => void;
+  cursorTrack?: CursorTrack | null;
+  selectedCursorId?: string | null;
+  onSelectCursor?: (id: string | null) => void;
   aspectRatio: AspectRatio;
   onAspectRatioChange: (aspectRatio: AspectRatio) => void;
 }
@@ -66,7 +71,7 @@ interface TimelineRenderItem {
   span: Span;
   label: string;
   zoomDepth?: number;
-  variant: 'zoom' | 'trim' | 'annotation';
+  variant: 'zoom' | 'trim' | 'annotation' | 'cursor';
 }
 
 const SCALE_CANDIDATES = [
@@ -368,9 +373,11 @@ function Timeline({
   onSelectZoom,
   onSelectTrim,
   onSelectAnnotation,
+  onSelectCursor,
   selectedZoomId,
   selectedTrimId,
   selectedAnnotationId,
+  selectedCursorId,
 }: {
   items: TimelineRenderItem[];
   videoDurationMs: number;
@@ -380,9 +387,11 @@ function Timeline({
   onSelectZoom?: (id: string | null) => void;
   onSelectTrim?: (id: string | null) => void;
   onSelectAnnotation?: (id: string | null) => void;
+  onSelectCursor?: (id: string | null) => void;
   selectedZoomId: string | null;
   selectedTrimId?: string | null;
   selectedAnnotationId?: string | null;
+  selectedCursorId?: string | null;
 }) {
   const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
   const localTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -400,6 +409,7 @@ function Timeline({
     onSelectZoom?.(null);
     onSelectTrim?.(null);
     onSelectAnnotation?.(null);
+    onSelectCursor?.(null);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left - sidebarWidth;
@@ -415,6 +425,7 @@ function Timeline({
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
+  const cursorItems = items.filter(item => item.rowId === CURSOR_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
 
   return (
@@ -466,6 +477,24 @@ function Timeline({
         ))}
       </Row>
 
+      {cursorItems.length > 0 && (
+        <Row id={CURSOR_ROW_ID}>
+          {cursorItems.map((item) => (
+            <Item
+              id={item.id}
+              key={item.id}
+              rowId={item.rowId}
+              span={item.span}
+              isSelected={item.id === selectedCursorId}
+              onSelect={() => onSelectCursor?.(item.id)}
+              variant="cursor"
+            >
+              {item.label}
+            </Item>
+          ))}
+        </Row>
+      )}
+
       <Row id={ANNOTATION_ROW_ID}>
         {annotationItems.map((item) => (
           <Item
@@ -507,6 +536,9 @@ export default function TimelineEditor({
   onAnnotationDelete,
   selectedAnnotationId,
   onSelectAnnotation,
+  cursorTrack,
+  selectedCursorId,
+  onSelectCursor,
   aspectRatio,
   onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -822,11 +854,24 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations];
-  }, [zoomRegions, trimRegions, annotationRegions]);
+    const cursors: TimelineRenderItem[] = cursorTrack && cursorTrack.events.length > 0 && totalMs > 0
+      ? [{
+          id: CURSOR_ITEM_ID,
+          rowId: CURSOR_ROW_ID,
+          span: { start: 0, end: totalMs },
+          label: 'Cursor',
+          variant: 'cursor',
+        }]
+      : [];
+
+    return [...zooms, ...trims, ...cursors, ...annotations];
+  }, [zoomRegions, trimRegions, annotationRegions, cursorTrack, totalMs]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span) => {
     // Check if it's a zoom or trim item
+    if (id === CURSOR_ITEM_ID) {
+      return;
+    }
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
     } else if (trimRegions.some(r => r.id === id)) {
@@ -947,9 +992,11 @@ export default function TimelineEditor({
             onSelectZoom={onSelectZoom}
             onSelectTrim={onSelectTrim}
             onSelectAnnotation={onSelectAnnotation}
+            onSelectCursor={onSelectCursor}
             selectedZoomId={selectedZoomId}
             selectedTrimId={selectedTrimId}
             selectedAnnotationId={selectedAnnotationId}
+            selectedCursorId={selectedCursorId}
           />
         </TimelineWrapper>
       </div>
