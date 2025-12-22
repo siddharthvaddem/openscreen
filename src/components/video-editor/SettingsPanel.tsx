@@ -5,11 +5,12 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, CursorTrack, CursorStyle } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
@@ -78,6 +79,9 @@ interface SettingsPanelProps {
   onAnnotationStyleChange?: (id: string, style: Partial<AnnotationRegion['style']>) => void;
   onAnnotationFigureDataChange?: (id: string, figureData: any) => void;
   onAnnotationDelete?: (id: string) => void;
+  cursorTrack?: CursorTrack | null;
+  selectedCursorId?: string | null;
+  onCursorStyleChange?: (style: Partial<CursorStyle>) => void;
 }
 
 export default SettingsPanel;
@@ -124,6 +128,9 @@ export function SettingsPanel({
   onAnnotationStyleChange,
   onAnnotationFigureDataChange,
   onAnnotationDelete,
+  cursorTrack,
+  selectedCursorId,
+  onCursorStyleChange,
 }: SettingsPanelProps) {
   const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
   const [customImages, setCustomImages] = useState<string[]>([]);
@@ -153,6 +160,7 @@ export function SettingsPanel({
 
   const zoomEnabled = Boolean(selectedZoomDepth);
   const trimEnabled = Boolean(selectedTrimId);
+  const cursorEnabled = Boolean(selectedCursorId && cursorTrack && cursorTrack.events.length > 0);
   
   const handleDeleteClick = () => {
     if (selectedZoomId && onZoomDelete) {
@@ -234,6 +242,48 @@ export function SettingsPanel({
 
   return (
     <div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
+      {cursorEnabled && cursorTrack && onCursorStyleChange && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-slate-200">Cursor</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-[#4C8BF5] bg-[#4C8BF5]/10 px-2 py-1 rounded-full">
+              Active
+            </span>
+          </div>
+          <div className="grid gap-3">
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-slate-200">Size</div>
+                <span className="text-[10px] text-slate-400 font-mono">{Math.round(cursorTrack.style.sizePx)}px</span>
+              </div>
+              <Slider
+                value={[cursorTrack.style.sizePx]}
+                onValueChange={(values) => onCursorStyleChange({ sizePx: values[0] })}
+                min={8}
+                max={48}
+                step={1}
+                className="w-full [&_[role=slider]]:bg-[#4C8BF5] [&_[role=slider]]:border-[#4C8BF5]"
+              />
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
+              <div className="text-xs font-medium text-slate-200">Style</div>
+              <Select
+                value={cursorTrack.style.preset}
+                onValueChange={(value) => onCursorStyleChange({ preset: value as CursorStyle['preset'] })}
+              >
+                <SelectTrigger className="h-8 text-xs bg-black/30 border-white/10 text-slate-200">
+                  <SelectValue placeholder="Select cursor style" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-white/10 text-slate-200">
+                  <SelectItem value="arrow">Arrow</SelectItem>
+                  <SelectItem value="dot">Dot</SelectItem>
+                  <SelectItem value="circle">Circle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm font-medium text-slate-200">Zoom Level</span>
