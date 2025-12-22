@@ -20,6 +20,7 @@ import {
   DEFAULT_ANNOTATION_SIZE,
   DEFAULT_ANNOTATION_STYLE,
   DEFAULT_FIGURE_DATA,
+  DEFAULT_CURSOR_STYLE,
   type ZoomDepth,
   type ZoomFocus,
   type ZoomRegion,
@@ -27,6 +28,8 @@ import {
   type AnnotationRegion,
   type CropRegion,
   type FigureData,
+  type CursorTrack,
+  type CursorStyle,
 } from "./types";
 import { VideoExporter, type ExportProgress, type ExportQuality } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
@@ -37,6 +40,7 @@ const WALLPAPER_PATHS = Array.from({ length: WALLPAPER_COUNT }, (_, i) => `/wall
 
 export default function VideoEditor() {
   const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [videoFilePath, setVideoFilePath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -55,6 +59,8 @@ export default function VideoEditor() {
   const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
   const [annotationRegions, setAnnotationRegions] = useState<AnnotationRegion[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [cursorTrack, setCursorTrack] = useState<CursorTrack | null>(null);
+  const [selectedCursorId, setSelectedCursorId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -93,6 +99,7 @@ export default function VideoEditor() {
         if (result.success && result.path) {
           const videoUrl = toFileUrl(result.path);
           setVideoPath(videoUrl);
+          setVideoFilePath(result.path);
         } else {
           setError('No video to load. Please record or select a video.');
         }
@@ -104,6 +111,45 @@ export default function VideoEditor() {
     }
     loadVideo();
   }, []);
+
+  useEffect(() => {
+    if (!videoFilePath) {
+      setCursorTrack(null);
+      setSelectedCursorId(null);
+      return;
+    }
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        const result = await window.electronAPI.loadCursorData(videoFilePath);
+        if (!mounted) return;
+        if (!result.success || !result.data) {
+          setCursorTrack(null);
+          return;
+        }
+        const parsed = JSON.parse(result.data);
+        const events = Array.isArray(parsed?.events) ? parsed.events : [];
+        const style = parsed?.style ?? {};
+        const preset = style.preset === 'arrow' || style.preset === 'dot' || style.preset === 'circle'
+          ? style.preset
+          : DEFAULT_CURSOR_STYLE.preset;
+        const sizePx = typeof style.sizePx === 'number' && Number.isFinite(style.sizePx)
+          ? style.sizePx
+          : DEFAULT_CURSOR_STYLE.sizePx;
+        setCursorTrack({ events, style: { preset, sizePx } });
+      } catch (err) {
+        if (mounted) {
+          setCursorTrack(null);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [videoFilePath]);
 
   // Initialize default wallpaper with resolved asset path
   useEffect(() => {
@@ -143,6 +189,7 @@ export default function VideoEditor() {
   const handleSelectZoom = useCallback((id: string | null) => {
     setSelectedZoomId(id);
     if (id) setSelectedTrimId(null);
+    if (id) setSelectedCursorId(null);
   }, []);
 
   const handleSelectTrim = useCallback((id: string | null) => {
@@ -150,6 +197,7 @@ export default function VideoEditor() {
     if (id) {
       setSelectedZoomId(null);
       setSelectedAnnotationId(null);
+      setSelectedCursorId(null);
     }
   }, []);
 
@@ -158,6 +206,7 @@ export default function VideoEditor() {
     if (id) {
       setSelectedZoomId(null);
       setSelectedTrimId(null);
+      setSelectedCursorId(null);
     }
   }, []);
 
@@ -382,6 +431,22 @@ export default function VideoEditor() {
       ),
     );
   }, []);
+
+  const handleSelectCursor = useCallback((id: string | null) => {
+    setSelectedCursorId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedAnnotationId(null);
+    }
+  }, []);
+
+  const handleCursorStyleChange = useCallback((style: Partial<CursorStyle>) => {
+    setCursorTrack((prev) => {
+      if (!prev) return prev;
+      return { ...prev, style: { ...prev.style, ...style } };
+    });
+  }, []);
   
   // Global Tab prevention
   useEffect(() => {
@@ -433,6 +498,12 @@ export default function VideoEditor() {
       setSelectedAnnotationId(null);
     }
   }, [selectedAnnotationId, annotationRegions]);
+
+  useEffect(() => {
+    if (selectedCursorId && (!cursorTrack || cursorTrack.events.length === 0)) {
+      setSelectedCursorId(null);
+    }
+  }, [selectedCursorId, cursorTrack]);
 
   const handleExport = useCallback(async () => {
     if (!videoPath) {
@@ -690,6 +761,7 @@ export default function VideoEditor() {
                       onSelectAnnotation={handleSelectAnnotation}
                       onAnnotationPositionChange={handleAnnotationPositionChange}
                       onAnnotationSizeChange={handleAnnotationSizeChange}
+                      cursorTrack={cursorTrack}
                     />
                   </div>
                 </div>
@@ -737,6 +809,9 @@ export default function VideoEditor() {
               onAnnotationDelete={handleAnnotationDelete}
               selectedAnnotationId={selectedAnnotationId}
               onSelectAnnotation={handleSelectAnnotation}
+              cursorTrack={cursorTrack}
+              selectedCursorId={selectedCursorId}
+              onSelectCursor={handleSelectCursor}
               aspectRatio={aspectRatio}
               onAspectRatioChange={setAspectRatio}
             />
@@ -779,6 +854,9 @@ export default function VideoEditor() {
           onAnnotationStyleChange={handleAnnotationStyleChange}
           onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
           onAnnotationDelete={handleAnnotationDelete}
+          cursorTrack={cursorTrack}
+          selectedCursorId={selectedCursorId}
+          onCursorStyleChange={handleCursorStyleChange}
         />
       </div>
 
