@@ -30,6 +30,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   storeRecordedVideo: (videoData: ArrayBuffer, fileName: string) => {
     return ipcRenderer.invoke('store-recorded-video', videoData, fileName)
   },
+  storeCursorData: (videoPath: string, cursorData: any) => {
+    return ipcRenderer.invoke('store-cursor-data', videoPath, cursorData)
+  },
+  loadCursorData: (videoPath: string) => {
+    return ipcRenderer.invoke('load-cursor-data', videoPath)
+  },
 
   getRecordedVideoPath: () => {
     return ipcRenderer.invoke('get-recorded-video-path')
@@ -41,6 +47,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = () => callback()
     ipcRenderer.on('stop-recording-from-tray', listener)
     return () => ipcRenderer.removeListener('stop-recording-from-tray', listener)
+  },
+  onGlobalMouseMove: (callback: (event: { screenX: number; screenY: number; timestamp: number }) => void) => {
+    const listener = (_: any, event: { screenX: number; screenY: number; timestamp: number }) => callback(event)
+    ipcRenderer.on('global-mouse-move', listener)
+    return () => ipcRenderer.removeListener('global-mouse-move', listener)
   },
   openExternalUrl: (url: string) => {
     return ipcRenderer.invoke('open-external-url', url)
@@ -62,5 +73,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getPlatform: () => {
     return ipcRenderer.invoke('get-platform')
+  },
+  getSourceBounds: () => {
+    return ipcRenderer.invoke('get-source-bounds')
   },
 })
