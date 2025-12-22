@@ -28,6 +28,12 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   storeRecordedVideo: (videoData, fileName) => {
     return electron.ipcRenderer.invoke("store-recorded-video", videoData, fileName);
   },
+  storeCursorData: (videoPath, cursorData) => {
+    return electron.ipcRenderer.invoke("store-cursor-data", videoPath, cursorData);
+  },
+  loadCursorData: (videoPath) => {
+    return electron.ipcRenderer.invoke("load-cursor-data", videoPath);
+  },
   getRecordedVideoPath: () => {
     return electron.ipcRenderer.invoke("get-recorded-video-path");
   },
@@ -38,6 +44,11 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     const listener = () => callback();
     electron.ipcRenderer.on("stop-recording-from-tray", listener);
     return () => electron.ipcRenderer.removeListener("stop-recording-from-tray", listener);
+  },
+  onGlobalMouseMove: (callback) => {
+    const listener = (_, event) => callback(event);
+    electron.ipcRenderer.on("global-mouse-move", listener);
+    return () => electron.ipcRenderer.removeListener("global-mouse-move", listener);
   },
   openExternalUrl: (url) => {
     return electron.ipcRenderer.invoke("open-external-url", url);
@@ -59,5 +70,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   },
   getPlatform: () => {
     return electron.ipcRenderer.invoke("get-platform");
+  },
+  getSourceBounds: () => {
+    return electron.ipcRenderer.invoke("get-source-bounds");
   }
 });
