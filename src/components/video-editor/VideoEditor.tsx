@@ -30,6 +30,8 @@ import {
   type FigureData,
   type CursorTrack,
   type CursorStyle,
+  type CursorSmoothing,
+  type End2EndParams,
 } from "./types";
 import { VideoExporter, type ExportProgress, type ExportQuality } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
@@ -61,6 +63,16 @@ export default function VideoEditor() {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [cursorTrack, setCursorTrack] = useState<CursorTrack | null>(null);
   const [selectedCursorId, setSelectedCursorId] = useState<string | null>(null);
+  const [cursorEnabled, setCursorEnabled] = useState<boolean>(true);
+  const [cursorSmoothing, setCursorSmoothing] = useState<CursorSmoothing>('none');
+  const [quadraticSmoothingStrength, setQuadraticSmoothingStrength] = useState<number>(0.5);
+  const [end2endParams, setEnd2endParams] = useState<End2EndParams>({
+    dwellTimeMs: 300,
+    stillEpsilonPx: 3,
+    minJumpDistancePx: 18,
+    minTimeBetweenEndpointsMs: 200,
+    arrivalFraction: 0.6,
+  });
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -762,6 +774,10 @@ export default function VideoEditor() {
                       onAnnotationPositionChange={handleAnnotationPositionChange}
                       onAnnotationSizeChange={handleAnnotationSizeChange}
                       cursorTrack={cursorTrack}
+                      cursorEnabled={cursorEnabled}
+                      cursorSmoothing={cursorSmoothing}
+                      quadraticSmoothingStrength={quadraticSmoothingStrength}
+                      end2endParams={end2endParams}
                     />
                   </div>
                 </div>
@@ -812,6 +828,10 @@ export default function VideoEditor() {
               cursorTrack={cursorTrack}
               selectedCursorId={selectedCursorId}
               onSelectCursor={handleSelectCursor}
+              cursorEnabled={cursorEnabled}
+              onCursorEnabledChange={setCursorEnabled}
+              cursorSmoothing={cursorSmoothing}
+              onCursorSmoothingChange={setCursorSmoothing}
               aspectRatio={aspectRatio}
               onAspectRatioChange={setAspectRatio}
             />
@@ -857,6 +877,12 @@ export default function VideoEditor() {
           cursorTrack={cursorTrack}
           selectedCursorId={selectedCursorId}
           onCursorStyleChange={handleCursorStyleChange}
+          cursorSmoothing={cursorSmoothing}
+          onCursorSmoothingChange={setCursorSmoothing}
+          quadraticSmoothingStrength={quadraticSmoothingStrength}
+          onQuadraticSmoothingStrengthChange={setQuadraticSmoothingStrength}
+          end2endParams={end2endParams}
+          onEnd2endParamsChange={(p) => setEnd2endParams(prev => ({ ...prev, ...p }))}
         />
       </div>
 
