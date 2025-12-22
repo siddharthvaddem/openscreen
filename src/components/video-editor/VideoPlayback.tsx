@@ -1,8 +1,24 @@
 import type React from "react";
-import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, useCallback } from "react";
+import {
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { getAssetPath } from "@/lib/assetPath";
-import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from 'pixi.js';
-import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type AnnotationRegion, type CursorTrack } from "./types";
+import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from "pixi.js";
+import {
+  ZOOM_DEPTH_SCALES,
+  type ZoomRegion,
+  type ZoomFocus,
+  type ZoomDepth,
+  type TrimRegion,
+  type AnnotationRegion,
+  type CursorTrack,
+} from "./types";
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from "./videoPlayback/constants";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { findDominantRegion } from "./videoPlayback/zoomRegionUtils";
@@ -54,35 +70,38 @@ export interface VideoPlaybackRef {
   pause: () => void;
 }
 
-const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
-  videoPath,
-  onDurationChange,
-  onTimeUpdate,
-  currentTime,
-  onPlayStateChange,
-  onError,
-  wallpaper,
-  zoomRegions,
-  selectedZoomId,
-  onSelectZoom,
-  onZoomFocusChange,
-  isPlaying,
-  showShadow,
-  shadowIntensity = 0,
-  showBlur,
-  motionBlurEnabled = true,
-  borderRadius = 0,
-  padding = 50,
-  cropRegion,
-  trimRegions = [],
-  aspectRatio,
-  annotationRegions = [],
-  selectedAnnotationId,
-  onSelectAnnotation,
-  onAnnotationPositionChange,
-  onAnnotationSizeChange,
-  cursorTrack,
-}, ref) => {
+function VideoPlayback(
+  {
+    videoPath,
+    onDurationChange,
+    onTimeUpdate,
+    currentTime,
+    onPlayStateChange,
+    onError,
+    wallpaper,
+    zoomRegions,
+    selectedZoomId,
+    onSelectZoom,
+    onZoomFocusChange,
+    isPlaying,
+    showShadow,
+    shadowIntensity = 0,
+    showBlur,
+    motionBlurEnabled = true,
+    borderRadius = 0,
+    padding = 50,
+    cropRegion,
+    trimRegions = [],
+    aspectRatio,
+    annotationRegions = [],
+    selectedAnnotationId,
+    onSelectAnnotation,
+    onAnnotationPositionChange,
+    onAnnotationSizeChange,
+    cursorTrack,
+  }: VideoPlaybackProps,
+  ref: React.Ref<VideoPlaybackRef>
+) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
@@ -442,9 +461,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     isDraggingFocusRef.current = false;
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
-    } catch {
-      
-    }
+    } catch { /* empty */ }
   };
 
   const handleOverlayPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -629,15 +646,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
 
     // Get layout information to properly map cursor coordinates
     const maskRect = baseMaskRef.current;
-    const baseScale = baseScaleRef.current;
-    const videoSize = videoSizeRef.current;
     const cropBounds = cropBoundsRef.current;
     
-    // Calculate the actual video display area (maskRect)
-    // If maskRect is not initialized yet, fall back to full overlay
-    const displayArea = maskRect.width > 0 && maskRect.height > 0 
-      ? maskRect 
-      : { x: 0, y: 0, width, height };
+    // Get current zoom state
+    const animationState = animationStateRef.current;
+    const zoomScale = animationState.scale;
+    
+    // When zoom is active, video is displayed full-screen, so use full overlay area
+    // Otherwise, use maskRect (which represents the cropped/scaled video area)
+    const displayArea = (zoomScale > 1)
+      ? { x: 0, y: 0, width, height }  // Full overlay when zoomed
+      : (maskRect.width > 0 && maskRect.height > 0 
+          ? maskRect 
+          : { x: 0, y: 0, width, height });
 
     const events = cursorTrack.events;
     const playheadMs = Math.round(currentTime * 1000);
@@ -647,45 +668,60 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     // Helper function to convert normalized video coordinates to display coordinates
     // Normalized coordinates (nx, ny) are relative to the full video dimensions (before crop)
     const normalizeToDisplay = (nx: number, ny: number) => {
-      // Get the locked video dimensions (full video size)
       const lockedDims = lockedVideoDimensionsRef.current;
+      // If we don't have locked video dimensions, fallback to simple mapping into displayArea
       if (!lockedDims || lockedDims.width === 0 || lockedDims.height === 0) {
-        // Fallback: map directly to display area
         const displayX = displayArea.x + nx * displayArea.width;
         const displayY = displayArea.y + ny * displayArea.height;
         return { x: displayX, y: displayY };
       }
-      
+
       const fullVideoWidth = lockedDims.width;
       const fullVideoHeight = lockedDims.height;
-      
-      // Convert normalized coordinates to video pixel coordinates (full video)
+
+      // Convert normalized coords to full-video pixel coordinates
       const videoX = nx * fullVideoWidth;
       const videoY = ny * fullVideoHeight;
-      
-      // Check if coordinate is within crop bounds (if crop exists)
+
+      // If there is a crop and the point is outside the cropped bounds, skip drawing
       if (cropBounds.endX > cropBounds.startX && cropBounds.endY > cropBounds.startY) {
         if (videoX < cropBounds.startX || videoX > cropBounds.endX ||
             videoY < cropBounds.startY || videoY > cropBounds.endY) {
-          // Coordinate is outside crop bounds, don't display
           return null;
         }
-        
-        // Convert to cropped video coordinates (0-1 relative to cropped area)
-        const croppedX = (videoX - cropBounds.startX) / (cropBounds.endX - cropBounds.startX);
-        const croppedY = (videoY - cropBounds.startY) / (cropBounds.endY - cropBounds.startY);
-        
-        // Map to display coordinates within maskRect (which represents the cropped and scaled display area)
-        const displayX = displayArea.x + croppedX * displayArea.width;
-        const displayY = displayArea.y + croppedY * displayArea.height;
-        
-        return { x: displayX, y: displayY };
-      } else {
-        // No crop, map directly to display area
+      }
+
+      // Map video pixel to stage coordinates using the same base sprite transform
+      // stage = baseOffset + videoPixel * baseScale
+      const baseScale = baseScaleRef.current;
+      const baseOffset = baseOffsetRef.current;
+      const stageSize = stageSizeRef.current;
+
+      if (!stageSize.width || !stageSize.height || baseScale <= 0) {
+        // Fallback to displayArea mapping if stage info not ready
         const displayX = displayArea.x + nx * displayArea.width;
         const displayY = displayArea.y + ny * displayArea.height;
         return { x: displayX, y: displayY };
       }
+
+      const stageX = baseOffset.x + videoX * baseScale;
+      const stageY = baseOffset.y + videoY * baseScale;
+
+      // Apply camera transform used by Pixi: scale about the focus then translate so focus is centered.
+      const focusX = animationState.focusX;
+      const focusY = animationState.focusY;
+      const zoom = zoomScale;
+
+      const focusStagePxX = focusX * stageSize.width;
+      const focusStagePxY = focusY * stageSize.height;
+
+      const stageCenterX = stageSize.width / 2;
+      const stageCenterY = stageSize.height / 2;
+
+      const screenX = stageCenterX + (stageX - focusStagePxX) * zoom;
+      const screenY = stageCenterY + (stageY - focusStagePxY) * zoom;
+
+      return { x: screenX, y: screenY };
     };
 
     const currentEvent = events[lastIndex];
@@ -695,8 +731,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     const x = displayPos.x;
     const y = displayPos.y;
     const dragging = currentEvent.dragging;
+    
+    
+    
     const baseSize = Math.max(6, cursorTrack.style.sizePx);
-    const cursorSize = dragging ? baseSize * 1.1 : baseSize;
+    // Apply zoom scale to cursor size so it scales with the video
+    const cursorSize = (dragging ? baseSize * 1.1 : baseSize) * zoomScale;
 
     const trailStartMs = Math.max(0, playheadMs - CURSOR_TRAIL_MS);
     const trailStartIndex = Math.min(lastIndex, findFirstIndex(events, trailStartMs));
@@ -718,7 +758,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       }
       if (pathStarted) {
         ctx.strokeStyle = dragging ? 'rgba(52,178,123,0.55)' : 'rgba(255,255,255,0.35)';
-        ctx.lineWidth = Math.max(1, baseSize * 0.12);
+        ctx.lineWidth = Math.max(1, baseSize * 0.12) * zoomScale;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
@@ -734,13 +774,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
         if (elapsed < 0 || elapsed > CURSOR_CLICK_MS) continue;
         const progress = elapsed / CURSOR_CLICK_MS;
         const alpha = 1 - progress;
-        const radius = baseSize * (0.5 + progress * 1.6);
+        const radius = baseSize * (0.5 + progress * 1.6) * zoomScale;
         const pos = normalizeToDisplay(ev.nx, ev.ny);
         if (!pos) continue; // Skip clicks outside visible area
         
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.7})`;
-        ctx.lineWidth = Math.max(1, baseSize * 0.08);
+        ctx.lineWidth = Math.max(1, baseSize * 0.08) * zoomScale;
         ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
         ctx.stroke();
       }
@@ -1201,8 +1241,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       />
     </div>
   );
-});
+}
 
-VideoPlayback.displayName = 'VideoPlayback';
+const ForwardedVideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(VideoPlayback);
 
-export default VideoPlayback;
+ForwardedVideoPlayback.displayName = "VideoPlayback";
+
+export default ForwardedVideoPlayback;
