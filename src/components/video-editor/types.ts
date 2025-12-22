@@ -5,6 +5,17 @@ export interface ZoomFocus {
   cy: number; // normalized vertical center (0-1)
 }
 
+export type ZoomFollowMode = 'center' | 'anchor';
+
+export interface ZoomFollowSettings {
+  enabled: boolean;
+  mode: ZoomFollowMode;
+  /** Delay for following in milliseconds (only used for 'center' mode smoothing) */
+  delayMs?: number;
+  /** Minimum padding (in pixels) from cursor to camera edge for 'anchor' mode */
+  minPaddingPx?: number;
+}
+
 export interface ZoomRegion {
   id: string;
   startMs: number;

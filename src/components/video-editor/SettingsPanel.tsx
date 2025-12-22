@@ -10,7 +10,7 @@ import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, CursorTrack, CursorStyle, CursorSmoothing, End2EndParams } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, CursorTrack, CursorStyle, CursorSmoothing, End2EndParams, ZoomFollowMode } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
@@ -88,6 +88,15 @@ interface SettingsPanelProps {
   onQuadraticSmoothingStrengthChange?: (v: number) => void;
   end2endParams?: End2EndParams;
   onEnd2endParamsChange?: (p: Partial<End2EndParams>) => void;
+  // Zoom follow settings
+  zoomFollowEnabled?: boolean;
+  onZoomFollowEnabledChange?: (enabled: boolean) => void;
+  zoomFollowMode?: ZoomFollowMode;
+  onZoomFollowModeChange?: (mode: ZoomFollowMode) => void;
+  zoomFollowDelayMs?: number;
+  onZoomFollowDelayMsChange?: (ms: number) => void;
+  zoomFollowMinPaddingPx?: number;
+  onZoomFollowMinPaddingPxChange?: (px: number) => void;
 }
 
 export default SettingsPanel;
@@ -143,6 +152,15 @@ export function SettingsPanel({
   onQuadraticSmoothingStrengthChange,
   end2endParams,
   onEnd2endParamsChange,
+  // Zoom follow defaults
+  zoomFollowEnabled = false,
+  onZoomFollowEnabledChange,
+  zoomFollowMode = 'center',
+  onZoomFollowModeChange,
+  zoomFollowDelayMs = 120,
+  onZoomFollowDelayMsChange,
+  zoomFollowMinPaddingPx = 24,
+  onZoomFollowMinPaddingPxChange,
 }: SettingsPanelProps) {
   const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
   const [customImages, setCustomImages] = useState<string[]>([]);
@@ -169,6 +187,17 @@ export function SettingsPanel({
   const [selectedColor, setSelectedColor] = useState('#ADADAD');
   const [gradient, setGradient] = useState<string>(GRADIENTS[0]);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
+  // Local follow state to allow toggling even if parent doesn't pass handler
+  const [zoomFollowEnabledLocal, setZoomFollowEnabledLocal] = useState<boolean>(Boolean((zoomFollowEnabled as boolean) || false));
+  useEffect(() => {
+    setZoomFollowEnabledLocal(Boolean(zoomFollowEnabled));
+  }, [zoomFollowEnabled]);
+  // Mirror to global fallback so VideoPlayback can read when parent doesn't wire props
+  useEffect(() => {
+    try {
+      (window as any).__openscreen_zoomFollowEnabled = Boolean(zoomFollowEnabledLocal);
+    } catch {}
+  }, [zoomFollowEnabledLocal]);
 
   const zoomEnabled = Boolean(selectedZoomDepth);
   const trimEnabled = Boolean(selectedTrimId);
@@ -496,6 +525,22 @@ export function SettingsPanel({
                 {ZOOM_DEPTH_OPTIONS.find(o => o.depth === selectedZoomDepth)?.label} Active
               </span>
             )}
+            {/* Compact Zoom Follow toggle placed in header for visibility (only when a zoom region is selected) */}
+            {selectedZoomId && (
+              <div className="flex items-center gap-2">
+                <div className="text-[11px] text-slate-400">Follow</div>
+                <Switch
+                  checked={zoomFollowEnabledLocal}
+                  onCheckedChange={(v) => {
+                    const next = typeof v === 'boolean' ? v : !zoomFollowEnabledLocal;
+                    setZoomFollowEnabledLocal(next);
+                    onZoomFollowEnabledChange?.(next);
+                    try { (window as any).__openscreen_zoomFollowEnabled = Boolean(next); } catch {}
+                  }}
+                  className="data-[state=checked]:bg-[#34B27B] h-6 w-10"
+                />
+              </div>
+            )}
             <KeyboardShortcutsHelp />
           </div>
         </div>
@@ -535,6 +580,75 @@ export function SettingsPanel({
             <Trash2 className="w-4 h-4" />
             Delete Zoom Region
           </Button>
+        )}
+        {/* Zoom Follow Controls: only visible when a zoom region is selected */}
+        {selectedZoomId && (
+          <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-slate-200">Zoom Follow</div>
+              {/* Mirror local state in main control */}
+              <Switch
+                checked={zoomFollowEnabledLocal}
+                onCheckedChange={(v) => {
+                  const next = typeof v === 'boolean' ? v : !zoomFollowEnabledLocal;
+                  setZoomFollowEnabledLocal(next);
+                  onZoomFollowEnabledChange?.(next);
+                }}
+                className="data-[state=checked]:bg-[#34B27B]"
+              />
+            </div>
+            {zoomFollowEnabledLocal && (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs text-slate-400 mb-1">Mode</div>
+                  <Select
+                    value={zoomFollowMode || 'center'}
+                    onValueChange={(v) => onZoomFollowModeChange?.(v as ZoomFollowMode)}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-black/30 border-white/10 text-slate-200">
+                      <SelectValue placeholder="Mode" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-white/10 text-slate-200">
+                      <SelectItem value="center">Center on cursor</SelectItem>
+                      <SelectItem value="anchor">Comming soon...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {zoomFollowMode === 'center' && (
+                  <div>
+                    <div className="text-xs text-slate-400 mb-1">Delay (ms)</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={zoomFollowDelayMs}
+                        onChange={(e) => onZoomFollowDelayMsChange?.(Number(e.target.value))}
+                        className="w-full p-2 rounded bg-black/20 text-slate-200"
+                        min={0}
+                      />
+                      <div className="text-xs text-slate-400">ms</div>
+                    </div>
+                  </div>
+                )}
+
+                {zoomFollowMode === 'anchor' && (
+                  <div>
+                    <div className="text-xs text-slate-400 mb-1">Min padding (px)</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={zoomFollowMinPaddingPx}
+                        onChange={(e) => onZoomFollowMinPaddingPxChange?.(Number(e.target.value))}
+                        className="w-full p-2 rounded bg-black/20 text-slate-200"
+                        min={0}
+                      />
+                      <div className="text-xs text-slate-400">px</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

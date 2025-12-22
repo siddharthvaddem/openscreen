@@ -66,6 +66,11 @@ interface VideoPlaybackProps {
   cursorSmoothing?: CursorSmoothing;
   quadraticSmoothingStrength?: number;
   end2endParams?: End2EndParams;
+  // Zoom follow options (optional)
+  zoomFollowEnabled?: boolean;
+  zoomFollowMode?: 'center' | 'anchor';
+  zoomFollowDelayMs?: number;
+  zoomFollowMinPaddingPx?: number;
 }
 
 export interface VideoPlaybackRef {
@@ -111,6 +116,11 @@ function VideoPlayback(
   cursorSmoothing = 'none',
   quadraticSmoothingStrength,
   end2endParams,
+  // Zoom follow props
+  zoomFollowEnabled = false,
+  zoomFollowMode = 'center',
+  zoomFollowDelayMs = 120,
+  zoomFollowMinPaddingPx = 24,
   }: VideoPlaybackProps,
   ref: React.Ref<VideoPlaybackRef>
 ) {
@@ -299,6 +309,36 @@ function VideoPlayback(
 
   const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
     return clampFocusToStageUtil(focus, depth, stageSizeRef.current);
+  }, []);
+
+  // Helper: compute stage pixel coords (pre-camera transform) from normalized video coords (nx, ny)
+  const getStageCoordsFromNormalized = useCallback((nx: number, ny: number) => {
+    const lockedDims = lockedVideoDimensionsRef.current;
+    if (!lockedDims || lockedDims.width === 0 || lockedDims.height === 0) return null;
+
+    const fullVideoWidth = lockedDims.width;
+    const fullVideoHeight = lockedDims.height;
+
+    const videoX = nx * fullVideoWidth;
+    const videoY = ny * fullVideoHeight;
+
+    const cropBounds = cropBoundsRef.current;
+    if (cropBounds.endX > cropBounds.startX && cropBounds.endY > cropBounds.startY) {
+      if (videoX < cropBounds.startX || videoX > cropBounds.endX ||
+          videoY < cropBounds.startY || videoY > cropBounds.endY) {
+        return null;
+      }
+    }
+
+    const baseScale = baseScaleRef.current;
+    const baseOffset = baseOffsetRef.current;
+    if (!stageSizeRef.current.width || !stageSizeRef.current.height || baseScale <= 0) {
+      return null;
+    }
+
+    const stageX = baseOffset.x + videoX * baseScale;
+    const stageY = baseOffset.y + videoY * baseScale;
+    return { stageX, stageY };
   }, []);
 
   const updateOverlayForRegion = useCallback((region: ZoomRegion | null, focusOverride?: ZoomFocus) => {
@@ -491,6 +531,159 @@ function VideoPlayback(
   useEffect(() => {
     selectedZoomIdRef.current = selectedZoomId;
   }, [selectedZoomId]);
+
+  // Follow anchor ref and keep props in refs for synchronous access in ticker
+  const followAnchorRef = useRef<ZoomFocus | null>(null);
+  const zoomFollowEnabledRef = useRef<boolean>(zoomFollowEnabled);
+  const zoomFollowModeRef = useRef<'center' | 'anchor'>(zoomFollowMode);
+  const zoomFollowDelayMsRef = useRef<number>(zoomFollowDelayMs);
+  const zoomFollowMinPaddingPxRef = useRef<number>(zoomFollowMinPaddingPx);
+  // Cursor smoothing refs
+  const cursorSmoothingRef = useRef<CursorSmoothing>(cursorSmoothing);
+  const quadraticStrengthRef = useRef<number | undefined>(quadraticSmoothingStrength);
+  const end2endParamsRefLocal = useRef<End2EndParams | undefined>(end2endParams);
+
+  useEffect(() => { cursorSmoothingRef.current = cursorSmoothing; }, [cursorSmoothing]);
+  useEffect(() => { quadraticStrengthRef.current = quadraticSmoothingStrength; }, [quadraticSmoothingStrength]);
+  useEffect(() => { end2endParamsRefLocal.current = end2endParams; }, [end2endParams]);
+
+  useEffect(() => { zoomFollowEnabledRef.current = zoomFollowEnabled; }, [zoomFollowEnabled]);
+  useEffect(() => { zoomFollowModeRef.current = zoomFollowMode as 'center' | 'anchor'; }, [zoomFollowMode]);
+  useEffect(() => { zoomFollowDelayMsRef.current = zoomFollowDelayMs; }, [zoomFollowDelayMs]);
+  useEffect(() => { zoomFollowMinPaddingPxRef.current = zoomFollowMinPaddingPx; }, [zoomFollowMinPaddingPx]);
+
+  // Reset anchor when selected zoom changes (start fresh anchoring)
+  useEffect(() => {
+    followAnchorRef.current = null;
+  }, [selectedZoomId]);
+  // Also watch global fallback values (in case parent didn't wire up callbacks)
+  useEffect(() => {
+    try {
+      if ((window as any).__openscreen_zoomFollowEnabled !== undefined) {
+        zoomFollowEnabledRef.current = Boolean((window as any).__openscreen_zoomFollowEnabled);
+      }
+      if ((window as any).__openscreen_zoomFollowMode) {
+        zoomFollowModeRef.current = (window as any).__openscreen_zoomFollowMode;
+      }
+      if ((window as any).__openscreen_zoomFollowDelayMs !== undefined) {
+        zoomFollowDelayMsRef.current = Number((window as any).__openscreen_zoomFollowDelayMs);
+      }
+      if ((window as any).__openscreen_zoomFollowMinPaddingPx !== undefined) {
+        zoomFollowMinPaddingPxRef.current = Number((window as any).__openscreen_zoomFollowMinPaddingPx);
+      }
+    } catch {}
+  }, []);
+
+  // When follow is enabled or mode changes to 'center', snap the camera to the
+  // smoothed cursor position immediately and clear any anchor so the ticker will
+  // continue following the cursor using the configured smoothing mode.
+  useEffect(() => {
+    if (!pixiReady || !videoReady) return;
+    // Only run when parent props or global mode enable center-follow.
+    const shouldSnap =
+      Boolean(zoomFollowEnabledRef.current || (typeof window !== 'undefined' && (window as any).__openscreen_zoomFollowEnabled)) &&
+      (zoomFollowModeRef.current === 'center' || (typeof window !== 'undefined' && (window as any).__openscreen_zoomFollowMode === 'center'));
+    if (!shouldSnap) return;
+
+    try {
+      if (!cursorTrack || !cursorTrack.events || cursorTrack.events.length === 0) return;
+
+      const events = cursorTrack.events;
+      const offsetFromStyle = cursorTrack.style?.offsetMs ?? DEFAULT_CURSOR_STYLE.offsetMs ?? 0;
+      const playheadMs = Math.round(currentTimeRef.current) + offsetFromStyle;
+      const lastIdx = findLastIndex(events, playheadMs);
+      if (lastIdx < 0) return;
+
+      // Interpolate between events to get precise normalized position
+      let nx = events[lastIdx].nx;
+      let ny = events[lastIdx].ny;
+      const nextEv = events[lastIdx + 1];
+      const curEv = events[lastIdx];
+      if (nextEv && nextEv.tMs > curEv.tMs) {
+        const frac = Math.max(0, Math.min(1, (playheadMs - curEv.tMs) / (nextEv.tMs - curEv.tMs)));
+        nx = curEv.nx + (nextEv.nx - curEv.nx) * frac;
+        ny = curEv.ny + (nextEv.ny - curEv.ny) * frac;
+      }
+
+      const stagePt = getStageCoordsFromNormalized(nx, ny);
+      const stageSize = stageSizeRef.current;
+      if (!stagePt || !stageSize.width || !stageSize.height) return;
+
+      const smoothingMode = cursorSmoothingRef.current || 'none';
+      let targetCx = clamp01(stagePt.stageX / stageSize.width);
+      let targetCy = clamp01(stagePt.stageY / stageSize.height);
+
+      if (smoothingMode === 'end2end' && end2endParamsRefLocal.current) {
+        const displayEventsForCursor: { tMs: number; x: number; y: number; kind: any; dragging: boolean }[] = [];
+        for (let i = 0; i < events.length; i += 1) {
+          const ev = events[i];
+          const pos = getStageCoordsFromNormalized(ev.nx, ev.ny);
+          if (!pos) continue;
+          displayEventsForCursor.push({
+            tMs: ev.tMs,
+            x: pos.stageX + (cursorTrack.style?.offsetX ?? DEFAULT_CURSOR_STYLE.offsetX ?? 0),
+            y: pos.stageY + (cursorTrack.style?.offsetY ?? DEFAULT_CURSOR_STYLE.offsetY ?? 0),
+            kind: ev.kind,
+            dragging: ev.dragging,
+          });
+        }
+        const pausePoints = extractPausePointsFromDisplayEvents(displayEventsForCursor, end2endParamsRefLocal.current);
+        const arrivalFrac = typeof end2endParamsRefLocal.current.arrivalFraction === 'number' ? end2endParamsRefLocal.current.arrivalFraction : 1.0;
+        const evaluated = evaluatePositionOnCRByTime(pausePoints, playheadMs, arrivalFrac);
+        if (evaluated) {
+          targetCx = clamp01(evaluated.x / stageSize.width);
+          targetCy = clamp01(evaluated.y / stageSize.height);
+        }
+      } else if (smoothingMode === 'quadratic') {
+        const strength = typeof quadraticStrengthRef.current === 'number' ? quadraticStrengthRef.current : 0.5;
+        const windowSize = Math.max(1, Math.round(1 + strength * 6));
+        const startIdx = Math.max(0, lastIdx - windowSize + 1);
+        let sumX = 0;
+        let sumY = 0;
+        let cnt = 0;
+        for (let i = startIdx; i <= lastIdx; i += 1) {
+          const ev = events[i];
+          const pos = getStageCoordsFromNormalized(ev.nx, ev.ny);
+          if (!pos) continue;
+          const w = 1 + (i - startIdx);
+          sumX += pos.stageX * w;
+          sumY += pos.stageY * w;
+          cnt += w;
+        }
+        if (cnt > 0) {
+          const avgX = sumX / cnt;
+          const avgY = sumY / cnt;
+          targetCx = clamp01(avgX / stageSize.width);
+          targetCy = clamp01(avgY / stageSize.height);
+        }
+      }
+
+      // Clear any anchor and snap animation state to the smoothed cursor target so
+      // ticker will continue to update from there.
+      followAnchorRef.current = null;
+      animationStateRef.current.focusX = targetCx;
+      animationStateRef.current.focusY = targetCy;
+
+      // Immediately apply transform so user sees the snap without waiting a tick.
+      const cameraContainer = cameraContainerRef.current;
+      if (cameraContainer) {
+        applyZoomTransform({
+          cameraContainer,
+          blurFilter: blurFilterRef.current,
+          stageSize: stageSizeRef.current,
+          baseMask: baseMaskRef.current,
+          zoomScale: animationStateRef.current.scale,
+          focusX: animationStateRef.current.focusX,
+          focusY: animationStateRef.current.focusY,
+          motionIntensity: 0,
+          isPlaying: isPlayingRef.current,
+          motionBlurEnabled: motionBlurEnabledRef.current,
+        });
+      }
+    } catch (err) {
+      // swallow; this is an opportunistic snap
+    }
+  }, [pixiReady, videoReady]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -1167,6 +1360,155 @@ function VideoPlayback(
           cx: defaultFocus.cx + (regionFocus.cx - defaultFocus.cx) * strength,
           cy: defaultFocus.cy + (regionFocus.cy - defaultFocus.cy) * strength,
         };
+      }
+
+      // Apply zoom-follow behavior if enabled (read from refs or global fallback)
+      const followEnabled = Boolean(zoomFollowEnabledRef.current || (typeof window !== 'undefined' && (window as any).__openscreen_zoomFollowEnabled));
+      // Only enable follow when parent/global follow is enabled AND there is an active
+      // zoom region (strength > 0). This ensures we only follow during zoom and its
+      // fade-in/fade-out period.
+      if (followEnabled && region && strength > 0 && cursorTrack && cursorTrack.events && cursorTrack.events.length > 0) {
+        try {
+          // Debug logging when enabled
+          try {
+            if ((window as any).__openscreen_debugZoomFollow) {
+              console.debug('[zoomFollow] enabled', { followEnabled, zoomFollowMode: zoomFollowModeRef.current, selectedId: selectedZoomIdRef.current, region, strength, targetScaleFactor });
+            }
+          } catch {}
+          const events = cursorTrack.events;
+          const offsetFromStyle = cursorTrack.style?.offsetMs ?? DEFAULT_CURSOR_STYLE.offsetMs ?? 0;
+          const playheadMs = Math.round(currentTimeRef.current) + offsetFromStyle;
+
+          // Compute a smoothed follow target even if playhead is outside immediate event bounds.
+          const stageSize = stageSizeRef.current;
+          if (events.length > 0 && stageSize.width && stageSize.height) {
+            // Default followTarget is the current region targetFocus
+            let followTarget = { cx: targetFocus.cx, cy: targetFocus.cy };
+            const smoothingMode = cursorSmoothingRef.current || 'none';
+
+            if (smoothingMode === 'end2end' && end2endParamsRefLocal.current) {
+              const displayEventsForCursor: { tMs: number; x: number; y: number; kind: any; dragging: boolean }[] = [];
+              for (let i = 0; i < events.length; i += 1) {
+                const ev = events[i];
+                const pos = getStageCoordsFromNormalized(ev.nx, ev.ny);
+                if (!pos) continue;
+                displayEventsForCursor.push({
+                  tMs: ev.tMs,
+                  x: pos.stageX + (cursorTrack.style?.offsetX ?? DEFAULT_CURSOR_STYLE.offsetX ?? 0),
+                  y: pos.stageY + (cursorTrack.style?.offsetY ?? DEFAULT_CURSOR_STYLE.offsetY ?? 0),
+                  kind: ev.kind,
+                  dragging: ev.dragging,
+                });
+              }
+              const pausePoints = extractPausePointsFromDisplayEvents(displayEventsForCursor, end2endParamsRefLocal.current);
+              const arrivalFrac = typeof end2endParamsRefLocal.current.arrivalFraction === 'number' ? end2endParamsRefLocal.current.arrivalFraction : 1.0;
+              const evaluated = evaluatePositionOnCRByTime(pausePoints, playheadMs, arrivalFrac);
+              if (evaluated) {
+                followTarget = { cx: clamp01(evaluated.x / stageSize.width), cy: clamp01(evaluated.y / stageSize.height) };
+              } else {
+                // Fallback to last-known event position
+                const lastIdx = findLastIndex(events, playheadMs);
+                if (lastIdx >= 0) {
+                  const pos = getStageCoordsFromNormalized(events[lastIdx].nx, events[lastIdx].ny);
+                  if (pos) followTarget = { cx: clamp01(pos.stageX / stageSize.width), cy: clamp01(pos.stageY / stageSize.height) };
+                }
+              }
+            } else if (smoothingMode === 'quadratic') {
+              const lastIdx = findLastIndex(events, playheadMs);
+              const strength = typeof quadraticStrengthRef.current === 'number' ? quadraticStrengthRef.current : 0.5;
+              const windowSize = Math.max(1, Math.round(1 + strength * 6));
+              const startIdx = Math.max(0, (lastIdx >= 0 ? lastIdx : events.length - 1) - windowSize + 1);
+              let sumX = 0;
+              let sumY = 0;
+              let cnt = 0;
+              for (let i = startIdx; i < events.length && i <= startIdx + windowSize; i += 1) {
+                const ev = events[i];
+                const pos = getStageCoordsFromNormalized(ev.nx, ev.ny);
+                if (!pos) continue;
+                const w = 1 + (i - startIdx);
+                sumX += pos.stageX * w;
+                sumY += pos.stageY * w;
+                cnt += w;
+              }
+              if (cnt > 0) {
+                const avgX = sumX / cnt;
+                const avgY = sumY / cnt;
+                followTarget = { cx: clamp01(avgX / stageSize.width), cy: clamp01(avgY / stageSize.height) };
+              } else {
+                const lastIdx2 = findLastIndex(events, playheadMs);
+                if (lastIdx2 >= 0) {
+                  const pos = getStageCoordsFromNormalized(events[lastIdx2].nx, events[lastIdx2].ny);
+                  if (pos) followTarget = { cx: clamp01(pos.stageX / stageSize.width), cy: clamp01(pos.stageY / stageSize.height) };
+                }
+              }
+            } else {
+              // none: use interpolated normalized position if possible
+              const lastIdx = findLastIndex(events, playheadMs);
+              if (lastIdx >= 0) {
+                let nx = events[lastIdx].nx;
+                let ny = events[lastIdx].ny;
+                const nextEv = events[lastIdx + 1];
+                const curEv = events[lastIdx];
+                if (nextEv && nextEv.tMs > curEv.tMs) {
+                  const frac = Math.max(0, Math.min(1, (playheadMs - curEv.tMs) / (nextEv.tMs - curEv.tMs)));
+                  nx = curEv.nx + (nextEv.nx - curEv.nx) * frac;
+                  ny = curEv.ny + (nextEv.ny - curEv.ny) * frac;
+                }
+                const pos = getStageCoordsFromNormalized(nx, ny);
+                if (pos) followTarget = { cx: clamp01(pos.stageX / stageSize.width), cy: clamp01(pos.stageY / stageSize.height) };
+              }
+            }
+
+            const followMode = zoomFollowModeRef.current || (typeof window !== 'undefined' && (window as any).__openscreen_zoomFollowMode) || 'center';
+            if (followMode === 'center') {
+              targetFocus = followTarget;
+            } else {
+              // Anchor mode: adjust anchor when cursor near edge
+              if (!followAnchorRef.current) {
+                followAnchorRef.current = { cx: followTarget.cx, cy: followTarget.cy };
+              }
+              const anchor = followAnchorRef.current;
+              const anchorStageX = anchor.cx * stageSize.width;
+              const anchorStageY = anchor.cy * stageSize.height;
+              const zoom = targetScaleFactor;
+              const viewW = Math.max(1, stageSize.width / zoom);
+              const viewH = Math.max(1, stageSize.height / zoom);
+              const pad = zoomFollowMinPaddingPxRef.current ?? (typeof window !== 'undefined' ? (window as any).__openscreen_zoomFollowMinPaddingPx ?? 24 : 24);
+
+              let newAnchorStageX = anchorStageX;
+              let newAnchorStageY = anchorStageY;
+              const cursorStageX = followTarget.cx * stageSize.width;
+              const cursorStageY = followTarget.cy * stageSize.height;
+
+              const left = anchorStageX - viewW / 2 + pad;
+              const right = anchorStageX + viewW / 2 - pad;
+              if (cursorStageX < left) {
+                newAnchorStageX = cursorStageX + viewW / 2 - pad;
+              } else if (cursorStageX > right) {
+                newAnchorStageX = cursorStageX - viewW / 2 + pad;
+              }
+
+              const top = anchorStageY - viewH / 2 + pad;
+              const bottom = anchorStageY + viewH / 2 - pad;
+              if (cursorStageY < top) {
+                newAnchorStageY = cursorStageY + viewH / 2 - pad;
+              } else if (cursorStageY > bottom) {
+                newAnchorStageY = cursorStageY - viewH / 2 + pad;
+              }
+
+              const clampedX = clamp01(newAnchorStageX / stageSize.width);
+              const clampedY = clamp01(newAnchorStageY / stageSize.height);
+              followAnchorRef.current = { cx: clampedX, cy: clampedY };
+              targetFocus = { cx: clampedX, cy: clampedY };
+            }
+          }
+        } catch (err) {
+          // swallow errors in optional follow logic
+        }
+      } else {
+        // Not following right now: clear any existing anchor so we don't persist an
+        // anchored follow once the zoom region exits.
+        followAnchorRef.current = null;
       }
 
       const state = animationStateRef.current;
