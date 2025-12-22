@@ -92,6 +92,32 @@ export const DEFAULT_FIGURE_DATA: FigureData = {
   strokeWidth: 4,
 };
 
+export type CursorPreset = 'arrow' | 'dot' | 'circle';
+
+export interface CursorEvent {
+  tMs: number;
+  nx: number;
+  ny: number;
+  kind: 'move' | 'down' | 'up';
+  dragging: boolean;
+  button?: number;
+}
+
+export interface CursorStyle {
+  preset: CursorPreset;
+  sizePx: number;
+}
+
+export interface CursorTrack {
+  events: CursorEvent[];
+  style: CursorStyle;
+}
+
+export const DEFAULT_CURSOR_STYLE: CursorStyle = {
+  preset: 'arrow',
+  sizePx: 18,
+};
+
 
 
 export interface CropRegion {
