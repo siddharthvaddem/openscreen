@@ -108,6 +108,23 @@ export interface CursorStyle {
   sizePx: number;
 }
 
+export type CursorSmoothing = 'none' | 'quadratic' | 'end2end';
+
+export interface End2EndParams {
+  // How long the mouse must remain approximately still to count as a drop (ms)
+  dwellTimeMs: number;
+  // Allowed movement (in pixels) while 'still' before we consider it jitter
+  stillEpsilonPx: number;
+  // Minimum pixel distance between two generated endpoints
+  minJumpDistancePx: number;
+  // Minimum time between two generated endpoints (ms)
+  minTimeBetweenEndpointsMs: number;
+  // Fraction of the segment duration used to transit between pause points.
+  // Remaining time is spent waiting at the destination pause point.
+  // Range: 0.2 - 1.0 (1.0 = no waiting, full duration used to move)
+  arrivalFraction?: number;
+}
+
 export interface CursorTrack {
   events: CursorEvent[];
   style: CursorStyle;
