@@ -10,7 +10,7 @@ import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, CursorTrack, CursorStyle } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, CursorTrack, CursorStyle, CursorSmoothing, End2EndParams } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
@@ -82,6 +82,12 @@ interface SettingsPanelProps {
   cursorTrack?: CursorTrack | null;
   selectedCursorId?: string | null;
   onCursorStyleChange?: (style: Partial<CursorStyle>) => void;
+  cursorSmoothing?: CursorSmoothing;
+  onCursorSmoothingChange?: (s: CursorSmoothing) => void;
+  quadraticSmoothingStrength?: number;
+  onQuadraticSmoothingStrengthChange?: (v: number) => void;
+  end2endParams?: End2EndParams;
+  onEnd2endParamsChange?: (p: Partial<End2EndParams>) => void;
 }
 
 export default SettingsPanel;
@@ -131,6 +137,12 @@ export function SettingsPanel({
   cursorTrack,
   selectedCursorId,
   onCursorStyleChange,
+  cursorSmoothing,
+  onCursorSmoothingChange,
+  quadraticSmoothingStrength,
+  onQuadraticSmoothingStrengthChange,
+  end2endParams,
+  onEnd2endParamsChange,
 }: SettingsPanelProps) {
   const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
   const [customImages, setCustomImages] = useState<string[]>([]);
@@ -281,6 +293,112 @@ export function SettingsPanel({
                 </SelectContent>
               </Select>
             </div>
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
+              <div className="text-xs font-medium text-slate-200">Path Smoothing</div>
+              <Select
+                value={cursorSmoothing || 'none'}
+                onValueChange={(value) => onCursorSmoothingChange?.(value as CursorSmoothing)}
+              >
+                <SelectTrigger className="h-8 text-xs bg-black/30 border-white/10 text-slate-200">
+                  <SelectValue placeholder="Smoothing" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-white/10 text-slate-200">
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="quadratic">Quadratic</SelectItem>
+                  <SelectItem value="end2end">super end2end (smooth endpoints)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {cursorSmoothing === 'quadratic' && (
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-3">
+                <div className="text-xs font-medium text-slate-200">Quadratic smoothing strength</div>
+                <div className="text-xs text-slate-400">Adjust how strongly quadratic smoothing curves the path</div>
+                <Slider
+                  value={[typeof quadraticSmoothingStrength === 'number' ? quadraticSmoothingStrength * 100 : 50]}
+                  onValueChange={(vals) => onQuadraticSmoothingStrengthChange?.(Math.max(0, Math.min(1, vals[0] / 100)))}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="w-full [&_[role=slider]]:bg-[#4C8BF5] [&_[role=slider]]:border-[#4C8BF5]"
+                />
+                <div className="text-xs text-slate-400 text-right">{Math.round((quadraticSmoothingStrength ?? 0.5) * 100)}%</div>
+              </div>
+            )}
+            {cursorSmoothing === 'end2end' && end2endParams && (
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-3">
+                <div className="text-xs font-medium text-slate-200">Dwell detection time</div>
+                <div className="text-xs text-slate-400">How long the mouse must remain approximately still to count as a drop point</div>
+                <Slider
+                  value={[end2endParams.dwellTimeMs]}
+                  onValueChange={(vals) => onEnd2endParamsChange?.({ dwellTimeMs: vals[0] })}
+                  min={200}
+                  max={600}
+                  step={10}
+                  className="w-full [&_[role=slider]]:bg-[#4C8BF5] [&_[role=slider]]:border-[#4C8BF5]"
+                />
+
+                <div className="text-xs font-medium text-slate-200">Dwell sensitivity</div>
+                <div className="text-xs text-slate-400">Allowed small movement while considered 'still'</div>
+                <Select
+                  value={(() => {
+                    const v = end2endParams.stillEpsilonPx;
+                    if (v <= 2) return 'low';
+                    if (v >= 5) return 'high';
+                    return 'medium';
+                  })()}
+                  onValueChange={(val) => {
+                    const mapping: Record<string, number> = { low: 2, medium: 3, high: 5 };
+                    onEnd2endParamsChange?.({ stillEpsilonPx: mapping[val] ?? 3 });
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-black/30 border-white/10 text-slate-200">
+                    <SelectValue placeholder="Sensitivity" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-white/10 text-slate-200">
+                    <SelectItem value="low">Low (stricter)</SelectItem>
+                    <SelectItem value="medium">Medium (default)</SelectItem>
+                    <SelectItem value="high">High (looser)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="text-xs font-medium text-slate-200">Min move distance for new drop</div>
+                <div className="text-xs text-slate-400">Prevent generating multiple drop points at the same location</div>
+                <Slider
+                  value={[end2endParams.minJumpDistancePx]}
+                  onValueChange={(vals) => onEnd2endParamsChange?.({ minJumpDistancePx: vals[0] })}
+                  min={10}
+                  max={40}
+                  step={1}
+                  className="w-full [&_[role=slider]]:bg-[#4C8BF5] [&_[role=slider]]:border-[#4C8BF5]"
+                />
+
+                <div className="text-xs font-medium text-slate-200">Minimum interval between drop points</div>
+                <div className="text-xs text-slate-400">Minimum time between two generated drop points (ms)</div>
+                <input
+                  type="number"
+                  value={end2endParams.minTimeBetweenEndpointsMs}
+                  onChange={(e) => onEnd2endParamsChange?.({ minTimeBetweenEndpointsMs: Number(e.target.value) })}
+                  min={100}
+                  max={500}
+                  step={10}
+                  className="w-full p-2 rounded bg-black/20 text-slate-200"
+                />
+
+                <div className="text-xs font-medium text-slate-200">Arrival fraction</div>
+                <div className="text-xs text-slate-400">Fraction of the segment duration used to move between drop points; smaller values make the cursor arrive and pause</div>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    value={[Math.round((end2endParams.arrivalFraction ?? 1) * 100)]}
+                    onValueChange={(vals) => onEnd2endParamsChange?.({ arrivalFraction: Math.max(0.2, Math.min(1, vals[0] / 100)) })}
+                    min={20}
+                    max={100}
+                    step={5}
+                    className="w-full [&_[role=slider]]:bg-[#4C8BF5] [&_[role=slider]]:border-[#4C8BF5]"
+                  />
+                  <div className="text-xs text-slate-400 w-12 text-right">{Math.round((end2endParams.arrivalFraction ?? 1) * 100)}%</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
