@@ -10,6 +10,7 @@ import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
 import type { ZoomRegion, TrimRegion, AnnotationRegion, CursorTrack } from "../types";
+import { Switch } from "@/components/ui/switch";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -55,6 +56,10 @@ interface TimelineEditorProps {
   onSelectCursor?: (id: string | null) => void;
   aspectRatio: AspectRatio;
   onAspectRatioChange: (aspectRatio: AspectRatio) => void;
+  cursorEnabled?: boolean;
+  onCursorEnabledChange?: (enabled: boolean) => void;
+  cursorSmoothing?: CursorSmoothing;
+  onCursorSmoothingChange?: (smoothing: CursorSmoothing) => void;
 }
 
 interface TimelineScaleConfig {
@@ -539,6 +544,10 @@ export default function TimelineEditor({
   cursorTrack,
   selectedCursorId,
   onSelectCursor,
+  cursorEnabled,
+  onCursorEnabledChange,
+  cursorSmoothing,
+  onCursorSmoothingChange,
   aspectRatio,
   onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -854,7 +863,7 @@ export default function TimelineEditor({
       };
     });
 
-    const cursors: TimelineRenderItem[] = cursorTrack && cursorTrack.events.length > 0 && totalMs > 0
+    const cursors: TimelineRenderItem[] = cursorEnabled && cursorTrack && cursorTrack.events.length > 0 && totalMs > 0
       ? [{
           id: CURSOR_ITEM_ID,
           rowId: CURSOR_ROW_ID,
@@ -952,6 +961,17 @@ export default function TimelineEditor({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+        {/* Cursor enable switch */}
+        <div className="flex items-center gap-3 ml-3">
+          <div className="flex items-center gap-2 p-1 rounded-md bg-white/5 border border-white/5">
+            <div className="text-xs font-medium text-slate-200 mr-2">Cursor</div>
+            <Switch
+              checked={Boolean(cursorEnabled)}
+              onCheckedChange={(v) => onCursorEnabledChange?.(Boolean(v))}
+              className="data-[state=checked]:bg-[#34B27B]"
+            />
+          </div>
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
