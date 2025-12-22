@@ -18,7 +18,10 @@ import {
   type TrimRegion,
   type AnnotationRegion,
   type CursorTrack,
+  type CursorSmoothing,
+  type End2EndParams,
 } from "./types";
+import { extractPausePointsFromDisplayEvents, evaluatePositionOnCRByTime, sampleCRPath } from "./end2endSmoother";
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from "./videoPlayback/constants";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { findDominantRegion } from "./videoPlayback/zoomRegionUtils";
@@ -58,6 +61,10 @@ interface VideoPlaybackProps {
   onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
   onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
   cursorTrack?: CursorTrack | null;
+  cursorEnabled?: boolean;
+  cursorSmoothing?: CursorSmoothing;
+  quadraticSmoothingStrength?: number;
+  end2endParams?: End2EndParams;
 }
 
 export interface VideoPlaybackRef {
@@ -98,7 +105,11 @@ function VideoPlayback(
     onSelectAnnotation,
     onAnnotationPositionChange,
     onAnnotationSizeChange,
-    cursorTrack,
+  cursorTrack,
+    cursorEnabled = true,
+  cursorSmoothing = 'none',
+  quadraticSmoothingStrength,
+  end2endParams,
   }: VideoPlaybackProps,
   ref: React.Ref<VideoPlaybackRef>
 ) {
@@ -640,7 +651,7 @@ function VideoPlayback(
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    if (!cursorTrack || cursorTrack.events.length === 0) {
+    if (!cursorEnabled || !cursorTrack || cursorTrack.events.length === 0) {
       return;
     }
 
@@ -724,44 +735,187 @@ function VideoPlayback(
       return { x: screenX, y: screenY };
     };
 
-    const currentEvent = events[lastIndex];
-    const displayPos = normalizeToDisplay(currentEvent.nx, currentEvent.ny);
-    if (!displayPos) return; // Coordinate is outside visible area
-    
-    const x = displayPos.x;
-    const y = displayPos.y;
-    const dragging = currentEvent.dragging;
-    
-    
+    // Compute current cursor position. For end2end mode we derive position
+    // from the detected endpoints (straight-line interpolation by time).
+    const smoothing = cursorSmoothing || 'none';
+    let x: number;
+    let y: number;
+    let dragging = false;
+
+    if (smoothing === 'end2end' && end2endParams) {
+      // Build display-space move events from the ENTIRE track (not limited to lastIndex).
+      // Pause points require knowledge of subsequent motion beginnings, so we must
+      // analyze the full event stream to correctly identify pause points.
+      const displayEventsForCursor: { tMs: number; x: number; y: number; kind: any; dragging: boolean }[] = [];
+      for (let i = 0; i < events.length; i += 1) {
+        const ev = events[i];
+        const pos = normalizeToDisplay(ev.nx, ev.ny);
+        if (!pos) continue;
+        displayEventsForCursor.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+      }
+      const pausePoints = extractPausePointsFromDisplayEvents(displayEventsForCursor, end2endParams);
+      const arrivalFrac = typeof end2endParams.arrivalFraction === 'number' ? end2endParams.arrivalFraction : 1.0;
+      const pos = evaluatePositionOnCRByTime(pausePoints, playheadMs, arrivalFrac);
+      if (!pos) return;
+      x = pos.x;
+      y = pos.y;
+      dragging = false;
+    } else {
+      const currentEvent = events[lastIndex];
+      const displayPos = normalizeToDisplay(currentEvent.nx, currentEvent.ny);
+      if (!displayPos) return; // Coordinate is outside visible area
+
+      x = displayPos.x;
+      y = displayPos.y;
+      dragging = currentEvent.dragging;
+    }
     
     const baseSize = Math.max(6, cursorTrack.style.sizePx);
     // Apply zoom scale to cursor size so it scales with the video
     const cursorSize = (dragging ? baseSize * 1.1 : baseSize) * zoomScale;
 
-    const trailStartMs = Math.max(0, playheadMs - CURSOR_TRAIL_MS);
-    const trailStartIndex = Math.min(lastIndex, findFirstIndex(events, trailStartMs));
+    // If playback is paused, draw the full cursor path so user can inspect smoothing
+    const isPlaying = isPlayingRef.current;
+    let trailStartIndex = 0;
 
-    if (lastIndex - trailStartIndex >= 1) {
-      ctx.beginPath();
-      let pathStarted = false;
-      for (let i = trailStartIndex; i <= lastIndex; i += 1) {
-        const ev = events[i];
-        const pos = normalizeToDisplay(ev.nx, ev.ny);
-        if (!pos) continue; // Skip points outside visible area
-        
-        if (!pathStarted) {
-          ctx.moveTo(pos.x, pos.y);
-          pathStarted = true;
-        } else {
-          ctx.lineTo(pos.x, pos.y);
+    if (!isPlaying) {
+      // Draw full path (or endpoints) when paused so user can inspect smoothing
+      if (smoothing === 'end2end' && end2endParams) {
+        // Build display-space move events
+        const displayEvents: { tMs: number; x: number; y: number; kind: any; dragging: boolean }[] = [];
+        for (let i = 0; i < events.length; i += 1) {
+          const ev = events[i];
+          const pos = normalizeToDisplay(ev.nx, ev.ny);
+          if (!pos) continue;
+          displayEvents.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+        }
+        const pausePoints = extractPausePointsFromDisplayEvents(displayEvents, end2endParams);
+        if (pausePoints.length >= 2) {
+          const sampled = sampleCRPath(pausePoints, 12);
+          if (sampled.length >= 2) {
+            ctx.beginPath();
+            ctx.moveTo(sampled[0].x, sampled[0].y);
+            for (let k = 1; k < sampled.length; k += 1) {
+              ctx.lineTo(sampled[k].x, sampled[k].y);
+            }
+            ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+            ctx.lineWidth = Math.max(1, baseSize * 0.08) * zoomScale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          }
+        }
+      } else {
+        // Draw full path of all events (visible ones)
+        const pts: { x: number; y: number }[] = [];
+        for (let i = 0; i < events.length; i += 1) {
+          const ev = events[i];
+          const pos = normalizeToDisplay(ev.nx, ev.ny);
+          if (!pos) continue;
+          pts.push({ x: pos.x, y: pos.y });
+        }
+
+        if (pts.length >= 2) {
+          ctx.beginPath();
+          if (smoothing === 'none') {
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i += 1) {
+              ctx.lineTo(pts[i].x, pts[i].y);
+            }
+          } else if (smoothing === 'quadratic') {
+            const strength = typeof quadraticSmoothingStrength === 'number' ? quadraticSmoothingStrength : 0.5;
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i += 1) {
+              const prev = pts[i - 1];
+              const cur = pts[i];
+              const midX = (prev.x + cur.x) / 2;
+              const midY = (prev.y + cur.y) / 2;
+              const ctrlX = prev.x + (cur.x - prev.x) * strength;
+              const ctrlY = prev.y + (cur.y - prev.y) * strength;
+              ctx.quadraticCurveTo(ctrlX, ctrlY, midX, midY);
+            }
+            ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+          }
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+          ctx.lineWidth = Math.max(1, baseSize * 0.08) * zoomScale;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
         }
       }
-      if (pathStarted) {
-        ctx.strokeStyle = dragging ? 'rgba(52,178,123,0.55)' : 'rgba(255,255,255,0.35)';
-        ctx.lineWidth = Math.max(1, baseSize * 0.12) * zoomScale;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
+    } else {
+      const trailStartMs = Math.max(0, playheadMs - CURSOR_TRAIL_MS);
+      trailStartIndex = Math.min(lastIndex, findFirstIndex(events, trailStartMs));
+
+      if (lastIndex - trailStartIndex >= 1) {
+        // Collect visible points for trail drawing
+        if (smoothing === 'end2end' && end2endParams) {
+          // Build display-space events for the trail window
+        const displayEvents: { tMs: number; x: number; y: number; kind: any; dragging: boolean }[] = [];
+        for (let i = trailStartIndex; i <= lastIndex; i += 1) {
+          const ev = events[i];
+          const pos = normalizeToDisplay(ev.nx, ev.ny);
+          if (!pos) continue;
+          displayEvents.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+        }
+        const pausePoints = extractPausePointsFromDisplayEvents(displayEvents, end2endParams);
+        if (pausePoints.length >= 2) {
+          const sampled = sampleCRPath(pausePoints, 10);
+          if (sampled.length >= 2) {
+            ctx.beginPath();
+            ctx.moveTo(sampled[0].x, sampled[0].y);
+            for (let k = 1; k < sampled.length; k += 1) {
+              ctx.lineTo(sampled[k].x, sampled[k].y);
+            }
+            ctx.strokeStyle = dragging ? 'rgba(52,178,123,0.55)' : 'rgba(255,255,255,0.35)';
+            ctx.lineWidth = Math.max(1, baseSize * 0.12) * zoomScale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          }
+        }
+        } else {
+          // Collect visible points for trail drawing
+          const pts: { x: number; y: number }[] = [];
+          for (let i = trailStartIndex; i <= lastIndex; i += 1) {
+            const ev = events[i];
+            const pos = normalizeToDisplay(ev.nx, ev.ny);
+            if (!pos) continue;
+            pts.push({ x: pos.x, y: pos.y });
+          }
+
+          if (pts.length >= 2) {
+            ctx.beginPath();
+            if (smoothing === 'none') {
+              ctx.moveTo(pts[0].x, pts[0].y);
+              for (let i = 1; i < pts.length; i += 1) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+              }
+            } else if (smoothing === 'quadratic') {
+              // Quadratic smoothing using midpoints with configurable strength
+              const strength = typeof quadraticSmoothingStrength === 'number' ? quadraticSmoothingStrength : 0.5;
+              ctx.moveTo(pts[0].x, pts[0].y);
+              for (let i = 1; i < pts.length; i += 1) {
+                const prev = pts[i - 1];
+                const cur = pts[i];
+                const midX = (prev.x + cur.x) / 2;
+                const midY = (prev.y + cur.y) / 2;
+                const ctrlX = prev.x + (cur.x - prev.x) * strength;
+                const ctrlY = prev.y + (cur.y - prev.y) * strength;
+                ctx.quadraticCurveTo(ctrlX, ctrlY, midX, midY);
+              }
+              // Ensure curve reaches last point
+              ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+            }
+
+            ctx.strokeStyle = dragging ? 'rgba(52,178,123,0.55)' : 'rgba(255,255,255,0.35)';
+            ctx.lineWidth = Math.max(1, baseSize * 0.12) * zoomScale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          }
+        }
       }
     }
 
@@ -787,7 +941,8 @@ function VideoPlayback(
     }
 
     drawCursor(ctx, cursorTrack.style.preset, x, y, cursorSize, dragging);
-  }, [pixiReady, videoReady, currentTime, cursorTrack, CURSOR_TRAIL_MS, CURSOR_CLICK_MS, resizeCursorCanvas, cropRegion, padding]);
+    }, [pixiReady, videoReady, currentTime, cursorTrack, cursorEnabled, cursorSmoothing, quadraticSmoothingStrength, end2endParams, CURSOR_TRAIL_MS, CURSOR_CLICK_MS, resizeCursorCanvas, cropRegion, padding]);
+  // Redraw cursor overlay when enabled/smoothing changes
 
   useEffect(() => {
     const container = containerRef.current;
