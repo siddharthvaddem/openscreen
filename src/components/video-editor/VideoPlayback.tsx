@@ -18,6 +18,7 @@ import {
   type TrimRegion,
   type AnnotationRegion,
   type CursorTrack,
+  DEFAULT_CURSOR_STYLE,
   type CursorSmoothing,
   type End2EndParams,
 } from "./types";
@@ -672,7 +673,10 @@ function VideoPlayback(
           : { x: 0, y: 0, width, height });
 
     const events = cursorTrack.events;
-    const playheadMs = Math.round(currentTime * 1000);
+    const offsetFromStyle = cursorTrack.style?.offsetMs ?? DEFAULT_CURSOR_STYLE.offsetMs ?? 0;
+    const styleOffsetX = cursorTrack.style?.offsetX ?? DEFAULT_CURSOR_STYLE.offsetX ?? 0;
+    const styleOffsetY = cursorTrack.style?.offsetY ?? DEFAULT_CURSOR_STYLE.offsetY ?? 0;
+    const playheadMs = Math.round(currentTime * 1000) + offsetFromStyle;
     const lastIndex = findLastIndex(events, playheadMs);
     if (lastIndex < 0) return;
 
@@ -751,7 +755,7 @@ function VideoPlayback(
         const ev = events[i];
         const pos = normalizeToDisplay(ev.nx, ev.ny);
         if (!pos) continue;
-        displayEventsForCursor.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+        displayEventsForCursor.push({ tMs: ev.tMs, x: pos.x + styleOffsetX, y: pos.y + styleOffsetY, kind: ev.kind, dragging: ev.dragging });
       }
       const pausePoints = extractPausePointsFromDisplayEvents(displayEventsForCursor, end2endParams);
       const arrivalFrac = typeof end2endParams.arrivalFraction === 'number' ? end2endParams.arrivalFraction : 1.0;
@@ -764,7 +768,8 @@ function VideoPlayback(
       const currentEvent = events[lastIndex];
       const displayPos = normalizeToDisplay(currentEvent.nx, currentEvent.ny);
       if (!displayPos) return; // Coordinate is outside visible area
-
+      displayPos.x += styleOffsetX;
+      displayPos.y += styleOffsetY;
       x = displayPos.x;
       y = displayPos.y;
       dragging = currentEvent.dragging;
@@ -787,7 +792,7 @@ function VideoPlayback(
           const ev = events[i];
           const pos = normalizeToDisplay(ev.nx, ev.ny);
           if (!pos) continue;
-          displayEvents.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+          displayEvents.push({ tMs: ev.tMs, x: pos.x + styleOffsetX, y: pos.y + styleOffsetY, kind: ev.kind, dragging: ev.dragging });
         }
         const pausePoints = extractPausePointsFromDisplayEvents(displayEvents, end2endParams);
         if (pausePoints.length >= 2) {
@@ -808,11 +813,11 @@ function VideoPlayback(
       } else {
         // Draw full path of all events (visible ones)
         const pts: { x: number; y: number }[] = [];
-        for (let i = 0; i < events.length; i += 1) {
+          for (let i = 0; i < events.length; i += 1) {
           const ev = events[i];
           const pos = normalizeToDisplay(ev.nx, ev.ny);
           if (!pos) continue;
-          pts.push({ x: pos.x, y: pos.y });
+          pts.push({ x: pos.x + styleOffsetX, y: pos.y + styleOffsetY });
         }
 
         if (pts.length >= 2) {
@@ -857,7 +862,7 @@ function VideoPlayback(
           const ev = events[i];
           const pos = normalizeToDisplay(ev.nx, ev.ny);
           if (!pos) continue;
-          displayEvents.push({ tMs: ev.tMs, x: pos.x, y: pos.y, kind: ev.kind, dragging: ev.dragging });
+          displayEvents.push({ tMs: ev.tMs, x: pos.x + styleOffsetX, y: pos.y + styleOffsetY, kind: ev.kind, dragging: ev.dragging });
         }
         const pausePoints = extractPausePointsFromDisplayEvents(displayEvents, end2endParams);
         if (pausePoints.length >= 2) {
@@ -882,7 +887,7 @@ function VideoPlayback(
             const ev = events[i];
             const pos = normalizeToDisplay(ev.nx, ev.ny);
             if (!pos) continue;
-            pts.push({ x: pos.x, y: pos.y });
+            pts.push({ x: pos.x + styleOffsetX, y: pos.y + styleOffsetY });
           }
 
           if (pts.length >= 2) {
@@ -931,6 +936,8 @@ function VideoPlayback(
         const radius = baseSize * (0.5 + progress * 1.6) * zoomScale;
         const pos = normalizeToDisplay(ev.nx, ev.ny);
         if (!pos) continue; // Skip clicks outside visible area
+        pos.x += styleOffsetX;
+        pos.y += styleOffsetY;
         
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.7})`;

@@ -106,6 +106,9 @@ export interface CursorEvent {
 export interface CursorStyle {
   preset: CursorPreset;
   sizePx: number;
+  offsetMs?: number;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 export type CursorSmoothing = 'none' | 'quadratic' | 'end2end';
@@ -133,6 +136,9 @@ export interface CursorTrack {
 export const DEFAULT_CURSOR_STYLE: CursorStyle = {
   preset: 'arrow',
   sizePx: 18,
+  offsetMs: 160,
+  offsetX: 3,
+  offsetY: 5,
 };
 
 

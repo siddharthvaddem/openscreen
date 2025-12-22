@@ -293,6 +293,91 @@ export function SettingsPanel({
                 </SelectContent>
               </Select>
             </div>
+            <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-slate-200">Cursor Offset</div>
+                <span className="text-[10px] text-slate-400 font-mono">{cursorTrack?.style?.offsetMs ?? 0}ms · {(cursorTrack?.style?.offsetX ?? 0)}px,{(cursorTrack?.style?.offsetY ?? 0)}px</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <div>
+                  <div className="text-xs text-slate-400 mb-1">Time (ms)</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={cursorTrack?.style?.offsetMs ?? 0}
+                      onChange={(e) => onCursorStyleChange?.({ offsetMs: Number(e.target.value) })}
+                      className="w-full p-2 rounded bg-black/20 text-slate-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onCursorStyleChange?.({ offsetMs: (cursorTrack?.style?.offsetMs ?? 0) - 10 })}
+                      className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                    >
+                      -10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onCursorStyleChange?.({ offsetMs: (cursorTrack?.style?.offsetMs ?? 0) + 10 })}
+                      className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                    >
+                      +10
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-xs text-slate-400 mb-1">X (px)</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={cursorTrack?.style?.offsetX ?? 0}
+                        onChange={(e) => onCursorStyleChange?.({ offsetX: Number(e.target.value) })}
+                        className="w-full p-2 rounded bg-black/20 text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onCursorStyleChange?.({ offsetX: (cursorTrack?.style?.offsetX ?? 0) - 1 })}
+                        className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                      >
+                        -1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onCursorStyleChange?.({ offsetX: (cursorTrack?.style?.offsetX ?? 0) + 1 })}
+                        className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                      >
+                        +1
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400 mb-1">Y (px)</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={cursorTrack?.style?.offsetY ?? 0}
+                        onChange={(e) => onCursorStyleChange?.({ offsetY: Number(e.target.value) })}
+                        className="w-full p-2 rounded bg-black/20 text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onCursorStyleChange?.({ offsetY: (cursorTrack?.style?.offsetY ?? 0) - 1 })}
+                        className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                      >
+                        -1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onCursorStyleChange?.({ offsetY: (cursorTrack?.style?.offsetY ?? 0) + 1 })}
+                        className="px-2 py-1 rounded bg-white/5 text-slate-200"
+                      >
+                        +1
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
               <div className="text-xs font-medium text-slate-200">Path Smoothing</div>
               <Select

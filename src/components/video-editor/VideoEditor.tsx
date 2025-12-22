@@ -150,7 +150,16 @@ export default function VideoEditor() {
         const sizePx = typeof style.sizePx === 'number' && Number.isFinite(style.sizePx)
           ? style.sizePx
           : DEFAULT_CURSOR_STYLE.sizePx;
-        setCursorTrack({ events, style: { preset, sizePx } });
+        setCursorTrack({
+          events,
+          style: {
+            preset,
+            sizePx,
+            offsetMs: typeof parsed?.style?.offsetMs === 'number' ? parsed.style.offsetMs : undefined,
+            offsetX: typeof parsed?.style?.offsetX === 'number' ? parsed.style.offsetX : undefined,
+            offsetY: typeof parsed?.style?.offsetY === 'number' ? parsed.style.offsetY : undefined,
+          },
+        });
       } catch (err) {
         if (mounted) {
           setCursorTrack(null);
@@ -773,8 +782,8 @@ export default function VideoEditor() {
                       onSelectAnnotation={handleSelectAnnotation}
                       onAnnotationPositionChange={handleAnnotationPositionChange}
                       onAnnotationSizeChange={handleAnnotationSizeChange}
-                      cursorTrack={cursorTrack}
-                      cursorEnabled={cursorEnabled}
+                    cursorTrack={cursorTrack}
+                    cursorEnabled={cursorEnabled}
                       cursorSmoothing={cursorSmoothing}
                       quadraticSmoothingStrength={quadraticSmoothingStrength}
                       end2endParams={end2endParams}
