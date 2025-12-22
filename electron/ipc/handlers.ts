@@ -1,10 +1,13 @@
-import { ipcMain, desktopCapturer, BrowserWindow, shell, app, dialog } from 'electron'
+import { ipcMain, desktopCapturer, BrowserWindow, shell, app, dialog, screen } from 'electron'
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { RECORDINGS_DIR } from '../main'
 
 let selectedSource: any = null
+let globalMouseListenerInterval: NodeJS.Timeout | null = null
+let recordingWindow: BrowserWindow | null = null
+let lastMousePosition: { x: number; y: number } | null = null
 
 export function registerIpcHandlers(
   createEditorWindow: () => void,
@@ -76,6 +79,28 @@ export function registerIpcHandlers(
     }
   })
 
+  ipcMain.handle('store-cursor-data', async (_, videoPath: string, cursorData: unknown) => {
+    try {
+      const cursorPath = `${videoPath}.cursor.json`
+      const payload = JSON.stringify(cursorData)
+      await fs.writeFile(cursorPath, payload, 'utf-8')
+      return { success: true, path: cursorPath }
+    } catch (error) {
+      console.error('Failed to store cursor data:', error)
+      return { success: false, message: 'Failed to store cursor data', error: String(error) }
+    }
+  })
+
+  ipcMain.handle('load-cursor-data', async (_, videoPath: string) => {
+    try {
+      const cursorPath = `${videoPath}.cursor.json`
+      const data = await fs.readFile(cursorPath, 'utf-8')
+      return { success: true, path: cursorPath, data }
+    } catch (error) {
+      return { success: false, message: 'Cursor data not found', error: String(error) }
+    }
+  })
+
 
 
   ipcMain.handle('get-recorded-video-path', async () => {
@@ -102,7 +127,79 @@ export function registerIpcHandlers(
     if (onRecordingStateChange) {
       onRecordingStateChange(recording, source.name)
     }
+    
+    // Start or stop global mouse listener
+    if (recording) {
+      startGlobalMouseListener(getMainWindow())
+    } else {
+      stopGlobalMouseListener()
+    }
   })
+
+  function startGlobalMouseListener(window: BrowserWindow | null) {
+    if (globalMouseListenerInterval) {
+      return // Already running
+    }
+    
+    recordingWindow = window
+    lastMousePosition = null
+    
+    // Poll mouse position and button state at 60fps for smooth cursor tracking
+    globalMouseListenerInterval = setInterval(() => {
+      // Find the recording window (could be HUD overlay or editor window)
+      const targetWindow = recordingWindow || getMainWindow()
+      
+      if (!targetWindow || targetWindow.isDestroyed()) {
+        // Try to find any open window
+        const allWindows = BrowserWindow.getAllWindows()
+        if (allWindows.length === 0) {
+          stopGlobalMouseListener()
+          return
+        }
+        recordingWindow = allWindows[0]
+      }
+      
+      try {
+        const point = screen.getCursorScreenPoint()
+        const currentPosition = { x: point.x, y: point.y }
+        
+        // Check if position changed
+        if (!lastMousePosition || 
+            lastMousePosition.x !== currentPosition.x || 
+            lastMousePosition.y !== currentPosition.y) {
+          
+          // Send mouse move event to all windows (in case recording is in different window)
+          const windows = BrowserWindow.getAllWindows()
+          windows.forEach(win => {
+            if (!win.isDestroyed()) {
+              win.webContents.send('global-mouse-move', {
+                screenX: currentPosition.x,
+                screenY: currentPosition.y,
+                timestamp: Date.now()
+              })
+            }
+          })
+          
+          lastMousePosition = currentPosition
+        }
+        
+        // Note: Electron's screen API doesn't provide mouse button state
+        // We'll rely on the renderer process to capture button events
+        // when they occur within the application window
+      } catch (error) {
+        console.error('Error in global mouse listener:', error)
+      }
+    }, 1000 / 60) // 60fps
+  }
+
+  function stopGlobalMouseListener() {
+    if (globalMouseListenerInterval) {
+      clearInterval(globalMouseListenerInterval)
+      globalMouseListenerInterval = null
+    }
+    recordingWindow = null
+    lastMousePosition = null
+  }
 
 
   ipcMain.handle('open-external-url', async (_, url: string) => {
@@ -211,5 +308,86 @@ export function registerIpcHandlers(
 
   ipcMain.handle('get-platform', () => {
     return process.platform;
+  });
+
+  ipcMain.handle('get-source-bounds', async () => {
+    try {
+      if (!selectedSource) {
+        return { success: false, message: 'No source selected' };
+      }
+
+      const sourceId = selectedSource.id;
+      
+      // Handle screen sources
+      if (sourceId.startsWith('screen:')) {
+        const displays = screen.getAllDisplays();
+        const displayId = selectedSource.display_id;
+        
+        // Find the display matching the display_id
+        const display = displays.find(d => String(d.id) === String(displayId)) || screen.getPrimaryDisplay();
+        
+        // Use bounds which are in physical pixels (already account for DPI scaling)
+        return {
+          success: true,
+          bounds: {
+            x: display.bounds.x,
+            y: display.bounds.y,
+            width: display.bounds.width,
+            height: display.bounds.height,
+          },
+          scaleFactor: display.scaleFactor || 1.0
+        };
+      }
+      
+      // Handle window sources
+      if (sourceId.startsWith('window:')) {
+        // For window sources, we need to get the bounds of the window
+        // Since desktopCapturer doesn't provide direct window access,
+        // we'll try to get the display that contains the window
+        // by getting all windows and matching by name or using a fallback
+        
+        // Get all displays to find the one that likely contains this window
+        const displays = screen.getAllDisplays();
+        const displayId = selectedSource.display_id;
+        
+        // Try to find the display matching the display_id
+        const display = displays.find(d => String(d.id) === String(displayId)) || screen.getPrimaryDisplay();
+        
+        // For window sources, we'll use the display bounds as a fallback
+        // In a more sophisticated implementation, you might want to track
+        // window positions when sources are selected, but for now this is
+        // a reasonable approximation
+        return {
+          success: true,
+          bounds: {
+            x: display.bounds.x,
+            y: display.bounds.y,
+            width: display.bounds.width,
+            height: display.bounds.height,
+          },
+          scaleFactor: display.scaleFactor || 1.0
+        };
+      }
+      
+      // Fallback to primary display
+      const primaryDisplay = screen.getPrimaryDisplay();
+      return {
+        success: true,
+        bounds: {
+          x: primaryDisplay.bounds.x,
+          y: primaryDisplay.bounds.y,
+          width: primaryDisplay.bounds.width,
+          height: primaryDisplay.bounds.height,
+        },
+        scaleFactor: primaryDisplay.scaleFactor || 1.0
+      };
+    } catch (error) {
+      console.error('Failed to get source bounds:', error);
+      return {
+        success: false,
+        message: 'Failed to get source bounds',
+        error: String(error)
+      };
+    }
   });
 }
