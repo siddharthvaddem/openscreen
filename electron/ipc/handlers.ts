@@ -1,4 +1,4 @@
-import { ipcMain, desktopCapturer, BrowserWindow, shell, app, dialog } from 'electron'
+import { ipcMain, desktopCapturer, BrowserWindow, shell, app, dialog, clipboard } from 'electron'
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -158,6 +158,56 @@ export function registerIpcHandlers(
       return {
         success: false,
         message: 'Failed to save exported video',
+        error: String(error)
+      }
+    }
+  })
+
+  ipcMain.handle('save-exported-gif', async (_, gifData: ArrayBuffer, fileName: string) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: 'Save Exported GIF',
+        defaultPath: path.join(app.getPath('downloads'), fileName),
+        filters: [
+          { name: 'GIF Image', extensions: ['gif'] }
+        ],
+        properties: ['createDirectory', 'showOverwriteConfirmation']
+      });
+
+      if (result.canceled || !result.filePath) {
+        return {
+          success: false,
+          cancelled: true,
+          message: 'Export cancelled'
+        };
+      }
+
+      await fs.writeFile(result.filePath, Buffer.from(gifData));
+
+      return {
+        success: true,
+        path: result.filePath,
+        message: 'GIF exported successfully'
+      };
+    } catch (error) {
+      console.error('Failed to save exported GIF:', error)
+      return {
+        success: false,
+        message: 'Failed to save GIF',
+        error: String(error)
+      }
+    }
+  })
+
+  ipcMain.handle('copy-exported-gif-to-clipboard', async (_, gifData: ArrayBuffer) => {
+    try {
+      clipboard.writeBuffer('image/gif', Buffer.from(gifData));
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to copy GIF to clipboard:', error)
+      return {
+        success: false,
+        message: 'Failed to copy GIF to clipboard',
         error: String(error)
       }
     }

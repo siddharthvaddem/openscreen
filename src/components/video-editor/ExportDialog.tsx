@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { X, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { ExportProgress } from '@/lib/exporter';
+import type { ExportFormat, ExportProgress } from '@/lib/exporter';
 
 interface ExportDialogProps {
   isOpen: boolean;
+  format: ExportFormat;
   onClose: () => void;
   progress: ExportProgress | null;
   isExporting: boolean;
@@ -14,6 +15,7 @@ interface ExportDialogProps {
 
 export function ExportDialog({
   isOpen,
+  format,
   onClose,
   progress,
   isExporting,
@@ -21,6 +23,8 @@ export function ExportDialog({
   onCancel,
 }: ExportDialogProps) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const formatLabel = format === 'gif' ? 'GIF' : 'Video';
+  const formatReadyLabel = format === 'gif' ? 'GIF' : 'video';
 
   useEffect(() => {
     if (!isExporting && progress && progress.percentage >= 100 && !error) {
@@ -51,7 +55,7 @@ export function ExportDialog({
                 </div>
                 <div>
                   <span className="text-xl font-bold text-slate-200 block">Export Complete</span>
-                  <span className="text-sm text-slate-400">Your video is ready</span>
+                  <span className="text-sm text-slate-400">Your {formatReadyLabel} is ready</span>
                 </div>
               </>
             ) : (
@@ -67,7 +71,7 @@ export function ExportDialog({
                 )}
                 <div>
                   <span className="text-xl font-bold text-slate-200 block">
-                    {error ? 'Export Failed' : isExporting ? 'Exporting Video' : 'Export Video'}
+                    {error ? 'Export Failed' : isExporting ? `Exporting ${formatLabel}` : `Export ${formatLabel}`}
                   </span>
                   <span className="text-sm text-slate-400">
                     {error ? 'Please try again' : isExporting ? 'This may take a moment...' : 'Ready to start'}
@@ -140,7 +144,7 @@ export function ExportDialog({
 
         {showSuccess && (
           <div className="text-center py-4 animate-in zoom-in-95">
-            <p className="text-lg text-slate-200 font-medium">Video saved successfully!</p>
+            <p className="text-lg text-slate-200 font-medium">{formatLabel} saved successfully!</p>
           </div>
         )}
       </div>

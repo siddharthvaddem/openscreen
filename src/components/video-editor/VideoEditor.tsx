@@ -28,7 +28,7 @@ import {
   type CropRegion,
   type FigureData,
 } from "./types";
-import { VideoExporter, type ExportProgress, type ExportQuality } from "@/lib/exporter";
+import { GifExporter, VideoExporter, type ExportFormat, type ExportProgress, type ExportQuality } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
 import { getAssetPath } from "@/lib/assetPath";
 
@@ -61,13 +61,14 @@ export default function VideoEditor() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [exportQuality, setExportQuality] = useState<ExportQuality>('good');
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('mp4');
 
   const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
   const nextZoomIdRef = useRef(1);
   const nextTrimIdRef = useRef(1);
   const nextAnnotationIdRef = useRef(1);
   const nextAnnotationZIndexRef = useRef(1); // Track z-index for stacking order
-  const exporterRef = useRef<VideoExporter | null>(null);
+  const exporterRef = useRef<VideoExporter | GifExporter | null>(null);
 
   // Helper to convert file path to proper file:// URL
   const toFileUrl = (filePath: string): string => {
@@ -551,16 +552,15 @@ export default function VideoEditor() {
       const containerElement = playbackRef?.containerRef?.current;
       const previewWidth = containerElement?.clientWidth || 1920;
       const previewHeight = containerElement?.clientHeight || 1080;
+      
+      const gifFrameRate = exportQuality === 'medium' ? 12 : exportQuality === 'good' ? 15 : 24;
+      const exportFrameRate = exportFormat === 'gif' ? gifFrameRate : 60;
 
-
-
-      const exporter = new VideoExporter({
+      const commonConfig = {
         videoUrl: videoPath,
         width: exportWidth,
         height: exportHeight,
-        frameRate: 60,
-        bitrate,
-        codec: 'avc1.640033',
+        frameRate: exportFrameRate,
         wallpaper,
         zoomRegions,
         trimRegions,
@@ -577,7 +577,16 @@ export default function VideoEditor() {
         onProgress: (progress: ExportProgress) => {
           setExportProgress(progress);
         },
-      });
+      };
+
+      const exporter =
+        exportFormat === 'gif'
+          ? new GifExporter(commonConfig)
+          : new VideoExporter({
+              ...commonConfig,
+              bitrate,
+              codec: 'avc1.640033',
+            });
 
       exporterRef.current = exporter;
       const result = await exporter.export();
@@ -585,17 +594,39 @@ export default function VideoEditor() {
       if (result.success && result.blob) {
         const arrayBuffer = await result.blob.arrayBuffer();
         const timestamp = Date.now();
-        const fileName = `export-${timestamp}.mp4`;
-        
-        const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
-        
-        if (saveResult.cancelled) {
-          toast.info('Export cancelled');
-        } else if (saveResult.success) {
-          toast.success(`Video exported successfully to ${saveResult.path}`);
+
+        if (exportFormat === 'gif') {
+          const fileName = `export-${timestamp}.gif`;
+          const saveResult = await window.electronAPI.saveExportedGif(arrayBuffer, fileName);
+
+          if (saveResult.cancelled) {
+            toast.info('Export cancelled');
+          } else if (saveResult.success) {
+            const copyResult = await window.electronAPI.copyExportedGifToClipboard(arrayBuffer);
+            if (copyResult.success) {
+              toast.success(`GIF exported successfully to ${saveResult.path} and copied to clipboard`);
+            } else {
+              toast.success(`GIF exported successfully to ${saveResult.path}`);
+              if (copyResult.message) {
+                toast.error(copyResult.message);
+              }
+            }
+          } else {
+            setExportError(saveResult.message || 'Failed to save GIF');
+            toast.error(saveResult.message || 'Failed to save GIF');
+          }
         } else {
-          setExportError(saveResult.message || 'Failed to save video');
-          toast.error(saveResult.message || 'Failed to save video');
+          const fileName = `export-${timestamp}.mp4`;
+          const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
+
+          if (saveResult.cancelled) {
+            toast.info('Export cancelled');
+          } else if (saveResult.success) {
+            toast.success(`Video exported successfully to ${saveResult.path}`);
+          } else {
+            setExportError(saveResult.message || 'Failed to save video');
+            toast.error(saveResult.message || 'Failed to save video');
+          }
         }
       } else {
         setExportError(result.error || 'Export failed');
@@ -614,7 +645,7 @@ export default function VideoEditor() {
       setIsExporting(false);
       exporterRef.current = null;
     }
-  }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
+  }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality, exportFormat]);
 
   const handleCancelExport = useCallback(() => {
     if (exporterRef.current) {
@@ -771,6 +802,8 @@ export default function VideoEditor() {
           videoElement={videoPlaybackRef.current?.video || null}
           exportQuality={exportQuality}
           onExportQualityChange={setExportQuality}
+          exportFormat={exportFormat}
+          onExportFormatChange={setExportFormat}
           onExport={handleExport}
           selectedAnnotationId={selectedAnnotationId}
           annotationRegions={annotationRegions}
@@ -787,6 +820,7 @@ export default function VideoEditor() {
       <ExportDialog
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
+        format={exportFormat}
         progress={exportProgress}
         isExporting={isExporting}
         error={exportError}

@@ -14,7 +14,7 @@ import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
-import type { ExportQuality } from "@/lib/exporter";
+import type { ExportFormat, ExportQuality } from "@/lib/exporter";
 
 const WALLPAPER_COUNT = 18;
 const WALLPAPER_RELATIVE = Array.from({ length: WALLPAPER_COUNT }, (_, i) => `wallpapers/wallpaper${i + 1}.jpg`);
@@ -70,6 +70,8 @@ interface SettingsPanelProps {
   videoElement?: HTMLVideoElement | null;
   exportQuality?: ExportQuality;
   onExportQualityChange?: (quality: ExportQuality) => void;
+  exportFormat?: ExportFormat;
+  onExportFormatChange?: (format: ExportFormat) => void;
   onExport?: () => void;
   selectedAnnotationId?: string | null;
   annotationRegions?: AnnotationRegion[];
@@ -116,6 +118,8 @@ export function SettingsPanel({
   videoElement, 
   exportQuality = 'good',
   onExportQualityChange,
+  exportFormat = 'mp4',
+  onExportFormatChange,
   onExport,
   selectedAnnotationId,
   annotationRegions = [],
@@ -587,6 +591,37 @@ export function SettingsPanel({
             High
           </button>
         </div>
+
+        <div className="mb-2 text-xs font-medium text-slate-400">Export Format</div>
+        <div className="mb-2.5 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-2 h-auto rounded-xl">
+          <button
+            onClick={() => onExportFormatChange?.('mp4')}
+            className={cn(
+              "py-2 rounded-lg transition-all text-xs font-medium",
+              exportFormat === 'mp4'
+                ? "bg-white text-black"
+                : "text-slate-400 hover:text-slate-200"
+            )}
+          >
+            MP4
+          </button>
+          <button
+            onClick={() => onExportFormatChange?.('gif')}
+            className={cn(
+              "py-2 rounded-lg transition-all text-xs font-medium",
+              exportFormat === 'gif'
+                ? "bg-white text-black"
+                : "text-slate-400 hover:text-slate-200"
+            )}
+          >
+            GIF
+          </button>
+        </div>
+        {exportFormat === 'gif' && (
+          <div className="mb-3 text-[11px] text-slate-400">
+            GIF exports are copied to your clipboard automatically.
+          </div>
+        )}
         
         <Button
           type="button"
@@ -595,7 +630,7 @@ export function SettingsPanel({
           className="w-full py-6 text-lg font-semibold flex items-center justify-center gap-3 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#34B27B]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <Download className="w-5 h-5" />
-          <span>Export Video</span>
+          <span>{exportFormat === 'gif' ? 'Export GIF' : 'Export Video'}</span>
         </Button>
         <div className="flex gap-2 mt-4">
           <button

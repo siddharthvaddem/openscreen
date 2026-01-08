@@ -26,3 +26,4 @@ export interface VideoFrameData {
 }
 
 export type ExportQuality = 'medium' | 'good' | 'source';
+export type ExportFormat = 'mp4' | 'gif';

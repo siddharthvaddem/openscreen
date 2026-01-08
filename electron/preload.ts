@@ -48,6 +48,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => {
     return ipcRenderer.invoke('save-exported-video', videoData, fileName)
   },
+  saveExportedGif: (gifData: ArrayBuffer, fileName: string) => {
+    return ipcRenderer.invoke('save-exported-gif', gifData, fileName)
+  },
+  copyExportedGifToClipboard: (gifData: ArrayBuffer) => {
+    return ipcRenderer.invoke('copy-exported-gif-to-clipboard', gifData)
+  },
   openVideoFilePicker: () => {
     return ipcRenderer.invoke('open-video-file-picker')
   },
