@@ -1,11 +1,12 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
-import type { ZoomRegion, CropRegion, AnnotationRegion } from '@/components/video-editor/types';
+import type { ZoomRegion, CropRegion, AnnotationRegion, SubtitleRegion } from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from '@/components/video-editor/videoPlayback/constants';
 import { clampFocusToStage as clampFocusToStageUtil } from '@/components/video-editor/videoPlayback/focusUtils';
 import { renderAnnotations } from './annotationRenderer';
+import { renderSubtitles } from './subtitleRenderer';
 
 interface FrameRenderConfig {
   width: number;
@@ -22,6 +23,7 @@ interface FrameRenderConfig {
   videoWidth: number;
   videoHeight: number;
   annotationRegions?: AnnotationRegion[];
+  subtitleRegions?: SubtitleRegion[];
   previewWidth?: number;
   previewHeight?: number;
 }
@@ -314,6 +316,25 @@ export class FrameRenderer {
       await renderAnnotations(
         this.compositeCtx,
         this.config.annotationRegions,
+        this.config.width,
+        this.config.height,
+        timeMs,
+        scaleFactor
+      );
+    }
+
+    // Render subtitles on top of everything (highest z-index)
+    if (this.config.subtitleRegions && this.config.subtitleRegions.length > 0 && this.compositeCtx) {
+      // Calculate scale factor based on export vs preview dimensions
+      const previewWidth = this.config.previewWidth || 1920;
+      const previewHeight = this.config.previewHeight || 1080;
+      const scaleX = this.config.width / previewWidth;
+      const scaleY = this.config.height / previewHeight;
+      const scaleFactor = (scaleX + scaleY) / 2;
+
+      renderSubtitles(
+        this.compositeCtx,
+        this.config.subtitleRegions,
         this.config.width,
         this.config.height,
         timeMs,

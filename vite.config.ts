@@ -14,7 +14,12 @@ export default defineConfig({
         entry: 'electron/main.ts',
         vite: {
           build: {
-
+            rollupOptions: {
+              // Mark ws and its optional native dependencies as external
+              // These are used by assemblyai SDK and should not be bundled
+              // koffi is a native FFI module that must be loaded from node_modules
+              external: ['bufferutil', 'utf-8-validate', 'koffi', 'global-mouse-events'],
+            }
           }
         }
       },

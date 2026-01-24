@@ -2,7 +2,7 @@ import type React from "react";
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, useCallback } from "react";
 import { getAssetPath } from "@/lib/assetPath";
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from 'pixi.js';
-import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type AnnotationRegion } from "./types";
+import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type AnnotationRegion, type SubtitleRegion, type SubtitlePositionPreset } from "./types";
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from "./videoPlayback/constants";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { findDominantRegion } from "./videoPlayback/zoomRegionUtils";
@@ -13,6 +13,7 @@ import { applyZoomTransform } from "./videoPlayback/zoomTransform";
 import { createVideoEventHandlers } from "./videoPlayback/videoEventHandlers";
 import { type AspectRatio, formatAspectRatioForCSS } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
+import { SubtitleOverlay } from "./subtitle";
 
 interface VideoPlaybackProps {
   videoPath: string;
@@ -41,6 +42,11 @@ interface VideoPlaybackProps {
   onSelectAnnotation?: (id: string | null) => void;
   onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
   onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
+  // Subtitle props
+  subtitleRegions?: SubtitleRegion[];
+  selectedSubtitleId?: string | null;
+  onSelectSubtitle?: (id: string | null) => void;
+  onSubtitlePositionChange?: (id: string, position: SubtitlePositionPreset, customPosition?: { x: number; y: number }) => void;
 }
 
 export interface VideoPlaybackRef {
@@ -80,6 +86,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   onSelectAnnotation,
   onAnnotationPositionChange,
   onAnnotationSizeChange,
+  subtitleRegions = [],
+  selectedSubtitleId,
+  onSelectSubtitle,
+  onSubtitlePositionChange,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -864,6 +874,31 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
                 onClick={handleAnnotationClick}
                 zIndex={annotation.zIndex}
                 isSelectedBoost={annotation.id === selectedAnnotationId}
+              />
+            ));
+          })()}
+          {/* Subtitle Overlays */}
+          {(() => {
+            const timeMs = Math.round(currentTime * 1000);
+            const filtered = (subtitleRegions || []).filter((subtitle) => {
+              if (typeof subtitle.startMs !== 'number' || typeof subtitle.endMs !== 'number') return false;
+              
+              if (subtitle.id === selectedSubtitleId) return true;
+              
+              return timeMs >= subtitle.startMs && timeMs <= subtitle.endMs;
+            });
+            
+            return filtered.map((subtitle) => (
+              <SubtitleOverlay
+                key={subtitle.id}
+                subtitle={subtitle}
+                isSelected={subtitle.id === selectedSubtitleId}
+                containerWidth={overlayRef.current?.clientWidth || 800}
+                containerHeight={overlayRef.current?.clientHeight || 600}
+                onPositionChange={(id, position, customPosition) => 
+                  onSubtitlePositionChange?.(id, position, customPosition)
+                }
+                onClick={(id) => onSelectSubtitle?.(id)}
               />
             ));
           })()}

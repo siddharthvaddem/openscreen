@@ -24,7 +24,7 @@ export function createHudOverlayWindow(): BrowserWindow {
 
 
   const windowWidth = 500;
-  const windowHeight = 100;
+  const windowHeight = 350; // Increased to accommodate mic popover
 
   const x = Math.floor(workArea.x + (workArea.width - windowWidth) / 2);
   const y = Math.floor(workArea.y + workArea.height - windowHeight - 5);
@@ -32,10 +32,10 @@ export function createHudOverlayWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    minWidth: 500,
-    maxWidth: 500,
-    minHeight: 100,
-    maxHeight: 100,
+    minWidth: 580,
+    maxWidth: 580,
+    minHeight: 350,
+    maxHeight: 350,
     x: x,
     y: y,
     frame: false,
@@ -55,6 +55,33 @@ export function createHudOverlayWindow(): BrowserWindow {
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
+  })
+
+  // Handle window.open() calls for child windows (e.g., mic settings)
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    // Allow mic-settings window
+    if (url.includes('windowType=mic-settings')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 340,
+          height: 520,
+          frame: false,
+          transparent: true,
+          resizable: false,
+          alwaysOnTop: true,
+          skipTaskbar: true,
+          parent: win,
+          modal: false,
+          webPreferences: {
+            preload: path.join(__dirname, 'preload.mjs'),
+            nodeIntegration: false,
+            contextIsolation: true,
+          },
+        }
+      }
+    }
+    return { action: 'deny' }
   })
 
   hudOverlayWindow = win;

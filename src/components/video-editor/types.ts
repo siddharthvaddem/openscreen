@@ -123,6 +123,24 @@ export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
 // PRESET TYPES
 // ============================================
 
+// ============================================
+// AUTO ZOOM SETTINGS
+// ============================================
+
+export interface AutoZoomSettings {
+  enabled: boolean;
+  defaultZoomDepth: ZoomDepth;  // default: 1
+  zoomDurationMs: number;       // default: 1000
+  mergeThresholdMs: number;     // default: 500
+}
+
+export const DEFAULT_AUTO_ZOOM_SETTINGS: AutoZoomSettings = {
+  enabled: false,
+  defaultZoomDepth: 2,  // 1.5x zoom (ZoomDepth 2 = 1.5x scale)
+  zoomDurationMs: 1000,
+  mergeThresholdMs: 500,
+};
+
 export interface PresetSettings {
   padding: number;           // 0-100
   shadowIntensity: number;   // 0-1
@@ -130,6 +148,7 @@ export interface PresetSettings {
   motionBlurEnabled: boolean;
   showBlur: boolean;
   wallpaper: string;         // Image path, color hex, or gradient CSS
+  autoZoom?: AutoZoomSettings; // Auto zoom settings (optional for backward compatibility)
 }
 
 export interface Preset {
@@ -153,6 +172,7 @@ export const DEFAULT_PRESET_SETTINGS: PresetSettings = {
   motionBlurEnabled: true,
   showBlur: false,
   wallpaper: 'wallpapers/wallpaper1.jpg',
+  autoZoom: DEFAULT_AUTO_ZOOM_SETTINGS,
 };
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
@@ -166,3 +186,89 @@ function clamp(value: number, min: number, max: number) {
   if (Number.isNaN(value)) return (min + max) / 2;
   return Math.min(max, Math.max(min, value));
 }
+
+// ============================================
+// SUBTITLE TYPES
+// ============================================
+
+export type SubtitleLanguage = 
+  | 'auto' 
+  | 'en' | 'id' | 'zh' | 'ja' | 'ko' | 'es' | 'pt' | 'vi' | 'th';
+
+export type SubtitlePositionPreset = 
+  | 'bottom-center' 
+  | 'top-center' 
+  | 'middle-center' 
+  | 'custom';
+
+export interface SubtitleStyle {
+  color: string;
+  backgroundColor: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold';
+  textAlign: 'left' | 'center' | 'right';
+  strokeColor: string;
+  strokeWidth: number;
+}
+
+export interface SubtitleWord {
+  text: string;
+  startMs: number;
+  endMs: number;
+  confidence: number;
+}
+
+export interface SubtitleRegion {
+  id: string;
+  startMs: number;
+  endMs: number;
+  text: string;
+  words: SubtitleWord[];
+  positionPreset: SubtitlePositionPreset;
+  customPosition?: { x: number; y: number };
+  style: SubtitleStyle;
+}
+
+export interface SubtitleGenerationConfig {
+  language: SubtitleLanguage;
+  maxWordsPerLine: number;
+  defaultStyle: SubtitleStyle;
+  defaultPosition: SubtitlePositionPreset;
+}
+
+export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
+  color: '#FFFFFF',
+  backgroundColor: '#000000CC',
+  fontSize: 32,
+  fontFamily: 'Inter',
+  fontWeight: 'bold',
+  textAlign: 'center',
+  strokeColor: '#000000',
+  strokeWidth: 0,
+};
+
+export const DEFAULT_SUBTITLE_CONFIG: SubtitleGenerationConfig = {
+  language: 'auto',
+  maxWordsPerLine: 4,
+  defaultStyle: DEFAULT_SUBTITLE_STYLE,
+  defaultPosition: 'bottom-center',
+};
+
+export const DEFAULT_SUBTITLE_POSITION = {
+  x: 50,
+  y: 85, // Near bottom
+};
+
+export const SUBTITLE_LANGUAGES: { code: SubtitleLanguage; label: string }[] = [
+  { code: 'auto', label: 'Auto-detect' },
+  { code: 'en', label: 'English' },
+  { code: 'id', label: 'Indonesian' },
+  { code: 'zh', label: 'Chinese' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'vi', label: 'Vietnamese' },
+  { code: 'th', label: 'Thai' },
+];

@@ -24,6 +24,7 @@ declare namespace NodeJS {
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
   electronAPI: {
+    getAssetBasePath: () => Promise<string | null>
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
     switchToEditor: () => Promise<void>
     openSourceSelector: () => Promise<void>
@@ -59,6 +60,26 @@ interface Window {
       hideOverlay: () => Promise<{ success: boolean }>
       onEvent: (callback: (event: KeystrokeOrMouseEvent) => void) => () => void
     }
+    // Transcription API
+    transcribeVideo: (request: { 
+      videoPath: string; 
+      language: string; 
+      apiKey: string 
+    }) => Promise<{
+      success: boolean;
+      words?: Array<{
+        text: string;
+        startMs: number;
+        endMs: number;
+        confidence: number;
+      }>;
+      error?: string;
+    }>
+    onTranscriptionProgress: (callback: (progress: {
+      status: string;
+      progress: number;
+      message: string;
+    }) => void) => () => void
   }
 }
 

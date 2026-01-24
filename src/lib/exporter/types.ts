@@ -4,6 +4,7 @@ export interface ExportConfig {
   frameRate: number;
   bitrate: number;
   codec?: string;
+  audioBitrate?: number; // in kbps (128, 192, 256, 320)
 }
 
 export interface ExportProgress {

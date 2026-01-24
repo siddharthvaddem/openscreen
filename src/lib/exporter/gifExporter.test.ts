@@ -99,9 +99,9 @@ describe('GIF Exporter', () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 100, max: 400 }), // sourceWidth (small)
-          fc.integer({ min: 100, max: 400 }), // sourceHeight (small, less than 720p)
+          fc.integer({ min: 100, max: 400 }), // sourceHeight (small, less than 480p)
           (sourceWidth: number, sourceHeight: number) => {
-            // For 'medium' preset with maxHeight 720, if source is smaller, use original
+            // For 'medium' preset with maxHeight 480, if source is smaller, use original
             const { width, height } = calculateOutputDimensions(
               sourceWidth,
               sourceHeight,

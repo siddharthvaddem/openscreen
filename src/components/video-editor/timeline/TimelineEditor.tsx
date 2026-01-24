@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTimelineContext } from "dnd-timeline";
 import { Button } from "@/components/ui/button";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, Subtitles, ChevronDown, Check, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TimelineWrapper from "./TimelineWrapper";
@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -20,10 +20,12 @@ import {
 import { type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
 import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
+import { SubtitleGenerateDialog } from "../subtitle";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
+const SUBTITLE_ROW_ID = "row-subtitle";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 
@@ -49,6 +51,16 @@ interface TimelineEditorProps {
   onAnnotationDelete?: (id: string) => void;
   selectedAnnotationId?: string | null;
   onSelectAnnotation?: (id: string | null) => void;
+  // Subtitle props
+  subtitleRegions?: SubtitleRegion[];
+  onSubtitleAdded?: (span: Span) => void;
+  onSubtitleSpanChange?: (id: string, span: Span) => void;
+  onSubtitleDelete?: (id: string) => void;
+  selectedSubtitleId?: string | null;
+  onSelectSubtitle?: (id: string | null) => void;
+  // Auto-generate props
+  videoPath?: string;
+  onAutoGenerateSubtitles?: (subtitles: SubtitleRegion[]) => void;
   aspectRatio: AspectRatio;
   onAspectRatioChange: (aspectRatio: AspectRatio) => void;
 }
@@ -67,7 +79,7 @@ interface TimelineRenderItem {
   span: Span;
   label: string;
   zoomDepth?: number;
-  variant: 'zoom' | 'trim' | 'annotation';
+  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle';
 }
 
 const SCALE_CANDIDATES = [
@@ -369,9 +381,11 @@ function Timeline({
   onSelectZoom,
   onSelectTrim,
   onSelectAnnotation,
+  onSelectSubtitle,
   selectedZoomId,
   selectedTrimId,
   selectedAnnotationId,
+  selectedSubtitleId,
 }: {
   items: TimelineRenderItem[];
   videoDurationMs: number;
@@ -381,9 +395,11 @@ function Timeline({
   onSelectZoom?: (id: string | null) => void;
   onSelectTrim?: (id: string | null) => void;
   onSelectAnnotation?: (id: string | null) => void;
+  onSelectSubtitle?: (id: string | null) => void;
   selectedZoomId: string | null;
   selectedTrimId?: string | null;
   selectedAnnotationId?: string | null;
+  selectedSubtitleId?: string | null;
 }) {
   const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
   const localTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -401,6 +417,7 @@ function Timeline({
     onSelectZoom?.(null);
     onSelectTrim?.(null);
     onSelectAnnotation?.(null);
+    onSelectSubtitle?.(null);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left - sidebarWidth;
@@ -412,11 +429,12 @@ function Timeline({
     const timeInSeconds = absoluteMs / 1000;
     
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
+  const subtitleItems = items.filter(item => item.rowId === SUBTITLE_ROW_ID);
 
   return (
     <div
@@ -482,6 +500,22 @@ function Timeline({
           </Item>
         ))}
       </Row>
+
+      <Row id={SUBTITLE_ROW_ID}>
+        {subtitleItems.map((item) => (
+          <Item
+            id={item.id}
+            key={item.id}
+            rowId={item.rowId}
+            span={item.span}
+            isSelected={item.id === selectedSubtitleId}
+            onSelect={() => onSelectSubtitle?.(item.id)}
+            variant="subtitle"
+          >
+            {item.label}
+          </Item>
+        ))}
+      </Row>
     </div>
   );
 }
@@ -508,6 +542,14 @@ export default function TimelineEditor({
   onAnnotationDelete,
   selectedAnnotationId,
   onSelectAnnotation,
+  subtitleRegions = [],
+  onSubtitleAdded,
+  onSubtitleSpanChange,
+  onSubtitleDelete,
+  selectedSubtitleId,
+  onSelectSubtitle,
+  videoPath,
+  onAutoGenerateSubtitles,
   aspectRatio,
   onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -526,6 +568,7 @@ export default function TimelineEditor({
     pan: 'Shift + Ctrl + Scroll',
     zoom: 'Ctrl + Scroll'
   });
+  const [showSubtitleGenerateDialog, setShowSubtitleGenerateDialog] = useState(false);
 
   useEffect(() => {
     formatShortcut(['shift', 'mod', 'Scroll']).then(pan => {
@@ -570,6 +613,12 @@ export default function TimelineEditor({
     onSelectAnnotation(null);
   }, [selectedAnnotationId, onAnnotationDelete, onSelectAnnotation]);
 
+  const deleteSelectedSubtitle = useCallback(() => {
+    if (!selectedSubtitleId || !onSubtitleDelete || !onSelectSubtitle) return;
+    onSubtitleDelete(selectedSubtitleId);
+    onSelectSubtitle(null);
+  }, [selectedSubtitleId, onSubtitleDelete, onSelectSubtitle]);
+
   useEffect(() => {
     setRange(createInitialRange(totalMs));
   }, [totalMs]);
@@ -609,8 +658,10 @@ export default function TimelineEditor({
     const isZoomItem = zoomRegions.some(r => r.id === excludeId);
     const isTrimItem = trimRegions.some(r => r.id === excludeId);
     const isAnnotationItem = annotationRegions.some(r => r.id === excludeId);
+    const isSubtitleItem = subtitleRegions.some(r => r.id === excludeId);
 
-    if (isAnnotationItem) {
+    // Annotations and subtitles can overlap
+    if (isAnnotationItem || isSubtitleItem) {
       return false;
     }
 
@@ -636,7 +687,7 @@ export default function TimelineEditor({
     }
 
     return false;
-  }, [zoomRegions, trimRegions, annotationRegions]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions]);
 
   const handleAddZoom = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0) {
@@ -715,6 +766,23 @@ export default function TimelineEditor({
     onAnnotationAdded({ start: startPos, end: endPos });
   }, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded]);
 
+  const handleAddSubtitle = useCallback(() => {
+    if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onSubtitleAdded) {
+      return;
+    }
+
+    const defaultDuration = Math.min(2000, totalMs); // Subtitles are typically longer
+    if (defaultDuration <= 0) {
+      return;
+    }
+
+    // Multiple subtitles can exist at the same timestamp (though typically shouldn't)
+    const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+    const endPos = Math.min(startPos + defaultDuration, totalMs);
+    
+    onSubtitleAdded({ start: startPos, end: endPos });
+  }, [videoDuration, totalMs, currentTimeMs, onSubtitleAdded]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -732,6 +800,9 @@ export default function TimelineEditor({
       }
       if (e.key === 'a' || e.key === 'A') {
         handleAddAnnotation();
+      }
+      if (e.key === 's' || e.key === 'S') {
+        handleAddSubtitle();
       }
       
       // Tab: Cycle through overlapping annotations at current time
@@ -765,12 +836,14 @@ export default function TimelineEditor({
           deleteSelectedTrim();
         } else if (selectedAnnotationId) {
           deleteSelectedAnnotation();
+        } else if (selectedSubtitleId) {
+          deleteSelectedSubtitle();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, annotationRegions, currentTime, onSelectAnnotation]);
+  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSubtitle, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSubtitle, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSubtitleId, annotationRegions, currentTime, onSelectAnnotation]);
 
   const clampedRange = useMemo<Range>(() => {
     if (totalMs === 0) {
@@ -823,19 +896,34 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations];
-  }, [zoomRegions, trimRegions, annotationRegions]);
+    const subtitles: TimelineRenderItem[] = subtitleRegions.map((region) => {
+      const preview = region.text.trim() || 'Empty subtitle';
+      const label = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
+      
+      return {
+        id: region.id,
+        rowId: SUBTITLE_ROW_ID,
+        span: { start: region.startMs, end: region.endMs },
+        label,
+        variant: 'subtitle',
+      };
+    });
+
+    return [...zooms, ...trims, ...annotations, ...subtitles];
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span) => {
-    // Check if it's a zoom or trim item
+    // Check if it's a zoom, trim, annotation, or subtitle item
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
     } else if (trimRegions.some(r => r.id === id)) {
       onTrimSpanChange?.(id, span);
     } else if (annotationRegions.some(r => r.id === id)) {
       onAnnotationSpanChange?.(id, span);
+    } else if (subtitleRegions.some(r => r.id === id)) {
+      onSubtitleSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, annotationRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange]);
 
   if (!videoDuration || videoDuration === 0) {
     return (
@@ -882,6 +970,27 @@ export default function TimelineEditor({
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
+          <Button
+            onClick={handleAddSubtitle}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all"
+            title="Add Subtitle (S)"
+          >
+            <Subtitles className="w-4 h-4" />
+          </Button>
+          {videoPath && onAutoGenerateSubtitles && (
+            <Button
+              onClick={() => setShowSubtitleGenerateDialog(true)}
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all gap-1"
+              title="Auto Generate Subtitles"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              <span className="text-xs">Auto</span>
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -923,7 +1032,7 @@ export default function TimelineEditor({
           </span>
         </div>
       </div>
-      <div className="flex-1 overflow-hidden bg-[#09090b] relative"
+<div className="flex-1 overflow-x-hidden overflow-y-auto bg-[#09090b] relative"
         onClick={() => setSelectedKeyframeId(null)}
       >
         <TimelineWrapper
@@ -950,12 +1059,24 @@ export default function TimelineEditor({
             onSelectZoom={onSelectZoom}
             onSelectTrim={onSelectTrim}
             onSelectAnnotation={onSelectAnnotation}
+            onSelectSubtitle={onSelectSubtitle}
             selectedZoomId={selectedZoomId}
             selectedTrimId={selectedTrimId}
             selectedAnnotationId={selectedAnnotationId}
+            selectedSubtitleId={selectedSubtitleId}
           />
         </TimelineWrapper>
       </div>
+      
+      {/* Subtitle Generation Dialog */}
+      {videoPath && onAutoGenerateSubtitles && (
+        <SubtitleGenerateDialog
+          isOpen={showSubtitleGenerateDialog}
+          onClose={() => setShowSubtitleGenerateDialog(false)}
+          videoPath={videoPath}
+          onSubtitlesGenerated={onAutoGenerateSubtitles}
+        />
+      )}
     </div>
   );
 }

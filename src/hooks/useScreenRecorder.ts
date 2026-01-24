@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { fixWebmDuration } from "@fix-webm-duration/fix";
 
+type UseScreenRecorderOptions = {
+  audioStream?: MediaStream | null;
+  autoZoomEnabled?: boolean;
+};
+
 type UseScreenRecorderReturn = {
   recording: boolean;
   toggleRecording: () => void;
@@ -23,10 +28,11 @@ async function ensureKeystrokeOverlayForRecording(): Promise<void> {
   }
 }
 
-export function useScreenRecorder(): UseScreenRecorderReturn {
+export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreenRecorderReturn {
   const [recording, setRecording] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
+  const videoStream = useRef<MediaStream | null>(null); // Store original video stream for cleanup
   const chunks = useRef<Blob[]>([]);
   const startTime = useRef<number>(0);
 
@@ -64,8 +70,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
   const stopRecording = useRef(() => {
     if (mediaRecorder.current?.state === "recording") {
-      if (stream.current) {
-        stream.current.getTracks().forEach(track => track.stop());
+      // Only stop video tracks (we created them), not audio tracks (they're managed externally)
+      if (videoStream.current) {
+        videoStream.current.getTracks().forEach(track => track.stop());
+        videoStream.current = null;
       }
       mediaRecorder.current.stop();
       setRecording(false);
@@ -89,10 +97,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       if (mediaRecorder.current?.state === "recording") {
         mediaRecorder.current.stop();
       }
-      if (stream.current) {
-        stream.current.getTracks().forEach(track => track.stop());
-        stream.current = null;
+      // Only stop video tracks (we created them), not audio tracks (they're managed externally)
+      if (videoStream.current) {
+        videoStream.current.getTracks().forEach(track => track.stop());
+        videoStream.current = null;
       }
+      stream.current = null;
     };
   }, []);
 
@@ -117,11 +127,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           },
         },
       });
-      stream.current = mediaStream;
-      if (!stream.current) {
+      
+      // Store original video stream for cleanup (we only stop these tracks, not external audio)
+      videoStream.current = mediaStream;
+      
+      if (!videoStream.current) {
         throw new Error("Media stream is not available.");
       }
-      const videoTrack = stream.current.getVideoTracks()[0];
+      const videoTrack = videoStream.current.getVideoTracks()[0];
       try {
         await videoTrack.applyConstraints({
           frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
@@ -141,14 +154,35 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       const videoBitsPerSecond = computeBitrate(width, height);
       const mimeType = selectMimeType();
 
+      // Combine video and audio streams
+      const combinedStream = new MediaStream();
+      
+      // Add video track from screen capture
+      combinedStream.addTrack(videoTrack);
+      
+      // Add audio tracks from microphone (if available and active)
+      const audioStream = options?.audioStream;
+      if (audioStream) {
+        audioStream.getAudioTracks().forEach(track => {
+          // Only add tracks that are currently live
+          if (track.readyState === 'live') {
+            combinedStream.addTrack(track);
+          }
+        });
+      }
+      
+      // Use combined stream for recording
+      stream.current = combinedStream;
+
+      const hasAudio = combinedStream.getAudioTracks().length > 0;
       console.log(
         `Recording at ${width}x${height} @ ${frameRate ?? TARGET_FRAME_RATE}fps using ${mimeType} / ${Math.round(
           videoBitsPerSecond / 1_000_000
-        )} Mbps`
+        )} Mbps${hasAudio ? ' with audio' : ' (video only)'}`
       );
       
       chunks.current = [];
-      const recorder = new MediaRecorder(stream.current, {
+      const recorder = new MediaRecorder(combinedStream, {
         mimeType,
         videoBitsPerSecond,
       });
@@ -156,6 +190,19 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       recorder.ondataavailable = e => {
         if (e.data && e.data.size > 0) chunks.current.push(e.data);
       };
+
+      // Start auto zoom detection if enabled
+      if (options?.autoZoomEnabled && window.electronAPI?.autoZoom) {
+        const recordingId = `recording-${Date.now()}`;
+        try {
+          await window.electronAPI.autoZoom.startDetection(recordingId, { width, height });
+          console.log('Auto zoom detection started');
+        } catch (autoZoomError) {
+          console.warn('Failed to start auto zoom detection:', autoZoomError);
+          // Continue recording without auto zoom
+        }
+      }
+
       recorder.onstop = async () => {
         stream.current = null;
         if (chunks.current.length === 0) return;
@@ -166,6 +213,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         chunks.current = [];
         const timestamp = Date.now();
         const videoFileName = `recording-${timestamp}.webm`;
+        const eventsFileName = `recording-${timestamp}.events.json`;
 
         try {
           const videoBlob = await fixWebmDuration(buggyBlob, duration);
@@ -174,6 +222,20 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
           if (!videoResult.success) {
             console.error('Failed to store video:', videoResult.message);
             return;
+          }
+
+          // Stop auto zoom detection and save events if enabled
+          if (options?.autoZoomEnabled && window.electronAPI?.autoZoom) {
+            try {
+              const stopResult = await window.electronAPI.autoZoom.stopDetection();
+              if (stopResult.success && stopResult.data) {
+                await window.electronAPI.autoZoom.saveEvents(stopResult.data, eventsFileName);
+                console.log('Auto zoom events saved:', eventsFileName);
+              }
+            } catch (autoZoomError) {
+              console.warn('Failed to save auto zoom events:', autoZoomError);
+              // Continue without auto zoom data - video is still saved
+            }
           }
 
           if (videoResult.path) {
@@ -196,10 +258,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
     } catch (error) {
       console.error('Failed to start recording:', error);
       setRecording(false);
-      if (stream.current) {
-        stream.current.getTracks().forEach(track => track.stop());
-        stream.current = null;
+      // Only stop video tracks (we created them), not audio tracks (they're managed externally)
+      if (videoStream.current) {
+        videoStream.current.getTracks().forEach(track => track.stop());
+        videoStream.current = null;
       }
+      stream.current = null;
     }
   };
 
