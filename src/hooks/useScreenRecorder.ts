@@ -4,6 +4,7 @@ import { fixWebmDuration } from "@fix-webm-duration/fix";
 type UseScreenRecorderOptions = {
   audioStream?: MediaStream | null;
   autoZoomEnabled?: boolean;
+  keysEnabled?: boolean;
 };
 
 type UseScreenRecorderReturn = {
@@ -203,6 +204,25 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         }
       }
 
+      // Start keystroke capture if Keys toggle is enabled
+      if (options?.keysEnabled && window.electronAPI?.keystrokeEditor) {
+        try {
+          const settingsResult = await window.electronAPI.keystrokeEditor.getSettings();
+          if (settingsResult.success && settingsResult.settings?.captureEnabled) {
+            const recordingId = `recording-${Date.now()}`;
+            const captureResult = await window.electronAPI.keystrokeEditor.startCapture(recordingId);
+            if (captureResult.success) {
+              console.log('Keystroke capture started');
+            } else {
+              console.warn('Failed to start keystroke capture:', captureResult.error);
+            }
+          }
+        } catch (keystrokeError) {
+          console.warn('Failed to start keystroke capture:', keystrokeError);
+          // Continue recording without keystroke capture
+        }
+      }
+
       recorder.onstop = async () => {
         stream.current = null;
         if (chunks.current.length === 0) return;
@@ -235,6 +255,21 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
             } catch (autoZoomError) {
               console.warn('Failed to save auto zoom events:', autoZoomError);
               // Continue without auto zoom data - video is still saved
+            }
+          }
+
+          // Stop keystroke capture and save events if enabled
+          if (options?.keysEnabled && window.electronAPI?.keystrokeEditor) {
+            try {
+              const stopResult = await window.electronAPI.keystrokeEditor.stopCapture();
+              if (stopResult.success && stopResult.data) {
+                const keystrokeFileName = `recording-${timestamp}.keystroke.json`;
+                await window.electronAPI.keystrokeEditor.saveEvents(stopResult.data, keystrokeFileName);
+                console.log('Keystroke events saved:', keystrokeFileName);
+              }
+            } catch (keystrokeError) {
+              console.warn('Failed to save keystroke events:', keystrokeError);
+              // Continue without keystroke data - video is still saved
             }
           }
 

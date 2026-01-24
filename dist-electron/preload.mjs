@@ -141,5 +141,34 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     isRunning: () => {
       return electron.ipcRenderer.invoke("auto-zoom:is-running");
     }
+  },
+  // ============================================
+  // KEYSTROKE EDITOR API
+  // ============================================
+  keystrokeEditor: {
+    checkAvailability: () => {
+      return electron.ipcRenderer.invoke("keystroke-editor:check-availability");
+    },
+    startCapture: (recordingId) => {
+      return electron.ipcRenderer.invoke("keystroke-editor:start-capture", recordingId);
+    },
+    stopCapture: () => {
+      return electron.ipcRenderer.invoke("keystroke-editor:stop-capture");
+    },
+    isCapturing: () => {
+      return electron.ipcRenderer.invoke("keystroke-editor:is-capturing");
+    },
+    saveEvents: (eventData, fileName) => {
+      return electron.ipcRenderer.invoke("keystroke-editor:save-events", eventData, fileName);
+    },
+    loadEvents: (videoPath) => {
+      return electron.ipcRenderer.invoke("keystroke-editor:load-events", videoPath);
+    },
+    getSettings: () => {
+      return electron.ipcRenderer.invoke("keystroke-editor:get-settings");
+    },
+    setSettings: (settings) => {
+      return electron.ipcRenderer.invoke("keystroke-editor:set-settings", settings);
+    }
   }
 });

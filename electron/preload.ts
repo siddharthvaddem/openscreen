@@ -150,4 +150,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('auto-zoom:is-running')
     },
   },
+
+  // ============================================
+  // KEYSTROKE EDITOR API
+  // ============================================
+  keystrokeEditor: {
+    checkAvailability: () => {
+      return ipcRenderer.invoke('keystroke-editor:check-availability')
+    },
+    startCapture: (recordingId: string) => {
+      return ipcRenderer.invoke('keystroke-editor:start-capture', recordingId)
+    },
+    stopCapture: () => {
+      return ipcRenderer.invoke('keystroke-editor:stop-capture')
+    },
+    isCapturing: () => {
+      return ipcRenderer.invoke('keystroke-editor:is-capturing')
+    },
+    saveEvents: (eventData: any, fileName: string) => {
+      return ipcRenderer.invoke('keystroke-editor:save-events', eventData, fileName)
+    },
+    loadEvents: (videoPath: string) => {
+      return ipcRenderer.invoke('keystroke-editor:load-events', videoPath)
+    },
+    getSettings: () => {
+      return ipcRenderer.invoke('keystroke-editor:get-settings')
+    },
+    setSettings: (settings: any) => {
+      return ipcRenderer.invoke('keystroke-editor:set-settings', settings)
+    },
+  },
 })

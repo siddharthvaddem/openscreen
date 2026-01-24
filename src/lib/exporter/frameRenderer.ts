@@ -1,5 +1,5 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
-import type { ZoomRegion, CropRegion, AnnotationRegion, SubtitleRegion } from '@/components/video-editor/types';
+import type { ZoomRegion, CropRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
@@ -7,6 +7,7 @@ import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from '@/components/video-e
 import { clampFocusToStage as clampFocusToStageUtil } from '@/components/video-editor/videoPlayback/focusUtils';
 import { renderAnnotations } from './annotationRenderer';
 import { renderSubtitles } from './subtitleRenderer';
+import { renderKeystrokes } from './keystrokeRenderer';
 
 interface FrameRenderConfig {
   width: number;
@@ -24,6 +25,7 @@ interface FrameRenderConfig {
   videoHeight: number;
   annotationRegions?: AnnotationRegion[];
   subtitleRegions?: SubtitleRegion[];
+  keystrokeRegions?: KeystrokeRegion[];
   previewWidth?: number;
   previewHeight?: number;
 }
@@ -335,6 +337,26 @@ export class FrameRenderer {
       renderSubtitles(
         this.compositeCtx,
         this.config.subtitleRegions,
+        this.config.width,
+        this.config.height,
+        timeMs,
+        scaleFactor
+      );
+    }
+
+    // Render keystroke overlays on top of subtitles (highest z-index)
+    // Requirements: 8.1, 8.2, 8.3, 8.4 - Export support for keystroke overlays
+    if (this.config.keystrokeRegions && this.config.keystrokeRegions.length > 0 && this.compositeCtx) {
+      // Calculate scale factor based on export vs preview dimensions
+      const previewWidth = this.config.previewWidth || 1920;
+      const previewHeight = this.config.previewHeight || 1080;
+      const scaleX = this.config.width / previewWidth;
+      const scaleY = this.config.height / previewHeight;
+      const scaleFactor = (scaleX + scaleY) / 2;
+
+      renderKeystrokes(
+        this.compositeCtx,
+        this.config.keystrokeRegions,
         this.config.width,
         this.config.height,
         timeMs,

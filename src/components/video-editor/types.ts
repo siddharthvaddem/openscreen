@@ -272,3 +272,60 @@ export const SUBTITLE_LANGUAGES: { code: SubtitleLanguage; label: string }[] = [
   { code: 'vi', label: 'Vietnamese' },
   { code: 'th', label: 'Thai' },
 ];
+
+// ============================================
+// KEYSTROKE OVERLAY TYPES
+// ============================================
+
+export type KeystrokePositionPreset = 
+  | 'bottom-center' 
+  | 'bottom-left' 
+  | 'bottom-right' 
+  | 'top-center'
+  | 'top-left'
+  | 'top-right';
+
+export type AnimationPreset = 
+  | 'fade' 
+  | 'slide-up' 
+  | 'slide-down' 
+  | 'scale' 
+  | 'none';
+
+export interface KeystrokeStyle {
+  textColor: string;
+  backgroundColor: string;
+  modifierColor: string;        // separate color for modifier keys
+  textScale: number;            // 0.5 - 2.0
+  borderRadius: number;         // 0 - 16px
+  fadeDurationMs: number;       // animation duration
+  lingerDurationMs: number;     // how long to display before fade
+  animationIn: AnimationPreset;
+  animationOut: AnimationPreset;
+  showOnlyHotkeys: boolean;     // filter to show only shortcuts
+}
+
+export interface KeystrokeRegion {
+  id: string;
+  startMs: number;
+  endMs: number;
+  text: string;                 // formatted keystroke text
+  eventType: 'keystroke' | 'mouse';
+  positionPreset: KeystrokePositionPreset;
+  style: KeystrokeStyle;
+}
+
+export const DEFAULT_KEYSTROKE_STYLE: KeystrokeStyle = {
+  textColor: '#FFFFFF',
+  backgroundColor: '#000000CC',
+  modifierColor: '#34B27B',
+  textScale: 1.0,
+  borderRadius: 8,
+  fadeDurationMs: 300,
+  lingerDurationMs: 1500,
+  animationIn: 'fade',
+  animationOut: 'fade',
+  showOnlyHotkeys: false,
+};
+
+export const DEFAULT_KEYSTROKE_POSITION: KeystrokePositionPreset = 'bottom-center';

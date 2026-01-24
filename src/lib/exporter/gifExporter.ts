@@ -2,7 +2,7 @@ import GIF from 'gif.js';
 import type { ExportProgress, ExportResult, GifFrameRate, GifSizePreset, GIF_SIZE_PRESETS } from './types';
 import { VideoFileDecoder } from './videoDecoder';
 import { FrameRenderer } from './frameRenderer';
-import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SubtitleRegion } from '@/components/video-editor/types';
+import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from '@/components/video-editor/types';
 
 const GIF_WORKER_URL = new URL('gif.js/dist/gif.worker.js', import.meta.url).toString();
 
@@ -26,6 +26,7 @@ interface GifExporterConfig {
   cropRegion: CropRegion;
   annotationRegions?: AnnotationRegion[];
   subtitleRegions?: SubtitleRegion[];
+  keystrokeRegions?: KeystrokeRegion[];
   previewWidth?: number;
   previewHeight?: number;
   onProgress?: (progress: ExportProgress) => void;
@@ -137,6 +138,7 @@ export class GifExporter {
         videoHeight: videoInfo.height,
         annotationRegions: this.config.annotationRegions,
         subtitleRegions: this.config.subtitleRegions,
+        keystrokeRegions: this.config.keystrokeRegions,
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,
       });

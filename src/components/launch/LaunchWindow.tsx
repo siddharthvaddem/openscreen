@@ -3,7 +3,7 @@ import styles from "./LaunchWindow.module.css";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useMicrophone } from "../../hooks/useMicrophone";
 import { useAutoZoomSettings } from "../../hooks/useAutoZoomSettings";
-import { useKeystrokeSettings } from "../../hooks/useKeystrokeSettings";
+import { useKeystrokeEditorSettings } from "../../hooks/useKeystrokeEditorSettings";
 import { Button } from "../ui/button";
 import { BsRecordCircle, BsKeyboard } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
@@ -85,13 +85,20 @@ export function LaunchWindow() {
   // Auto zoom settings
   const { settings: autoZoomSettings, setEnabled: setAutoZoomEnabled } = useAutoZoomSettings();
   
-  // Keystroke settings
-  const { settings: keystrokeSettings, toggleEnabled: toggleKeystroke, loading: keystrokeLoading } = useKeystrokeSettings();
+  // Keystroke editor settings (for capturing during recording)
+  const { 
+    captureEnabled: keystrokeCaptureEnabled, 
+    toggleCaptureEnabled: toggleKeystrokeCapture, 
+    loading: keystrokeLoading,
+    serviceAvailable: keystrokeServiceAvailable,
+    serviceError: keystrokeServiceError,
+  } = useKeystrokeEditorSettings();
   
   // Pass audio stream and auto zoom setting to screen recorder
   const { recording, toggleRecording } = useScreenRecorder({ 
     audioStream,
     autoZoomEnabled: autoZoomSettings.enabled,
+    keysEnabled: keystrokeCaptureEnabled,
   });
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -254,20 +261,39 @@ export function LaunchWindow() {
 
         <div className="w-px h-5 bg-white/30" />
 
-        {/* Keys toggle for keystroke overlay */}
+        {/* Keys toggle for keystroke capture during recording */}
+        {/* Requirement 10.1: Disable toggle if keystroke service fails to initialize */}
         <Button
           variant="link"
           size="sm"
-          onClick={toggleKeystroke}
-          disabled={keystrokeLoading}
+          onClick={toggleKeystrokeCapture}
+          disabled={keystrokeLoading || recording || !keystrokeServiceAvailable}
           className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
-          title={keystrokeSettings.enabled ? "Hide keystrokes" : "Show keystrokes"}
+          title={
+            !keystrokeServiceAvailable 
+              ? keystrokeServiceError || "Keystroke capture unavailable" 
+              : keystrokeCaptureEnabled 
+                ? "Keystroke capture: ON" 
+                : "Keystroke capture: OFF"
+          }
         >
           <BsKeyboard 
             size={14} 
-            className={keystrokeSettings.enabled ? "text-green-400" : "text-white/50"} 
+            className={
+              !keystrokeServiceAvailable 
+                ? "text-red-400/50" 
+                : keystrokeCaptureEnabled 
+                  ? "text-green-400" 
+                  : "text-white/50"
+            } 
           />
-          <span className={keystrokeSettings.enabled ? "text-white" : "text-zinc-400"}>
+          <span className={
+            !keystrokeServiceAvailable 
+              ? "text-zinc-500" 
+              : keystrokeCaptureEnabled 
+                ? "text-white" 
+                : "text-zinc-400"
+          }>
             Keys
           </span>
         </Button>

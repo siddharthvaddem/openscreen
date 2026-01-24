@@ -88,6 +88,17 @@ interface Window {
       getEvents: (videoPath: string) => Promise<{ success: boolean; data?: any; notFound?: boolean; error?: string }>
       isRunning: () => Promise<boolean>
     }
+    // Keystroke Editor API
+    keystrokeEditor: {
+      checkAvailability: () => Promise<{ available: boolean; error?: string }>
+      startCapture: (recordingId: string) => Promise<{ success: boolean; error?: string }>
+      stopCapture: () => Promise<{ success: boolean; data?: KeystrokeEditorEventData; error?: string }>
+      isCapturing: () => Promise<boolean>
+      saveEvents: (eventData: KeystrokeEditorEventData, fileName: string) => Promise<{ success: boolean; path?: string; error?: string }>
+      loadEvents: (videoPath: string) => Promise<{ success: boolean; data?: KeystrokeEditorEventData; notFound?: boolean; error?: string }>
+      getSettings: () => Promise<{ success: boolean; settings: KeystrokeEditorSettingsType }>
+      setSettings: (settings: Partial<KeystrokeEditorSettingsType>) => Promise<{ success: boolean; settings?: KeystrokeEditorSettingsType; error?: string }>
+    }
   }
 }
 
@@ -151,3 +162,82 @@ interface MouseInputEvent {
 }
 
 type KeystrokeOrMouseEvent = KeystrokeInputEvent | MouseInputEvent
+
+// ============================================
+// Keystroke Editor types for electronAPI
+// ============================================
+
+// Position presets for keystroke overlay
+type KeystrokeEditorPositionPreset = 
+  | 'bottom-center' 
+  | 'bottom-left' 
+  | 'bottom-right' 
+  | 'top-center'
+  | 'top-left'
+  | 'top-right';
+
+// Animation presets for keystroke overlay
+type KeystrokeEditorAnimationPreset = 
+  | 'fade' 
+  | 'slide-up' 
+  | 'slide-down' 
+  | 'scale' 
+  | 'none';
+
+// Style configuration for keystroke overlay
+interface KeystrokeEditorStyle {
+  textColor: string;
+  backgroundColor: string;
+  modifierColor: string;
+  textScale: number;
+  borderRadius: number;
+  fadeDurationMs: number;
+  lingerDurationMs: number;
+  animationIn: KeystrokeEditorAnimationPreset;
+  animationOut: KeystrokeEditorAnimationPreset;
+  showOnlyHotkeys: boolean;
+}
+
+// Settings for keystroke editor
+interface KeystrokeEditorSettingsType {
+  captureEnabled: boolean;
+  defaultStyle: KeystrokeEditorStyle;
+  defaultPosition: KeystrokeEditorPositionPreset;
+}
+
+// Recorded keystroke event
+interface RecordedKeystrokeEditorEvent {
+  type: 'keystroke';
+  timestamp: number;
+  keyCode: number;
+  keyName: string;
+  modifiers: {
+    ctrl: boolean;
+    alt: boolean;
+    shift: boolean;
+    meta: boolean;
+  };
+}
+
+// Recorded mouse click event
+interface RecordedMouseClickEditorEvent {
+  type: 'mouse';
+  timestamp: number;
+  button: 'left' | 'right' | 'middle';
+  modifiers: {
+    ctrl: boolean;
+    alt: boolean;
+    shift: boolean;
+    meta: boolean;
+  };
+}
+
+// Union type for recorded input events
+type RecordedEditorInputEvent = RecordedKeystrokeEditorEvent | RecordedMouseClickEditorEvent;
+
+// Event data structure for keystroke editor
+interface KeystrokeEditorEventData {
+  version: 1;
+  recordingId: string;
+  events: RecordedEditorInputEvent[];
+}

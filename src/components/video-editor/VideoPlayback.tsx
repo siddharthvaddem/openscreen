@@ -14,6 +14,8 @@ import { createVideoEventHandlers } from "./videoPlayback/videoEventHandlers";
 import { type AspectRatio, formatAspectRatioForCSS } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
 import { SubtitleOverlay } from "./subtitle";
+import { KeystrokeEditorOverlay, calculateStackIndices } from "./keystroke/KeystrokeEditorOverlay";
+import type { KeystrokeRegion } from "./types";
 
 interface VideoPlaybackProps {
   videoPath: string;
@@ -47,6 +49,10 @@ interface VideoPlaybackProps {
   selectedSubtitleId?: string | null;
   onSelectSubtitle?: (id: string | null) => void;
   onSubtitlePositionChange?: (id: string, position: SubtitlePositionPreset, customPosition?: { x: number; y: number }) => void;
+  // Keystroke props
+  keystrokeRegions?: KeystrokeRegion[];
+  selectedKeystrokeId?: string | null;
+  onSelectKeystroke?: (id: string | null) => void;
 }
 
 export interface VideoPlaybackRef {
@@ -90,6 +96,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   selectedSubtitleId,
   onSelectSubtitle,
   onSubtitlePositionChange,
+  keystrokeRegions = [],
+  selectedKeystrokeId,
+  onSelectKeystroke,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -901,6 +910,40 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
                 onClick={(id) => onSelectSubtitle?.(id)}
               />
             ));
+          })()}
+          {/* Keystroke Overlays */}
+          {(() => {
+            const timeMs = Math.round(currentTime * 1000);
+            const filtered = (keystrokeRegions || []).filter((keystroke) => {
+              if (typeof keystroke.startMs !== 'number' || typeof keystroke.endMs !== 'number') return false;
+              
+              // Always show selected keystroke
+              if (keystroke.id === selectedKeystrokeId) return true;
+              
+              // Show if current time is within region range
+              return timeMs >= keystroke.startMs && timeMs < keystroke.endMs;
+            });
+            
+            // Calculate stack indices for overlays at the same position
+            const stackIndices = calculateStackIndices(filtered);
+            
+            return filtered.map((keystroke) => {
+              const stackInfo = stackIndices.get(keystroke.id) || { stackIndex: 0, stackCount: 1 };
+              
+              return (
+                <KeystrokeEditorOverlay
+                  key={keystroke.id}
+                  keystroke={keystroke}
+                  isSelected={keystroke.id === selectedKeystrokeId}
+                  containerWidth={overlayRef.current?.clientWidth || 800}
+                  containerHeight={overlayRef.current?.clientHeight || 600}
+                  currentTimeMs={timeMs}
+                  onClick={(id) => onSelectKeystroke?.(id)}
+                  stackIndex={stackInfo.stackIndex}
+                  stackCount={stackInfo.stackCount}
+                />
+              );
+            });
           })()}
         </div>
       )}

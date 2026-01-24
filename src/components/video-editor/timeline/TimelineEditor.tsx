@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -26,6 +26,7 @@ const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const SUBTITLE_ROW_ID = "row-subtitle";
+const KEYSTROKE_ROW_ID = "row-keystroke";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 
@@ -58,6 +59,13 @@ interface TimelineEditorProps {
   onSubtitleDelete?: (id: string) => void;
   selectedSubtitleId?: string | null;
   onSelectSubtitle?: (id: string | null) => void;
+  // Keystroke props
+  keystrokeRegions?: KeystrokeRegion[];
+  onKeystrokeAdded?: (span: Span) => void;
+  onKeystrokeSpanChange?: (id: string, span: Span) => void;
+  onKeystrokeDelete?: (id: string) => void;
+  selectedKeystrokeId?: string | null;
+  onSelectKeystroke?: (id: string | null) => void;
   // Auto-generate props
   videoPath?: string;
   onAutoGenerateSubtitles?: (subtitles: SubtitleRegion[]) => void;
@@ -79,7 +87,7 @@ interface TimelineRenderItem {
   span: Span;
   label: string;
   zoomDepth?: number;
-  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle';
+  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke';
 }
 
 const SCALE_CANDIDATES = [
@@ -382,10 +390,12 @@ function Timeline({
   onSelectTrim,
   onSelectAnnotation,
   onSelectSubtitle,
+  onSelectKeystroke,
   selectedZoomId,
   selectedTrimId,
   selectedAnnotationId,
   selectedSubtitleId,
+  selectedKeystrokeId,
 }: {
   items: TimelineRenderItem[];
   videoDurationMs: number;
@@ -396,10 +406,12 @@ function Timeline({
   onSelectTrim?: (id: string | null) => void;
   onSelectAnnotation?: (id: string | null) => void;
   onSelectSubtitle?: (id: string | null) => void;
+  onSelectKeystroke?: (id: string | null) => void;
   selectedZoomId: string | null;
   selectedTrimId?: string | null;
   selectedAnnotationId?: string | null;
   selectedSubtitleId?: string | null;
+  selectedKeystrokeId?: string | null;
 }) {
   const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
   const localTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -418,6 +430,7 @@ function Timeline({
     onSelectTrim?.(null);
     onSelectAnnotation?.(null);
     onSelectSubtitle?.(null);
+    onSelectKeystroke?.(null);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left - sidebarWidth;
@@ -429,12 +442,13 @@ function Timeline({
     const timeInSeconds = absoluteMs / 1000;
     
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, onSelectKeystroke, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
   const subtitleItems = items.filter(item => item.rowId === SUBTITLE_ROW_ID);
+  const keystrokeItems = items.filter(item => item.rowId === KEYSTROKE_ROW_ID);
 
   return (
     <div
@@ -516,6 +530,22 @@ function Timeline({
           </Item>
         ))}
       </Row>
+
+      <Row id={KEYSTROKE_ROW_ID}>
+        {keystrokeItems.map((item) => (
+          <Item
+            id={item.id}
+            key={item.id}
+            rowId={item.rowId}
+            span={item.span}
+            isSelected={item.id === selectedKeystrokeId}
+            onSelect={() => onSelectKeystroke?.(item.id)}
+            variant="keystroke"
+          >
+            {item.label}
+          </Item>
+        ))}
+      </Row>
     </div>
   );
 }
@@ -548,6 +578,12 @@ export default function TimelineEditor({
   onSubtitleDelete,
   selectedSubtitleId,
   onSelectSubtitle,
+  keystrokeRegions = [],
+  onKeystrokeAdded,
+  onKeystrokeSpanChange,
+  onKeystrokeDelete,
+  selectedKeystrokeId,
+  onSelectKeystroke,
   videoPath,
   onAutoGenerateSubtitles,
   aspectRatio,
@@ -659,9 +695,10 @@ export default function TimelineEditor({
     const isTrimItem = trimRegions.some(r => r.id === excludeId);
     const isAnnotationItem = annotationRegions.some(r => r.id === excludeId);
     const isSubtitleItem = subtitleRegions.some(r => r.id === excludeId);
+    const isKeystrokeItem = keystrokeRegions.some(r => r.id === excludeId);
 
-    // Annotations and subtitles can overlap
-    if (isAnnotationItem || isSubtitleItem) {
+    // Annotations, subtitles, and keystrokes can overlap
+    if (isAnnotationItem || isSubtitleItem || isKeystrokeItem) {
       return false;
     }
 
@@ -687,7 +724,7 @@ export default function TimelineEditor({
     }
 
     return false;
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
 
   const handleAddZoom = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0) {
@@ -909,11 +946,24 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations, ...subtitles];
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions]);
+    const keystrokes: TimelineRenderItem[] = keystrokeRegions.map((region) => {
+      const preview = region.text.trim() || 'Keystroke';
+      const label = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
+      
+      return {
+        id: region.id,
+        rowId: KEYSTROKE_ROW_ID,
+        span: { start: region.startMs, end: region.endMs },
+        label,
+        variant: 'keystroke',
+      };
+    });
+
+    return [...zooms, ...trims, ...annotations, ...subtitles, ...keystrokes];
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span) => {
-    // Check if it's a zoom, trim, annotation, or subtitle item
+    // Check if it's a zoom, trim, annotation, subtitle, or keystroke item
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
     } else if (trimRegions.some(r => r.id === id)) {
@@ -922,8 +972,10 @@ export default function TimelineEditor({
       onAnnotationSpanChange?.(id, span);
     } else if (subtitleRegions.some(r => r.id === id)) {
       onSubtitleSpanChange?.(id, span);
+    } else if (keystrokeRegions.some(r => r.id === id)) {
+      onKeystrokeSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange, onKeystrokeSpanChange]);
 
   if (!videoDuration || videoDuration === 0) {
     return (
@@ -1060,10 +1112,12 @@ export default function TimelineEditor({
             onSelectTrim={onSelectTrim}
             onSelectAnnotation={onSelectAnnotation}
             onSelectSubtitle={onSelectSubtitle}
+            onSelectKeystroke={onSelectKeystroke}
             selectedZoomId={selectedZoomId}
             selectedTrimId={selectedTrimId}
             selectedAnnotationId={selectedAnnotationId}
             selectedSubtitleId={selectedSubtitleId}
+            selectedKeystrokeId={selectedKeystrokeId}
           />
         </TimelineWrapper>
       </div>

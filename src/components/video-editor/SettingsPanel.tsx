@@ -9,11 +9,12 @@ import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star, Film, Image } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, Preset, PresetSettings, SubtitleRegion, SubtitleStyle, SubtitlePositionPreset } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, Preset, PresetSettings, SubtitleRegion, SubtitleStyle, SubtitlePositionPreset, KeystrokeRegion, KeystrokeStyle, KeystrokePositionPreset } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { SubtitleSettingsPanel } from "./subtitle/SubtitleSettingsPanel";
+import { KeystrokeSettingsPanel } from "./keystroke/KeystrokeSettingsPanel";
 import { PresetSelector } from "./PresetSelector";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@/lib/exporter";
@@ -101,6 +102,12 @@ interface SettingsPanelProps {
   onSubtitleStyleChange?: (id: string, style: Partial<SubtitleStyle>) => void;
   onSubtitlePositionChange?: (id: string, position: SubtitlePositionPreset, customPosition?: { x: number; y: number }) => void;
   onSubtitleDelete?: (id: string) => void;
+  // Keystroke props
+  selectedKeystrokeId?: string | null;
+  keystrokeRegions?: KeystrokeRegion[];
+  onKeystrokeStyleChange?: (id: string, style: Partial<KeystrokeStyle>) => void;
+  onKeystrokePositionChange?: (id: string, position: KeystrokePositionPreset) => void;
+  onKeystrokeDelete?: (id: string) => void;
   // Preset props
   presets?: Preset[];
   defaultPresetId?: string | null;
@@ -175,6 +182,12 @@ export function SettingsPanel({
   onSubtitleStyleChange,
   onSubtitlePositionChange,
   onSubtitleDelete,
+  // Keystroke props
+  selectedKeystrokeId,
+  keystrokeRegions = [],
+  onKeystrokeStyleChange,
+  onKeystrokePositionChange,
+  onKeystrokeDelete,
   // Preset props
   presets = [],
   defaultPresetId = null,
@@ -307,6 +320,24 @@ export function SettingsPanel({
         onStyleChange={(style) => onSubtitleStyleChange(selectedSubtitle.id, style)}
         onPositionChange={(position, customPosition) => onSubtitlePositionChange(selectedSubtitle.id, position, customPosition)}
         onDelete={() => onSubtitleDelete(selectedSubtitle.id)}
+      />
+    );
+  }
+
+  // Find selected keystroke
+  const selectedKeystroke = selectedKeystrokeId 
+    ? keystrokeRegions.find(k => k.id === selectedKeystrokeId)
+    : null;
+
+  // If a keystroke is selected, show keystroke settings instead
+  // This enables live preview updates (Requirement 7.10)
+  if (selectedKeystroke && onKeystrokeStyleChange && onKeystrokePositionChange && onKeystrokeDelete) {
+    return (
+      <KeystrokeSettingsPanel
+        keystroke={selectedKeystroke}
+        onStyleChange={(style) => onKeystrokeStyleChange(selectedKeystroke.id, style)}
+        onPositionChange={(position) => onKeystrokePositionChange(selectedKeystroke.id, position)}
+        onDelete={() => onKeystrokeDelete(selectedKeystroke.id)}
       />
     );
   }
