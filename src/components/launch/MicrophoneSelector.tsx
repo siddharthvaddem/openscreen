@@ -115,7 +115,6 @@ export function MicrophoneSelector({
     >
       {getIcon()}
       <span className={cn(
-        "hidden sm:inline",
         !isEnabled && "text-zinc-400"
       )}>
         Mic

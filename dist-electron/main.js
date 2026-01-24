@@ -42,8 +42,8 @@ function createHudOverlayWindow() {
   const win = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    minWidth: 500,
-    maxWidth: 500,
+    minWidth: 580,
+    maxWidth: 580,
     minHeight: 350,
     maxHeight: 350,
     x,
