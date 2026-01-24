@@ -13,6 +13,15 @@ import {
   type Preset,
   type PresetSettings
 } from './presets'
+import { keystrokeService } from '../services/keystrokeService'
+import { getKeystrokeSettings, setKeystrokeSettings } from './keystrokeSettings'
+import type { KeystrokeSettings } from '../../src/types/keystrokeSettings'
+import { 
+  createKeystrokeOverlayWindow, 
+  getKeystrokeOverlayWindow, 
+  showKeystrokeOverlayWindow, 
+  hideKeystrokeOverlayWindow 
+} from '../windows'
 
 let selectedSource: any = null
 
@@ -148,12 +157,16 @@ export function registerIpcHandlers(
         ? [{ name: 'GIF Image', extensions: ['gif'] }]
         : [{ name: 'MP4 Video', extensions: ['mp4'] }];
 
-      const result = await dialog.showSaveDialog(mainWindow || undefined, {
+      const dialogOptions: Electron.SaveDialogOptions = {
         title: isGif ? 'Save Exported GIF' : 'Save Exported Video',
         defaultPath: path.join(app.getPath('downloads'), fileName),
         filters,
         properties: ['createDirectory', 'showOverwriteConfirmation']
-      });
+      };
+
+      const result = mainWindow 
+        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
 
       if (result.canceled || !result.filePath) {
         return {
@@ -256,5 +269,87 @@ export function registerIpcHandlers(
 
   ipcMain.handle('presets:setDefault', async (_, id: string | null) => {
     return await setDefaultPreset(id);
+  });
+
+  // ============================================
+  // KEYSTROKE HANDLERS
+  // Requirements: 6.4, 9.1, 9.2, 9.3, 9.4
+  // ============================================
+
+  ipcMain.handle('keystroke:start', async () => {
+    try {
+      await keystrokeService.start();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to start keystroke service:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
+  });
+
+  ipcMain.handle('keystroke:stop', () => {
+    try {
+      keystrokeService.stop();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to stop keystroke service:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
+  });
+
+  ipcMain.handle('keystroke:get-settings', async () => {
+    return await getKeystrokeSettings();
+  });
+
+  ipcMain.handle('keystroke:set-settings', async (_, settings: Partial<KeystrokeSettings>) => {
+    return await setKeystrokeSettings(settings);
+  });
+
+  // Note: keystroke:show-overlay and keystroke:hide-overlay
+  ipcMain.handle('keystroke:show-overlay', async () => {
+    try {
+      let overlayWindow = getKeystrokeOverlayWindow();
+      
+      if (!overlayWindow || overlayWindow.isDestroyed()) {
+        // Create the overlay window if it doesn't exist
+        overlayWindow = createKeystrokeOverlayWindow();
+        
+        // Setup event forwarding from keystroke service to overlay window
+        keystrokeService.onEvent((event) => {
+          if (overlayWindow && !overlayWindow.isDestroyed()) {
+            overlayWindow.webContents.send('keystroke:event', event);
+          }
+        });
+      } else {
+        // Show existing window
+        showKeystrokeOverlayWindow();
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to show keystroke overlay:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
+  });
+
+  ipcMain.handle('keystroke:hide-overlay', async () => {
+    try {
+      hideKeystrokeOverlayWindow();
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to hide keystroke overlay:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
   });
 }

@@ -715,7 +715,7 @@ export function SettingsPanel({
             <div>
               <div className="mb-1.5 text-xs font-medium text-slate-400">Output Size</div>
               <div className="bg-white/5 border border-white/5 p-1 w-full grid grid-cols-3 h-auto rounded-xl">
-                {Object.entries(GIF_SIZE_PRESETS).map(([key, preset]) => (
+                {Object.entries(GIF_SIZE_PRESETS).map(([key, _preset]) => (
                   <button
                     key={key}
                     onClick={() => onGifSizePresetChange?.(key as GifSizePreset)}

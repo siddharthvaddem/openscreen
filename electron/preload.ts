@@ -87,4 +87,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('presets:setDefault', id)
     },
   },
+
+  // ============================================
+  // KEYSTROKE API
+  // ============================================
+  keystroke: {
+    start: () => {
+      return ipcRenderer.invoke('keystroke:start')
+    },
+    stop: () => {
+      return ipcRenderer.invoke('keystroke:stop')
+    },
+    getSettings: () => {
+      return ipcRenderer.invoke('keystroke:get-settings')
+    },
+    setSettings: (settings: any) => {
+      return ipcRenderer.invoke('keystroke:set-settings', settings)
+    },
+    showOverlay: () => {
+      return ipcRenderer.invoke('keystroke:show-overlay')
+    },
+    hideOverlay: () => {
+      return ipcRenderer.invoke('keystroke:hide-overlay')
+    },
+    onEvent: (callback: (event: any) => void) => {
+      const listener = (_: any, event: any) => callback(event)
+      ipcRenderer.on('keystroke:event', listener)
+      return () => ipcRenderer.removeListener('keystroke:event', listener)
+    },
+  },
 })

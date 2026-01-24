@@ -10,6 +10,7 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 const RENDERER_DIST = path.join(APP_ROOT, 'dist')
 
 let hudOverlayWindow: BrowserWindow | null = null;
+let keystrokeOverlayWindow: BrowserWindow | null = null;
 
 ipcMain.on('hud-overlay-hide', () => {
   if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
@@ -152,4 +153,116 @@ export function createSourceSelectorWindow(): BrowserWindow {
   }
 
   return win
+}
+
+
+/**
+ * Creates the keystroke overlay window for displaying keystrokes and mouse actions.
+ * 
+ * Requirements:
+ * - 2.1: Transparent with no visible window frame or background
+ * - 2.2: Always-on-top so it appears above other windows
+ * - 2.3: Click-through so mouse events pass through to underlying windows
+ * - 2.4: Excluded from the taskbar
+ * - 2.5: Positioned at a configurable screen location (default: bottom-center)
+ * - 2.7: Appear only on the monitor being recorded
+ * 
+ * @param displayId - Optional display ID to position the overlay on (for multi-monitor support)
+ * @returns The created BrowserWindow instance
+ */
+export function createKeystrokeOverlayWindow(displayId?: string): BrowserWindow {
+  // Get the display to show overlay on
+  // If displayId provided, find that display; otherwise use primary
+  const displays = screen.getAllDisplays();
+  const targetDisplay = displayId 
+    ? displays.find(d => d.id.toString() === displayId) || screen.getPrimaryDisplay()
+    : screen.getPrimaryDisplay();
+  
+  const { bounds } = targetDisplay;
+  
+  // Window dimensions
+  const windowWidth = 400;
+  const windowHeight = 100;
+  
+  // Position at bottom-center of target display (Requirement 2.5)
+  const x = Math.floor(bounds.x + (bounds.width - windowWidth) / 2);
+  const y = Math.floor(bounds.y + bounds.height - windowHeight - 50);
+  
+  const win = new BrowserWindow({
+    width: windowWidth,
+    height: windowHeight,
+    x,
+    y,
+    frame: false,           // 2.1: No window frame
+    transparent: true,      // 2.1: Transparent background
+    resizable: false,
+    alwaysOnTop: true,      // 2.2: Always on top
+    skipTaskbar: true,      // 2.4: Excluded from taskbar
+    hasShadow: false,
+    focusable: false,       // Don't steal focus
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      backgroundThrottling: false,
+    },
+  });
+  
+  // 2.3: Enable click-through so mouse events pass through to underlying windows
+  win.setIgnoreMouseEvents(true);
+  
+  // Load the keystroke overlay component
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL + '?windowType=keystroke-overlay');
+  } else {
+    win.loadFile(path.join(RENDERER_DIST, 'index.html'), { 
+      query: { windowType: 'keystroke-overlay' } 
+    });
+  }
+  
+  keystrokeOverlayWindow = win;
+  
+  win.on('closed', () => {
+    if (keystrokeOverlayWindow === win) {
+      keystrokeOverlayWindow = null;
+    }
+  });
+  
+  return win;
+}
+
+/**
+ * Gets the current keystroke overlay window instance.
+ * @returns The keystroke overlay window or null if not created
+ */
+export function getKeystrokeOverlayWindow(): BrowserWindow | null {
+  return keystrokeOverlayWindow;
+}
+
+/**
+ * Hides the keystroke overlay window if it exists and is not destroyed.
+ */
+export function hideKeystrokeOverlayWindow(): void {
+  if (keystrokeOverlayWindow && !keystrokeOverlayWindow.isDestroyed()) {
+    keystrokeOverlayWindow.hide();
+  }
+}
+
+/**
+ * Shows the keystroke overlay window if it exists and is not destroyed.
+ */
+export function showKeystrokeOverlayWindow(): void {
+  if (keystrokeOverlayWindow && !keystrokeOverlayWindow.isDestroyed()) {
+    keystrokeOverlayWindow.show();
+  }
+}
+
+/**
+ * Destroys the keystroke overlay window and cleans up the reference.
+ */
+export function destroyKeystrokeOverlayWindow(): void {
+  if (keystrokeOverlayWindow && !keystrokeOverlayWindow.isDestroyed()) {
+    keystrokeOverlayWindow.close();
+    keystrokeOverlayWindow = null;
+  }
 }

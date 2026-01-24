@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "./LaunchWindow.module.css";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
+import { useKeystrokeSettings } from "../../hooks/useKeystrokeSettings";
 import { Button } from "../ui/button";
 import { BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
@@ -8,10 +9,12 @@ import { MdMonitor } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { FaFolderMinus } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
+import { BsKeyboard } from "react-icons/bs";
 import { ContentClamp } from "../ui/content-clamp";
 
 export function LaunchWindow() {
   const { recording, toggleRecording } = useScreenRecorder();
+  const { settings: keystrokeSettings, toggleEnabled: toggleKeystroke, loading: keystrokeLoading } = useKeystrokeSettings();
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -142,6 +145,26 @@ export function LaunchWindow() {
           )}
         </Button>
         
+
+        <div className="w-px h-6 bg-white/30" />
+
+        {/* Keys toggle for keystroke overlay */}
+        <Button
+          variant="link"
+          size="sm"
+          onClick={toggleKeystroke}
+          disabled={keystrokeLoading}
+          className={`gap-1 text-white bg-transparent hover:bg-transparent px-0 flex-1 text-center text-xs ${styles.electronNoDrag}`}
+          title={keystrokeSettings.enabled ? "Hide keystrokes" : "Show keystrokes"}
+        >
+          <BsKeyboard 
+            size={14} 
+            className={keystrokeSettings.enabled ? "text-green-400" : "text-white/50"} 
+          />
+          <span className={keystrokeSettings.enabled ? "text-green-400" : "text-white/50"}>
+            Keys
+          </span>
+        </Button>
 
         <div className="w-px h-6 bg-white/30" />
 

@@ -252,7 +252,7 @@ export class GifExporter {
       }
 
       // Render the GIF
-      const blob = await new Promise<Blob>((resolve, reject) => {
+      const blob = await new Promise<Blob>((resolve, _reject) => {
         this.gif!.on('finished', (blob: Blob) => {
           resolve(blob);
         });
