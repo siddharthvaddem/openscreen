@@ -112,9 +112,10 @@ describe('MouseEventDetector Logic', () => {
 
             // Verify it's a click event
             expect(event).not.toBeNull();
-            expect(event!.type).toBe('click');
+            if (!event) return;
+            expect(event.type).toBe('click');
 
-            if (event!.type === 'click') {
+            if (event.type === 'click') {
               // Verify timestamp is valid (>= 0)
               expect(event.timestamp).toBeGreaterThanOrEqual(0);
               
@@ -145,9 +146,10 @@ describe('MouseEventDetector Logic', () => {
             const event = processMouseEvents(mouseDown, mouseUp);
 
             expect(event).not.toBeNull();
-            expect(event!.type).toBe('click');
+            if (!event) return;
+            expect(event.type).toBe('click');
 
-            if (event!.type === 'click') {
+            if (event.type === 'click') {
               const expectedButton = mapButton(button);
               expect(event.button).toBe(expectedButton);
             }
@@ -189,9 +191,10 @@ describe('MouseEventDetector Logic', () => {
 
             // Verify it's a drag event
             expect(event).not.toBeNull();
-            expect(event!.type).toBe('drag');
+            if (!event) return;
+            expect(event.type).toBe('drag');
 
-            if (event!.type === 'drag') {
+            if (event.type === 'drag') {
               // Verify timestamps
               expect(event.startTimestamp).toBeLessThanOrEqual(event.endTimestamp);
               expect(event.startTimestamp).toBeGreaterThanOrEqual(0);
@@ -236,7 +239,7 @@ describe('MouseEventDetector Logic', () => {
 
             // Should be a click, not a drag (duration too short)
             expect(event).not.toBeNull();
-            expect(event!.type).toBe('click');
+            if (event) expect(event.type).toBe('click');
           }
         ),
         { numRuns: 100 }
@@ -267,7 +270,7 @@ describe('MouseEventDetector Logic', () => {
 
             // Should be a click (no position change)
             expect(event).not.toBeNull();
-            expect(event!.type).toBe('click');
+            if (event) expect(event.type).toBe('click');
           }
         ),
         { numRuns: 100 }

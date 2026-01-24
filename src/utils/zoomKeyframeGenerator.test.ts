@@ -21,7 +21,6 @@ import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import type { MouseClickEvent, MouseEventData } from '../types/mouseEvents';
 import type { AutoZoomSettings, ZoomDepth } from '../components/video-editor/types';
-import { DEFAULT_AUTO_ZOOM_SETTINGS } from '../components/video-editor/types';
 import {
   generateZoomRegions,
   mergeCloseEvents,
@@ -43,15 +42,6 @@ const screenBoundsArb = fc.record({
   width: fc.integer({ min: 640, max: 3840 }),
   height: fc.integer({ min: 480, max: 2160 }),
 });
-
-const validClickEventArb = (screenWidth: number, screenHeight: number): fc.Arbitrary<MouseClickEvent> =>
-  fc.record({
-    type: fc.constant('click' as const),
-    timestamp: fc.nat({ max: 3600000 }),
-    x: fc.integer({ min: 0, max: screenWidth - 1 }),
-    y: fc.integer({ min: 0, max: screenHeight - 1 }),
-    button: fc.constantFrom('left', 'right', 'middle') as fc.Arbitrary<'left' | 'right' | 'middle'>,
-  });
 
 describe('Zoom Keyframe Generator', () => {
   describe('Property 5: Zoom Region Generation Count', () => {
@@ -268,8 +258,13 @@ describe('Zoom Keyframe Generator', () => {
 
             // Only 2 events should remain (the in-bounds ones)
             expect(filtered.length).toBe(2);
-            expect(filtered[0].timestamp).toBe(0);
-            expect(filtered[1].timestamp).toBe(5000);
+            // Use type guard to access timestamp
+            const first = filtered[0];
+            const second = filtered[1];
+            if (first.type === 'click' && second.type === 'click') {
+              expect(first.timestamp).toBe(0);
+              expect(second.timestamp).toBe(5000);
+            }
           }
         ),
         { numRuns: 50 }

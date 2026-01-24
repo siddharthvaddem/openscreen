@@ -80,6 +80,14 @@ interface Window {
       progress: number;
       message: string;
     }) => void) => () => void
+    // Auto Zoom API
+    autoZoom: {
+      startDetection: (recordingId: string, screenBounds: { width: number; height: number }) => Promise<{ success: boolean; error?: string }>
+      stopDetection: () => Promise<{ success: boolean; data?: any; error?: string }>
+      saveEvents: (eventData: any, fileName: string) => Promise<{ success: boolean; path?: string; error?: string }>
+      getEvents: (videoPath: string) => Promise<{ success: boolean; data?: any; notFound?: boolean; error?: string }>
+      isRunning: () => Promise<boolean>
+    }
   }
 }
 
