@@ -130,15 +130,13 @@ export function registerIpcHandlers(
 
   ipcMain.handle('save-exported-video', async (_, videoData: ArrayBuffer, fileName: string) => {
     try {
-      const mainWindow = getMainWindow();
-      
       // Determine file type from extension
       const isGif = fileName.toLowerCase().endsWith('.gif');
       const filters = isGif 
         ? [{ name: 'GIF Image', extensions: ['gif'] }]
         : [{ name: 'MP4 Video', extensions: ['mp4'] }];
 
-      const result = await dialog.showSaveDialog(mainWindow || undefined, {
+      const result = await dialog.showSaveDialog({
         title: isGif ? 'Save Exported GIF' : 'Save Exported Video',
         defaultPath: path.join(app.getPath('downloads'), fileName),
         filters,

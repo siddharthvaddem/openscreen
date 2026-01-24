@@ -75,7 +75,7 @@ export function SourceSelector() {
             <TabsTrigger value="screens" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-zinc-200 rounded-full text-xs py-1">Screens</TabsTrigger>
             <TabsTrigger value="windows" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-zinc-200 rounded-full text-xs py-1">Windows</TabsTrigger>
           </TabsList>
-            <div className="h-60 flex flex-col justify-stretch">
+            <div className="h-72 flex flex-col justify-stretch">
             <TabsContent value="screens" className="h-full">
               <div className="grid grid-cols-2 gap-2 h-full overflow-y-auto pr-1 relative">
                 {screenSources.map(source => (

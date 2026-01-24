@@ -17,6 +17,7 @@
   "dependencies": {
     "@fix-webm-duration/fix": "^1.0.1",
     "@pixi/filter-drop-shadow": "^5.2.0",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",

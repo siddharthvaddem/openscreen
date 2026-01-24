@@ -66,7 +66,7 @@ describe('GIF Exporter', () => {
    * Feature: gif-export, Property 4: Aspect Ratio Preservation
    */
   describe('Property 4: Aspect Ratio Preservation', () => {
-    const sizePresets: GifSizePreset[] = ['small', 'medium', 'large', 'original'];
+    const sizePresets: GifSizePreset[] = ['medium', 'large', 'original'];
 
     it('should preserve aspect ratio within 0.01 tolerance for all size presets', () => {
       fc.assert(
@@ -99,13 +99,13 @@ describe('GIF Exporter', () => {
       fc.assert(
         fc.property(
           fc.integer({ min: 100, max: 400 }), // sourceWidth (small)
-          fc.integer({ min: 100, max: 400 }), // sourceHeight (small, less than 480p)
+          fc.integer({ min: 100, max: 400 }), // sourceHeight (small, less than 720p)
           (sourceWidth: number, sourceHeight: number) => {
-            // For 'small' preset with maxHeight 480, if source is smaller, use original
+            // For 'medium' preset with maxHeight 720, if source is smaller, use original
             const { width, height } = calculateOutputDimensions(
               sourceWidth,
               sourceHeight,
-              'small',
+              'medium',
               GIF_SIZE_PRESETS
             );
             
@@ -182,7 +182,7 @@ describe('Property 3: Size Preset Resolution Mapping', () => {
       fc.property(
         fc.integer({ min: 800, max: 4000 }), // sourceWidth (large enough to trigger scaling)
         fc.integer({ min: 800, max: 2000 }), // sourceHeight (larger than all presets except original)
-        fc.constantFrom('small', 'medium', 'large') as fc.Arbitrary<GifSizePreset>,
+        fc.constantFrom('medium', 'large') as fc.Arbitrary<GifSizePreset>,
         (sourceWidth: number, sourceHeight: number, sizePreset: GifSizePreset) => {
           const { height } = calculateOutputDimensions(
             sourceWidth,
@@ -206,8 +206,8 @@ describe('Property 3: Size Preset Resolution Mapping', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 100, max: 400 }), // sourceWidth
-        fc.integer({ min: 100, max: 400 }), // sourceHeight (smaller than 480p 'small' preset)
-        fc.constantFrom('small', 'medium', 'large', 'original') as fc.Arbitrary<GifSizePreset>,
+        fc.integer({ min: 100, max: 400 }), // sourceHeight (smaller than 720p 'medium' preset)
+        fc.constantFrom('medium', 'large', 'original') as fc.Arbitrary<GifSizePreset>,
         (sourceWidth: number, sourceHeight: number, sizePreset: GifSizePreset) => {
           const { width, height } = calculateOutputDimensions(
             sourceWidth,
@@ -230,7 +230,7 @@ describe('Property 3: Size Preset Resolution Mapping', () => {
       fc.property(
         fc.integer({ min: 100, max: 4000 }),
         fc.integer({ min: 100, max: 4000 }),
-        fc.constantFrom('small', 'medium', 'large', 'original') as fc.Arbitrary<GifSizePreset>,
+        fc.constantFrom('medium', 'large', 'original') as fc.Arbitrary<GifSizePreset>,
         (sourceWidth: number, sourceHeight: number, sizePreset: GifSizePreset) => {
           const { width, height } = calculateOutputDimensions(
             sourceWidth,
