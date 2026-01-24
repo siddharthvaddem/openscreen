@@ -21,6 +21,7 @@ import { createReadStream } from "fs";
 import { spawn } from "child_process";
 import * as path from "path";
 import * as os from "os";
+import { createRequire } from "module";
 const __dirname$1 = path$1.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path$1.join(__dirname$1, "..");
 const VITE_DEV_SERVER_URL$1 = process.env["VITE_DEV_SERVER_URL"];
@@ -4409,6 +4410,7 @@ async function transcribeVideo(request, onProgress) {
     };
   }
 }
+const require$1 = createRequire(import.meta.url);
 const MIN_DRAG_DURATION_MS = 100;
 const MIN_DRAG_DISTANCE = 5;
 const POLL_INTERVAL_MS = 16;
@@ -4434,8 +4436,10 @@ class MouseEventDetectorService {
    */
   initializeWindowsApi() {
     try {
-      const koffi = require("koffi");
+      const koffi = require$1("koffi");
+      console.log("MouseEventDetector: koffi loaded successfully");
       const user32 = koffi.load("user32.dll");
+      console.log("MouseEventDetector: user32.dll loaded");
       koffi.struct("POINT", {
         x: "long",
         y: "long"
@@ -4456,6 +4460,7 @@ class MouseEventDetectorService {
       console.log("MouseEventDetector: Windows API initialized via koffi (no native compilation required)");
     } catch (error) {
       console.warn("MouseEventDetector: koffi not available, trying global-mouse-events fallback");
+      console.warn("MouseEventDetector: koffi error:", error);
       this.tryGlobalMouseEventsFallback();
     }
   }
@@ -4464,7 +4469,7 @@ class MouseEventDetectorService {
    */
   tryGlobalMouseEventsFallback() {
     try {
-      require("global-mouse-events");
+      require$1("global-mouse-events");
       this.mouseHookAvailable = true;
       console.log("MouseEventDetector: Using global-mouse-events fallback");
     } catch (error) {
@@ -4599,7 +4604,7 @@ class MouseEventDetectorService {
    */
   initializeGlobalMouseEventsHook() {
     try {
-      const mouseEvents = require("global-mouse-events");
+      const mouseEvents = require$1("global-mouse-events");
       mouseEvents.on("mousedown", (event) => {
         if (!this.running) return;
         const button = this.mapButton(event.button);
@@ -4647,7 +4652,7 @@ class MouseEventDetectorService {
    */
   cleanupGlobalMouseEvents() {
     try {
-      const mouseEvents = require("global-mouse-events");
+      const mouseEvents = require$1("global-mouse-events");
       mouseEvents.removeAllListeners("mousedown");
       mouseEvents.removeAllListeners("mouseup");
     } catch {

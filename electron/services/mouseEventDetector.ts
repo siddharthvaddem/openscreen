@@ -11,7 +11,11 @@
  * mouse button state changes and cursor position.
  */
 
+import { createRequire } from 'module';
 import type { MouseClickEvent, MouseDragEvent, MouseEvent, MouseEventData } from '../../src/types/mouseEvents';
+
+// Create require function for ESM compatibility
+const require = createRequire(import.meta.url);
 
 // Minimum drag duration in ms to be considered a text selection (not a click)
 const MIN_DRAG_DURATION_MS = 100;
@@ -76,9 +80,11 @@ class MouseEventDetectorService {
       // Dynamic import to handle cases where koffi isn't available
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const koffi = require('koffi');
+      console.log('MouseEventDetector: koffi loaded successfully');
       
       // Load user32.dll
       const user32 = koffi.load('user32.dll');
+      console.log('MouseEventDetector: user32.dll loaded');
       
       // Define POINT struct for GetCursorPos
       // Note: We use an object directly instead of the struct type for simplicity
@@ -110,6 +116,7 @@ class MouseEventDetectorService {
       console.log('MouseEventDetector: Windows API initialized via koffi (no native compilation required)');
     } catch (error) {
       console.warn('MouseEventDetector: koffi not available, trying global-mouse-events fallback');
+      console.warn('MouseEventDetector: koffi error:', error);
       this.tryGlobalMouseEventsFallback();
     }
   }
