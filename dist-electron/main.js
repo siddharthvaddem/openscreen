@@ -1,3 +1,6 @@
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 import { ipcMain, screen, BrowserWindow, app, desktopCapturer, shell, dialog, nativeImage, Tray, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path$1 from "node:path";
@@ -4406,6 +4409,328 @@ async function transcribeVideo(request, onProgress) {
     };
   }
 }
+const MIN_DRAG_DURATION_MS = 100;
+const MIN_DRAG_DISTANCE = 5;
+const POLL_INTERVAL_MS = 16;
+const VK_LBUTTON = 1;
+const VK_RBUTTON = 2;
+const VK_MBUTTON = 4;
+class MouseEventDetectorService {
+  constructor() {
+    __publicField(this, "running", false);
+    __publicField(this, "recordingId", "");
+    __publicField(this, "screenBounds", { width: 1920, height: 1080 });
+    __publicField(this, "recordingStartTime", 0);
+    __publicField(this, "events", []);
+    __publicField(this, "pendingDrag", null);
+    __publicField(this, "mouseHookAvailable", false);
+    __publicField(this, "pollInterval", null);
+    __publicField(this, "windowsApi", null);
+    __publicField(this, "lastButtonState", { left: false, right: false, middle: false });
+    this.initializeWindowsApi();
+  }
+  /**
+   * Initialize Windows API bindings using koffi
+   */
+  initializeWindowsApi() {
+    try {
+      const koffi = require("koffi");
+      const user32 = koffi.load("user32.dll");
+      koffi.struct("POINT", {
+        x: "long",
+        y: "long"
+      });
+      const GetAsyncKeyState = user32.func("short __stdcall GetAsyncKeyState(int vKey)");
+      const GetCursorPos = user32.func("bool __stdcall GetCursorPos(_Out_ POINT *lpPoint)");
+      this.windowsApi = {
+        GetAsyncKeyState: (vKey) => GetAsyncKeyState(vKey),
+        GetCursorPos: (point) => {
+          const p = { x: 0, y: 0 };
+          const result = GetCursorPos(p);
+          point[0] = p.x;
+          point[1] = p.y;
+          return result;
+        }
+      };
+      this.mouseHookAvailable = true;
+      console.log("MouseEventDetector: Windows API initialized via koffi (no native compilation required)");
+    } catch (error) {
+      console.warn("MouseEventDetector: koffi not available, trying global-mouse-events fallback");
+      this.tryGlobalMouseEventsFallback();
+    }
+  }
+  /**
+   * Try to use global-mouse-events as fallback (requires native compilation)
+   */
+  tryGlobalMouseEventsFallback() {
+    try {
+      require("global-mouse-events");
+      this.mouseHookAvailable = true;
+      console.log("MouseEventDetector: Using global-mouse-events fallback");
+    } catch (error) {
+      console.warn("MouseEventDetector: No mouse detection available");
+      console.warn("MouseEventDetector: Install koffi (npm install koffi) for mouse detection without Visual Studio Build Tools");
+      this.mouseHookAvailable = false;
+    }
+  }
+  /**
+   * Start capturing mouse events
+   * @param recordingId - Unique identifier for the recording
+   * @param screenBounds - Screen dimensions for coordinate validation
+   */
+  start(recordingId, screenBounds) {
+    if (this.running) {
+      console.warn("MouseEventDetector: Already running");
+      return;
+    }
+    this.recordingId = recordingId;
+    this.screenBounds = screenBounds;
+    this.recordingStartTime = Date.now();
+    this.events = [];
+    this.pendingDrag = null;
+    this.running = true;
+    this.lastButtonState = { left: false, right: false, middle: false };
+    if (this.windowsApi) {
+      this.startPolling();
+    } else {
+      this.initializeGlobalMouseEventsHook();
+    }
+  }
+  /**
+   * Start polling Windows API for mouse state
+   */
+  startPolling() {
+    if (!this.windowsApi) return;
+    this.pollInterval = setInterval(() => {
+      if (!this.running || !this.windowsApi) return;
+      const point = [0, 0];
+      this.windowsApi.GetCursorPos(point);
+      const x = point[0];
+      const y = point[1];
+      const leftDown = (this.windowsApi.GetAsyncKeyState(VK_LBUTTON) & 32768) !== 0;
+      const rightDown = (this.windowsApi.GetAsyncKeyState(VK_RBUTTON) & 32768) !== 0;
+      const middleDown = (this.windowsApi.GetAsyncKeyState(VK_MBUTTON) & 32768) !== 0;
+      if (leftDown && !this.lastButtonState.left) {
+        this.onMouseDown(x, y, "left");
+      }
+      if (rightDown && !this.lastButtonState.right) {
+        this.onMouseDown(x, y, "right");
+      }
+      if (middleDown && !this.lastButtonState.middle) {
+        this.onMouseDown(x, y, "middle");
+      }
+      if (!leftDown && this.lastButtonState.left) {
+        this.onMouseUp(x, y, "left");
+      }
+      if (!rightDown && this.lastButtonState.right) {
+        this.onMouseUp(x, y, "right");
+      }
+      if (!middleDown && this.lastButtonState.middle) {
+        this.onMouseUp(x, y, "middle");
+      }
+      this.lastButtonState = { left: leftDown, right: rightDown, middle: middleDown };
+    }, POLL_INTERVAL_MS);
+    console.log("MouseEventDetector: Polling started");
+  }
+  /**
+   * Handle mouse button down event
+   */
+  onMouseDown(x, y, button) {
+    if (!this.running) return;
+    if (this.pendingDrag && this.pendingDrag.button !== button) {
+      this.completePendingAsClick();
+    }
+    this.pendingDrag = {
+      startTimestamp: this.getRelativeTimestamp(),
+      startX: x,
+      startY: y,
+      button
+    };
+  }
+  /**
+   * Handle mouse button up event
+   */
+  onMouseUp(x, y, button) {
+    if (!this.running || !this.pendingDrag) return;
+    if (this.pendingDrag.button !== button) return;
+    const endTimestamp = this.getRelativeTimestamp();
+    const duration = endTimestamp - this.pendingDrag.startTimestamp;
+    const positionChanged = Math.abs(x - this.pendingDrag.startX) > MIN_DRAG_DISTANCE || Math.abs(y - this.pendingDrag.startY) > MIN_DRAG_DISTANCE;
+    if (duration > MIN_DRAG_DURATION_MS && positionChanged) {
+      const dragEvent = {
+        type: "drag",
+        startTimestamp: this.pendingDrag.startTimestamp,
+        endTimestamp,
+        startX: this.pendingDrag.startX,
+        startY: this.pendingDrag.startY,
+        endX: x,
+        endY: y
+      };
+      this.events.push(dragEvent);
+    } else {
+      const clickEvent = {
+        type: "click",
+        timestamp: this.pendingDrag.startTimestamp,
+        x: this.pendingDrag.startX,
+        y: this.pendingDrag.startY,
+        button
+      };
+      this.events.push(clickEvent);
+    }
+    this.pendingDrag = null;
+  }
+  /**
+   * Complete pending drag as a click (used when another button is pressed)
+   */
+  completePendingAsClick() {
+    if (!this.pendingDrag) return;
+    const clickEvent = {
+      type: "click",
+      timestamp: this.pendingDrag.startTimestamp,
+      x: this.pendingDrag.startX,
+      y: this.pendingDrag.startY,
+      button: this.pendingDrag.button
+    };
+    this.events.push(clickEvent);
+    this.pendingDrag = null;
+  }
+  /**
+   * Initialize global-mouse-events hook (fallback for non-koffi systems)
+   */
+  initializeGlobalMouseEventsHook() {
+    try {
+      const mouseEvents = require("global-mouse-events");
+      mouseEvents.on("mousedown", (event) => {
+        if (!this.running) return;
+        const button = this.mapButton(event.button);
+        this.onMouseDown(event.x, event.y, button);
+      });
+      mouseEvents.on("mouseup", (event) => {
+        if (!this.running) return;
+        const button = this.mapButton(event.button);
+        this.onMouseUp(event.x, event.y, button);
+      });
+      console.log("MouseEventDetector: global-mouse-events hook initialized");
+    } catch (error) {
+      console.warn("MouseEventDetector: Failed to initialize global-mouse-events");
+    }
+  }
+  /**
+   * Stop capturing and return collected events
+   */
+  stop() {
+    if (!this.running) {
+      console.warn("MouseEventDetector: Not running");
+      return this.createEmptyEventData();
+    }
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+    this.cleanupGlobalMouseEvents();
+    this.running = false;
+    this.pendingDrag = null;
+    const eventData = {
+      version: 1,
+      recordingId: this.recordingId,
+      screenWidth: this.screenBounds.width,
+      screenHeight: this.screenBounds.height,
+      events: [...this.events]
+    };
+    this.events = [];
+    this.recordingId = "";
+    console.log(`MouseEventDetector: Stopped, captured ${eventData.events.length} events`);
+    return eventData;
+  }
+  /**
+   * Cleanup global-mouse-events listeners
+   */
+  cleanupGlobalMouseEvents() {
+    try {
+      const mouseEvents = require("global-mouse-events");
+      mouseEvents.removeAllListeners("mousedown");
+      mouseEvents.removeAllListeners("mouseup");
+    } catch {
+    }
+  }
+  /**
+   * Check if detector is currently running
+   */
+  isRunning() {
+    return this.running;
+  }
+  /**
+   * Check if mouse hook is available
+   */
+  isMouseHookAvailable() {
+    return this.mouseHookAvailable;
+  }
+  /**
+   * Get current timestamp relative to recording start
+   */
+  getRelativeTimestamp() {
+    return Date.now() - this.recordingStartTime;
+  }
+  /**
+   * Map button number to button name
+   */
+  mapButton(button) {
+    switch (button) {
+      case 1:
+        return "left";
+      case 2:
+        return "right";
+      case 3:
+        return "middle";
+      default:
+        return "left";
+    }
+  }
+  /**
+   * Create empty event data structure
+   */
+  createEmptyEventData() {
+    return {
+      version: 1,
+      recordingId: this.recordingId || "unknown",
+      screenWidth: this.screenBounds.width,
+      screenHeight: this.screenBounds.height,
+      events: []
+    };
+  }
+  /**
+   * Manually add a click event (for testing or alternative input methods)
+   */
+  addClickEvent(x, y, button = "left") {
+    if (!this.running) return;
+    const clickEvent = {
+      type: "click",
+      timestamp: this.getRelativeTimestamp(),
+      x,
+      y,
+      button
+    };
+    this.events.push(clickEvent);
+  }
+  /**
+   * Manually add a drag event (for testing or alternative input methods)
+   */
+  addDragEvent(startX, startY, endX, endY, durationMs = 200) {
+    if (!this.running) return;
+    const startTimestamp = this.getRelativeTimestamp();
+    const dragEvent = {
+      type: "drag",
+      startTimestamp,
+      endTimestamp: startTimestamp + durationMs,
+      startX,
+      startY,
+      endX,
+      endY
+    };
+    this.events.push(dragEvent);
+  }
+}
+const mouseEventDetector = new MouseEventDetectorService();
 let selectedSource = null;
 function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, getMainWindow, getSourceSelectorWindow, onRecordingStateChange) {
   ipcMain.handle("get-sources", async (_, opts) => {
@@ -4605,6 +4930,55 @@ function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, g
         mainWindow2.webContents.send("transcription-progress", progress);
       }
     });
+  });
+  ipcMain.handle("auto-zoom:start-detection", async (_, recordingId, screenBounds) => {
+    try {
+      mouseEventDetector.start(recordingId, screenBounds);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to start mouse event detection:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+  ipcMain.handle("auto-zoom:stop-detection", async () => {
+    try {
+      const eventData = mouseEventDetector.stop();
+      return { success: true, data: eventData };
+    } catch (error) {
+      console.error("Failed to stop mouse event detection:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+  ipcMain.handle("auto-zoom:save-events", async (_, eventData, fileName) => {
+    try {
+      const eventsPath = path$1.join(RECORDINGS_DIR, fileName);
+      await fs$1.writeFile(eventsPath, JSON.stringify(eventData, null, 2));
+      return { success: true, path: eventsPath };
+    } catch (error) {
+      console.error("Failed to save mouse events:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+  ipcMain.handle("auto-zoom:get-events", async (_, videoPath) => {
+    try {
+      const eventsPath = videoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, ".events.json");
+      try {
+        const data = await fs$1.readFile(eventsPath, "utf-8");
+        const eventData = JSON.parse(data);
+        return { success: true, data: eventData };
+      } catch (readError) {
+        if (readError.code === "ENOENT") {
+          return { success: false, notFound: true };
+        }
+        throw readError;
+      }
+    } catch (error) {
+      console.error("Failed to get mouse events:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+  ipcMain.handle("auto-zoom:is-running", () => {
+    return mouseEventDetector.isRunning();
   });
 }
 const __dirname = path$1.dirname(fileURLToPath(import.meta.url));

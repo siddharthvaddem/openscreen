@@ -93,5 +93,25 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     const listener = (_event, progress) => callback(progress);
     electron.ipcRenderer.on("transcription-progress", listener);
     return () => electron.ipcRenderer.removeListener("transcription-progress", listener);
+  },
+  // ============================================
+  // AUTO ZOOM API
+  // ============================================
+  autoZoom: {
+    startDetection: (recordingId, screenBounds) => {
+      return electron.ipcRenderer.invoke("auto-zoom:start-detection", recordingId, screenBounds);
+    },
+    stopDetection: () => {
+      return electron.ipcRenderer.invoke("auto-zoom:stop-detection");
+    },
+    saveEvents: (eventData, fileName) => {
+      return electron.ipcRenderer.invoke("auto-zoom:save-events", eventData, fileName);
+    },
+    getEvents: (videoPath) => {
+      return electron.ipcRenderer.invoke("auto-zoom:get-events", videoPath);
+    },
+    isRunning: () => {
+      return electron.ipcRenderer.invoke("auto-zoom:is-running");
+    }
   }
 });
