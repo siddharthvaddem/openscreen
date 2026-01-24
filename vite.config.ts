@@ -18,7 +18,8 @@ export default defineConfig({
               // Mark ws and its optional native dependencies as external
               // These are used by assemblyai SDK and should not be bundled
               // koffi is a native FFI module that must be loaded from node_modules
-              external: ['bufferutil', 'utf-8-validate', 'koffi', 'global-mouse-events'],
+              // uiohook-napi is a native module that uses __dirname internally and must not be bundled
+              external: ['bufferutil', 'utf-8-validate', 'koffi', 'global-mouse-events', 'uiohook-napi'],
             }
           }
         }

@@ -1158,6 +1158,9 @@ export default function VideoEditor() {
                       selectedSubtitleId={selectedSubtitleId}
                       onSelectSubtitle={handleSelectSubtitle}
                       onSubtitlePositionChange={handleSubtitlePositionChange}
+                      keystrokeRegions={keystrokeRegions}
+                      selectedKeystrokeId={selectedKeystrokeId}
+                      onSelectKeystroke={handleSelectKeystroke}
                     />
                   </div>
                 </div>
