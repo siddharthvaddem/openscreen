@@ -136,7 +136,7 @@ export interface AutoZoomSettings {
 
 export const DEFAULT_AUTO_ZOOM_SETTINGS: AutoZoomSettings = {
   enabled: false,
-  defaultZoomDepth: 1,
+  defaultZoomDepth: 2,  // 1.5x zoom (ZoomDepth 2 = 1.5x scale)
   zoomDurationMs: 1000,
   mergeThresholdMs: 500,
 };

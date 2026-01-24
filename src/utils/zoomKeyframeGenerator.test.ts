@@ -33,7 +33,7 @@ import {
 // Test settings with known values
 const testSettings: AutoZoomSettings = {
   enabled: true,
-  defaultZoomDepth: 1 as ZoomDepth,
+  defaultZoomDepth: 2 as ZoomDepth,  // 1.5x zoom
   zoomDurationMs: 1000,
   mergeThresholdMs: 500,
 };
@@ -188,7 +188,7 @@ describe('Zoom Keyframe Generator', () => {
               expect(region.startMs).toBeGreaterThanOrEqual(0);
               expect(region.endMs).toBeGreaterThan(region.startMs);
 
-              // depth equals default (1)
+              // depth equals default (2 = 1.5x)
               expect(region.depth).toBe(testSettings.defaultZoomDepth);
 
               // focus.cx and focus.cy in range [0, 1]
