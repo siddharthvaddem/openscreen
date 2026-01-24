@@ -1,6 +1,7 @@
 // electron/services/keystrokeService.ts
 
 import type { InputEvent } from '../../src/types/keystrokeEvents';
+import type { UiohookKeyboardEvent, UiohookMouseEvent } from 'uiohook-napi';
 
 // Lazy-loaded uiohook module to avoid ES module issues
 let uIOhookModule: typeof import('uiohook-napi') | null = null;
@@ -61,8 +62,8 @@ class KeystrokeService implements KeystrokeServiceInterface {
   private running: boolean = false;
   private eventCallback: ((event: InputEvent) => void) | null = null;
   private errorCallback: ((error: KeystrokeServiceError) => void) | null = null;
-  private keydownHandler: ((e: any) => void) | null = null;
-  private clickHandler: ((e: any) => void) | null = null;
+  private keydownHandler: ((e: UiohookKeyboardEvent) => void) | null = null;
+  private clickHandler: ((e: UiohookMouseEvent) => void) | null = null;
   private uiohook: typeof import('uiohook-napi') | null = null;
 
   /**
@@ -263,7 +264,7 @@ class KeystrokeService implements KeystrokeServiceInterface {
     // Keyboard event handler (task 2.2)
     // Captures keydown events and transforms them into KeystrokeEvent objects
     // Requirements: 3.1 (display key name), 3.2 (display modifier key combinations)
-    this.keydownHandler = (e: any) => {
+    this.keydownHandler = (e: UiohookKeyboardEvent) => {
       if (this.eventCallback) {
         const keystrokeEvent: InputEvent = {
           type: 'keystroke',
@@ -284,7 +285,7 @@ class KeystrokeService implements KeystrokeServiceInterface {
     // Mouse click event handler
     // Captures mouse click events and transforms them into MouseActionEvent objects
     // Requirements: 4.1 (left click), 4.2 (right click), 4.3 (middle click), 4.4 (modifiers)
-    this.clickHandler = (e: any) => {
+    this.clickHandler = (e: UiohookMouseEvent) => {
       if (this.eventCallback) {
         // Map button number to button name
         // uiohook: 1=left, 2=right, 3=middle
@@ -294,7 +295,9 @@ class KeystrokeService implements KeystrokeServiceInterface {
           3: 'middle',
         };
         
-        const button = buttonMap[e.button];
+        // e.button is typed as unknown in uiohook-napi, cast to number
+        const buttonNumber = e.button as number;
+        const button = buttonMap[buttonNumber];
         
         // Only process known button types
         if (button) {

@@ -42,8 +42,8 @@ export async function readKeystrokeSettingsStore(): Promise<KeystrokeSettingsSto
       version: store.version || CURRENT_VERSION,
       settings: { ...DEFAULT_KEYSTROKE_SETTINGS, ...store.settings }
     }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       // File doesn't exist, return default store
       return createDefaultStore()
     }

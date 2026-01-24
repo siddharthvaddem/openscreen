@@ -1,7 +1,7 @@
 // src/components/keystroke-overlay/KeystrokeOverlay.tsx
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { DisplayEntry } from '../../types/keystrokeEvents';
+import type { DisplayEntry, KeystrokeEvent, MouseActionEvent } from '../../types/keystrokeEvents';
 import { DEFAULT_KEYSTROKE_SETTINGS } from '../../types/keystrokeSettings';
 import { formatKeystroke, formatMouseAction } from '../../utils/keyNameMapping';
 import styles from './KeystrokeOverlay.module.css';
@@ -14,7 +14,7 @@ type InputEventType = KeystrokeOrMouseEvent;
  * Generate a unique ID for display entries
  */
 function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -56,8 +56,8 @@ export function KeystrokeOverlay() {
    */
   const createDisplayEntry = useCallback((event: InputEventType): DisplayEntry => {
     const text = event.type === 'keystroke' 
-      ? formatKeystroke(event as any)
-      : formatMouseAction(event as any);
+      ? formatKeystroke(event as KeystrokeEvent)
+      : formatMouseAction(event as MouseActionEvent);
 
     return {
       id: generateId(),
