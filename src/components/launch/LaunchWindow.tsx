@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import styles from "./LaunchWindow.module.css";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useMicrophone } from "../../hooks/useMicrophone";
+import { useAutoZoomSettings } from "../../hooks/useAutoZoomSettings";
 import { Button } from "../ui/button";
 import { BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
@@ -9,6 +10,7 @@ import { MdMonitor } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { FaFolderMinus } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
+import { TbZoomScan } from "react-icons/tb";
 import { ContentClamp } from "../ui/content-clamp";
 import { MicrophoneSelector } from "./MicrophoneSelector";
 import { 
@@ -90,9 +92,15 @@ export function LaunchWindow() {
       }
     }
   }, [audioSettings.enabled, audioSettings.deviceId, isEnabled, selectDevice, enable]);
+
+  // Auto zoom settings
+  const { settings: autoZoomSettings, setEnabled: setAutoZoomEnabled } = useAutoZoomSettings();
   
-  // Pass audio stream to screen recorder for combined recording
-  const { recording, toggleRecording } = useScreenRecorder({ audioStream });
+  // Pass audio stream and auto zoom setting to screen recorder for combined recording
+  const { recording, toggleRecording } = useScreenRecorder({ 
+    audioStream,
+    autoZoomEnabled: autoZoomSettings.enabled,
+  });
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -211,6 +219,23 @@ export function LaunchWindow() {
           permissionState={permissionState}
           disabled={recording}
         />
+
+        <div className="w-px h-6 bg-white/30" />
+
+        {/* Auto Zoom toggle */}
+        <Button
+          variant="link"
+          size="sm"
+          onClick={() => setAutoZoomEnabled(!autoZoomSettings.enabled)}
+          disabled={recording}
+          className={`gap-1 bg-transparent hover:bg-transparent px-1 text-xs ${styles.electronNoDrag}`}
+          title={autoZoomSettings.enabled ? "Auto Zoom: ON" : "Auto Zoom: OFF"}
+        >
+          <TbZoomScan 
+            size={16} 
+            className={autoZoomSettings.enabled ? "text-green-400" : "text-white/50"} 
+          />
+        </Button>
 
         <div className="w-px h-6 bg-white/30" />
 

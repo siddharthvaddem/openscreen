@@ -168,6 +168,35 @@ export default function VideoEditor() {
         if (result.success && result.path) {
           const videoUrl = toFileUrl(result.path);
           setVideoPath(videoUrl);
+          
+          // Try to load auto zoom events for this video
+          try {
+            if (window.electronAPI?.autoZoom) {
+              const eventsResult = await window.electronAPI.autoZoom.getEvents(result.path);
+              if (eventsResult.success && eventsResult.data) {
+                // Import zoom keyframe generator dynamically to avoid circular deps
+                const { generateZoomRegions } = await import('@/utils/zoomKeyframeGenerator');
+                const { DEFAULT_AUTO_ZOOM_SETTINGS } = await import('./types');
+                
+                // Generate zoom regions from mouse events
+                // We'll get the video duration from the video element later
+                // For now, use a large value and let the generator clamp
+                const autoZoomRegions = generateZoomRegions(
+                  eventsResult.data,
+                  { ...DEFAULT_AUTO_ZOOM_SETTINGS, enabled: true },
+                  Number.MAX_SAFE_INTEGER // Will be clamped when video loads
+                );
+                
+                if (autoZoomRegions.length > 0) {
+                  setZoomRegions(autoZoomRegions);
+                  console.log(`Auto zoom: loaded ${autoZoomRegions.length} regions from mouse events`);
+                }
+              }
+            }
+          } catch (autoZoomError) {
+            // Silently ignore - auto zoom events may not exist
+            console.debug('No auto zoom events found for video:', autoZoomError);
+          }
         } else {
           setError('No video to load. Please record or select a video.');
         }

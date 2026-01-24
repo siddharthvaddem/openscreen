@@ -15,6 +15,8 @@ import {
 } from './presets'
 import { transcribeVideo } from '../services/transcription'
 import type { TranscriptionRequest, TranscriptionProgress } from '../../src/types/transcription'
+import { mouseEventDetector } from '../services/mouseEventDetector'
+import type { MouseEventData } from '../../src/types/mouseEvents'
 
 let selectedSource: any = null
 
@@ -276,5 +278,67 @@ export function registerIpcHandlers(
         mainWindow.webContents.send('transcription-progress', progress);
       }
     });
+  });
+
+  // ============================================
+  // AUTO ZOOM HANDLERS
+  // ============================================
+
+  ipcMain.handle('auto-zoom:start-detection', async (_, recordingId: string, screenBounds: { width: number; height: number }) => {
+    try {
+      mouseEventDetector.start(recordingId, screenBounds);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to start mouse event detection:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('auto-zoom:stop-detection', async () => {
+    try {
+      const eventData = mouseEventDetector.stop();
+      return { success: true, data: eventData };
+    } catch (error) {
+      console.error('Failed to stop mouse event detection:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('auto-zoom:save-events', async (_, eventData: MouseEventData, fileName: string) => {
+    try {
+      const eventsPath = path.join(RECORDINGS_DIR, fileName);
+      await fs.writeFile(eventsPath, JSON.stringify(eventData, null, 2));
+      return { success: true, path: eventsPath };
+    } catch (error) {
+      console.error('Failed to save mouse events:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('auto-zoom:get-events', async (_, videoPath: string) => {
+    try {
+      // Derive events file path from video path
+      // recording-{timestamp}.webm -> recording-{timestamp}.events.json
+      const eventsPath = videoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, '.events.json');
+      
+      try {
+        const data = await fs.readFile(eventsPath, 'utf-8');
+        const eventData = JSON.parse(data) as MouseEventData;
+        return { success: true, data: eventData };
+      } catch (readError: any) {
+        if (readError.code === 'ENOENT') {
+          // File not found - this is expected for videos without auto zoom
+          return { success: false, notFound: true };
+        }
+        throw readError;
+      }
+    } catch (error) {
+      console.error('Failed to get mouse events:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('auto-zoom:is-running', () => {
+    return mouseEventDetector.isRunning();
   });
 }

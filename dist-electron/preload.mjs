@@ -1,1 +1,97 @@
-"use strict";const e=require("electron");e.contextBridge.exposeInMainWorld("electronAPI",{hudOverlayHide:()=>{e.ipcRenderer.send("hud-overlay-hide")},hudOverlayClose:()=>{e.ipcRenderer.send("hud-overlay-close")},getAssetBasePath:async()=>await e.ipcRenderer.invoke("get-asset-base-path"),getSources:async r=>await e.ipcRenderer.invoke("get-sources",r),switchToEditor:()=>e.ipcRenderer.invoke("switch-to-editor"),openSourceSelector:()=>e.ipcRenderer.invoke("open-source-selector"),selectSource:r=>e.ipcRenderer.invoke("select-source",r),getSelectedSource:()=>e.ipcRenderer.invoke("get-selected-source"),storeRecordedVideo:(r,t)=>e.ipcRenderer.invoke("store-recorded-video",r,t),getRecordedVideoPath:()=>e.ipcRenderer.invoke("get-recorded-video-path"),setRecordingState:r=>e.ipcRenderer.invoke("set-recording-state",r),onStopRecordingFromTray:r=>{const t=()=>r();return e.ipcRenderer.on("stop-recording-from-tray",t),()=>e.ipcRenderer.removeListener("stop-recording-from-tray",t)},openExternalUrl:r=>e.ipcRenderer.invoke("open-external-url",r),saveExportedVideo:(r,t)=>e.ipcRenderer.invoke("save-exported-video",r,t),openVideoFilePicker:()=>e.ipcRenderer.invoke("open-video-file-picker"),setCurrentVideoPath:r=>e.ipcRenderer.invoke("set-current-video-path",r),getCurrentVideoPath:()=>e.ipcRenderer.invoke("get-current-video-path"),clearCurrentVideoPath:()=>e.ipcRenderer.invoke("clear-current-video-path"),getPlatform:()=>e.ipcRenderer.invoke("get-platform"),presets:{get:()=>e.ipcRenderer.invoke("presets:get"),save:r=>e.ipcRenderer.invoke("presets:save",r),update:(r,t)=>e.ipcRenderer.invoke("presets:update",r,t),delete:r=>e.ipcRenderer.invoke("presets:delete",r),duplicate:r=>e.ipcRenderer.invoke("presets:duplicate",r),setDefault:r=>e.ipcRenderer.invoke("presets:setDefault",r)},transcribeVideo:r=>e.ipcRenderer.invoke("transcribe-video",r),onTranscriptionProgress:r=>{const t=(o,n)=>r(n);return e.ipcRenderer.on("transcription-progress",t),()=>e.ipcRenderer.removeListener("transcription-progress",t)}});
+"use strict";
+const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("electronAPI", {
+  hudOverlayHide: () => {
+    electron.ipcRenderer.send("hud-overlay-hide");
+  },
+  hudOverlayClose: () => {
+    electron.ipcRenderer.send("hud-overlay-close");
+  },
+  getAssetBasePath: async () => {
+    return await electron.ipcRenderer.invoke("get-asset-base-path");
+  },
+  getSources: async (opts) => {
+    return await electron.ipcRenderer.invoke("get-sources", opts);
+  },
+  switchToEditor: () => {
+    return electron.ipcRenderer.invoke("switch-to-editor");
+  },
+  openSourceSelector: () => {
+    return electron.ipcRenderer.invoke("open-source-selector");
+  },
+  selectSource: (source) => {
+    return electron.ipcRenderer.invoke("select-source", source);
+  },
+  getSelectedSource: () => {
+    return electron.ipcRenderer.invoke("get-selected-source");
+  },
+  storeRecordedVideo: (videoData, fileName) => {
+    return electron.ipcRenderer.invoke("store-recorded-video", videoData, fileName);
+  },
+  getRecordedVideoPath: () => {
+    return electron.ipcRenderer.invoke("get-recorded-video-path");
+  },
+  setRecordingState: (recording) => {
+    return electron.ipcRenderer.invoke("set-recording-state", recording);
+  },
+  onStopRecordingFromTray: (callback) => {
+    const listener = () => callback();
+    electron.ipcRenderer.on("stop-recording-from-tray", listener);
+    return () => electron.ipcRenderer.removeListener("stop-recording-from-tray", listener);
+  },
+  openExternalUrl: (url) => {
+    return electron.ipcRenderer.invoke("open-external-url", url);
+  },
+  saveExportedVideo: (videoData, fileName) => {
+    return electron.ipcRenderer.invoke("save-exported-video", videoData, fileName);
+  },
+  openVideoFilePicker: () => {
+    return electron.ipcRenderer.invoke("open-video-file-picker");
+  },
+  setCurrentVideoPath: (path) => {
+    return electron.ipcRenderer.invoke("set-current-video-path", path);
+  },
+  getCurrentVideoPath: () => {
+    return electron.ipcRenderer.invoke("get-current-video-path");
+  },
+  clearCurrentVideoPath: () => {
+    return electron.ipcRenderer.invoke("clear-current-video-path");
+  },
+  getPlatform: () => {
+    return electron.ipcRenderer.invoke("get-platform");
+  },
+  // ============================================
+  // PRESET API
+  // ============================================
+  presets: {
+    get: () => {
+      return electron.ipcRenderer.invoke("presets:get");
+    },
+    save: (preset) => {
+      return electron.ipcRenderer.invoke("presets:save", preset);
+    },
+    update: (id, updates) => {
+      return electron.ipcRenderer.invoke("presets:update", id, updates);
+    },
+    delete: (id) => {
+      return electron.ipcRenderer.invoke("presets:delete", id);
+    },
+    duplicate: (id) => {
+      return electron.ipcRenderer.invoke("presets:duplicate", id);
+    },
+    setDefault: (id) => {
+      return electron.ipcRenderer.invoke("presets:setDefault", id);
+    }
+  },
+  // ============================================
+  // TRANSCRIPTION API
+  // ============================================
+  transcribeVideo: (request) => {
+    return electron.ipcRenderer.invoke("transcribe-video", request);
+  },
+  onTranscriptionProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress);
+    electron.ipcRenderer.on("transcription-progress", listener);
+    return () => electron.ipcRenderer.removeListener("transcription-progress", listener);
+  }
+});

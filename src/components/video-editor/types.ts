@@ -123,6 +123,24 @@ export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
 // PRESET TYPES
 // ============================================
 
+// ============================================
+// AUTO ZOOM SETTINGS
+// ============================================
+
+export interface AutoZoomSettings {
+  enabled: boolean;
+  defaultZoomDepth: ZoomDepth;  // default: 1
+  zoomDurationMs: number;       // default: 1000
+  mergeThresholdMs: number;     // default: 500
+}
+
+export const DEFAULT_AUTO_ZOOM_SETTINGS: AutoZoomSettings = {
+  enabled: false,
+  defaultZoomDepth: 1,
+  zoomDurationMs: 1000,
+  mergeThresholdMs: 500,
+};
+
 export interface PresetSettings {
   padding: number;           // 0-100
   shadowIntensity: number;   // 0-1
@@ -130,6 +148,7 @@ export interface PresetSettings {
   motionBlurEnabled: boolean;
   showBlur: boolean;
   wallpaper: string;         // Image path, color hex, or gradient CSS
+  autoZoom?: AutoZoomSettings; // Auto zoom settings (optional for backward compatibility)
 }
 
 export interface Preset {
@@ -153,6 +172,7 @@ export const DEFAULT_PRESET_SETTINGS: PresetSettings = {
   motionBlurEnabled: true,
   showBlur: false,
   wallpaper: 'wallpapers/wallpaper1.jpg',
+  autoZoom: DEFAULT_AUTO_ZOOM_SETTINGS,
 };
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {

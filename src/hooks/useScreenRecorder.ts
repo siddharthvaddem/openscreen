@@ -3,6 +3,7 @@ import { fixWebmDuration } from "@fix-webm-duration/fix";
 
 type UseScreenRecorderOptions = {
   audioStream?: MediaStream | null;
+  autoZoomEnabled?: boolean;
 };
 
 type UseScreenRecorderReturn = {
@@ -172,6 +173,19 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       recorder.ondataavailable = e => {
         if (e.data && e.data.size > 0) chunks.current.push(e.data);
       };
+
+      // Start auto zoom detection if enabled
+      if (options?.autoZoomEnabled && window.electronAPI?.autoZoom) {
+        const recordingId = `recording-${Date.now()}`;
+        try {
+          await window.electronAPI.autoZoom.startDetection(recordingId, { width, height });
+          console.log('Auto zoom detection started');
+        } catch (autoZoomError) {
+          console.warn('Failed to start auto zoom detection:', autoZoomError);
+          // Continue recording without auto zoom
+        }
+      }
+
       recorder.onstop = async () => {
         stream.current = null;
         if (chunks.current.length === 0) return;
@@ -182,6 +196,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         chunks.current = [];
         const timestamp = Date.now();
         const videoFileName = `recording-${timestamp}.webm`;
+        const eventsFileName = `recording-${timestamp}.events.json`;
 
         try {
           const videoBlob = await fixWebmDuration(buggyBlob, duration);
@@ -190,6 +205,20 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           if (!videoResult.success) {
             console.error('Failed to store video:', videoResult.message);
             return;
+          }
+
+          // Stop auto zoom detection and save events if enabled
+          if (options?.autoZoomEnabled && window.electronAPI?.autoZoom) {
+            try {
+              const stopResult = await window.electronAPI.autoZoom.stopDetection();
+              if (stopResult.success && stopResult.data) {
+                await window.electronAPI.autoZoom.saveEvents(stopResult.data, eventsFileName);
+                console.log('Auto zoom events saved:', eventsFileName);
+              }
+            } catch (autoZoomError) {
+              console.warn('Failed to save auto zoom events:', autoZoomError);
+              // Continue without auto zoom data - video is still saved
+            }
           }
 
           if (videoResult.path) {

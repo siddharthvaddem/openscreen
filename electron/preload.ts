@@ -100,4 +100,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('transcription-progress', listener)
     return () => ipcRenderer.removeListener('transcription-progress', listener)
   },
+
+  // ============================================
+  // AUTO ZOOM API
+  // ============================================
+  autoZoom: {
+    startDetection: (recordingId: string, screenBounds: { width: number; height: number }) => {
+      return ipcRenderer.invoke('auto-zoom:start-detection', recordingId, screenBounds)
+    },
+    stopDetection: () => {
+      return ipcRenderer.invoke('auto-zoom:stop-detection')
+    },
+    saveEvents: (eventData: any, fileName: string) => {
+      return ipcRenderer.invoke('auto-zoom:save-events', eventData, fileName)
+    },
+    getEvents: (videoPath: string) => {
+      return ipcRenderer.invoke('auto-zoom:get-events', videoPath)
+    },
+    isRunning: () => {
+      return ipcRenderer.invoke('auto-zoom:is-running')
+    },
+  },
 })

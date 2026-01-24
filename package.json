@@ -79,5 +79,8 @@
     "vite-plugin-electron-renderer": "^0.14.5",
     "vitest": "^4.0.16"
   },
+  "optionalDependencies": {
+    "global-mouse-events": "^1.2.0"
+  },
   "main": "dist-electron/main.js"
 }
