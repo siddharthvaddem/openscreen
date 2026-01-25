@@ -126,6 +126,172 @@ const MODIFIER_KEY_CODES = new Set([
 ]);
 
 /**
+ * Unicode glyph icons for modifier keys
+ * Reference: keyviz/lib/domain/services/key_maps.dart lines 30-70
+ * 
+ * Requirements: 2.1, 2.2, 2.3, 2.4
+ */
+export const MODIFIER_ICONS: Record<string, string> = {
+  Ctrl: '⌃',
+  Alt: '⌥',
+  Shift: '⇧',
+  Meta: '⌘',
+};
+
+/**
+ * Unicode glyph icons for mouse actions
+ * 
+ * Requirements: 6.4
+ */
+export const MOUSE_ACTION_ICONS: Record<string, string> = {
+  left: '🖱️',
+  right: '🖱️',
+  middle: '🖱️',
+};
+
+/**
+ * Display names for mouse buttons
+ * 
+ * Requirements: 6.4
+ */
+export const MOUSE_BUTTON_NAMES: Record<string, string> = {
+  left: 'Left Click',
+  right: 'Right Click',
+  middle: 'Middle Click',
+};
+
+/**
+ * Set of modifier key names for quick lookup
+ */
+const MODIFIER_KEY_NAMES = new Set(['Ctrl', 'Alt', 'Shift', 'Meta']);
+
+/**
+ * Get the Unicode glyph icon for a modifier key
+ * 
+ * Requirements: 2.1, 2.2, 2.3, 2.4
+ * - Ctrl → ⌃
+ * - Alt → ⌥
+ * - Shift → ⇧
+ * - Meta → ⌘
+ * 
+ * @param keyName The name of the key (e.g., 'Ctrl', 'Alt', 'Shift', 'Meta')
+ * @returns The Unicode glyph for the modifier, or undefined if not a modifier
+ */
+export function getModifierIcon(keyName: string): string | undefined {
+  return MODIFIER_ICONS[keyName];
+}
+
+/**
+ * Check if a key name is a modifier key (Ctrl, Alt, Shift, or Meta)
+ * 
+ * Requirements: 2.1, 2.2, 2.3, 2.4
+ * 
+ * @param keyName The name of the key to check
+ * @returns true if the key is a modifier (Ctrl, Alt, Shift, or Meta), false otherwise
+ */
+export function isModifierKey(keyName: string): boolean {
+  return MODIFIER_KEY_NAMES.has(keyName);
+}
+
+/**
+ * Parsed key representation for keyviz-style display
+ * 
+ * Requirements: 1.1, 1.2, 5.1, 5.2, 5.3, 5.4
+ */
+export interface ParsedKey {
+  /** Human-readable key name (e.g., "Ctrl", "A", "Enter") */
+  name: string;
+  /** Unicode glyph for modifiers (e.g., "⌃" for Ctrl), undefined for non-modifiers */
+  icon?: string;
+  /** True for Ctrl, Alt, Shift, Meta keys */
+  isModifier: boolean;
+}
+
+/**
+ * Parse a keystroke event into individual keys for keyviz-style display
+ * 
+ * Extracts active modifiers from event.modifiers in order: Ctrl, Alt, Shift, Meta
+ * Then adds the main key (from keyCode) at the end if it's not a modifier-only press.
+ * 
+ * For modifier-only presses (e.g., pressing just Ctrl), returns a single ParsedKey
+ * with the modifier's icon.
+ * 
+ * Reference: keyviz/lib/providers/key_event_data.dart for modifier detection logic
+ * 
+ * Requirements: 1.1, 1.2, 5.1, 5.2, 5.3, 5.4
+ * 
+ * @param event The keystroke event to parse
+ * @returns Array of ParsedKey objects representing each key to display
+ */
+export function parseKeystrokeToKeys(event: KeystrokeEvent): ParsedKey[] {
+  const keys: ParsedKey[] = [];
+  const mainKeyName = getKeyDisplayName(event.keyCode);
+  const isMainKeyModifier = isModifierKeyCode(event.keyCode);
+  
+  // Extract active modifiers in order: Ctrl, Alt, Shift, Meta
+  // Requirements 5.3: Display modifiers in consistent order
+  if (event.modifiers.ctrl) {
+    keys.push({
+      name: 'Ctrl',
+      icon: MODIFIER_ICONS.Ctrl,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.alt) {
+    keys.push({
+      name: 'Alt',
+      icon: MODIFIER_ICONS.Alt,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.shift) {
+    keys.push({
+      name: 'Shift',
+      icon: MODIFIER_ICONS.Shift,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.meta) {
+    keys.push({
+      name: 'Meta',
+      icon: MODIFIER_ICONS.Meta,
+      isModifier: true,
+    });
+  }
+  
+  // Handle modifier-only presses (Requirement 5.1)
+  // If the main key is a modifier and no other modifiers are active,
+  // return just that modifier key
+  if (isMainKeyModifier) {
+    // Check if this modifier is already in the keys array
+    // (it would be if the modifier flag is set)
+    // If keys is empty, this is a standalone modifier press
+    if (keys.length === 0) {
+      keys.push({
+        name: mainKeyName,
+        icon: getModifierIcon(mainKeyName),
+        isModifier: true,
+      });
+    }
+    // If keys already has modifiers, the main key is one of them,
+    // so we don't add it again (it's already represented)
+  } else {
+    // Add main key at end (Requirement 5.2)
+    // Non-modifier keys don't have icons (Requirement 7.1)
+    keys.push({
+      name: mainKeyName,
+      icon: undefined,
+      isModifier: false,
+    });
+  }
+  
+  return keys;
+}
+
+/**
  * Get the display name for a key code
  * 
  * Requirements:
@@ -209,7 +375,7 @@ export function formatKeystroke(event: KeystrokeEvent): string {
 }
 
 /**
- * Format a mouse action event for display
+ * Format a mouse action event for display (legacy string format)
  * 
  * Requirements:
  * - 4.1: Display "Left Click"
@@ -221,14 +387,68 @@ export function formatKeystroke(event: KeystrokeEvent): string {
  * @returns Formatted string (e.g., "Left Click", "Ctrl + Right Click")
  */
 export function formatMouseAction(event: MouseActionEvent): string {
-  const buttonNames: Record<string, string> = {
-    left: 'Left Click',
-    right: 'Right Click',
-    middle: 'Middle Click',
-  };
-  
-  const buttonName = buttonNames[event.button];
+  const buttonName = MOUSE_BUTTON_NAMES[event.button];
   const modifierPrefix = formatModifiers(event.modifiers);
   
   return modifierPrefix + buttonName;
+}
+
+/**
+ * Parse a mouse action event into ParsedKey array for keyviz-style display
+ * 
+ * Extracts active modifiers from event.modifiers in order: Ctrl, Alt, Shift, Meta
+ * Then adds the mouse button action at the end.
+ * 
+ * Requirements: 6.4
+ * 
+ * @param event The mouse action event
+ * @returns Array of ParsedKey objects representing modifiers and mouse button
+ */
+export function parseMouseActionToKeys(event: MouseActionEvent): ParsedKey[] {
+  const keys: ParsedKey[] = [];
+  
+  // Add active modifiers in order: Ctrl, Alt, Shift, Meta
+  if (event.modifiers.ctrl) {
+    keys.push({
+      name: 'Ctrl',
+      icon: MODIFIER_ICONS.Ctrl,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.alt) {
+    keys.push({
+      name: 'Alt',
+      icon: MODIFIER_ICONS.Alt,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.shift) {
+    keys.push({
+      name: 'Shift',
+      icon: MODIFIER_ICONS.Shift,
+      isModifier: true,
+    });
+  }
+  
+  if (event.modifiers.meta) {
+    keys.push({
+      name: 'Meta',
+      icon: MODIFIER_ICONS.Meta,
+      isModifier: true,
+    });
+  }
+  
+  // Add mouse button as a non-modifier key with icon
+  const buttonName = MOUSE_BUTTON_NAMES[event.button];
+  const buttonIcon = MOUSE_ACTION_ICONS[event.button];
+  
+  keys.push({
+    name: buttonName,
+    icon: buttonIcon,
+    isModifier: false,
+  });
+  
+  return keys;
 }

@@ -1,4 +1,14 @@
-/* src/components/keystroke-overlay/KeystrokeOverlay.module.css */
+/* src/components/keystroke-overlay/KeystrokeOverlay.module.css
+ * 
+ * CSS Module for KeystrokeOverlay component - Main overlay container
+ * 
+ * Requirements: 6.2, 6.3
+ * - 6.2: Respect fadeDelayMs setting for when fade animation begins
+ * - 6.3: Respect fadeDurationMs setting for fade animation duration
+ * 
+ * Note: Individual keycap styling is handled by KeyCap.module.css and KeyCapGroup.module.css
+ * This file only handles overlay positioning and fade animation for entry containers.
+ */
 
 .overlay {
   width: 100%;
@@ -19,28 +29,34 @@
   gap: 8px;
 }
 
+/* Entry container - transparent wrapper for KeyCapGroup
+ * Handles fade animation via opacity transition
+ * KeyCapGroup handles its own visual styling (keycaps, spacing, etc.)
+ * 
+ * Requirements: 6.2, 6.3 - Fade animation timing
+ */
 .entry {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 500;
-  white-space: nowrap;
+  /* Transparent container - KeyCapGroup handles visual styling */
+  background: transparent;
+  border: none;
+  padding: 0;
+  
+  /* Fade animation - opacity controlled by JS based on fadeDelayMs/fadeDurationMs */
   transition: opacity 0.1s ease-out;
 }
 
-/* Keyboard keystroke styling */
+/* Keyboard keystroke entry - transparent container for KeyCapGroup
+ * Kept as separate class for potential future styling differentiation
+ */
 .keystrokeEntry {
-  background: rgba(30, 30, 40, 0.85);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* Inherits from .entry - no additional styling needed */
+  display: inline-block;
 }
 
-/* Mouse action styling - slightly different to distinguish */
+/* Mouse action entry - transparent container for KeyCapGroup
+ * Kept as separate class for potential future styling differentiation
+ */
 .mouseEntry {
-  background: rgba(60, 40, 80, 0.85);
-  color: #e0d0ff;
-  border: 1px solid rgba(180, 140, 255, 0.25);
-  box-shadow: 0 4px 12px rgba(80, 40, 120, 0.3);
+  /* Inherits from .entry - no additional styling needed */
+  display: inline-block;
 }

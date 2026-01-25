@@ -2,6 +2,9 @@ import { useRef, useMemo, CSSProperties } from "react";
 import { Rnd } from "react-rnd";
 import type { KeystrokeRegion, KeystrokePositionPreset, AnimationPreset } from "../types";
 import { cn } from "@/lib/utils";
+import { KeyCapGroup } from "@/components/keystroke-overlay/KeyCapGroup";
+import type { ParsedKey } from "@/utils/keyNameMapping";
+import { isModifierKey, getModifierIcon, MOUSE_BUTTON_NAMES } from "@/utils/keyNameMapping";
 
 /**
  * Calculate stack indices for multiple overlays at the same position preset.
@@ -143,35 +146,47 @@ function getPositionFromPreset(
 }
 
 /**
- * Parse text to identify and style modifier keys differently.
- * Modifiers are: Ctrl, Alt, Shift, Meta/Win/Cmd
+ * Parse formatted keystroke text into ParsedKey array for keyviz-style display.
+ * Handles both keyboard shortcuts (e.g., "Ctrl + C") and mouse actions (e.g., "Left Click").
  * 
- * @param text - The formatted keystroke text (e.g., "Ctrl + C")
- * @param modifierColor - Color for modifier keys
- * @param textColor - Color for regular keys
- * @returns Array of styled text segments
+ * @param text - The formatted keystroke text (e.g., "Ctrl + C", "Shift + Left Click")
+ * @returns Array of ParsedKey objects for KeyCapGroup rendering
  */
-function parseKeystrokeText(
-  text: string,
-  modifierColor: string,
-  textColor: string
-): Array<{ text: string; isModifier: boolean; color: string }> {
-  const modifiers = ['Ctrl', 'Alt', 'Shift', 'Meta', 'Win', 'Cmd', '⌘', '⌥', '⇧', '⌃'];
-  const parts = text.split(/(\s*\+\s*)/);
+function parseKeystrokeTextToKeys(text: string): ParsedKey[] {
+  const keys: ParsedKey[] = [];
   
-  return parts.map(part => {
-    const trimmedPart = part.trim();
-    const isModifier = modifiers.some(mod => 
-      trimmedPart.toLowerCase() === mod.toLowerCase() || trimmedPart === mod
-    );
-    const isSeparator = trimmedPart === '+' || trimmedPart === '';
+  // Split by " + " to get individual key parts
+  const parts = text.split(/\s*\+\s*/).map(p => p.trim()).filter(p => p.length > 0);
+  
+  for (const part of parts) {
+    // Check if this is a mouse action
+    const isMouseAction = Object.values(MOUSE_BUTTON_NAMES).includes(part);
     
-    return {
-      text: part,
-      isModifier: isModifier && !isSeparator,
-      color: isModifier && !isSeparator ? modifierColor : textColor,
-    };
-  });
+    if (isMouseAction) {
+      // Mouse actions are non-modifiers with icon
+      keys.push({
+        name: part,
+        icon: '🖱️',
+        isModifier: false,
+      });
+    } else if (isModifierKey(part)) {
+      // Modifier keys get their icon
+      keys.push({
+        name: part,
+        icon: getModifierIcon(part),
+        isModifier: true,
+      });
+    } else {
+      // Regular keys - no icon
+      keys.push({
+        name: part,
+        icon: undefined,
+        isModifier: false,
+      });
+    }
+  }
+  
+  return keys;
 }
 
 /**
@@ -405,14 +420,18 @@ export function KeystrokeEditorOverlay({
       }
     }, [animationState, animationIn, animationOut]);
     
-    // Calculate base font size with scale
-    const baseFontSize = 24;
-    const scaledFontSize = baseFontSize * style.textScale;
+    // Base font size for keycap calculations (matches KeyCap.tsx)
+    const BASE_FONT_SIZE = 16;
+    const scaledFontSize = BASE_FONT_SIZE * style.textScale;
     
-    // Estimate element width based on text length and font size
+    // Estimate element width based on number of keys and keycap sizing
+    // Each keycap has minWidth = fontSize * 2.25, plus gap = fontSize * 0.5
+    const keycapMinWidth = scaledFontSize * 2.25;
+    const keycapGap = scaledFontSize * 0.5;
+    const numKeys = keystroke.text.split(/\s*\+\s*/).filter(p => p.trim().length > 0).length;
     const estimatedElementWidth = Math.min(
       containerWidth * 0.8, 
-      keystroke.text.length * (scaledFontSize * 0.6) + 32 // Add padding
+      numKeys * keycapMinWidth + (numKeys - 1) * keycapGap + 16 // Add small padding
     );
     
     // Calculate vertical stacking offset for multiple overlays at the same position
@@ -429,38 +448,30 @@ export function KeystrokeEditorOverlay({
       stackOffset
     );
 
-    // Parse text to apply different colors to modifiers
-    const textSegments = parseKeystrokeText(
-      keystroke.text,
-      style.modifierColor,
-      style.textColor
-    );
+    // Parse keystroke text into keys for keyviz-style display
+    const parsedKeys = useMemo(() => {
+      try {
+        return parseKeystrokeTextToKeys(keystroke.text);
+      } catch (error) {
+        console.error('[KeystrokeEditorOverlay] Error parsing keystroke text:', error);
+        // Fallback: return single key with the raw text
+        return [{ name: keystroke.text, icon: undefined, isModifier: false }];
+      }
+    }, [keystroke.text]);
 
     const renderContent = () => {
       return (
         <div
           ref={textRef}
-          className="inline-flex items-center gap-1 px-4 py-2 whitespace-nowrap"
+          className="inline-flex items-center"
           style={{
-            backgroundColor: style.backgroundColor,
-            borderRadius: `${style.borderRadius}px`,
-            fontSize: `${scaledFontSize}px`,
-            fontFamily: 'Inter, system-ui, sans-serif',
-            fontWeight: 600,
             // Apply animation styles to the content
             ...animationStyles,
             // Smooth transition for animation
             transition: animationState.phase === 'visible' ? 'none' : undefined,
           }}
         >
-          {textSegments.map((segment, index) => (
-            <span
-              key={index}
-              style={{ color: segment.color }}
-            >
-              {segment.text}
-            </span>
-          ))}
+          <KeyCapGroup keys={parsedKeys} textScale={style.textScale} />
         </div>
       );
     };

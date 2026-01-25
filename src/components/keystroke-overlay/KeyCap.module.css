@@ -1,0 +1,134 @@
+/* src/components/keystroke-overlay/KeyCap.module.css
+ * 
+ * CSS Module for KeyCap component - Keyviz-style elevated keycap styling
+ * 
+ * Reference: keyviz/lib/providers/key_style.dart lines 260-320
+ * 
+ * Requirements: 1.3, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 8.1, 8.2, 8.3, 8.4
+ * 
+ * CSS Custom Properties:
+ * --base-font-size: Base font size in pixels (default: 16px)
+ * --text-scale: Scale multiplier for all dimensions (default: 1)
+ * 
+ * Styling Ratios (from keyviz):
+ * - minSizeRatio: 2.25 (minimum width/height relative to base font size)
+ * - outerHeightRatio: 2.5 (total height including shadow)
+ * - shadowOffsetRatio: 0.25 (bottom shadow offset)
+ * - horizontalPaddingRatio: 0.5 (horizontal padding)
+ * - verticalPaddingRatio: 0.375 (vertical padding)
+ * - iconSizeRatio: 0.45 (icon size for modifiers)
+ * - labelSizeRatio: 0.5 (label size for modifiers)
+ * - cornerSmoothing: 0.4 (40% border-radius)
+ */
+
+/* Container - holds both shadow and face layers */
+/* Requirement 1.3: Rounded rectangle shape with configurable border-radius */
+.container {
+  --base-font-size: 16px;
+  --text-scale: 1;
+  
+  /* Computed values using CSS calc */
+  --scaled-font-size: calc(var(--base-font-size) * var(--text-scale));
+  --min-size: calc(var(--scaled-font-size) * 2.25);
+  --outer-height: calc(var(--scaled-font-size) * 2.5);
+  --shadow-offset: calc(var(--scaled-font-size) * 0.25);
+  --horizontal-padding: calc(var(--scaled-font-size) * 0.5);
+  --vertical-padding: calc(var(--scaled-font-size) * 0.375);
+  --border-radius: calc(var(--min-size) * 0.4);
+  --icon-size: calc(var(--scaled-font-size) * 0.45);
+  --label-size: calc(var(--scaled-font-size) * 0.5);
+  
+  position: relative;
+  height: var(--outer-height);
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+/* Shadow container (bottom layer)
+ * Requirement 4.1: Bottom container (shadow) for 3D depth effect
+ * Requirement 4.2: Darker secondary color (#000) to create depth illusion
+ * Requirement 8.2: Secondary color (shadow) defaults to black (#000000)
+ * Requirement 8.4: Border color defaults to black (#000000)
+ */
+.shadow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-width: var(--min-size);
+  min-height: var(--min-size);
+  background-color: #000000;
+  border: 1px solid #000000;
+  border-radius: var(--border-radius);
+  box-sizing: border-box;
+}
+
+/* Face container (top layer)
+ * Requirement 4.3: Lighter primary color (#FFF) for key face
+ * Requirement 4.4: Offset upward from bottom by 25% of font size
+ * Requirement 4.5: Subtle border (1px) to define edges
+ * Requirement 4.6: Internal padding (horizontal: 50%, vertical: 37.5% of font size)
+ * Requirement 8.1: Primary color (face) defaults to white (#FFFFFF)
+ * Requirement 8.3: Text color defaults to black for contrast
+ */
+.face {
+  position: relative;
+  bottom: var(--shadow-offset);
+  min-width: var(--min-size);
+  min-height: var(--min-size);
+  background-color: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: var(--border-radius);
+  padding-left: var(--horizontal-padding);
+  padding-right: var(--horizontal-padding);
+  padding-top: var(--vertical-padding);
+  padding-bottom: var(--vertical-padding);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Face container for modifier keys - space-between alignment for icon + label
+ * Note: This class should be used together with .face class in the component
+ * e.g., className={`${styles.face} ${styles.faceModifier}`}
+ */
+.faceModifier {
+  justify-content: space-between;
+}
+
+/* Icon style for modifier keys
+ * Requirement 2.5: Icon displayed at 45% of base font size
+ */
+.icon {
+  font-size: var(--icon-size);
+  line-height: 1.2;
+  color: #000000;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* Label style for modifier keys
+ * Requirement 2.6: Label displayed at 50% of base font size below icon
+ */
+.labelModifier {
+  font-size: var(--label-size);
+  line-height: 1.2;
+  color: #000000;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Label style for non-modifier keys
+ * Requirement 7.1: Non-modifier keys display only the key label centered
+ * Requirement 7.2: Label vertically and horizontally centered
+ */
+.label {
+  font-size: var(--scaled-font-size);
+  line-height: 1.2;
+  color: #000000;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+}

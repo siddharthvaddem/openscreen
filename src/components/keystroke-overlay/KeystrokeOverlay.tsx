@@ -1,14 +1,27 @@
 // src/components/keystroke-overlay/KeystrokeOverlay.tsx
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { DisplayEntry, KeystrokeEvent, MouseActionEvent } from '../../types/keystrokeEvents';
+import type { KeystrokeEvent, MouseActionEvent } from '../../types/keystrokeEvents';
 import { DEFAULT_KEYSTROKE_SETTINGS } from '../../types/keystrokeSettings';
-import { formatKeystroke, formatMouseAction } from '../../utils/keyNameMapping';
+import { parseKeystrokeToKeys, parseMouseActionToKeys, type ParsedKey } from '../../utils/keyNameMapping';
+import { KeyCapGroup } from './KeyCapGroup';
 import styles from './KeystrokeOverlay.module.css';
 
 // Use global types from electron-env.d.ts for IPC compatibility
 type KeystrokeSettingsType = KeystrokeSettings;
 type InputEventType = KeystrokeOrMouseEvent;
+
+/**
+ * Extended DisplayEntry that stores ParsedKey[] for keyviz-style rendering
+ * instead of just text string
+ */
+interface KeyCapDisplayEntry {
+  id: string;
+  keys: ParsedKey[];
+  type: 'keystroke' | 'mouse';
+  timestamp: number;
+  fadeStartTime: number;
+}
 
 /**
  * Generate a unique ID for display entries
@@ -22,17 +35,19 @@ function generateId(): string {
  * 
  * Displays keyboard keystrokes and mouse actions with fade animations.
  * This component runs in a transparent, click-through overlay window.
+ * Uses keyviz-style KeyCapGroup for visual display.
  * 
  * Requirements:
- * - 3.1: Display key name when pressed
- * - 4.1: Display mouse clicks
- * - 5.1, 5.2, 5.3: Fade animation after delay
- * - 5.4: Multiple entries visible simultaneously
+ * - 1.1: Render each key as a separate KeyCap element
+ * - 1.2: Display each key as a distinct KeyCap arranged horizontally
+ * - 6.1: Apply textScale setting to all KeyCap dimensions
+ * - 6.2: Respect fadeDelayMs setting for when fade animation begins
+ * - 6.3: Respect fadeDurationMs setting for fade animation duration
  */
 export function KeystrokeOverlay() {
-  const [entries, setEntries] = useState<DisplayEntry[]>([]);
+  const [entries, setEntries] = useState<KeyCapDisplayEntry[]>([]);
   const [settings, setSettings] = useState<KeystrokeSettingsType>(DEFAULT_KEYSTROKE_SETTINGS);
-  const lastEventRef = useRef<{ timestamp: number; text: string } | null>(null);
+  const lastEventRef = useRef<{ timestamp: number; keys: ParsedKey[] } | null>(null);
 
   // Load settings on mount
   useEffect(() => {
@@ -53,15 +68,16 @@ export function KeystrokeOverlay() {
 
   /**
    * Create a display entry from an input event
+   * Parses keystroke/mouse events into ParsedKey arrays for keyviz-style display
    */
-  const createDisplayEntry = useCallback((event: InputEventType): DisplayEntry => {
-    const text = event.type === 'keystroke' 
-      ? formatKeystroke(event as KeystrokeEvent)
-      : formatMouseAction(event as MouseActionEvent);
+  const createDisplayEntry = useCallback((event: InputEventType): KeyCapDisplayEntry => {
+    const keys = event.type === 'keystroke' 
+      ? parseKeystrokeToKeys(event as KeystrokeEvent)
+      : parseMouseActionToKeys(event as MouseActionEvent);
 
     return {
       id: generateId(),
-      text,
+      keys,
       type: event.type,
       timestamp: event.timestamp,
       fadeStartTime: event.timestamp + settings.fadeDelayMs,
@@ -90,19 +106,20 @@ export function KeystrokeOverlay() {
           // Group with the last entry
           const lastEntry = prevEntries[prevEntries.length - 1];
           if (lastEntry.type === 'keystroke') {
-            const updatedEntry: DisplayEntry = {
+            // Combine keys arrays for grouped keystrokes
+            const updatedEntry: KeyCapDisplayEntry = {
               ...lastEntry,
-              text: lastEntry.text + ' ' + newEntry.text,
+              keys: [...lastEntry.keys, ...newEntry.keys],
               fadeStartTime: now + settings.fadeDelayMs,
             };
             
-            lastEventRef.current = { timestamp: event.timestamp, text: newEntry.text };
+            lastEventRef.current = { timestamp: event.timestamp, keys: newEntry.keys };
             return [...prevEntries.slice(0, -1), updatedEntry];
           }
         }
       }
 
-      lastEventRef.current = { timestamp: event.timestamp, text: newEntry.text };
+      lastEventRef.current = { timestamp: event.timestamp, keys: newEntry.keys };
       return [...prevEntries, newEntry];
     });
   }, [createDisplayEntry, settings.groupingThresholdMs, settings.showMouseClicks, settings.fadeDelayMs]);
@@ -136,8 +153,9 @@ export function KeystrokeOverlay() {
 
   /**
    * Calculate opacity for an entry based on fade timing
+   * Requirements: 6.2, 6.3
    */
-  const getEntryOpacity = (entry: DisplayEntry): number => {
+  const getEntryOpacity = (entry: KeyCapDisplayEntry): number => {
     const now = Date.now();
     
     if (now < entry.fadeStartTime) {
@@ -162,7 +180,7 @@ export function KeystrokeOverlay() {
             className={`${styles.entry} ${entry.type === 'mouse' ? styles.mouseEntry : styles.keystrokeEntry}`}
             style={{ opacity: getEntryOpacity(entry) }}
           >
-            {entry.text}
+            <KeyCapGroup keys={entry.keys} textScale={settings.textScale} />
           </div>
         ))}
       </div>
