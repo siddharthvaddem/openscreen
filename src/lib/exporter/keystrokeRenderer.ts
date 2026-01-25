@@ -1,4 +1,35 @@
 import type { KeystrokeRegion, KeystrokePositionPreset, AnimationPreset } from '@/components/video-editor/types';
+import { MODIFIER_ICONS, isModifierKey } from '@/utils/keyNameMapping';
+
+/**
+ * Keycap styling constants matching KeyCap.tsx
+ * Reference: src/components/keystroke-overlay/KeyCap.tsx
+ */
+const KEYCAP_STYLE = {
+  minSizeRatio: 2.25,           // Minimum width/height relative to base font size
+  outerHeightRatio: 2.5,        // Total height including shadow
+  shadowOffsetRatio: 0.25,      // Bottom shadow offset
+  horizontalPaddingRatio: 0.5,  // Horizontal padding relative to base font size
+  verticalPaddingRatio: 0.375,  // Vertical padding relative to base font size
+  iconSizeRatio: 0.45,          // Icon size relative to base font size
+  labelSizeRatio: 0.5,          // Label size for modifiers relative to base font size
+  cornerSmoothing: 0.4,         // Border radius factor (40% corner smoothing)
+  primaryColor: '#FFFFFF',      // Key face color
+  secondaryColor: '#000000',    // Key shadow color
+  textColor: '#000000',         // Label color
+  borderColor: '#000000',       // Border color
+  borderWidth: 1,               // Border width in px
+  gapRatio: 0.5,                // Gap between keycaps relative to base font size
+};
+
+/**
+ * Parsed key for rendering
+ */
+interface ParsedKeyForRender {
+  name: string;
+  icon?: string;
+  isModifier: boolean;
+}
 
 /**
  * Animation phase for the keystroke overlay.
@@ -158,30 +189,181 @@ function getAnimationValues(
 }
 
 /**
- * Parse text to identify modifier keys.
- * Modifiers are: Ctrl, Alt, Shift, Meta/Win/Cmd
+ * Parse keystroke text into individual keys for keyviz-style rendering.
  * 
- * @param text - The formatted keystroke text (e.g., "Ctrl + C")
- * @returns Array of text segments with modifier flag
+ * @param text - The formatted keystroke text (e.g., "Ctrl + C", "Shift + D")
+ * @returns Array of ParsedKeyForRender objects
  */
-function parseKeystrokeText(
-  text: string
-): Array<{ text: string; isModifier: boolean }> {
-  const modifiers = ['Ctrl', 'Alt', 'Shift', 'Meta', 'Win', 'Cmd', '⌘', '⌥', '⇧', '⌃'];
-  const parts = text.split(/(\s*\+\s*)/);
+function parseKeystrokeTextToKeys(text: string): ParsedKeyForRender[] {
+  // Split by " + " separator
+  const parts = text.split(/\s*\+\s*/).filter(part => part.trim() !== '');
   
   return parts.map(part => {
     const trimmedPart = part.trim();
-    const isModifier = modifiers.some(mod => 
-      trimmedPart.toLowerCase() === mod.toLowerCase() || trimmedPart === mod
-    );
-    const isSeparator = trimmedPart === '+' || trimmedPart === '';
+    const isModifier = isModifierKey(trimmedPart);
     
     return {
-      text: part,
-      isModifier: isModifier && !isSeparator,
+      name: trimmedPart,
+      icon: isModifier ? MODIFIER_ICONS[trimmedPart] : undefined,
+      isModifier,
     };
   });
+}
+
+/**
+ * Measure the width of a single keycap
+ */
+function measureKeycapWidth(
+  ctx: CanvasRenderingContext2D,
+  key: ParsedKeyForRender,
+  scaledFontSize: number,
+  _scaleFactor: number
+): number {
+  const minSize = scaledFontSize * KEYCAP_STYLE.minSizeRatio;
+  const horizontalPadding = scaledFontSize * KEYCAP_STYLE.horizontalPaddingRatio;
+  
+  // Measure text width
+  const labelSize = key.isModifier && key.icon 
+    ? scaledFontSize * KEYCAP_STYLE.labelSizeRatio 
+    : scaledFontSize;
+  
+  ctx.font = `500 ${labelSize}px Inter, system-ui, sans-serif`;
+  const textWidth = ctx.measureText(key.name).width;
+  
+  // If modifier with icon, also consider icon width
+  let contentWidth = textWidth;
+  if (key.isModifier && key.icon) {
+    const iconSize = scaledFontSize * KEYCAP_STYLE.iconSizeRatio;
+    ctx.font = `${iconSize}px Inter, system-ui, sans-serif`;
+    const iconWidth = ctx.measureText(key.icon).width;
+    contentWidth = Math.max(textWidth, iconWidth);
+  }
+  
+  // Width is max of minSize or content + padding
+  return Math.max(minSize, contentWidth + horizontalPadding * 2);
+}
+
+/**
+ * Measure total width of keycap group
+ */
+function measureKeycapGroupWidth(
+  ctx: CanvasRenderingContext2D,
+  keys: ParsedKeyForRender[],
+  scaledFontSize: number,
+  scaleFactor: number
+): number {
+  if (keys.length === 0) return 0;
+  
+  const gap = scaledFontSize * KEYCAP_STYLE.gapRatio;
+  let totalWidth = 0;
+  
+  for (let i = 0; i < keys.length; i++) {
+    totalWidth += measureKeycapWidth(ctx, keys[i], scaledFontSize, scaleFactor);
+    if (i < keys.length - 1) {
+      totalWidth += gap;
+    }
+  }
+  
+  return totalWidth;
+}
+
+/**
+ * Render a single keycap with 3D elevated styling
+ */
+function renderSingleKeycap(
+  ctx: CanvasRenderingContext2D,
+  key: ParsedKeyForRender,
+  x: number,
+  y: number,
+  scaledFontSize: number,
+  scaleFactor: number
+): number {
+  const minSize = scaledFontSize * KEYCAP_STYLE.minSizeRatio;
+  const outerHeight = scaledFontSize * KEYCAP_STYLE.outerHeightRatio;
+  const shadowOffset = scaledFontSize * KEYCAP_STYLE.shadowOffsetRatio;
+  const horizontalPadding = scaledFontSize * KEYCAP_STYLE.horizontalPaddingRatio;
+  const borderRadius = minSize * KEYCAP_STYLE.cornerSmoothing;
+  const iconSize = scaledFontSize * KEYCAP_STYLE.iconSizeRatio;
+  const labelSize = key.isModifier && key.icon 
+    ? scaledFontSize * KEYCAP_STYLE.labelSizeRatio 
+    : scaledFontSize;
+  
+  // Measure text width to determine keycap width
+  ctx.font = `500 ${labelSize}px Inter, system-ui, sans-serif`;
+  const textWidth = ctx.measureText(key.name).width;
+  
+  let contentWidth = textWidth;
+  if (key.isModifier && key.icon) {
+    ctx.font = `${iconSize}px Inter, system-ui, sans-serif`;
+    const iconWidth = ctx.measureText(key.icon).width;
+    contentWidth = Math.max(textWidth, iconWidth);
+  }
+  
+  const keycapWidth = Math.max(minSize, contentWidth + horizontalPadding * 2);
+  const keycapHeight = minSize;
+  
+  // Draw shadow (bottom layer) - positioned at bottom of outer height
+  ctx.fillStyle = KEYCAP_STYLE.secondaryColor;
+  ctx.beginPath();
+  ctx.roundRect(
+    x,
+    y + outerHeight - keycapHeight,
+    keycapWidth,
+    keycapHeight,
+    borderRadius
+  );
+  ctx.fill();
+  
+  // Draw border for shadow
+  ctx.strokeStyle = KEYCAP_STYLE.borderColor;
+  ctx.lineWidth = KEYCAP_STYLE.borderWidth * scaleFactor;
+  ctx.stroke();
+  
+  // Draw face (top layer) - offset upward by shadowOffset
+  ctx.fillStyle = KEYCAP_STYLE.primaryColor;
+  ctx.beginPath();
+  ctx.roundRect(
+    x,
+    y + outerHeight - keycapHeight - shadowOffset,
+    keycapWidth,
+    keycapHeight,
+    borderRadius
+  );
+  ctx.fill();
+  
+  // Draw border for face
+  ctx.strokeStyle = KEYCAP_STYLE.borderColor;
+  ctx.lineWidth = KEYCAP_STYLE.borderWidth * scaleFactor;
+  ctx.stroke();
+  
+  // Draw content (icon and/or label)
+  ctx.fillStyle = KEYCAP_STYLE.textColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  const faceCenterX = x + keycapWidth / 2;
+  const faceCenterY = y + outerHeight - keycapHeight - shadowOffset + keycapHeight / 2;
+  
+  if (key.isModifier && key.icon) {
+    // Modifier: icon above label
+    const totalContentHeight = iconSize + labelSize * 0.8;
+    const iconY = faceCenterY - totalContentHeight / 2 + iconSize / 2;
+    const labelY = faceCenterY + totalContentHeight / 2 - labelSize * 0.4;
+    
+    // Draw icon
+    ctx.font = `${iconSize}px Inter, system-ui, sans-serif`;
+    ctx.fillText(key.icon, faceCenterX, iconY);
+    
+    // Draw label
+    ctx.font = `500 ${labelSize}px Inter, system-ui, sans-serif`;
+    ctx.fillText(key.name, faceCenterX, labelY);
+  } else {
+    // Non-modifier: centered label only
+    ctx.font = `500 ${labelSize}px Inter, system-ui, sans-serif`;
+    ctx.fillText(key.name, faceCenterX, faceCenterY);
+  }
+  
+  return keycapWidth;
 }
 
 /**
@@ -254,7 +436,7 @@ function getPositionFromPreset(
 
 
 /**
- * Renders a single keystroke overlay to the canvas context.
+ * Renders a single keystroke overlay to the canvas context using keyviz-style keycaps.
  * Keystroke overlays are rendered on top of everything else (highest z-index).
  * 
  * Requirements:
@@ -293,42 +475,36 @@ export function renderKeystroke(
       ? { opacity: 1, translateY: 0, scale: 1 }
       : getAnimationValues(preset, progress, isEntering);
 
+    // Parse keystroke text into individual keys
+    const keys = parseKeystrokeTextToKeys(text);
+    if (keys.length === 0) return;
+
     // Scale font size
     const baseFontSize = 24;
     const scaledFontSize = baseFontSize * style.textScale * scaleFactor;
-    const scaledBorderRadius = style.borderRadius * scaleFactor;
-
-    // Set font to measure text
-    ctx.font = `600 ${scaledFontSize}px Inter, system-ui, sans-serif`;
-    const metrics = ctx.measureText(text);
-    const textWidth = metrics.width;
-    const textHeight = scaledFontSize;
-
-    // Calculate padding for the background box
-    const boxPaddingX = 16 * scaleFactor;
-    const boxPaddingY = 8 * scaleFactor;
-    const boxWidth = textWidth + boxPaddingX * 2;
-    const boxHeight = textHeight + boxPaddingY * 2;
+    
+    // Calculate keycap group dimensions
+    const groupWidth = measureKeycapGroupWidth(ctx, keys, scaledFontSize, scaleFactor);
+    const groupHeight = scaledFontSize * KEYCAP_STYLE.outerHeightRatio;
 
     // Calculate stack offset for multiple overlays
-    const elementHeight = boxHeight;
     const stackGap = 8 * scaleFactor;
-    const stackOffset = stackIndex * (elementHeight + stackGap);
+    const stackOffset = stackIndex * (groupHeight + stackGap);
 
     // Calculate position based on preset
     const position = getPositionFromPreset(
       positionPreset,
       canvasWidth,
       canvasHeight,
-      boxWidth,
-      boxHeight,
+      groupWidth,
+      groupHeight,
       stackOffset,
       scaleFactor
     );
 
     // Apply animation transforms
-    let x = position.x;
-    let y = position.y + animationValues.translateY * scaleFactor;
+    let x = position.x - groupWidth / 2;
+    let y = position.y - groupHeight / 2 + animationValues.translateY * scaleFactor;
 
     ctx.save();
 
@@ -337,45 +513,20 @@ export function renderKeystroke(
 
     // Apply scale transform if needed
     if (animationValues.scale !== 1) {
-      ctx.translate(x, y);
+      const centerX = position.x;
+      const centerY = position.y;
+      ctx.translate(centerX, centerY);
       ctx.scale(animationValues.scale, animationValues.scale);
-      ctx.translate(-x, -y);
+      ctx.translate(-centerX, -centerY);
     }
 
-    // Draw background box
-    if (style.backgroundColor && style.backgroundColor !== 'transparent') {
-      ctx.fillStyle = style.backgroundColor;
-      ctx.beginPath();
-      ctx.roundRect(
-        x - boxWidth / 2,
-        y - boxHeight / 2,
-        boxWidth,
-        boxHeight,
-        scaledBorderRadius
-      );
-      ctx.fill();
-    }
+    // Render each keycap
+    const gap = scaledFontSize * KEYCAP_STYLE.gapRatio;
+    let currentX = x;
 
-    // Parse text to apply different colors to modifiers
-    const textSegments = parseKeystrokeText(text);
-
-    // Draw text with different colors for modifiers
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `600 ${scaledFontSize}px Inter, system-ui, sans-serif`;
-
-    // Calculate total width and starting position for multi-colored text
-    let currentX = x - textWidth / 2;
-
-    for (const segment of textSegments) {
-      const segmentWidth = ctx.measureText(segment.text).width;
-      const color = segment.isModifier ? style.modifierColor : style.textColor;
-      
-      ctx.fillStyle = color;
-      ctx.textAlign = 'left';
-      ctx.fillText(segment.text, currentX, y);
-      
-      currentX += segmentWidth;
+    for (const key of keys) {
+      const keycapWidth = renderSingleKeycap(ctx, key, currentX, y, scaledFontSize, scaleFactor);
+      currentX += keycapWidth + gap;
     }
 
     ctx.restore();
