@@ -496,11 +496,12 @@ describe('Property 10: Keystroke Formatting with Modifiers', () => {
   });
 
   // Arbitrary for keystroke events with valid key names
+  // Filter out key names that contain " + " as this would break the split logic
   const keystrokeEventArbitrary: fc.Arbitrary<RecordedKeystrokeEvent> = fc.record({
     type: fc.constant('keystroke' as const),
     timestamp: fc.integer({ min: 0, max: 3600000 }),
     keyCode: fc.integer({ min: 1, max: 255 }),
-    keyName: fc.string({ minLength: 1, maxLength: 20 }),
+    keyName: fc.string({ minLength: 1, maxLength: 20 }).filter(s => !s.includes(' + ')),
     modifiers: modifiersArbitrary,
   });
 
