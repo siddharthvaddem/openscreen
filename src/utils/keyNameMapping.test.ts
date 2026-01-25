@@ -385,6 +385,13 @@ describe('Property 4: Modifier Icon Mapping', () => {
   // Arbitrary for modifier key names
   const modifierKeyNameArbitrary = fc.constantFrom('Ctrl', 'Alt', 'Shift', 'Meta');
 
+  // Reserved JavaScript object property names to exclude from random strings
+  const reservedPropertyNames = [
+    'constructor', 'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
+    'toLocaleString', 'toString', 'valueOf', '__proto__', '__defineGetter__',
+    '__defineSetter__', '__lookupGetter__', '__lookupSetter__'
+  ];
+
   // Arbitrary for non-modifier key names (various key types)
   const nonModifierKeyNameArbitrary = fc.oneof(
     // Letter keys
@@ -401,9 +408,9 @@ describe('Property 4: Modifier Icon Mapping', () => {
     fc.constantFrom('Up', 'Down', 'Left', 'Right'),
     // Symbol keys
     fc.constantFrom('`', '-', '=', '[', ']', '\\', ';', "'", ',', '.', '/'),
-    // Random strings that are definitely not modifiers
+    // Random strings that are definitely not modifiers and not reserved JS properties
     fc.string({ minLength: 1, maxLength: 20 }).filter(s => 
-      !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(s)
+      !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(s) && !reservedPropertyNames.includes(s)
     )
   );
 
