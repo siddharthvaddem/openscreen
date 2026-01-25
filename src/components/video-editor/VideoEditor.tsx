@@ -728,6 +728,20 @@ export default function VideoEditor() {
     );
   }, []);
 
+  // Handler for applying style and position to all keystroke regions (Requirement 4.4, 2.1, 2.2, 2.4)
+  const handleApplyStyleToAll = useCallback((
+    style: Partial<KeystrokeStyle>,
+    position?: KeystrokePositionPreset
+  ) => {
+    setKeystrokeRegions((prev) =>
+      prev.map((region) => ({
+        ...region,
+        style: { ...region.style, ...style },
+        ...(position && { positionPreset: position }),
+      }))
+    );
+  }, []);
+
   // Helper to extract file path from file:// URL
   const getVideoFilePath = useCallback((): string | undefined => {
     if (!videoPath) return undefined;
@@ -1292,6 +1306,7 @@ export default function VideoEditor() {
           keystrokeRegions={keystrokeRegions}
           onKeystrokeStyleChange={handleKeystrokeStyleChange}
           onKeystrokePositionChange={handleKeystrokePositionChange}
+          onApplyStyleToAll={handleApplyStyleToAll}
           onKeystrokeDelete={handleKeystrokeDelete}
           // Preset props
           presets={presets}

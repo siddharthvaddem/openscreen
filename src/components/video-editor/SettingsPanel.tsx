@@ -107,6 +107,7 @@ interface SettingsPanelProps {
   keystrokeRegions?: KeystrokeRegion[];
   onKeystrokeStyleChange?: (id: string, style: Partial<KeystrokeStyle>) => void;
   onKeystrokePositionChange?: (id: string, position: KeystrokePositionPreset) => void;
+  onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
   onKeystrokeDelete?: (id: string) => void;
   // Preset props
   presets?: Preset[];
@@ -187,6 +188,7 @@ export function SettingsPanel({
   keystrokeRegions = [],
   onKeystrokeStyleChange,
   onKeystrokePositionChange,
+  onApplyStyleToAll,
   onKeystrokeDelete,
   // Preset props
   presets = [],
@@ -337,6 +339,7 @@ export function SettingsPanel({
         keystroke={selectedKeystroke}
         onStyleChange={(style) => onKeystrokeStyleChange(selectedKeystroke.id, style)}
         onPositionChange={(position) => onKeystrokePositionChange(selectedKeystroke.id, position)}
+        onApplyStyleToAll={onApplyStyleToAll}
         onDelete={() => onKeystrokeDelete(selectedKeystroke.id)}
       />
     );

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash2, ChevronDown } from "lucide-react";
 import Block from '@uiw/react-color-block';
@@ -12,6 +13,7 @@ interface KeystrokeSettingsPanelProps {
   keystroke: KeystrokeRegion;
   onStyleChange: (style: Partial<KeystrokeStyle>) => void;
   onPositionChange: (position: KeystrokePositionPreset) => void;
+  onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
   onDelete: () => void;
 }
 
@@ -55,8 +57,45 @@ export function KeystrokeSettingsPanel({
   keystroke,
   onStyleChange,
   onPositionChange,
+  onApplyStyleToAll,
   onDelete,
 }: KeystrokeSettingsPanelProps) {
+  const [applyToAll, setApplyToAll] = useState(false);
+
+  /**
+   * Routes style updates to either onApplyStyleToAll or onStyleChange
+   * based on the applyToAll state.
+   * 
+   * When applyToAll is true, applies the style to all keystroke regions.
+   * When applyToAll is false, applies the style only to the current keystroke.
+   * 
+   * Validates: Requirements 4.2
+   */
+  const handleStyleUpdate = (style: Partial<KeystrokeStyle>) => {
+    if (applyToAll && onApplyStyleToAll) {
+      onApplyStyleToAll(style);
+    } else {
+      onStyleChange(style);
+    }
+  };
+
+  /**
+   * Routes position updates to either onApplyStyleToAll or onPositionChange
+   * based on the applyToAll state.
+   * 
+   * When applyToAll is true, applies the position to all keystroke regions.
+   * When applyToAll is false, applies the position only to the current keystroke.
+   * 
+   * Validates: Requirements 4.3
+   */
+  const handlePositionUpdate = (position: KeystrokePositionPreset) => {
+    if (applyToAll && onApplyStyleToAll) {
+      onApplyStyleToAll({}, position);
+    } else {
+      onPositionChange(position);
+    }
+  };
+
   const colorPalette = [
     '#FF0000', // Red
     '#FFD700', // Yellow/Gold
@@ -103,7 +142,7 @@ export function KeystrokeSettingsPanel({
             </div>
             <Slider
               value={[keystroke.style.textScale]}
-              onValueChange={([value]) => onStyleChange({ textScale: value })}
+              onValueChange={([value]) => handleStyleUpdate({ textScale: value })}
               min={0.5}
               max={2.0}
               step={0.1}
@@ -133,7 +172,7 @@ export function KeystrokeSettingsPanel({
                     color={keystroke.style.textColor}
                     colors={colorPalette}
                     onChange={(color) => {
-                      onStyleChange({ textColor: color.hex });
+                      handleStyleUpdate({ textColor: color.hex });
                     }}
                     style={{
                       borderRadius: '8px',
@@ -167,7 +206,7 @@ export function KeystrokeSettingsPanel({
                     color={keystroke.style.backgroundColor === 'transparent' ? '#000000' : keystroke.style.backgroundColor}
                     colors={colorPalette}
                     onChange={(color) => {
-                      onStyleChange({ backgroundColor: color.hex });
+                      handleStyleUpdate({ backgroundColor: color.hex });
                     }}
                     style={{
                       borderRadius: '8px',
@@ -178,7 +217,7 @@ export function KeystrokeSettingsPanel({
                     size="sm" 
                     className="w-full mt-2 text-xs h-7 hover:bg-white/5 text-slate-400"
                     onClick={() => {
-                      onStyleChange({ backgroundColor: 'transparent' });
+                      handleStyleUpdate({ backgroundColor: 'transparent' });
                     }}
                   >
                     Clear Background
@@ -206,7 +245,7 @@ export function KeystrokeSettingsPanel({
                     color={keystroke.style.modifierColor}
                     colors={colorPalette}
                     onChange={(color) => {
-                      onStyleChange({ modifierColor: color.hex });
+                      handleStyleUpdate({ modifierColor: color.hex });
                     }}
                     style={{
                       borderRadius: '8px',
@@ -225,7 +264,7 @@ export function KeystrokeSettingsPanel({
             </div>
             <Slider
               value={[keystroke.style.borderRadius]}
-              onValueChange={([value]) => onStyleChange({ borderRadius: value })}
+              onValueChange={([value]) => handleStyleUpdate({ borderRadius: value })}
               min={0}
               max={16}
               step={1}
@@ -240,7 +279,7 @@ export function KeystrokeSettingsPanel({
               {POSITION_PRESETS.map((preset) => (
                 <button
                   key={preset.value}
-                  onClick={() => onPositionChange(preset.value)}
+                  onClick={() => handlePositionUpdate(preset.value)}
                   className={cn(
                     "h-8 rounded-lg border flex items-center justify-center transition-all text-[10px] font-medium",
                     keystroke.positionPreset === preset.value
@@ -263,7 +302,7 @@ export function KeystrokeSettingsPanel({
                 <label className="text-[10px] text-slate-400 mb-1 block">Animation In</label>
                 <Select 
                   value={keystroke.style.animationIn} 
-                  onValueChange={(value: AnimationPreset) => onStyleChange({ animationIn: value })}
+                  onValueChange={(value: AnimationPreset) => handleStyleUpdate({ animationIn: value })}
                 >
                   <SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
                     <SelectValue placeholder="Select animation" />
@@ -281,7 +320,7 @@ export function KeystrokeSettingsPanel({
                 <label className="text-[10px] text-slate-400 mb-1 block">Animation Out</label>
                 <Select 
                   value={keystroke.style.animationOut} 
-                  onValueChange={(value: AnimationPreset) => onStyleChange({ animationOut: value })}
+                  onValueChange={(value: AnimationPreset) => handleStyleUpdate({ animationOut: value })}
                 >
                   <SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
                     <SelectValue placeholder="Select animation" />
@@ -309,7 +348,7 @@ export function KeystrokeSettingsPanel({
               </div>
               <Slider
                 value={[keystroke.style.fadeDurationMs]}
-                onValueChange={([value]) => onStyleChange({ fadeDurationMs: value })}
+                onValueChange={([value]) => handleStyleUpdate({ fadeDurationMs: value })}
                 min={0}
                 max={1000}
                 step={50}
@@ -324,7 +363,7 @@ export function KeystrokeSettingsPanel({
               </div>
               <Slider
                 value={[keystroke.style.lingerDurationMs]}
-                onValueChange={([value]) => onStyleChange({ lingerDurationMs: value })}
+                onValueChange={([value]) => handleStyleUpdate({ lingerDurationMs: value })}
                 min={500}
                 max={5000}
                 step={100}
@@ -341,7 +380,19 @@ export function KeystrokeSettingsPanel({
             </div>
             <Switch
               checked={keystroke.style.showOnlyHotkeys}
-              onCheckedChange={(checked) => onStyleChange({ showOnlyHotkeys: checked })}
+              onCheckedChange={(checked) => handleStyleUpdate({ showOnlyHotkeys: checked })}
+            />
+          </div>
+
+          {/* Apply to All Toggle */}
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <label className="text-xs font-medium text-slate-200 block">Apply to All</label>
+              <span className="text-[10px] text-slate-400">Apply changes to all keystroke overlays</span>
+            </div>
+            <Switch
+              checked={applyToAll}
+              onCheckedChange={setApplyToAll}
             />
           </div>
         </div>
