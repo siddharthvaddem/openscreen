@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
 import { KeystrokeEventRecorder } from './keystrokeEventRecorder';
-import type { InputEvent, KeystrokeEvent, MouseActionEvent } from '../../src/types/keystrokeEvents';
+import type { InputEvent } from '../../src/types/keystrokeEvents';
 import type { RecordedInputEvent, RecordedKeystrokeEvent, RecordedMouseClickEvent } from '../../src/types/keystrokeEditorEvents';
 
 // Mock the keystrokeService
@@ -310,17 +310,7 @@ describe('KeystrokeEventRecorder', () => {
     });
 
     it('should not capture events when not running', () => {
-      const baseTime = Date.now();
-
       // Don't start the recorder
-      const keystrokeEvent: InputEvent = {
-        type: 'keystroke',
-        timestamp: baseTime,
-        key: 'A',
-        keyCode: 0x001E,
-        modifiers: { ctrl: false, alt: false, shift: false, meta: false },
-      };
-
       // This shouldn't add any events since recorder isn't running
       // The event handler won't be registered
       expect(recorder.getEvents()).toEqual([]);
@@ -823,7 +813,7 @@ describe('Property 3: Event Capture Validity', () => {
           expect(events).toHaveLength(inputEvents.length);
 
           // Verify all events have valid fields
-          events.forEach((event, index) => {
+          events.forEach((event) => {
             // Valid timestamp
             expect(event.timestamp).toBeGreaterThanOrEqual(0);
 

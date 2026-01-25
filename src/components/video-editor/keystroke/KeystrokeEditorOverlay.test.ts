@@ -3,10 +3,9 @@ import * as fc from 'fast-check';
 import {
   calculateAnimationPhase,
   calculateStackIndices,
-  type AnimationPhase,
 } from './KeystrokeEditorOverlay';
 import type { KeystrokeRegion, KeystrokePositionPreset, KeystrokeStyle } from '../types';
-import { DEFAULT_KEYSTROKE_STYLE, DEFAULT_KEYSTROKE_POSITION } from '../types';
+import { DEFAULT_KEYSTROKE_STYLE } from '../types';
 
 /**
  * Property 8: Overlay Visibility by Time

@@ -730,14 +730,6 @@ describe('Property 6: Mouse Click Filtering', () => {
     modifiers: modifiersArb,
   });
 
-  const settingsArb: fc.Arbitrary<Settings> = fc.record({
-    showMouseClicks: fc.boolean(),
-    fadeDelayMs: fc.integer({ min: 100, max: 5000 }),
-    fadeDurationMs: fc.integer({ min: 100, max: 3000 }),
-    textScale: fc.float({ min: 0.5, max: 2.0, noNaN: true }),
-    groupingThresholdMs: fc.integer({ min: 50, max: 200 }),
-  });
-
   /**
    * Property 6.1: Mouse events SHALL NOT be rendered when showMouseClicks is false
    * Validates: Requirement 6.4

@@ -13,7 +13,7 @@ import type {
 } from '../types/keystrokeEditorEvents';
 import type { KeystrokeEditorSettings } from '../types/keystrokeEditorSettings';
 import { DEFAULT_KEYSTROKE_EDITOR_SETTINGS } from '../types/keystrokeEditorSettings';
-import { DEFAULT_KEYSTROKE_STYLE, DEFAULT_KEYSTROKE_POSITION } from '../components/video-editor/types';
+import { DEFAULT_KEYSTROKE_STYLE } from '../components/video-editor/types';
 
 /**
  * Property 6: Region Generation from Events

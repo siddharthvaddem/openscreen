@@ -29,6 +29,7 @@ export function LaunchWindow() {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY) {
         const newSettings = getAudioSettings();
+        console.log('[LaunchWindow] Storage event detected, new settings:', newSettings);
         setAudioSettings(newSettings);
       }
     };
@@ -39,6 +40,7 @@ export function LaunchWindow() {
       const currentSettings = getAudioSettings();
       setAudioSettings(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(currentSettings)) {
+          console.log('[LaunchWindow] Polling detected settings change:', currentSettings);
           return currentSettings;
         }
         return prev;
@@ -58,6 +60,7 @@ export function LaunchWindow() {
     isEnabled,
     selectDevice,
     enable,
+    disable,
     error: micError,
     permissionState,
   } = useMicrophone({
@@ -68,19 +71,34 @@ export function LaunchWindow() {
     autoGainControl: audioSettings.autoGainControl,
   });
 
-  // Restore microphone state when settings change
+  // Sync microphone state with settings (bidirectional)
   useEffect(() => {
+    // Enable mic if settings say enabled but hook says disabled
     if (audioSettings.enabled && !isEnabled) {
+      console.log('[LaunchWindow] Syncing mic state: enabling mic', { 
+        deviceId: audioSettings.deviceId,
+        audioSettingsEnabled: audioSettings.enabled,
+        hookIsEnabled: isEnabled 
+      });
       if (audioSettings.deviceId) {
         selectDevice(audioSettings.deviceId).catch((err) => {
           console.warn('[LaunchWindow] Failed to select saved device, trying default:', err);
-          enable().catch(console.error);
+          enable().catch((enableErr) => {
+            console.error('[LaunchWindow] Failed to enable mic:', enableErr);
+          });
         });
       } else {
-        enable().catch(console.error);
+        enable().catch((err) => {
+          console.error('[LaunchWindow] Failed to enable mic:', err);
+        });
       }
     }
-  }, [audioSettings.enabled, audioSettings.deviceId, isEnabled, selectDevice, enable]);
+    // Disable mic if settings say disabled but hook says enabled
+    else if (!audioSettings.enabled && isEnabled) {
+      console.log('[LaunchWindow] Syncing mic state: disabling mic');
+      disable();
+    }
+  }, [audioSettings.enabled, audioSettings.deviceId, isEnabled, selectDevice, enable, disable]);
 
   // Auto zoom settings
   const { settings: autoZoomSettings, setEnabled: setAutoZoomEnabled } = useAutoZoomSettings();

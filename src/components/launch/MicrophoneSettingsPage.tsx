@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { 
@@ -48,6 +48,16 @@ export function MicrophoneSettingsPage() {
     autoGainControl: settings.autoGainControl,
   });
 
+  // Track user's intended enabled state (separate from hook's isEnabled which changes on cleanup)
+  const userEnabledRef = useRef<boolean>(settings.enabled);
+  
+  // Update ref when user explicitly changes enabled state
+  useEffect(() => {
+    if (isEnabled) {
+      userEnabledRef.current = true;
+    }
+  }, [isEnabled]);
+
   // Restore microphone state on mount
   useEffect(() => {
     const saved = getAudioSettings();
@@ -62,22 +72,24 @@ export function MicrophoneSettingsPage() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist enabled state and device
+  // Persist device selection only (enabled state is handled by explicit user actions)
+  // This effect only saves deviceId changes, not enabled state
+  // to avoid race condition with hook cleanup setting isEnabled to false
   useEffect(() => {
-    setAudioSettings({
-      deviceId: selectedDeviceId,
-      enabled: isEnabled,
-    });
-  }, [selectedDeviceId, isEnabled]);
+    if (selectedDeviceId) {
+      setAudioSettings({ deviceId: selectedDeviceId });
+    }
+  }, [selectedDeviceId]);
 
   // Save all settings before window closes (handles OS close button, Alt+F4, etc.)
   // The useMicrophone hook's cleanup effect handles stream cleanup on unmount
   useEffect(() => {
     const handleBeforeUnload = () => {
       // Persist all current settings before window closes
+      // Use userEnabledRef to preserve user's intended state (not hook's cleanup state)
       setAudioSettings({
         deviceId: selectedDeviceId,
-        enabled: isEnabled,
+        enabled: userEnabledRef.current,
         sampleRate: settings.sampleRate,
         channelCount: settings.channelCount,
         noiseSuppression: settings.noiseSuppression,
@@ -88,19 +100,29 @@ export function MicrophoneSettingsPage() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [selectedDeviceId, isEnabled, settings]);
+  }, [selectedDeviceId, settings]);
 
-  // Handle device selection
+  // Handle device selection - immediately persist to localStorage
   const handleDeviceSelect = useCallback(async (deviceId: string) => {
     await selectDevice(deviceId);
+    userEnabledRef.current = true;
+    // Immediately persist enabled state after device selection
+    // (selectDevice enables the mic, so we save enabled: true)
+    setAudioSettings({ deviceId, enabled: true });
   }, [selectDevice]);
 
-  // Handle mute toggle
+  // Handle mute toggle - immediately persist to localStorage
   const handleMuteToggle = useCallback(() => {
     if (isEnabled) {
       disable();
+      userEnabledRef.current = false;
+      // Immediately persist disabled state
+      setAudioSettings({ enabled: false });
     } else {
       enable().catch(console.error);
+      userEnabledRef.current = true;
+      // Immediately persist enabled state
+      setAudioSettings({ enabled: true });
     }
   }, [isEnabled, enable, disable]);
 
@@ -133,9 +155,10 @@ export function MicrophoneSettingsPage() {
   // Close window - save all settings before closing
   const handleClose = useCallback(() => {
     // Explicitly save ALL current settings to localStorage before closing
+    // Use userEnabledRef to preserve user's intended state (not hook's cleanup state)
     setAudioSettings({
       deviceId: selectedDeviceId,
-      enabled: isEnabled,
+      enabled: userEnabledRef.current,
       sampleRate: settings.sampleRate,
       channelCount: settings.channelCount,
       noiseSuppression: settings.noiseSuppression,
@@ -147,7 +170,7 @@ export function MicrophoneSettingsPage() {
     setTimeout(() => {
       window.close();
     }, 50);
-  }, [selectedDeviceId, isEnabled, settings]);
+  }, [selectedDeviceId, settings]);
 
   return (
     <div 
