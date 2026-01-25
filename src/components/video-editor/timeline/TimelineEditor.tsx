@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
+import { filterKeystrokeRegions } from "@/utils/keystrokeFilterUtils";
 import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
 import { SubtitleGenerateDialog } from "../subtitle";
@@ -946,7 +947,13 @@ export default function TimelineEditor({
       };
     });
 
-    const keystrokes: TimelineRenderItem[] = keystrokeRegions.map((region) => {
+    // Apply runtime filter for hotkeys before rendering timeline items
+    const showOnlyHotkeys = keystrokeRegions.length > 0 
+      ? keystrokeRegions[0].style.showOnlyHotkeys 
+      : false;
+    const filteredKeystrokeRegions = filterKeystrokeRegions(keystrokeRegions, showOnlyHotkeys);
+
+    const keystrokes: TimelineRenderItem[] = filteredKeystrokeRegions.map((region) => {
       const preview = region.text.trim() || 'Keystroke';
       const label = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
       

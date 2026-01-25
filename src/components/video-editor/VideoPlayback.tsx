@@ -16,6 +16,7 @@ import { AnnotationOverlay } from "./AnnotationOverlay";
 import { SubtitleOverlay } from "./subtitle";
 import { KeystrokeEditorOverlay, calculateStackIndices } from "./keystroke/KeystrokeEditorOverlay";
 import type { KeystrokeRegion } from "./types";
+import { filterKeystrokeRegions } from "@/utils/keystrokeFilterUtils";
 
 interface VideoPlaybackProps {
   videoPath: string;
@@ -914,7 +915,18 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
           {/* Keystroke Overlays */}
           {(() => {
             const timeMs = Math.round(currentTime * 1000);
-            const filtered = (keystrokeRegions || []).filter((keystroke) => {
+            
+            // First, apply the hotkey filter if any region has showOnlyHotkeys enabled
+            // We check the first region's style as a representative (all regions should have consistent filter setting)
+            const showOnlyHotkeys = keystrokeRegions && keystrokeRegions.length > 0 
+              ? keystrokeRegions[0].style.showOnlyHotkeys 
+              : false;
+            
+            // Apply runtime filter for hotkeys
+            const hotkeyFiltered = filterKeystrokeRegions(keystrokeRegions || [], showOnlyHotkeys);
+            
+            // Then filter by time visibility
+            const filtered = hotkeyFiltered.filter((keystroke) => {
               if (typeof keystroke.startMs !== 'number' || typeof keystroke.endMs !== 'number') return false;
               
               // Always show selected keystroke

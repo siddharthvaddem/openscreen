@@ -1,5 +1,6 @@
 import type { KeystrokeRegion, KeystrokePositionPreset, AnimationPreset } from '@/components/video-editor/types';
 import { MODIFIER_ICONS, isModifierKey } from '@/utils/keyNameMapping';
+import { filterKeystrokeRegions } from '@/utils/keystrokeFilterUtils';
 
 /**
  * Keycap styling constants matching KeyCap.tsx
@@ -596,9 +597,15 @@ export function renderKeystrokes(
   try {
     if (!keystrokes || keystrokes.length === 0) return;
 
+    // Apply runtime filter for hotkeys before rendering
+    const showOnlyHotkeys = keystrokes.length > 0 
+      ? keystrokes[0].style.showOnlyHotkeys 
+      : false;
+    const filteredKeystrokes = filterKeystrokeRegions(keystrokes, showOnlyHotkeys);
+
     // Filter keystrokes that could be visible at current time (including animation phases)
     // We need to include keystrokes that are in entering, visible, or exiting phase
-    const potentiallyActiveKeystrokes = keystrokes.filter((keystroke) => {
+    const potentiallyActiveKeystrokes = filteredKeystrokes.filter((keystroke) => {
       try {
         const { startMs, endMs } = keystroke;
         // Include if current time is within the region's time range
