@@ -13,10 +13,14 @@ import {
   DEFAULT_KEYSTROKE_POSITION,
 } from '../components/video-editor/types';
 
+/** Default duration for keystroke regions before auto-trim (1500ms) */
+export const DEFAULT_KEYSTROKE_DURATION_MS = 1500;
+
 /**
  * Generates KeystrokeRegion objects from recorded event data.
  * Each event becomes a region with timing based on the event timestamp
- * and the configured linger duration.
+ * and a fixed default duration. Overlapping regions are auto-trimmed
+ * so that each region ends when the next one begins.
  * 
  * Requirements: 4.3 - Create KeystrokeRegion for each event
  */
@@ -26,7 +30,6 @@ export function generateKeystrokeRegions(
 ): KeystrokeRegion[] {
   const { defaultStyle, defaultPosition } = settings;
   const showOnlyHotkeys = defaultStyle.showOnlyHotkeys;
-  const lingerDurationMs = defaultStyle.lingerDurationMs;
 
   const regions: KeystrokeRegion[] = [];
 
@@ -46,12 +49,20 @@ export function generateKeystrokeRegions(
     const region: KeystrokeRegion = {
       id: `keystroke-${i + 1}`,
       startMs: event.timestamp,
-      endMs: event.timestamp + lingerDurationMs,
+      endMs: event.timestamp + DEFAULT_KEYSTROKE_DURATION_MS,
       text: formatEventText(event),
       eventType: event.type === 'keystroke' ? 'keystroke' : 'mouse',
       positionPreset: defaultPosition ?? DEFAULT_KEYSTROKE_POSITION,
       style: { ...DEFAULT_KEYSTROKE_STYLE, ...defaultStyle },
     };
+
+    // Auto-trim: if this region starts before the previous one ends, trim the previous
+    if (regions.length > 0) {
+      const prevRegion = regions[regions.length - 1];
+      if (region.startMs < prevRegion.endMs) {
+        prevRegion.endMs = region.startMs;
+      }
+    }
 
     regions.push(region);
   }

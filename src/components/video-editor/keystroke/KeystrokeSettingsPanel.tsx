@@ -41,11 +41,12 @@ const ANIMATION_PRESETS: { value: AnimationPreset; label: string }[] = [
  * Note: With keyviz-style keycaps, color and border radius settings are no longer
  * applicable as keycaps use fixed styling (white face, black shadow/border).
  * 
+ * Note: Linger duration is controlled via timeline resize, not this panel.
+ * 
  * Requirements:
  * - 7.1: Text scale (0.5 - 2.0)
  * - 7.2: Position preset selector
  * - 7.6: Fade duration
- * - 7.7: Linger duration
  * - 7.8: Hotkey filter toggle
  * - 8.1.1: Animation in preset
  * - 8.1.2: Animation out preset
@@ -208,21 +209,6 @@ export function KeystrokeSettingsPanel({
                 min={0}
                 max={1000}
                 step={50}
-                className="w-full"
-              />
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-slate-400">Linger Duration</span>
-                <span className="text-[10px] text-slate-400">{keystroke.style.lingerDurationMs}ms</span>
-              </div>
-              <Slider
-                value={[keystroke.style.lingerDurationMs]}
-                onValueChange={([value]) => handleStyleUpdate({ lingerDurationMs: value })}
-                min={500}
-                max={5000}
-                step={100}
                 className="w-full"
               />
             </div>

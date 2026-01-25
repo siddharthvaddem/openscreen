@@ -4,6 +4,7 @@ import {
   generateKeystrokeRegions,
   formatEventText,
   shouldShowEvent,
+  DEFAULT_KEYSTROKE_DURATION_MS,
 } from './keystrokeRegionGenerator';
 import type {
   KeystrokeEventData,
@@ -22,7 +23,7 @@ import { DEFAULT_KEYSTROKE_STYLE } from '../components/video-editor/types';
  * the system SHALL generate exactly N KeystrokeRegion objects, each with:
  * - Unique id
  * - startMs equal to event timestamp
- * - endMs equal to startMs + lingerDurationMs
+ * - endMs equal to startMs + DEFAULT_KEYSTROKE_DURATION_MS (or trimmed if next event starts earlier)
  * - Non-empty text containing the formatted keystroke/mouse action
  * 
  * **Validates: Requirements 4.3**
@@ -134,26 +135,84 @@ describe('Property 6: Region Generation from Events', () => {
     });
   });
 
-  describe('Property 6.4: endMs equals startMs + lingerDurationMs', () => {
-    it('should set endMs equal to startMs + lingerDurationMs', () => {
+  describe('Property 6.4: endMs uses DEFAULT_KEYSTROKE_DURATION_MS with auto-trim', () => {
+    it('should set endMs equal to startMs + DEFAULT_KEYSTROKE_DURATION_MS for non-overlapping events', () => {
       fc.assert(
         fc.property(
-          eventDataArbitrary(fc.array(inputEventArbitrary, { minLength: 1, maxLength: 50 })),
-          fc.integer({ min: 100, max: 5000 }), // lingerDurationMs
-          (eventData, lingerDurationMs) => {
-            const settings: KeystrokeEditorSettings = {
-              ...settingsWithHotkeysDisabled,
-              defaultStyle: {
-                ...settingsWithHotkeysDisabled.defaultStyle,
-                lingerDurationMs,
-              },
+          // Generate events with timestamps far apart (no overlap)
+          fc.array(
+            fc.record({
+              type: fc.constant('keystroke' as const),
+              timestamp: fc.nat({ max: 100000 }),
+              keyCode: fc.integer({ min: 1, max: 255 }),
+              keyName: fc.string({ minLength: 1, maxLength: 10 }),
+              modifiers: fc.record({
+                ctrl: fc.boolean(),
+                alt: fc.boolean(),
+                shift: fc.boolean(),
+                meta: fc.boolean(),
+              }),
+            }),
+            { minLength: 1, maxLength: 10 }
+          ),
+          (events) => {
+            // Sort events and space them far apart to avoid overlap
+            const sortedEvents = events
+              .sort((a, b) => a.timestamp - b.timestamp)
+              .map((e, i) => ({ ...e, timestamp: i * (DEFAULT_KEYSTROKE_DURATION_MS + 1000) }));
+            
+            const eventData: KeystrokeEventData = {
+              version: 1,
+              recordingId: 'test',
+              events: sortedEvents,
             };
 
-            const regions = generateKeystrokeRegions(eventData, settings);
+            const regions = generateKeystrokeRegions(eventData, settingsWithHotkeysDisabled);
 
-            // Each region's endMs should be startMs + lingerDurationMs
+            // Each region's endMs should be startMs + DEFAULT_KEYSTROKE_DURATION_MS
             for (const region of regions) {
-              expect(region.endMs).toBe(region.startMs + lingerDurationMs);
+              expect(region.endMs).toBe(region.startMs + DEFAULT_KEYSTROKE_DURATION_MS);
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it('should auto-trim previous region when next event starts before it ends', () => {
+      // Create two events where second starts before first would end
+      const eventData: KeystrokeEventData = {
+        version: 1,
+        recordingId: 'test',
+        events: [
+          { type: 'keystroke', timestamp: 0, keyCode: 65, keyName: 'A', modifiers: { ctrl: false, alt: false, shift: false, meta: false } },
+          { type: 'keystroke', timestamp: 500, keyCode: 66, keyName: 'B', modifiers: { ctrl: false, alt: false, shift: false, meta: false } },
+        ],
+      };
+
+      const regions = generateKeystrokeRegions(eventData, settingsWithHotkeysDisabled);
+
+      expect(regions).toHaveLength(2);
+      // First region should be trimmed to end when second starts
+      expect(regions[0].startMs).toBe(0);
+      expect(regions[0].endMs).toBe(500); // trimmed from 1500 to 500
+      // Second region should have full duration
+      expect(regions[1].startMs).toBe(500);
+      expect(regions[1].endMs).toBe(500 + DEFAULT_KEYSTROKE_DURATION_MS);
+    });
+  });
+
+  describe('Property 6.4.1: No overlapping regions', () => {
+    it('should never produce overlapping regions', () => {
+      fc.assert(
+        fc.property(
+          eventDataArbitrary(fc.array(inputEventArbitrary, { minLength: 2, maxLength: 50 })),
+          (eventData) => {
+            const regions = generateKeystrokeRegions(eventData, settingsWithHotkeysDisabled);
+
+            // Check no overlaps: each region should end before or when the next starts
+            for (let i = 0; i < regions.length - 1; i++) {
+              expect(regions[i].endMs).toBeLessThanOrEqual(regions[i + 1].startMs);
             }
           }
         ),
