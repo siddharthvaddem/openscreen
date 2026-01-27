@@ -13,6 +13,7 @@ interface KeystrokeSettingsPanelProps {
   onPositionChange: (position: KeystrokePositionPreset) => void;
   onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
   onDelete: () => void;
+  onDeleteAll?: () => void;
 }
 
 const POSITION_PRESETS: { value: KeystrokePositionPreset; label: string }[] = [
@@ -57,6 +58,7 @@ export function KeystrokeSettingsPanel({
   onPositionChange,
   onApplyStyleToAll,
   onDelete,
+  onDeleteAll,
 }: KeystrokeSettingsPanelProps) {
   const [applyToAll, setApplyToAll] = useState(false);
 
@@ -248,6 +250,17 @@ export function KeystrokeSettingsPanel({
           <Trash2 className="w-4 h-4" />
           Delete Keystroke
         </Button>
+        {onDeleteAll && (
+          <Button
+            onClick={onDeleteAll}
+            variant="destructive"
+            size="sm"
+            className="w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all mt-3"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete All Keystrokes
+          </Button>
+        )}
       </div>
     </div>
   );

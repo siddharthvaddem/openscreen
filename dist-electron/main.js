@@ -1,417 +1,300 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { ipcMain, screen, BrowserWindow, app, desktopCapturer, shell, dialog, nativeImage, Tray, Menu } from "electron";
-import { fileURLToPath } from "node:url";
-import path$1 from "node:path";
-import fs$1 from "node:fs/promises";
-import { WritableStream } from "stream/web";
-import require$$0$3 from "events";
-import require$$1$1 from "https";
-import require$$2 from "http";
-import require$$3 from "net";
-import require$$4 from "tls";
-import require$$1 from "crypto";
-import require$$0$2, { Readable as Readable$1 } from "stream";
-import require$$7 from "url";
-import require$$0 from "zlib";
-import require$$0$1 from "buffer";
-import * as fs from "fs";
-import { createReadStream } from "fs";
-import { spawn } from "child_process";
-import * as path from "path";
-import * as os from "os";
-import { createRequire } from "module";
-const __dirname$1 = path$1.dirname(fileURLToPath(import.meta.url));
-const APP_ROOT = path$1.join(__dirname$1, "..");
-const VITE_DEV_SERVER_URL$1 = process.env["VITE_DEV_SERVER_URL"];
-const RENDERER_DIST$1 = path$1.join(APP_ROOT, "dist");
-let hudOverlayWindow = null;
-let keystrokeOverlayWindow = null;
-ipcMain.on("hud-overlay-hide", () => {
-  if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
-    hudOverlayWindow.minimize();
-  }
+var ws = Object.defineProperty;
+var Es = (s, e, t) => e in s ? ws(s, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : s[e] = t;
+var g = (s, e, t) => Es(s, typeof e != "symbol" ? e + "" : e, t);
+import { ipcMain as d, screen as Te, BrowserWindow as de, app as O, desktopCapturer as ks, shell as bs, dialog as Ue, nativeImage as Ts, Tray as xs, Menu as Os } from "electron";
+import { fileURLToPath as Ht } from "node:url";
+import p from "node:path";
+import E from "node:fs/promises";
+import { WritableStream as zt } from "stream/web";
+import Ps from "events";
+import Ds from "https";
+import Rs from "http";
+import Ns from "net";
+import Is from "tls";
+import at from "crypto";
+import fe, { Readable as As } from "stream";
+import Ls from "url";
+import Fs from "zlib";
+import Cs from "buffer";
+import * as Qe from "fs";
+import { createReadStream as Us } from "fs";
+import { spawn as Bs } from "child_process";
+import * as Jt from "path";
+import * as Ms from "os";
+import { createRequire as $s } from "module";
+const ee = p.dirname(Ht(import.meta.url)), Ks = p.join(ee, ".."), K = process.env.VITE_DEV_SERVER_URL, Ne = p.join(Ks, "dist");
+let Z = null, I = null;
+d.on("hud-overlay-hide", () => {
+  Z && !Z.isDestroyed() && Z.minimize();
 });
-function createHudOverlayWindow() {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { workArea } = primaryDisplay;
-  const windowWidth = 500;
-  const windowHeight = 350;
-  const x = Math.floor(workArea.x + (workArea.width - windowWidth) / 2);
-  const y = Math.floor(workArea.y + workArea.height - windowHeight - 5);
-  const win = new BrowserWindow({
-    width: windowWidth,
-    height: windowHeight,
+function Ws() {
+  const s = Te.getPrimaryDisplay(), { workArea: e } = s, t = 500, r = 350, n = Math.floor(e.x + (e.width - t) / 2), i = Math.floor(e.y + e.height - r - 5), o = new de({
+    width: t,
+    height: r,
     minWidth: 580,
     maxWidth: 580,
     minHeight: 350,
     maxHeight: 350,
-    x,
-    y,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    hasShadow: false,
+    x: n,
+    y: i,
+    frame: !1,
+    transparent: !0,
+    resizable: !1,
+    alwaysOnTop: !0,
+    skipTaskbar: !0,
+    hasShadow: !1,
     webPreferences: {
-      preload: path$1.join(__dirname$1, "preload.mjs"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      backgroundThrottling: false
+      preload: p.join(ee, "preload.mjs"),
+      nodeIntegration: !1,
+      contextIsolation: !0,
+      backgroundThrottling: !1
     }
   });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.includes("windowType=mic-settings")) {
-      return {
-        action: "allow",
-        overrideBrowserWindowOptions: {
-          width: 340,
-          height: 520,
-          frame: false,
-          transparent: true,
-          resizable: false,
-          alwaysOnTop: true,
-          skipTaskbar: true,
-          parent: win,
-          modal: false,
-          webPreferences: {
-            preload: path$1.join(__dirname$1, "preload.mjs"),
-            nodeIntegration: false,
-            contextIsolation: true
-          }
-        }
-      };
+  return o.webContents.on("did-finish-load", () => {
+    o == null || o.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), o.webContents.setWindowOpenHandler(({ url: a }) => a.includes("windowType=mic-settings") ? {
+    action: "allow",
+    overrideBrowserWindowOptions: {
+      width: 340,
+      height: 520,
+      frame: !1,
+      transparent: !0,
+      resizable: !1,
+      alwaysOnTop: !0,
+      skipTaskbar: !0,
+      parent: o,
+      modal: !1,
+      webPreferences: {
+        preload: p.join(ee, "preload.mjs"),
+        nodeIntegration: !1,
+        contextIsolation: !0
+      }
     }
-    return { action: "deny" };
-  });
-  hudOverlayWindow = win;
-  win.on("closed", () => {
-    if (hudOverlayWindow === win) {
-      hudOverlayWindow = null;
-    }
-  });
-  if (VITE_DEV_SERVER_URL$1) {
-    win.loadURL(VITE_DEV_SERVER_URL$1 + "?windowType=hud-overlay");
-  } else {
-    win.loadFile(path$1.join(RENDERER_DIST$1, "index.html"), {
-      query: { windowType: "hud-overlay" }
-    });
-  }
-  return win;
+  } : { action: "deny" }), Z = o, o.on("closed", () => {
+    Z === o && (Z = null);
+  }), K ? o.loadURL(K + "?windowType=hud-overlay") : o.loadFile(p.join(Ne, "index.html"), {
+    query: { windowType: "hud-overlay" }
+  }), o;
 }
-function createEditorWindow() {
-  const isMac = process.platform === "darwin";
-  const win = new BrowserWindow({
+function js() {
+  const s = process.platform === "darwin", e = new de({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    ...isMac && {
+    ...s && {
       titleBarStyle: "hiddenInset",
       trafficLightPosition: { x: 12, y: 12 }
     },
-    transparent: false,
-    resizable: true,
-    alwaysOnTop: false,
-    skipTaskbar: false,
+    transparent: !1,
+    resizable: !0,
+    alwaysOnTop: !1,
+    skipTaskbar: !1,
     title: "OpenScreen",
     backgroundColor: "#000000",
     webPreferences: {
-      preload: path$1.join(__dirname$1, "preload.mjs"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      webSecurity: false,
-      backgroundThrottling: false
+      preload: p.join(ee, "preload.mjs"),
+      nodeIntegration: !1,
+      contextIsolation: !0,
+      webSecurity: !1,
+      backgroundThrottling: !1
     }
   });
-  win.maximize();
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL$1) {
-    win.loadURL(VITE_DEV_SERVER_URL$1 + "?windowType=editor");
-  } else {
-    win.loadFile(path$1.join(RENDERER_DIST$1, "index.html"), {
-      query: { windowType: "editor" }
-    });
-  }
-  return win;
+  return e.maximize(), e.webContents.on("did-finish-load", () => {
+    e == null || e.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), K ? e.loadURL(K + "?windowType=editor") : e.loadFile(p.join(Ne, "index.html"), {
+    query: { windowType: "editor" }
+  }), e;
 }
-function createSourceSelectorWindow() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const win = new BrowserWindow({
+function Vs() {
+  const { width: s, height: e } = Te.getPrimaryDisplay().workAreaSize, t = new de({
     width: 620,
     height: 420,
     minHeight: 350,
     maxHeight: 500,
-    x: Math.round((width - 620) / 2),
-    y: Math.round((height - 420) / 2),
-    frame: false,
-    resizable: false,
-    alwaysOnTop: true,
-    transparent: true,
+    x: Math.round((s - 620) / 2),
+    y: Math.round((e - 420) / 2),
+    frame: !1,
+    resizable: !1,
+    alwaysOnTop: !0,
+    transparent: !0,
     backgroundColor: "#00000000",
     webPreferences: {
-      preload: path$1.join(__dirname$1, "preload.mjs"),
-      nodeIntegration: false,
-      contextIsolation: true
+      preload: p.join(ee, "preload.mjs"),
+      nodeIntegration: !1,
+      contextIsolation: !0
     }
   });
-  if (VITE_DEV_SERVER_URL$1) {
-    win.loadURL(VITE_DEV_SERVER_URL$1 + "?windowType=source-selector");
-  } else {
-    win.loadFile(path$1.join(RENDERER_DIST$1, "index.html"), {
-      query: { windowType: "source-selector" }
-    });
-  }
-  return win;
+  return K ? t.loadURL(K + "?windowType=source-selector") : t.loadFile(p.join(Ne, "index.html"), {
+    query: { windowType: "source-selector" }
+  }), t;
 }
-function createKeystrokeOverlayWindow(displayId) {
-  screen.getAllDisplays();
-  const targetDisplay = screen.getPrimaryDisplay();
-  const { bounds } = targetDisplay;
-  const windowWidth = 400;
-  const windowHeight = 100;
-  const x = Math.floor(bounds.x + (bounds.width - windowWidth) / 2);
-  const y = Math.floor(bounds.y + bounds.height - windowHeight - 50);
-  const win = new BrowserWindow({
-    width: windowWidth,
-    height: windowHeight,
-    x,
-    y,
-    frame: false,
+function Gs(s) {
+  Te.getAllDisplays();
+  const e = Te.getPrimaryDisplay(), { bounds: t } = e, r = 400, n = 100, i = Math.floor(t.x + (t.width - r) / 2), o = Math.floor(t.y + t.height - n - 50), a = new de({
+    width: r,
+    height: n,
+    x: i,
+    y: o,
+    frame: !1,
     // 2.1: No window frame
-    transparent: true,
+    transparent: !0,
     // 2.1: Transparent background
-    resizable: false,
-    alwaysOnTop: true,
+    resizable: !1,
+    alwaysOnTop: !0,
     // 2.2: Always on top
-    skipTaskbar: true,
+    skipTaskbar: !0,
     // 2.4: Excluded from taskbar
-    hasShadow: false,
-    focusable: false,
+    hasShadow: !1,
+    focusable: !1,
     // Don't steal focus
     webPreferences: {
-      preload: path$1.join(__dirname$1, "preload.mjs"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      backgroundThrottling: false
+      preload: p.join(ee, "preload.mjs"),
+      nodeIntegration: !1,
+      contextIsolation: !0,
+      backgroundThrottling: !1
     }
   });
-  win.setIgnoreMouseEvents(true);
-  if (VITE_DEV_SERVER_URL$1) {
-    win.loadURL(VITE_DEV_SERVER_URL$1 + "?windowType=keystroke-overlay");
-  } else {
-    win.loadFile(path$1.join(RENDERER_DIST$1, "index.html"), {
-      query: { windowType: "keystroke-overlay" }
-    });
-  }
-  keystrokeOverlayWindow = win;
-  win.on("closed", () => {
-    if (keystrokeOverlayWindow === win) {
-      keystrokeOverlayWindow = null;
-    }
-  });
-  return win;
+  return a.setIgnoreMouseEvents(!0), K ? a.loadURL(K + "?windowType=keystroke-overlay") : a.loadFile(p.join(Ne, "index.html"), {
+    query: { windowType: "keystroke-overlay" }
+  }), I = a, a.on("closed", () => {
+    I === a && (I = null);
+  }), a;
 }
-function getKeystrokeOverlayWindow() {
-  return keystrokeOverlayWindow;
+function qs() {
+  return I;
 }
-function hideKeystrokeOverlayWindow() {
-  if (keystrokeOverlayWindow && !keystrokeOverlayWindow.isDestroyed()) {
-    keystrokeOverlayWindow.hide();
-  }
+function Hs() {
+  I && !I.isDestroyed() && I.hide();
 }
-function showKeystrokeOverlayWindow() {
-  if (keystrokeOverlayWindow && !keystrokeOverlayWindow.isDestroyed()) {
-    keystrokeOverlayWindow.show();
-  }
+function zs() {
+  I && !I.isDestroyed() && I.show();
 }
-const PRESETS_FILE_NAME = "presets.json";
-const CURRENT_VERSION$2 = 1;
-function getPresetsFilePath() {
-  return path$1.join(app.getPath("userData"), PRESETS_FILE_NAME);
+const Js = "presets.json", Ys = 1;
+function et() {
+  return p.join(O.getPath("userData"), Js);
 }
-function createEmptyStore() {
+function Be() {
   return {
-    version: CURRENT_VERSION$2,
+    version: Ys,
     defaultPresetId: null,
     presets: []
   };
 }
-async function readPresetsStore() {
+async function te() {
   try {
-    const filePath = getPresetsFilePath();
-    const data = await fs$1.readFile(filePath, "utf-8");
-    const store = JSON.parse(data);
-    if (!store.presets || !Array.isArray(store.presets)) {
-      console.warn("Invalid presets file, creating new store");
-      return createEmptyStore();
-    }
-    return store;
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return createEmptyStore();
-    }
-    console.error("Failed to read presets file:", error);
+    const s = et(), e = await E.readFile(s, "utf-8"), t = JSON.parse(e);
+    return !t.presets || !Array.isArray(t.presets) ? (console.warn("Invalid presets file, creating new store"), Be()) : t;
+  } catch (s) {
+    if (s.code === "ENOENT")
+      return Be();
+    console.error("Failed to read presets file:", s);
     try {
-      const filePath = getPresetsFilePath();
-      const backupPath = filePath + ".backup." + Date.now();
-      await fs$1.rename(filePath, backupPath);
-      console.log("Backed up corrupt presets file to:", backupPath);
+      const e = et(), t = e + ".backup." + Date.now();
+      await E.rename(e, t), console.log("Backed up corrupt presets file to:", t);
     } catch {
     }
-    return createEmptyStore();
+    return Be();
   }
 }
-async function writePresetsStore(store) {
-  const filePath = getPresetsFilePath();
-  await fs$1.writeFile(filePath, JSON.stringify(store, null, 2), "utf-8");
+async function he(s) {
+  const e = et();
+  await E.writeFile(e, JSON.stringify(s, null, 2), "utf-8");
 }
-async function getPresets() {
+async function Xs() {
   try {
-    const store = await readPresetsStore();
+    const s = await te();
     return {
-      success: true,
-      presets: store.presets,
-      defaultPresetId: store.defaultPresetId
+      success: !0,
+      presets: s.presets,
+      defaultPresetId: s.defaultPresetId
     };
-  } catch (error) {
-    console.error("Failed to get presets:", error);
-    return {
-      success: false,
+  } catch (s) {
+    return console.error("Failed to get presets:", s), {
+      success: !1,
       presets: [],
       defaultPresetId: null
     };
   }
 }
-async function savePreset(preset) {
+async function Zs(s) {
   try {
-    const store = await readPresetsStore();
-    const newPreset = {
-      ...preset,
+    const e = await te(), t = {
+      ...s,
       id: crypto.randomUUID(),
       createdAt: Date.now()
     };
-    if (newPreset.isDefault) {
-      store.presets = store.presets.map((p) => ({ ...p, isDefault: false }));
-      store.defaultPresetId = newPreset.id;
-    }
-    store.presets.push(newPreset);
-    await writePresetsStore(store);
-    return { success: true, preset: newPreset };
-  } catch (error) {
-    console.error("Failed to save preset:", error);
-    return { success: false, error: String(error) };
+    return t.isDefault && (e.presets = e.presets.map((r) => ({ ...r, isDefault: !1 })), e.defaultPresetId = t.id), e.presets.push(t), await he(e), { success: !0, preset: t };
+  } catch (e) {
+    return console.error("Failed to save preset:", e), { success: !1, error: String(e) };
   }
 }
-async function updatePreset(id, updates) {
+async function Qs(s, e) {
   try {
-    const store = await readPresetsStore();
-    const index = store.presets.findIndex((p) => p.id === id);
-    if (index === -1) {
-      return { success: false, error: "Preset not found" };
-    }
-    if (updates.isDefault === true) {
-      store.presets = store.presets.map((p) => ({ ...p, isDefault: false }));
-      store.defaultPresetId = id;
-    } else if (updates.isDefault === false && store.defaultPresetId === id) {
-      store.defaultPresetId = null;
-    }
-    store.presets[index] = { ...store.presets[index], ...updates };
-    await writePresetsStore(store);
-    return { success: true, preset: store.presets[index] };
-  } catch (error) {
-    console.error("Failed to update preset:", error);
-    return { success: false, error: String(error) };
+    const t = await te(), r = t.presets.findIndex((n) => n.id === s);
+    return r === -1 ? { success: !1, error: "Preset not found" } : (e.isDefault === !0 ? (t.presets = t.presets.map((n) => ({ ...n, isDefault: !1 })), t.defaultPresetId = s) : e.isDefault === !1 && t.defaultPresetId === s && (t.defaultPresetId = null), t.presets[r] = { ...t.presets[r], ...e }, await he(t), { success: !0, preset: t.presets[r] });
+  } catch (t) {
+    return console.error("Failed to update preset:", t), { success: !1, error: String(t) };
   }
 }
-async function deletePreset(id) {
+async function er(s) {
   try {
-    const store = await readPresetsStore();
-    const index = store.presets.findIndex((p) => p.id === id);
-    if (index === -1) {
-      return { success: false, error: "Preset not found" };
-    }
-    if (store.defaultPresetId === id) {
-      store.defaultPresetId = null;
-    }
-    store.presets.splice(index, 1);
-    await writePresetsStore(store);
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete preset:", error);
-    return { success: false, error: String(error) };
+    const e = await te(), t = e.presets.findIndex((r) => r.id === s);
+    return t === -1 ? { success: !1, error: "Preset not found" } : (e.defaultPresetId === s && (e.defaultPresetId = null), e.presets.splice(t, 1), await he(e), { success: !0 });
+  } catch (e) {
+    return console.error("Failed to delete preset:", e), { success: !1, error: String(e) };
   }
 }
-async function duplicatePreset(id) {
+async function tr(s) {
   try {
-    const store = await readPresetsStore();
-    const original = store.presets.find((p) => p.id === id);
-    if (!original) {
-      return { success: false, error: "Preset not found" };
-    }
-    const newPreset = {
-      ...original,
+    const e = await te(), t = e.presets.find((n) => n.id === s);
+    if (!t)
+      return { success: !1, error: "Preset not found" };
+    const r = {
+      ...t,
       id: crypto.randomUUID(),
-      name: `Copy of ${original.name}`,
+      name: `Copy of ${t.name}`,
       createdAt: Date.now(),
-      isDefault: false
+      isDefault: !1
       // Duplicates should never be default
     };
-    store.presets.push(newPreset);
-    await writePresetsStore(store);
-    return { success: true, preset: newPreset };
-  } catch (error) {
-    console.error("Failed to duplicate preset:", error);
-    return { success: false, error: String(error) };
+    return e.presets.push(r), await he(e), { success: !0, preset: r };
+  } catch (e) {
+    return console.error("Failed to duplicate preset:", e), { success: !1, error: String(e) };
   }
 }
-async function setDefaultPreset(id) {
+async function sr(s) {
   try {
-    const store = await readPresetsStore();
-    store.presets = store.presets.map((p) => ({ ...p, isDefault: false }));
-    store.defaultPresetId = null;
-    if (id) {
-      const preset = store.presets.find((p) => p.id === id);
-      if (!preset) {
-        return { success: false, error: "Preset not found" };
-      }
-      preset.isDefault = true;
-      store.defaultPresetId = id;
+    const e = await te();
+    if (e.presets = e.presets.map((t) => ({ ...t, isDefault: !1 })), e.defaultPresetId = null, s) {
+      const t = e.presets.find((r) => r.id === s);
+      if (!t)
+        return { success: !1, error: "Preset not found" };
+      t.isDefault = !0, e.defaultPresetId = s;
     }
-    await writePresetsStore(store);
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to set default preset:", error);
-    return { success: false, error: String(error) };
+    return await he(e), { success: !0 };
+  } catch (e) {
+    return console.error("Failed to set default preset:", e), { success: !1, error: String(e) };
   }
 }
-let uIOhookModule = null;
-async function getUIOhook() {
-  if (!uIOhookModule) {
+let Me = null;
+async function rr() {
+  if (!Me)
     try {
-      uIOhookModule = await import("uiohook-napi");
-    } catch (error) {
-      console.error("[KeystrokeService] Failed to load uiohook-napi:", error);
-      throw error;
+      Me = await import("uiohook-napi");
+    } catch (s) {
+      throw console.error("[KeystrokeService] Failed to load uiohook-napi:", s), s;
     }
-  }
-  return uIOhookModule;
+  return Me;
 }
-class KeystrokeService {
+class nr {
   constructor() {
-    __publicField(this, "running", false);
-    __publicField(this, "eventCallback", null);
-    __publicField(this, "errorCallback", null);
-    __publicField(this, "keydownHandler", null);
-    __publicField(this, "clickHandler", null);
-    __publicField(this, "uiohook", null);
+    g(this, "running", !1);
+    g(this, "eventCallback", null);
+    g(this, "errorCallback", null);
+    g(this, "keydownHandler", null);
+    g(this, "clickHandler", null);
+    g(this, "uiohook", null);
   }
   /**
    * Start the keystroke capture service
@@ -424,26 +307,18 @@ class KeystrokeService {
    * @throws Error if uiohook fails to initialize
    */
   async start() {
-    if (this.running) {
-      return;
-    }
-    try {
-      this.uiohook = await getUIOhook();
-      this.setupEventHandlers();
-      this.uiohook.uIOhook.start();
-      this.running = true;
-    } catch (error) {
-      this.running = false;
-      this.removeEventHandlers();
-      const serviceError = this.createServiceError(error);
-      console.error("[KeystrokeService] Failed to initialize uiohook:", {
-        code: serviceError.code,
-        message: serviceError.message,
-        originalError: error instanceof Error ? error.stack : error
-      });
-      this.emitError(serviceError);
-      throw error;
-    }
+    if (!this.running)
+      try {
+        this.uiohook = await rr(), this.setupEventHandlers(), this.uiohook.uIOhook.start(), this.running = !0;
+      } catch (e) {
+        this.running = !1, this.removeEventHandlers();
+        const t = this.createServiceError(e);
+        throw console.error("[KeystrokeService] Failed to initialize uiohook:", {
+          code: t.code,
+          message: t.message,
+          originalError: e instanceof Error ? e.stack : e
+        }), this.emitError(t), e;
+      }
   }
   /**
    * Create a structured error object from a caught error
@@ -451,27 +326,20 @@ class KeystrokeService {
    * @param error The caught error
    * @returns Structured KeystrokeServiceError
    */
-  createServiceError(error) {
-    const originalError = error instanceof Error ? error : void 0;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes("Cannot find module") || errorMessage.includes("not found") || errorMessage.includes("failed to load") || errorMessage.includes("ENOENT") || errorMessage.includes("MODULE_NOT_FOUND")) {
-      return {
-        code: "LIBRARY_LOAD_FAILED",
-        message: "Failed to load uiohook native library. The keystroke overlay feature is unavailable.",
-        originalError
-      };
-    }
-    if (errorMessage.includes("init") || errorMessage.includes("start") || errorMessage.includes("permission") || errorMessage.includes("access")) {
-      return {
-        code: "INIT_FAILED",
-        message: "Failed to initialize keystroke capture. Please check system permissions.",
-        originalError
-      };
-    }
-    return {
+  createServiceError(e) {
+    const t = e instanceof Error ? e : void 0, r = e instanceof Error ? e.message : String(e);
+    return r.includes("Cannot find module") || r.includes("not found") || r.includes("failed to load") || r.includes("ENOENT") || r.includes("MODULE_NOT_FOUND") ? {
+      code: "LIBRARY_LOAD_FAILED",
+      message: "Failed to load uiohook native library. The keystroke overlay feature is unavailable.",
+      originalError: t
+    } : r.includes("init") || r.includes("start") || r.includes("permission") || r.includes("access") ? {
+      code: "INIT_FAILED",
+      message: "Failed to initialize keystroke capture. Please check system permissions.",
+      originalError: t
+    } : {
       code: "UNKNOWN",
-      message: `Keystroke capture failed: ${errorMessage}`,
-      originalError
+      message: `Keystroke capture failed: ${r}`,
+      originalError: t
     };
   }
   /**
@@ -479,29 +347,20 @@ class KeystrokeService {
    * 
    * @param error The error to emit
    */
-  emitError(error) {
-    if (this.errorCallback) {
-      this.errorCallback(error);
-    }
+  emitError(e) {
+    this.errorCallback && this.errorCallback(e);
   }
   /**
    * Stop the keystroke capture service
    * Cleans up uiohook listener and removes event handlers
    */
   stop() {
-    if (!this.running) {
-      return;
-    }
-    try {
-      if (this.uiohook) {
-        this.uiohook.uIOhook.stop();
+    if (this.running)
+      try {
+        this.uiohook && this.uiohook.uIOhook.stop(), this.removeEventHandlers(), this.running = !1;
+      } catch (e) {
+        this.running = !1, console.error("Error stopping keystroke service:", e);
       }
-      this.removeEventHandlers();
-      this.running = false;
-    } catch (error) {
-      this.running = false;
-      console.error("Error stopping keystroke service:", error);
-    }
   }
   /**
    * Check if the service is currently running
@@ -517,8 +376,8 @@ class KeystrokeService {
    * 
    * @param callback Function to call when an input event is captured
    */
-  onEvent(callback) {
-    this.eventCallback = callback;
+  onEvent(e) {
+    this.eventCallback = e;
   }
   /**
    * Register a callback to receive error notifications
@@ -530,8 +389,8 @@ class KeystrokeService {
    * 
    * @param callback Function to call when an error occurs
    */
-  onError(callback) {
-    this.errorCallback = callback;
+  onError(e) {
+    this.errorCallback = e;
   }
   /**
    * Remove the registered event callback
@@ -550,261 +409,199 @@ class KeystrokeService {
    * Event handling logic will be implemented in tasks 2.2 and 2.3
    */
   setupEventHandlers() {
-    if (!this.uiohook) {
+    if (!this.uiohook)
       throw new Error("uiohook module not loaded");
-    }
-    const { uIOhook } = this.uiohook;
-    this.keydownHandler = (e) => {
+    const { uIOhook: e } = this.uiohook;
+    this.keydownHandler = (t) => {
       if (this.eventCallback) {
-        const keystrokeEvent = {
+        const r = {
           type: "keystroke",
           timestamp: Date.now(),
-          key: String(e.keycode),
+          key: String(t.keycode),
           // Use keycode as string for now; proper mapping in task 6
-          keyCode: e.keycode,
+          keyCode: t.keycode,
           modifiers: {
-            ctrl: e.ctrlKey ?? false,
-            alt: e.altKey ?? false,
-            shift: e.shiftKey ?? false,
-            meta: e.metaKey ?? false
+            ctrl: t.ctrlKey ?? !1,
+            alt: t.altKey ?? !1,
+            shift: t.shiftKey ?? !1,
+            meta: t.metaKey ?? !1
           }
         };
-        this.eventCallback(keystrokeEvent);
+        this.eventCallback(r);
       }
-    };
-    this.clickHandler = (e) => {
+    }, this.clickHandler = (t) => {
       if (this.eventCallback) {
-        const buttonMap = {
+        const r = {
           1: "left",
           2: "right",
           3: "middle"
-        };
-        const buttonNumber = e.button;
-        const button = buttonMap[buttonNumber];
-        if (button) {
-          const mouseEvent = {
+        }, n = t.button, i = r[n];
+        if (i) {
+          const o = {
             type: "mouse",
             timestamp: Date.now(),
-            button,
+            button: i,
             modifiers: {
-              ctrl: e.ctrlKey ?? false,
-              alt: e.altKey ?? false,
-              shift: e.shiftKey ?? false,
-              meta: e.metaKey ?? false
+              ctrl: t.ctrlKey ?? !1,
+              alt: t.altKey ?? !1,
+              shift: t.shiftKey ?? !1,
+              meta: t.metaKey ?? !1
             }
           };
-          this.eventCallback(mouseEvent);
+          this.eventCallback(o);
         }
       }
-    };
-    uIOhook.on("keydown", this.keydownHandler);
-    uIOhook.on("click", this.clickHandler);
+    }, e.on("keydown", this.keydownHandler), e.on("click", this.clickHandler);
   }
   /**
    * Remove uiohook event handlers
    */
   removeEventHandlers() {
-    if (!this.uiohook) {
+    if (!this.uiohook)
       return;
-    }
-    const { uIOhook } = this.uiohook;
-    if (this.keydownHandler) {
-      uIOhook.off("keydown", this.keydownHandler);
-      this.keydownHandler = null;
-    }
-    if (this.clickHandler) {
-      uIOhook.off("click", this.clickHandler);
-      this.clickHandler = null;
-    }
+    const { uIOhook: e } = this.uiohook;
+    this.keydownHandler && (e.off("keydown", this.keydownHandler), this.keydownHandler = null), this.clickHandler && (e.off("click", this.clickHandler), this.clickHandler = null);
   }
 }
-const keystrokeService = new KeystrokeService();
-const DEFAULT_KEYSTROKE_SETTINGS = {
-  enabled: false,
+const q = new nr(), lt = {
+  enabled: !1,
   position: "bottom-center",
   fadeDurationMs: 1500,
   fadeDelayMs: 1e3,
   groupingThresholdMs: 100,
-  showMouseClicks: true,
+  showMouseClicks: !0,
   textScale: 1
-};
-const KEYSTROKE_SETTINGS_FILE_NAME = "keystroke-settings.json";
-const CURRENT_VERSION$1 = 1;
-function getKeystrokeSettingsFilePath() {
-  return path$1.join(app.getPath("userData"), KEYSTROKE_SETTINGS_FILE_NAME);
+}, ir = "keystroke-settings.json", Yt = 1;
+function tt() {
+  return p.join(O.getPath("userData"), ir);
 }
-function createDefaultStore$1() {
+function $e() {
   return {
-    version: CURRENT_VERSION$1,
-    settings: { ...DEFAULT_KEYSTROKE_SETTINGS }
+    version: Yt,
+    settings: { ...lt }
   };
 }
-async function readKeystrokeSettingsStore() {
+async function Xt() {
   try {
-    const filePath = getKeystrokeSettingsFilePath();
-    const data = await fs$1.readFile(filePath, "utf-8");
-    const store = JSON.parse(data);
-    if (!store.settings || typeof store.settings !== "object") {
-      console.warn("Invalid keystroke settings file, creating new store");
-      return createDefaultStore$1();
-    }
-    return {
-      version: store.version || CURRENT_VERSION$1,
-      settings: { ...DEFAULT_KEYSTROKE_SETTINGS, ...store.settings }
+    const s = tt(), e = await E.readFile(s, "utf-8"), t = JSON.parse(e);
+    return !t.settings || typeof t.settings != "object" ? (console.warn("Invalid keystroke settings file, creating new store"), $e()) : {
+      version: t.version || Yt,
+      settings: { ...lt, ...t.settings }
     };
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return createDefaultStore$1();
-    }
-    console.error("Failed to read keystroke settings file:", error);
+  } catch (s) {
+    if (s instanceof Error && "code" in s && s.code === "ENOENT")
+      return $e();
+    console.error("Failed to read keystroke settings file:", s);
     try {
-      const filePath = getKeystrokeSettingsFilePath();
-      const backupPath = filePath + ".backup." + Date.now();
-      await fs$1.rename(filePath, backupPath);
-      console.log("Backed up corrupt keystroke settings file to:", backupPath);
+      const e = tt(), t = e + ".backup." + Date.now();
+      await E.rename(e, t), console.log("Backed up corrupt keystroke settings file to:", t);
     } catch {
     }
-    return createDefaultStore$1();
+    return $e();
   }
 }
-async function writeKeystrokeSettingsStore(store) {
-  const filePath = getKeystrokeSettingsFilePath();
-  await fs$1.writeFile(filePath, JSON.stringify(store, null, 2), "utf-8");
+async function or(s) {
+  const e = tt();
+  await E.writeFile(e, JSON.stringify(s, null, 2), "utf-8");
 }
-async function getKeystrokeSettings() {
+async function ar() {
   try {
-    const store = await readKeystrokeSettingsStore();
     return {
-      success: true,
-      settings: store.settings
+      success: !0,
+      settings: (await Xt()).settings
     };
-  } catch (error) {
-    console.error("Failed to get keystroke settings:", error);
-    return {
-      success: false,
-      settings: { ...DEFAULT_KEYSTROKE_SETTINGS }
+  } catch (s) {
+    return console.error("Failed to get keystroke settings:", s), {
+      success: !1,
+      settings: { ...lt }
     };
   }
 }
-async function setKeystrokeSettings(settings) {
+async function lr(s) {
   try {
-    const store = await readKeystrokeSettingsStore();
-    store.settings = { ...store.settings, ...settings };
-    await writeKeystrokeSettingsStore(store);
-    return { success: true, settings: store.settings };
-  } catch (error) {
-    console.error("Failed to save keystroke settings:", error);
-    return { success: false, error: String(error) };
+    const e = await Xt();
+    return e.settings = { ...e.settings, ...s }, await or(e), { success: !0, settings: e.settings };
+  } catch (e) {
+    return console.error("Failed to save keystroke settings:", e), { success: !1, error: String(e) };
   }
 }
-function getDefaultExportFromCjs(x) {
-  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
+function cr(s) {
+  return s && s.__esModule && Object.prototype.hasOwnProperty.call(s, "default") ? s.default : s;
 }
-var bufferUtil$1 = { exports: {} };
-const BINARY_TYPES$2 = ["nodebuffer", "arraybuffer", "fragments"];
-const hasBlob$1 = typeof Blob !== "undefined";
-if (hasBlob$1) BINARY_TYPES$2.push("blob");
-var constants = {
-  BINARY_TYPES: BINARY_TYPES$2,
+var xe = { exports: {} };
+const Zt = ["nodebuffer", "arraybuffer", "fragments"], Qt = typeof Blob < "u";
+Qt && Zt.push("blob");
+var W = {
+  BINARY_TYPES: Zt,
   CLOSE_TIMEOUT: 3e4,
   EMPTY_BUFFER: Buffer.alloc(0),
   GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
-  hasBlob: hasBlob$1,
+  hasBlob: Qt,
   kForOnEventAttribute: Symbol("kIsForOnEventAttribute"),
   kListener: Symbol("kListener"),
   kStatusCode: Symbol("status-code"),
   kWebSocket: Symbol("websocket"),
   NOOP: () => {
   }
+}, ur, dr;
+const { EMPTY_BUFFER: fr } = W, st = Buffer[Symbol.species];
+function hr(s, e) {
+  if (s.length === 0) return fr;
+  if (s.length === 1) return s[0];
+  const t = Buffer.allocUnsafe(e);
+  let r = 0;
+  for (let n = 0; n < s.length; n++) {
+    const i = s[n];
+    t.set(i, r), r += i.length;
+  }
+  return r < e ? new st(t.buffer, t.byteOffset, r) : t;
+}
+function es(s, e, t, r, n) {
+  for (let i = 0; i < n; i++)
+    t[r + i] = s[i] ^ e[i & 3];
+}
+function ts(s, e) {
+  for (let t = 0; t < s.length; t++)
+    s[t] ^= e[t & 3];
+}
+function mr(s) {
+  return s.length === s.buffer.byteLength ? s.buffer : s.buffer.slice(s.byteOffset, s.byteOffset + s.length);
+}
+function rt(s) {
+  if (rt.readOnly = !0, Buffer.isBuffer(s)) return s;
+  let e;
+  return s instanceof ArrayBuffer ? e = new st(s) : ArrayBuffer.isView(s) ? e = new st(s.buffer, s.byteOffset, s.byteLength) : (e = Buffer.from(s), rt.readOnly = !1), e;
+}
+xe.exports = {
+  concat: hr,
+  mask: es,
+  toArrayBuffer: mr,
+  toBuffer: rt,
+  unmask: ts
 };
-var unmask$1;
-var mask;
-const { EMPTY_BUFFER: EMPTY_BUFFER$3 } = constants;
-const FastBuffer$2 = Buffer[Symbol.species];
-function concat$1(list, totalLength) {
-  if (list.length === 0) return EMPTY_BUFFER$3;
-  if (list.length === 1) return list[0];
-  const target = Buffer.allocUnsafe(totalLength);
-  let offset = 0;
-  for (let i = 0; i < list.length; i++) {
-    const buf = list[i];
-    target.set(buf, offset);
-    offset += buf.length;
-  }
-  if (offset < totalLength) {
-    return new FastBuffer$2(target.buffer, target.byteOffset, offset);
-  }
-  return target;
-}
-function _mask(source, mask2, output, offset, length) {
-  for (let i = 0; i < length; i++) {
-    output[offset + i] = source[i] ^ mask2[i & 3];
-  }
-}
-function _unmask(buffer, mask2) {
-  for (let i = 0; i < buffer.length; i++) {
-    buffer[i] ^= mask2[i & 3];
-  }
-}
-function toArrayBuffer$1(buf) {
-  if (buf.length === buf.buffer.byteLength) {
-    return buf.buffer;
-  }
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
-}
-function toBuffer$2(data) {
-  toBuffer$2.readOnly = true;
-  if (Buffer.isBuffer(data)) return data;
-  let buf;
-  if (data instanceof ArrayBuffer) {
-    buf = new FastBuffer$2(data);
-  } else if (ArrayBuffer.isView(data)) {
-    buf = new FastBuffer$2(data.buffer, data.byteOffset, data.byteLength);
-  } else {
-    buf = Buffer.from(data);
-    toBuffer$2.readOnly = false;
-  }
-  return buf;
-}
-bufferUtil$1.exports = {
-  concat: concat$1,
-  mask: _mask,
-  toArrayBuffer: toArrayBuffer$1,
-  toBuffer: toBuffer$2,
-  unmask: _unmask
-};
-if (!process.env.WS_NO_BUFFER_UTIL) {
+if (!process.env.WS_NO_BUFFER_UTIL)
   try {
-    const bufferUtil2 = require("bufferutil");
-    mask = bufferUtil$1.exports.mask = function(source, mask2, output, offset, length) {
-      if (length < 48) _mask(source, mask2, output, offset, length);
-      else bufferUtil2.mask(source, mask2, output, offset, length);
+    const s = require("bufferutil");
+    dr = xe.exports.mask = function(e, t, r, n, i) {
+      i < 48 ? es(e, t, r, n, i) : s.mask(e, t, r, n, i);
+    }, ur = xe.exports.unmask = function(e, t) {
+      e.length < 32 ? ts(e, t) : s.unmask(e, t);
     };
-    unmask$1 = bufferUtil$1.exports.unmask = function(buffer, mask2) {
-      if (buffer.length < 32) _unmask(buffer, mask2);
-      else bufferUtil2.unmask(buffer, mask2);
-    };
-  } catch (e) {
+  } catch {
   }
-}
-var bufferUtilExports = bufferUtil$1.exports;
-const kDone = Symbol("kDone");
-const kRun = Symbol("kRun");
-let Limiter$1 = class Limiter {
+var Ie = xe.exports;
+const pt = Symbol("kDone"), Ke = Symbol("kRun");
+let pr = class {
   /**
    * Creates a new `Limiter`.
    *
    * @param {Number} [concurrency=Infinity] The maximum number of jobs allowed
    *     to run concurrently
    */
-  constructor(concurrency) {
-    this[kDone] = () => {
-      this.pending--;
-      this[kRun]();
-    };
-    this.concurrency = concurrency || Infinity;
-    this.jobs = [];
-    this.pending = 0;
+  constructor(e) {
+    this[pt] = () => {
+      this.pending--, this[Ke]();
+    }, this.concurrency = e || 1 / 0, this.jobs = [], this.pending = 0;
   }
   /**
    * Adds a job to the queue.
@@ -812,38 +609,24 @@ let Limiter$1 = class Limiter {
    * @param {Function} job The job to run
    * @public
    */
-  add(job) {
-    this.jobs.push(job);
-    this[kRun]();
+  add(e) {
+    this.jobs.push(e), this[Ke]();
   }
   /**
    * Removes a job from the queue and runs it if possible.
    *
    * @private
    */
-  [kRun]() {
-    if (this.pending === this.concurrency) return;
-    if (this.jobs.length) {
-      const job = this.jobs.shift();
-      this.pending++;
-      job(this[kDone]);
+  [Ke]() {
+    if (this.pending !== this.concurrency && this.jobs.length) {
+      const e = this.jobs.shift();
+      this.pending++, e(this[pt]);
     }
   }
 };
-var limiter = Limiter$1;
-const zlib = require$$0;
-const bufferUtil = bufferUtilExports;
-const Limiter2 = limiter;
-const { kStatusCode: kStatusCode$2 } = constants;
-const FastBuffer$1 = Buffer[Symbol.species];
-const TRAILER = Buffer.from([0, 0, 255, 255]);
-const kPerMessageDeflate = Symbol("permessage-deflate");
-const kTotalLength = Symbol("total-length");
-const kCallback = Symbol("callback");
-const kBuffers = Symbol("buffers");
-const kError$1 = Symbol("error");
-let zlibLimiter;
-let PerMessageDeflate$3 = class PerMessageDeflate {
+var gr = pr;
+const ie = Fs, gt = Ie, yr = gr, { kStatusCode: ss } = W, _r = Buffer[Symbol.species], Sr = Buffer.from([0, 0, 255, 255]), Oe = Symbol("permessage-deflate"), F = Symbol("total-length"), J = Symbol("callback"), B = Symbol("buffers"), Q = Symbol("error");
+let ge, vr = class {
   /**
    * Creates a PerMessageDeflate instance.
    *
@@ -868,17 +651,10 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    *     client mode
    * @param {Number} [maxPayload=0] The maximum allowed message length
    */
-  constructor(options, isServer, maxPayload) {
-    this._maxPayload = maxPayload | 0;
-    this._options = options || {};
-    this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024;
-    this._isServer = !!isServer;
-    this._deflate = null;
-    this._inflate = null;
-    this.params = null;
-    if (!zlibLimiter) {
-      const concurrency = this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10;
-      zlibLimiter = new Limiter2(concurrency);
+  constructor(e, t, r) {
+    if (this._maxPayload = r | 0, this._options = e || {}, this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024, this._isServer = !!t, this._deflate = null, this._inflate = null, this.params = null, !ge) {
+      const n = this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10;
+      ge = new yr(n);
     }
   }
   /**
@@ -894,22 +670,8 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @public
    */
   offer() {
-    const params = {};
-    if (this._options.serverNoContextTakeover) {
-      params.server_no_context_takeover = true;
-    }
-    if (this._options.clientNoContextTakeover) {
-      params.client_no_context_takeover = true;
-    }
-    if (this._options.serverMaxWindowBits) {
-      params.server_max_window_bits = this._options.serverMaxWindowBits;
-    }
-    if (this._options.clientMaxWindowBits) {
-      params.client_max_window_bits = this._options.clientMaxWindowBits;
-    } else if (this._options.clientMaxWindowBits == null) {
-      params.client_max_window_bits = true;
-    }
-    return params;
+    const e = {};
+    return this._options.serverNoContextTakeover && (e.server_no_context_takeover = !0), this._options.clientNoContextTakeover && (e.client_no_context_takeover = !0), this._options.serverMaxWindowBits && (e.server_max_window_bits = this._options.serverMaxWindowBits), this._options.clientMaxWindowBits ? e.client_max_window_bits = this._options.clientMaxWindowBits : this._options.clientMaxWindowBits == null && (e.client_max_window_bits = !0), e;
   }
   /**
    * Accept an extension negotiation offer/response.
@@ -918,10 +680,8 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @return {Object} Accepted configuration
    * @public
    */
-  accept(configurations) {
-    configurations = this.normalizeParams(configurations);
-    this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
-    return this.params;
+  accept(e) {
+    return e = this.normalizeParams(e), this.params = this._isServer ? this.acceptAsServer(e) : this.acceptAsClient(e), this.params;
   }
   /**
    * Releases all resources used by the extension.
@@ -929,21 +689,13 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @public
    */
   cleanup() {
-    if (this._inflate) {
-      this._inflate.close();
-      this._inflate = null;
-    }
-    if (this._deflate) {
-      const callback = this._deflate[kCallback];
-      this._deflate.close();
-      this._deflate = null;
-      if (callback) {
-        callback(
-          new Error(
-            "The deflate stream was closed while data was being processed"
-          )
-        );
-      }
+    if (this._inflate && (this._inflate.close(), this._inflate = null), this._deflate) {
+      const e = this._deflate[J];
+      this._deflate.close(), this._deflate = null, e && e(
+        new Error(
+          "The deflate stream was closed while data was being processed"
+        )
+      );
     }
   }
   /**
@@ -953,32 +705,11 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @return {Object} Accepted configuration
    * @private
    */
-  acceptAsServer(offers) {
-    const opts = this._options;
-    const accepted = offers.find((params) => {
-      if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) {
-        return false;
-      }
-      return true;
-    });
-    if (!accepted) {
+  acceptAsServer(e) {
+    const t = this._options, r = e.find((n) => !(t.serverNoContextTakeover === !1 && n.server_no_context_takeover || n.server_max_window_bits && (t.serverMaxWindowBits === !1 || typeof t.serverMaxWindowBits == "number" && t.serverMaxWindowBits > n.server_max_window_bits) || typeof t.clientMaxWindowBits == "number" && !n.client_max_window_bits));
+    if (!r)
       throw new Error("None of the extension offers can be accepted");
-    }
-    if (opts.serverNoContextTakeover) {
-      accepted.server_no_context_takeover = true;
-    }
-    if (opts.clientNoContextTakeover) {
-      accepted.client_no_context_takeover = true;
-    }
-    if (typeof opts.serverMaxWindowBits === "number") {
-      accepted.server_max_window_bits = opts.serverMaxWindowBits;
-    }
-    if (typeof opts.clientMaxWindowBits === "number") {
-      accepted.client_max_window_bits = opts.clientMaxWindowBits;
-    } else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) {
-      delete accepted.client_max_window_bits;
-    }
-    return accepted;
+    return t.serverNoContextTakeover && (r.server_no_context_takeover = !0), t.clientNoContextTakeover && (r.client_no_context_takeover = !0), typeof t.serverMaxWindowBits == "number" && (r.server_max_window_bits = t.serverMaxWindowBits), typeof t.clientMaxWindowBits == "number" ? r.client_max_window_bits = t.clientMaxWindowBits : (r.client_max_window_bits === !0 || t.clientMaxWindowBits === !1) && delete r.client_max_window_bits, r;
   }
   /**
    * Accept the extension negotiation response.
@@ -987,21 +718,17 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @return {Object} Accepted configuration
    * @private
    */
-  acceptAsClient(response) {
-    const params = response[0];
-    if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) {
+  acceptAsClient(e) {
+    const t = e[0];
+    if (this._options.clientNoContextTakeover === !1 && t.client_no_context_takeover)
       throw new Error('Unexpected parameter "client_no_context_takeover"');
-    }
-    if (!params.client_max_window_bits) {
-      if (typeof this._options.clientMaxWindowBits === "number") {
-        params.client_max_window_bits = this._options.clientMaxWindowBits;
-      }
-    } else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) {
+    if (!t.client_max_window_bits)
+      typeof this._options.clientMaxWindowBits == "number" && (t.client_max_window_bits = this._options.clientMaxWindowBits);
+    else if (this._options.clientMaxWindowBits === !1 || typeof this._options.clientMaxWindowBits == "number" && t.client_max_window_bits > this._options.clientMaxWindowBits)
       throw new Error(
         'Unexpected or invalid parameter "client_max_window_bits"'
       );
-    }
-    return params;
+    return t;
   }
   /**
    * Normalize parameters.
@@ -1010,49 +737,41 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @return {Array} The offers/response with normalized parameters
    * @private
    */
-  normalizeParams(configurations) {
-    configurations.forEach((params) => {
-      Object.keys(params).forEach((key) => {
-        let value = params[key];
-        if (value.length > 1) {
-          throw new Error(`Parameter "${key}" must have only a single value`);
-        }
-        value = value[0];
-        if (key === "client_max_window_bits") {
-          if (value !== true) {
-            const num = +value;
-            if (!Number.isInteger(num) || num < 8 || num > 15) {
+  normalizeParams(e) {
+    return e.forEach((t) => {
+      Object.keys(t).forEach((r) => {
+        let n = t[r];
+        if (n.length > 1)
+          throw new Error(`Parameter "${r}" must have only a single value`);
+        if (n = n[0], r === "client_max_window_bits") {
+          if (n !== !0) {
+            const i = +n;
+            if (!Number.isInteger(i) || i < 8 || i > 15)
               throw new TypeError(
-                `Invalid value for parameter "${key}": ${value}`
+                `Invalid value for parameter "${r}": ${n}`
               );
-            }
-            value = num;
-          } else if (!this._isServer) {
+            n = i;
+          } else if (!this._isServer)
             throw new TypeError(
-              `Invalid value for parameter "${key}": ${value}`
+              `Invalid value for parameter "${r}": ${n}`
             );
-          }
-        } else if (key === "server_max_window_bits") {
-          const num = +value;
-          if (!Number.isInteger(num) || num < 8 || num > 15) {
+        } else if (r === "server_max_window_bits") {
+          const i = +n;
+          if (!Number.isInteger(i) || i < 8 || i > 15)
             throw new TypeError(
-              `Invalid value for parameter "${key}": ${value}`
+              `Invalid value for parameter "${r}": ${n}`
             );
-          }
-          value = num;
-        } else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
-          if (value !== true) {
+          n = i;
+        } else if (r === "client_no_context_takeover" || r === "server_no_context_takeover") {
+          if (n !== !0)
             throw new TypeError(
-              `Invalid value for parameter "${key}": ${value}`
+              `Invalid value for parameter "${r}": ${n}`
             );
-          }
-        } else {
-          throw new Error(`Unknown parameter "${key}"`);
-        }
-        params[key] = value;
+        } else
+          throw new Error(`Unknown parameter "${r}"`);
+        t[r] = n;
       });
-    });
-    return configurations;
+    }), e;
   }
   /**
    * Decompress data. Concurrency limited.
@@ -1062,11 +781,10 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @param {Function} callback Callback
    * @public
    */
-  decompress(data, fin, callback) {
-    zlibLimiter.add((done) => {
-      this._decompress(data, fin, (err, result) => {
-        done();
-        callback(err, result);
+  decompress(e, t, r) {
+    ge.add((n) => {
+      this._decompress(e, t, (i, o) => {
+        n(), r(i, o);
       });
     });
   }
@@ -1078,11 +796,10 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @param {Function} callback Callback
    * @public
    */
-  compress(data, fin, callback) {
-    zlibLimiter.add((done) => {
-      this._compress(data, fin, (err, result) => {
-        done();
-        callback(err, result);
+  compress(e, t, r) {
+    ge.add((n) => {
+      this._compress(e, t, (i, o) => {
+        n(), r(i, o);
       });
     });
   }
@@ -1094,47 +811,26 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @param {Function} callback Callback
    * @private
    */
-  _decompress(data, fin, callback) {
-    const endpoint = this._isServer ? "client" : "server";
+  _decompress(e, t, r) {
+    const n = this._isServer ? "client" : "server";
     if (!this._inflate) {
-      const key = `${endpoint}_max_window_bits`;
-      const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-      this._inflate = zlib.createInflateRaw({
+      const i = `${n}_max_window_bits`, o = typeof this.params[i] != "number" ? ie.Z_DEFAULT_WINDOWBITS : this.params[i];
+      this._inflate = ie.createInflateRaw({
         ...this._options.zlibInflateOptions,
-        windowBits
-      });
-      this._inflate[kPerMessageDeflate] = this;
-      this._inflate[kTotalLength] = 0;
-      this._inflate[kBuffers] = [];
-      this._inflate.on("error", inflateOnError);
-      this._inflate.on("data", inflateOnData);
+        windowBits: o
+      }), this._inflate[Oe] = this, this._inflate[F] = 0, this._inflate[B] = [], this._inflate.on("error", Er), this._inflate.on("data", rs);
     }
-    this._inflate[kCallback] = callback;
-    this._inflate.write(data);
-    if (fin) this._inflate.write(TRAILER);
-    this._inflate.flush(() => {
-      const err = this._inflate[kError$1];
-      if (err) {
-        this._inflate.close();
-        this._inflate = null;
-        callback(err);
+    this._inflate[J] = r, this._inflate.write(e), t && this._inflate.write(Sr), this._inflate.flush(() => {
+      const i = this._inflate[Q];
+      if (i) {
+        this._inflate.close(), this._inflate = null, r(i);
         return;
       }
-      const data2 = bufferUtil.concat(
-        this._inflate[kBuffers],
-        this._inflate[kTotalLength]
+      const o = gt.concat(
+        this._inflate[B],
+        this._inflate[F]
       );
-      if (this._inflate._readableState.endEmitted) {
-        this._inflate.close();
-        this._inflate = null;
-      } else {
-        this._inflate[kTotalLength] = 0;
-        this._inflate[kBuffers] = [];
-        if (fin && this.params[`${endpoint}_no_context_takeover`]) {
-          this._inflate.reset();
-        }
-      }
-      callback(null, data2);
+      this._inflate._readableState.endEmitted ? (this._inflate.close(), this._inflate = null) : (this._inflate[F] = 0, this._inflate[B] = [], t && this.params[`${n}_no_context_takeover`] && this._inflate.reset()), r(null, o);
     });
   }
   /**
@@ -1145,73 +841,46 @@ let PerMessageDeflate$3 = class PerMessageDeflate {
    * @param {Function} callback Callback
    * @private
    */
-  _compress(data, fin, callback) {
-    const endpoint = this._isServer ? "server" : "client";
+  _compress(e, t, r) {
+    const n = this._isServer ? "server" : "client";
     if (!this._deflate) {
-      const key = `${endpoint}_max_window_bits`;
-      const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-      this._deflate = zlib.createDeflateRaw({
+      const i = `${n}_max_window_bits`, o = typeof this.params[i] != "number" ? ie.Z_DEFAULT_WINDOWBITS : this.params[i];
+      this._deflate = ie.createDeflateRaw({
         ...this._options.zlibDeflateOptions,
-        windowBits
-      });
-      this._deflate[kTotalLength] = 0;
-      this._deflate[kBuffers] = [];
-      this._deflate.on("data", deflateOnData);
+        windowBits: o
+      }), this._deflate[F] = 0, this._deflate[B] = [], this._deflate.on("data", wr);
     }
-    this._deflate[kCallback] = callback;
-    this._deflate.write(data);
-    this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
-      if (!this._deflate) {
+    this._deflate[J] = r, this._deflate.write(e), this._deflate.flush(ie.Z_SYNC_FLUSH, () => {
+      if (!this._deflate)
         return;
-      }
-      let data2 = bufferUtil.concat(
-        this._deflate[kBuffers],
-        this._deflate[kTotalLength]
+      let i = gt.concat(
+        this._deflate[B],
+        this._deflate[F]
       );
-      if (fin) {
-        data2 = new FastBuffer$1(data2.buffer, data2.byteOffset, data2.length - 4);
-      }
-      this._deflate[kCallback] = null;
-      this._deflate[kTotalLength] = 0;
-      this._deflate[kBuffers] = [];
-      if (fin && this.params[`${endpoint}_no_context_takeover`]) {
-        this._deflate.reset();
-      }
-      callback(null, data2);
+      t && (i = new _r(i.buffer, i.byteOffset, i.length - 4)), this._deflate[J] = null, this._deflate[F] = 0, this._deflate[B] = [], t && this.params[`${n}_no_context_takeover`] && this._deflate.reset(), r(null, i);
     });
   }
 };
-var permessageDeflate = PerMessageDeflate$3;
-function deflateOnData(chunk) {
-  this[kBuffers].push(chunk);
-  this[kTotalLength] += chunk.length;
+var ct = vr;
+function wr(s) {
+  this[B].push(s), this[F] += s.length;
 }
-function inflateOnData(chunk) {
-  this[kTotalLength] += chunk.length;
-  if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
-    this[kBuffers].push(chunk);
+function rs(s) {
+  if (this[F] += s.length, this[Oe]._maxPayload < 1 || this[F] <= this[Oe]._maxPayload) {
+    this[B].push(s);
     return;
   }
-  this[kError$1] = new RangeError("Max payload size exceeded");
-  this[kError$1].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH";
-  this[kError$1][kStatusCode$2] = 1009;
-  this.removeListener("data", inflateOnData);
-  this.reset();
+  this[Q] = new RangeError("Max payload size exceeded"), this[Q].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH", this[Q][ss] = 1009, this.removeListener("data", rs), this.reset();
 }
-function inflateOnError(err) {
-  this[kPerMessageDeflate]._inflate = null;
-  if (this[kError$1]) {
-    this[kCallback](this[kError$1]);
+function Er(s) {
+  if (this[Oe]._inflate = null, this[Q]) {
+    this[J](this[Q]);
     return;
   }
-  err[kStatusCode$2] = 1007;
-  this[kCallback](err);
+  s[ss] = 1007, this[J](s);
 }
-var validation = { exports: {} };
-var isValidUTF8_1;
-const { isUtf8 } = require$$0$1;
-const { hasBlob } = constants;
-const tokenChars$2 = [
+var Pe = { exports: {} }, yt;
+const { isUtf8: _t } = Cs, { hasBlob: kr } = W, br = [
   0,
   0,
   0,
@@ -1349,80 +1018,62 @@ const tokenChars$2 = [
   0
   // 112 - 127
 ];
-function isValidStatusCode$2(code) {
-  return code >= 1e3 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3e3 && code <= 4999;
+function Tr(s) {
+  return s >= 1e3 && s <= 1014 && s !== 1004 && s !== 1005 && s !== 1006 || s >= 3e3 && s <= 4999;
 }
-function _isValidUTF8(buf) {
-  const len = buf.length;
-  let i = 0;
-  while (i < len) {
-    if ((buf[i] & 128) === 0) {
-      i++;
-    } else if ((buf[i] & 224) === 192) {
-      if (i + 1 === len || (buf[i + 1] & 192) !== 128 || (buf[i] & 254) === 192) {
-        return false;
-      }
-      i += 2;
-    } else if ((buf[i] & 240) === 224) {
-      if (i + 2 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || buf[i] === 224 && (buf[i + 1] & 224) === 128 || // Overlong
-      buf[i] === 237 && (buf[i + 1] & 224) === 160) {
-        return false;
-      }
-      i += 3;
-    } else if ((buf[i] & 248) === 240) {
-      if (i + 3 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || (buf[i + 3] & 192) !== 128 || buf[i] === 240 && (buf[i + 1] & 240) === 128 || // Overlong
-      buf[i] === 244 && buf[i + 1] > 143 || buf[i] > 244) {
-        return false;
-      }
-      i += 4;
-    } else {
-      return false;
-    }
-  }
-  return true;
+function nt(s) {
+  const e = s.length;
+  let t = 0;
+  for (; t < e; )
+    if (!(s[t] & 128))
+      t++;
+    else if ((s[t] & 224) === 192) {
+      if (t + 1 === e || (s[t + 1] & 192) !== 128 || (s[t] & 254) === 192)
+        return !1;
+      t += 2;
+    } else if ((s[t] & 240) === 224) {
+      if (t + 2 >= e || (s[t + 1] & 192) !== 128 || (s[t + 2] & 192) !== 128 || s[t] === 224 && (s[t + 1] & 224) === 128 || // Overlong
+      s[t] === 237 && (s[t + 1] & 224) === 160)
+        return !1;
+      t += 3;
+    } else if ((s[t] & 248) === 240) {
+      if (t + 3 >= e || (s[t + 1] & 192) !== 128 || (s[t + 2] & 192) !== 128 || (s[t + 3] & 192) !== 128 || s[t] === 240 && (s[t + 1] & 240) === 128 || // Overlong
+      s[t] === 244 && s[t + 1] > 143 || s[t] > 244)
+        return !1;
+      t += 4;
+    } else
+      return !1;
+  return !0;
 }
-function isBlob$2(value) {
-  return hasBlob && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.type === "string" && typeof value.stream === "function" && (value[Symbol.toStringTag] === "Blob" || value[Symbol.toStringTag] === "File");
+function xr(s) {
+  return kr && typeof s == "object" && typeof s.arrayBuffer == "function" && typeof s.type == "string" && typeof s.stream == "function" && (s[Symbol.toStringTag] === "Blob" || s[Symbol.toStringTag] === "File");
 }
-validation.exports = {
-  isBlob: isBlob$2,
-  isValidStatusCode: isValidStatusCode$2,
-  isValidUTF8: _isValidUTF8,
-  tokenChars: tokenChars$2
+Pe.exports = {
+  isBlob: xr,
+  isValidStatusCode: Tr,
+  isValidUTF8: nt,
+  tokenChars: br
 };
-if (isUtf8) {
-  isValidUTF8_1 = validation.exports.isValidUTF8 = function(buf) {
-    return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
+if (_t)
+  yt = Pe.exports.isValidUTF8 = function(s) {
+    return s.length < 24 ? nt(s) : _t(s);
   };
-} else if (!process.env.WS_NO_UTF_8_VALIDATE) {
+else if (!process.env.WS_NO_UTF_8_VALIDATE)
   try {
-    const isValidUTF82 = require("utf-8-validate");
-    isValidUTF8_1 = validation.exports.isValidUTF8 = function(buf) {
-      return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF82(buf);
+    const s = require("utf-8-validate");
+    yt = Pe.exports.isValidUTF8 = function(e) {
+      return e.length < 32 ? nt(e) : s(e);
     };
-  } catch (e) {
+  } catch {
   }
-}
-var validationExports = validation.exports;
-const { Writable } = require$$0$2;
-const PerMessageDeflate$2 = permessageDeflate;
-const {
-  BINARY_TYPES: BINARY_TYPES$1,
-  EMPTY_BUFFER: EMPTY_BUFFER$2,
-  kStatusCode: kStatusCode$1,
-  kWebSocket: kWebSocket$3
-} = constants;
-const { concat, toArrayBuffer, unmask } = bufferUtilExports;
-const { isValidStatusCode: isValidStatusCode$1, isValidUTF8 } = validationExports;
-const FastBuffer = Buffer[Symbol.species];
-const GET_INFO = 0;
-const GET_PAYLOAD_LENGTH_16 = 1;
-const GET_PAYLOAD_LENGTH_64 = 2;
-const GET_MASK = 3;
-const GET_DATA = 4;
-const INFLATING = 5;
-const DEFER_EVENT = 6;
-let Receiver$1 = class Receiver extends Writable {
+var me = Pe.exports;
+const { Writable: Or } = fe, St = ct, {
+  BINARY_TYPES: Pr,
+  EMPTY_BUFFER: vt,
+  kStatusCode: Dr,
+  kWebSocket: Rr
+} = W, { concat: We, toArrayBuffer: Nr, unmask: Ir } = Ie, { isValidStatusCode: Ar, isValidUTF8: wt } = me, ye = Buffer[Symbol.species], P = 0, Et = 1, kt = 2, bt = 3, je = 4, Ve = 5, _e = 6;
+let Lr = class extends Or {
   /**
    * Creates a Receiver instance.
    *
@@ -1439,30 +1090,8 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
    *     not to skip UTF-8 validation for text and close messages
    */
-  constructor(options = {}) {
-    super();
-    this._allowSynchronousEvents = options.allowSynchronousEvents !== void 0 ? options.allowSynchronousEvents : true;
-    this._binaryType = options.binaryType || BINARY_TYPES$1[0];
-    this._extensions = options.extensions || {};
-    this._isServer = !!options.isServer;
-    this._maxPayload = options.maxPayload | 0;
-    this._skipUTF8Validation = !!options.skipUTF8Validation;
-    this[kWebSocket$3] = void 0;
-    this._bufferedBytes = 0;
-    this._buffers = [];
-    this._compressed = false;
-    this._payloadLength = 0;
-    this._mask = void 0;
-    this._fragmented = 0;
-    this._masked = false;
-    this._fin = false;
-    this._opcode = 0;
-    this._totalPayloadLength = 0;
-    this._messageLength = 0;
-    this._fragments = [];
-    this._errored = false;
-    this._loop = false;
-    this._state = GET_INFO;
+  constructor(e = {}) {
+    super(), this._allowSynchronousEvents = e.allowSynchronousEvents !== void 0 ? e.allowSynchronousEvents : !0, this._binaryType = e.binaryType || Pr[0], this._extensions = e.extensions || {}, this._isServer = !!e.isServer, this._maxPayload = e.maxPayload | 0, this._skipUTF8Validation = !!e.skipUTF8Validation, this[Rr] = void 0, this._bufferedBytes = 0, this._buffers = [], this._compressed = !1, this._payloadLength = 0, this._mask = void 0, this._fragmented = 0, this._masked = !1, this._fin = !1, this._opcode = 0, this._totalPayloadLength = 0, this._messageLength = 0, this._fragments = [], this._errored = !1, this._loop = !1, this._state = P;
   }
   /**
    * Implements `Writable.prototype._write()`.
@@ -1472,11 +1101,9 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  _write(chunk, encoding, cb) {
-    if (this._opcode === 8 && this._state == GET_INFO) return cb();
-    this._bufferedBytes += chunk.length;
-    this._buffers.push(chunk);
-    this.startLoop(cb);
+  _write(e, t, r) {
+    if (this._opcode === 8 && this._state == P) return r();
+    this._bufferedBytes += e.length, this._buffers.push(e), this.startLoop(r);
   }
   /**
    * Consumes `n` bytes from the buffered data.
@@ -1485,35 +1112,26 @@ let Receiver$1 = class Receiver extends Writable {
    * @return {Buffer} The consumed bytes
    * @private
    */
-  consume(n) {
-    this._bufferedBytes -= n;
-    if (n === this._buffers[0].length) return this._buffers.shift();
-    if (n < this._buffers[0].length) {
-      const buf = this._buffers[0];
-      this._buffers[0] = new FastBuffer(
-        buf.buffer,
-        buf.byteOffset + n,
-        buf.length - n
-      );
-      return new FastBuffer(buf.buffer, buf.byteOffset, n);
+  consume(e) {
+    if (this._bufferedBytes -= e, e === this._buffers[0].length) return this._buffers.shift();
+    if (e < this._buffers[0].length) {
+      const r = this._buffers[0];
+      return this._buffers[0] = new ye(
+        r.buffer,
+        r.byteOffset + e,
+        r.length - e
+      ), new ye(r.buffer, r.byteOffset, e);
     }
-    const dst = Buffer.allocUnsafe(n);
+    const t = Buffer.allocUnsafe(e);
     do {
-      const buf = this._buffers[0];
-      const offset = dst.length - n;
-      if (n >= buf.length) {
-        dst.set(this._buffers.shift(), offset);
-      } else {
-        dst.set(new Uint8Array(buf.buffer, buf.byteOffset, n), offset);
-        this._buffers[0] = new FastBuffer(
-          buf.buffer,
-          buf.byteOffset + n,
-          buf.length - n
-        );
-      }
-      n -= buf.length;
-    } while (n > 0);
-    return dst;
+      const r = this._buffers[0], n = t.length - e;
+      e >= r.length ? t.set(this._buffers.shift(), n) : (t.set(new Uint8Array(r.buffer, r.byteOffset, e), n), this._buffers[0] = new ye(
+        r.buffer,
+        r.byteOffset + e,
+        r.length - e
+      )), e -= r.length;
+    } while (e > 0);
+    return t;
   }
   /**
    * Starts the parsing loop.
@@ -1521,32 +1139,32 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  startLoop(cb) {
-    this._loop = true;
-    do {
+  startLoop(e) {
+    this._loop = !0;
+    do
       switch (this._state) {
-        case GET_INFO:
-          this.getInfo(cb);
+        case P:
+          this.getInfo(e);
           break;
-        case GET_PAYLOAD_LENGTH_16:
-          this.getPayloadLength16(cb);
+        case Et:
+          this.getPayloadLength16(e);
           break;
-        case GET_PAYLOAD_LENGTH_64:
-          this.getPayloadLength64(cb);
+        case kt:
+          this.getPayloadLength64(e);
           break;
-        case GET_MASK:
+        case bt:
           this.getMask();
           break;
-        case GET_DATA:
-          this.getData(cb);
+        case je:
+          this.getData(e);
           break;
-        case INFLATING:
-        case DEFER_EVENT:
-          this._loop = false;
+        case Ve:
+        case _e:
+          this._loop = !1;
           return;
       }
-    } while (this._loop);
-    if (!this._errored) cb();
+    while (this._loop);
+    this._errored || e();
   }
   /**
    * Reads the first two bytes of a frame.
@@ -1554,148 +1172,141 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  getInfo(cb) {
+  getInfo(e) {
     if (this._bufferedBytes < 2) {
-      this._loop = false;
+      this._loop = !1;
       return;
     }
-    const buf = this.consume(2);
-    if ((buf[0] & 48) !== 0) {
-      const error = this.createError(
+    const t = this.consume(2);
+    if (t[0] & 48) {
+      const n = this.createError(
         RangeError,
         "RSV2 and RSV3 must be clear",
-        true,
+        !0,
         1002,
         "WS_ERR_UNEXPECTED_RSV_2_3"
       );
-      cb(error);
+      e(n);
       return;
     }
-    const compressed = (buf[0] & 64) === 64;
-    if (compressed && !this._extensions[PerMessageDeflate$2.extensionName]) {
-      const error = this.createError(
+    const r = (t[0] & 64) === 64;
+    if (r && !this._extensions[St.extensionName]) {
+      const n = this.createError(
         RangeError,
         "RSV1 must be clear",
-        true,
+        !0,
         1002,
         "WS_ERR_UNEXPECTED_RSV_1"
       );
-      cb(error);
+      e(n);
       return;
     }
-    this._fin = (buf[0] & 128) === 128;
-    this._opcode = buf[0] & 15;
-    this._payloadLength = buf[1] & 127;
-    if (this._opcode === 0) {
-      if (compressed) {
-        const error = this.createError(
+    if (this._fin = (t[0] & 128) === 128, this._opcode = t[0] & 15, this._payloadLength = t[1] & 127, this._opcode === 0) {
+      if (r) {
+        const n = this.createError(
           RangeError,
           "RSV1 must be clear",
-          true,
+          !0,
           1002,
           "WS_ERR_UNEXPECTED_RSV_1"
         );
-        cb(error);
+        e(n);
         return;
       }
       if (!this._fragmented) {
-        const error = this.createError(
+        const n = this.createError(
           RangeError,
           "invalid opcode 0",
-          true,
+          !0,
           1002,
           "WS_ERR_INVALID_OPCODE"
         );
-        cb(error);
+        e(n);
         return;
       }
       this._opcode = this._fragmented;
     } else if (this._opcode === 1 || this._opcode === 2) {
       if (this._fragmented) {
-        const error = this.createError(
+        const n = this.createError(
           RangeError,
           `invalid opcode ${this._opcode}`,
-          true,
+          !0,
           1002,
           "WS_ERR_INVALID_OPCODE"
         );
-        cb(error);
+        e(n);
         return;
       }
-      this._compressed = compressed;
+      this._compressed = r;
     } else if (this._opcode > 7 && this._opcode < 11) {
       if (!this._fin) {
-        const error = this.createError(
+        const n = this.createError(
           RangeError,
           "FIN must be set",
-          true,
+          !0,
           1002,
           "WS_ERR_EXPECTED_FIN"
         );
-        cb(error);
+        e(n);
         return;
       }
-      if (compressed) {
-        const error = this.createError(
+      if (r) {
+        const n = this.createError(
           RangeError,
           "RSV1 must be clear",
-          true,
+          !0,
           1002,
           "WS_ERR_UNEXPECTED_RSV_1"
         );
-        cb(error);
+        e(n);
         return;
       }
       if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
-        const error = this.createError(
+        const n = this.createError(
           RangeError,
           `invalid payload length ${this._payloadLength}`,
-          true,
+          !0,
           1002,
           "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"
         );
-        cb(error);
+        e(n);
         return;
       }
     } else {
-      const error = this.createError(
+      const n = this.createError(
         RangeError,
         `invalid opcode ${this._opcode}`,
-        true,
+        !0,
         1002,
         "WS_ERR_INVALID_OPCODE"
       );
-      cb(error);
+      e(n);
       return;
     }
-    if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
-    this._masked = (buf[1] & 128) === 128;
-    if (this._isServer) {
+    if (!this._fin && !this._fragmented && (this._fragmented = this._opcode), this._masked = (t[1] & 128) === 128, this._isServer) {
       if (!this._masked) {
-        const error = this.createError(
+        const n = this.createError(
           RangeError,
           "MASK must be set",
-          true,
+          !0,
           1002,
           "WS_ERR_EXPECTED_MASK"
         );
-        cb(error);
+        e(n);
         return;
       }
     } else if (this._masked) {
-      const error = this.createError(
+      const n = this.createError(
         RangeError,
         "MASK must be clear",
-        true,
+        !0,
         1002,
         "WS_ERR_UNEXPECTED_MASK"
       );
-      cb(error);
+      e(n);
       return;
     }
-    if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
-    else if (this._payloadLength === 127) this._state = GET_PAYLOAD_LENGTH_64;
-    else this.haveLength(cb);
+    this._payloadLength === 126 ? this._state = Et : this._payloadLength === 127 ? this._state = kt : this.haveLength(e);
   }
   /**
    * Gets extended payload length (7+16).
@@ -1703,13 +1314,12 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  getPayloadLength16(cb) {
+  getPayloadLength16(e) {
     if (this._bufferedBytes < 2) {
-      this._loop = false;
+      this._loop = !1;
       return;
     }
-    this._payloadLength = this.consume(2).readUInt16BE(0);
-    this.haveLength(cb);
+    this._payloadLength = this.consume(2).readUInt16BE(0), this.haveLength(e);
   }
   /**
    * Gets extended payload length (7+64).
@@ -1717,26 +1327,24 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  getPayloadLength64(cb) {
+  getPayloadLength64(e) {
     if (this._bufferedBytes < 8) {
-      this._loop = false;
+      this._loop = !1;
       return;
     }
-    const buf = this.consume(8);
-    const num = buf.readUInt32BE(0);
-    if (num > Math.pow(2, 53 - 32) - 1) {
-      const error = this.createError(
+    const t = this.consume(8), r = t.readUInt32BE(0);
+    if (r > Math.pow(2, 21) - 1) {
+      const n = this.createError(
         RangeError,
         "Unsupported WebSocket frame: payload length > 2^53 - 1",
-        false,
+        !1,
         1009,
         "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
       );
-      cb(error);
+      e(n);
       return;
     }
-    this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
-    this.haveLength(cb);
+    this._payloadLength = r * Math.pow(2, 32) + t.readUInt32BE(4), this.haveLength(e);
   }
   /**
    * Payload length has been read.
@@ -1744,23 +1352,19 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  haveLength(cb) {
-    if (this._payloadLength && this._opcode < 8) {
-      this._totalPayloadLength += this._payloadLength;
-      if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
-        const error = this.createError(
-          RangeError,
-          "Max payload size exceeded",
-          false,
-          1009,
-          "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
-        );
-        cb(error);
-        return;
-      }
+  haveLength(e) {
+    if (this._payloadLength && this._opcode < 8 && (this._totalPayloadLength += this._payloadLength, this._totalPayloadLength > this._maxPayload && this._maxPayload > 0)) {
+      const t = this.createError(
+        RangeError,
+        "Max payload size exceeded",
+        !1,
+        1009,
+        "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
+      );
+      e(t);
+      return;
     }
-    if (this._masked) this._state = GET_MASK;
-    else this._state = GET_DATA;
+    this._masked ? this._state = bt : this._state = je;
   }
   /**
    * Reads mask bytes.
@@ -1769,11 +1373,10 @@ let Receiver$1 = class Receiver extends Writable {
    */
   getMask() {
     if (this._bufferedBytes < 4) {
-      this._loop = false;
+      this._loop = !1;
       return;
     }
-    this._mask = this.consume(4);
-    this._state = GET_DATA;
+    this._mask = this.consume(4), this._state = je;
   }
   /**
    * Reads data bytes.
@@ -1781,32 +1384,24 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  getData(cb) {
-    let data = EMPTY_BUFFER$2;
+  getData(e) {
+    let t = vt;
     if (this._payloadLength) {
       if (this._bufferedBytes < this._payloadLength) {
-        this._loop = false;
+        this._loop = !1;
         return;
       }
-      data = this.consume(this._payloadLength);
-      if (this._masked && (this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3]) !== 0) {
-        unmask(data, this._mask);
-      }
+      t = this.consume(this._payloadLength), this._masked && this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3] && Ir(t, this._mask);
     }
     if (this._opcode > 7) {
-      this.controlMessage(data, cb);
+      this.controlMessage(t, e);
       return;
     }
     if (this._compressed) {
-      this._state = INFLATING;
-      this.decompress(data, cb);
+      this._state = Ve, this.decompress(t, e);
       return;
     }
-    if (data.length) {
-      this._messageLength = this._totalPayloadLength;
-      this._fragments.push(data);
-    }
-    this.dataMessage(cb);
+    t.length && (this._messageLength = this._totalPayloadLength, this._fragments.push(t)), this.dataMessage(e);
   }
   /**
    * Decompresses data.
@@ -1815,27 +1410,24 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  decompress(data, cb) {
-    const perMessageDeflate = this._extensions[PerMessageDeflate$2.extensionName];
-    perMessageDeflate.decompress(data, this._fin, (err, buf) => {
-      if (err) return cb(err);
-      if (buf.length) {
-        this._messageLength += buf.length;
-        if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
-          const error = this.createError(
+  decompress(e, t) {
+    this._extensions[St.extensionName].decompress(e, this._fin, (n, i) => {
+      if (n) return t(n);
+      if (i.length) {
+        if (this._messageLength += i.length, this._messageLength > this._maxPayload && this._maxPayload > 0) {
+          const o = this.createError(
             RangeError,
             "Max payload size exceeded",
-            false,
+            !1,
             1009,
             "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
           );
-          cb(error);
+          t(o);
           return;
         }
-        this._fragments.push(buf);
+        this._fragments.push(i);
       }
-      this.dataMessage(cb);
-      if (this._state === GET_INFO) this.startLoop(cb);
+      this.dataMessage(t), this._state === P && this.startLoop(t);
     });
   }
   /**
@@ -1844,63 +1436,33 @@ let Receiver$1 = class Receiver extends Writable {
    * @param {Function} cb Callback
    * @private
    */
-  dataMessage(cb) {
+  dataMessage(e) {
     if (!this._fin) {
-      this._state = GET_INFO;
+      this._state = P;
       return;
     }
-    const messageLength = this._messageLength;
-    const fragments = this._fragments;
-    this._totalPayloadLength = 0;
-    this._messageLength = 0;
-    this._fragmented = 0;
-    this._fragments = [];
-    if (this._opcode === 2) {
-      let data;
-      if (this._binaryType === "nodebuffer") {
-        data = concat(fragments, messageLength);
-      } else if (this._binaryType === "arraybuffer") {
-        data = toArrayBuffer(concat(fragments, messageLength));
-      } else if (this._binaryType === "blob") {
-        data = new Blob(fragments);
-      } else {
-        data = fragments;
-      }
-      if (this._allowSynchronousEvents) {
-        this.emit("message", data, true);
-        this._state = GET_INFO;
-      } else {
-        this._state = DEFER_EVENT;
-        setImmediate(() => {
-          this.emit("message", data, true);
-          this._state = GET_INFO;
-          this.startLoop(cb);
-        });
-      }
+    const t = this._messageLength, r = this._fragments;
+    if (this._totalPayloadLength = 0, this._messageLength = 0, this._fragmented = 0, this._fragments = [], this._opcode === 2) {
+      let n;
+      this._binaryType === "nodebuffer" ? n = We(r, t) : this._binaryType === "arraybuffer" ? n = Nr(We(r, t)) : this._binaryType === "blob" ? n = new Blob(r) : n = r, this._allowSynchronousEvents ? (this.emit("message", n, !0), this._state = P) : (this._state = _e, setImmediate(() => {
+        this.emit("message", n, !0), this._state = P, this.startLoop(e);
+      }));
     } else {
-      const buf = concat(fragments, messageLength);
-      if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-        const error = this.createError(
+      const n = We(r, t);
+      if (!this._skipUTF8Validation && !wt(n)) {
+        const i = this.createError(
           Error,
           "invalid UTF-8 sequence",
-          true,
+          !0,
           1007,
           "WS_ERR_INVALID_UTF8"
         );
-        cb(error);
+        e(i);
         return;
       }
-      if (this._state === INFLATING || this._allowSynchronousEvents) {
-        this.emit("message", buf, false);
-        this._state = GET_INFO;
-      } else {
-        this._state = DEFER_EVENT;
-        setImmediate(() => {
-          this.emit("message", buf, false);
-          this._state = GET_INFO;
-          this.startLoop(cb);
-        });
-      }
+      this._state === Ve || this._allowSynchronousEvents ? (this.emit("message", n, !1), this._state = P) : (this._state = _e, setImmediate(() => {
+        this.emit("message", n, !1), this._state = P, this.startLoop(e);
+      }));
     }
   }
   /**
@@ -1910,59 +1472,47 @@ let Receiver$1 = class Receiver extends Writable {
    * @return {(Error|RangeError|undefined)} A possible error
    * @private
    */
-  controlMessage(data, cb) {
+  controlMessage(e, t) {
     if (this._opcode === 8) {
-      if (data.length === 0) {
-        this._loop = false;
-        this.emit("conclude", 1005, EMPTY_BUFFER$2);
-        this.end();
-      } else {
-        const code = data.readUInt16BE(0);
-        if (!isValidStatusCode$1(code)) {
-          const error = this.createError(
+      if (e.length === 0)
+        this._loop = !1, this.emit("conclude", 1005, vt), this.end();
+      else {
+        const r = e.readUInt16BE(0);
+        if (!Ar(r)) {
+          const i = this.createError(
             RangeError,
-            `invalid status code ${code}`,
-            true,
+            `invalid status code ${r}`,
+            !0,
             1002,
             "WS_ERR_INVALID_CLOSE_CODE"
           );
-          cb(error);
+          t(i);
           return;
         }
-        const buf = new FastBuffer(
-          data.buffer,
-          data.byteOffset + 2,
-          data.length - 2
+        const n = new ye(
+          e.buffer,
+          e.byteOffset + 2,
+          e.length - 2
         );
-        if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-          const error = this.createError(
+        if (!this._skipUTF8Validation && !wt(n)) {
+          const i = this.createError(
             Error,
             "invalid UTF-8 sequence",
-            true,
+            !0,
             1007,
             "WS_ERR_INVALID_UTF8"
           );
-          cb(error);
+          t(i);
           return;
         }
-        this._loop = false;
-        this.emit("conclude", code, buf);
-        this.end();
+        this._loop = !1, this.emit("conclude", r, n), this.end();
       }
-      this._state = GET_INFO;
+      this._state = P;
       return;
     }
-    if (this._allowSynchronousEvents) {
-      this.emit(this._opcode === 9 ? "ping" : "pong", data);
-      this._state = GET_INFO;
-    } else {
-      this._state = DEFER_EVENT;
-      setImmediate(() => {
-        this.emit(this._opcode === 9 ? "ping" : "pong", data);
-        this._state = GET_INFO;
-        this.startLoop(cb);
-      });
-    }
+    this._allowSynchronousEvents ? (this.emit(this._opcode === 9 ? "ping" : "pong", e), this._state = P) : (this._state = _e, setImmediate(() => {
+      this.emit(this._opcode === 9 ? "ping" : "pong", e), this._state = P, this.startLoop(t);
+    }));
   }
   /**
    * Builds an error object.
@@ -1976,34 +1526,19 @@ let Receiver$1 = class Receiver extends Writable {
    * @return {(Error|RangeError)} The error
    * @private
    */
-  createError(ErrorCtor, message, prefix, statusCode, errorCode) {
-    this._loop = false;
-    this._errored = true;
-    const err = new ErrorCtor(
-      prefix ? `Invalid WebSocket frame: ${message}` : message
+  createError(e, t, r, n, i) {
+    this._loop = !1, this._errored = !0;
+    const o = new e(
+      r ? `Invalid WebSocket frame: ${t}` : t
     );
-    Error.captureStackTrace(err, this.createError);
-    err.code = errorCode;
-    err[kStatusCode$1] = statusCode;
-    return err;
+    return Error.captureStackTrace(o, this.createError), o.code = i, o[Dr] = n, o;
   }
 };
-var receiver = Receiver$1;
-const { Duplex: Duplex$3 } = require$$0$2;
-const { randomFillSync } = require$$1;
-const PerMessageDeflate$1 = permessageDeflate;
-const { EMPTY_BUFFER: EMPTY_BUFFER$1, kWebSocket: kWebSocket$2, NOOP: NOOP$1 } = constants;
-const { isBlob: isBlob$1, isValidStatusCode } = validationExports;
-const { mask: applyMask, toBuffer: toBuffer$1 } = bufferUtilExports;
-const kByteLength = Symbol("kByteLength");
-const maskBuffer = Buffer.alloc(4);
-const RANDOM_POOL_SIZE = 8 * 1024;
-let randomPool;
-let randomPoolPointer = RANDOM_POOL_SIZE;
-const DEFAULT = 0;
-const DEFLATING = 1;
-const GET_BLOB_DATA = 2;
-let Sender$1 = class Sender {
+var Fr = Lr;
+const { Duplex: qi } = fe, { randomFillSync: Cr } = at, Tt = ct, { EMPTY_BUFFER: Ur, kWebSocket: Br, NOOP: Mr } = W, { isBlob: H, isValidStatusCode: $r } = me, { mask: xt, toBuffer: j } = Ie, D = Symbol("kByteLength"), Kr = Buffer.alloc(4), ke = 8 * 1024;
+let V, z = ke;
+const R = 0, Wr = 1, jr = 2;
+let Vr = class G {
   /**
    * Creates a Sender instance.
    *
@@ -2012,20 +1547,8 @@ let Sender$1 = class Sender {
    * @param {Function} [generateMask] The function used to generate the masking
    *     key
    */
-  constructor(socket, extensions, generateMask) {
-    this._extensions = extensions || {};
-    if (generateMask) {
-      this._generateMask = generateMask;
-      this._maskBuffer = Buffer.alloc(4);
-    }
-    this._socket = socket;
-    this._firstFragment = true;
-    this._compress = false;
-    this._bufferedBytes = 0;
-    this._queue = [];
-    this._state = DEFAULT;
-    this.onerror = NOOP$1;
-    this[kWebSocket$2] = void 0;
+  constructor(e, t, r) {
+    this._extensions = t || {}, r && (this._generateMask = r, this._maskBuffer = Buffer.alloc(4)), this._socket = e, this._firstFragment = !0, this._compress = !1, this._bufferedBytes = 0, this._queue = [], this._state = R, this.onerror = Mr, this[Br] = void 0;
   }
   /**
    * Frames a piece of data according to the HyBi WebSocket protocol.
@@ -2048,74 +1571,15 @@ let Sender$1 = class Sender {
    * @return {(Buffer|String)[]} The framed data
    * @public
    */
-  static frame(data, options) {
-    let mask2;
-    let merge = false;
-    let offset = 2;
-    let skipMasking = false;
-    if (options.mask) {
-      mask2 = options.maskBuffer || maskBuffer;
-      if (options.generateMask) {
-        options.generateMask(mask2);
-      } else {
-        if (randomPoolPointer === RANDOM_POOL_SIZE) {
-          if (randomPool === void 0) {
-            randomPool = Buffer.alloc(RANDOM_POOL_SIZE);
-          }
-          randomFillSync(randomPool, 0, RANDOM_POOL_SIZE);
-          randomPoolPointer = 0;
-        }
-        mask2[0] = randomPool[randomPoolPointer++];
-        mask2[1] = randomPool[randomPoolPointer++];
-        mask2[2] = randomPool[randomPoolPointer++];
-        mask2[3] = randomPool[randomPoolPointer++];
-      }
-      skipMasking = (mask2[0] | mask2[1] | mask2[2] | mask2[3]) === 0;
-      offset = 6;
-    }
-    let dataLength;
-    if (typeof data === "string") {
-      if ((!options.mask || skipMasking) && options[kByteLength] !== void 0) {
-        dataLength = options[kByteLength];
-      } else {
-        data = Buffer.from(data);
-        dataLength = data.length;
-      }
-    } else {
-      dataLength = data.length;
-      merge = options.mask && options.readOnly && !skipMasking;
-    }
-    let payloadLength = dataLength;
-    if (dataLength >= 65536) {
-      offset += 8;
-      payloadLength = 127;
-    } else if (dataLength > 125) {
-      offset += 2;
-      payloadLength = 126;
-    }
-    const target = Buffer.allocUnsafe(merge ? dataLength + offset : offset);
-    target[0] = options.fin ? options.opcode | 128 : options.opcode;
-    if (options.rsv1) target[0] |= 64;
-    target[1] = payloadLength;
-    if (payloadLength === 126) {
-      target.writeUInt16BE(dataLength, 2);
-    } else if (payloadLength === 127) {
-      target[2] = target[3] = 0;
-      target.writeUIntBE(dataLength, 4, 6);
-    }
-    if (!options.mask) return [target, data];
-    target[1] |= 128;
-    target[offset - 4] = mask2[0];
-    target[offset - 3] = mask2[1];
-    target[offset - 2] = mask2[2];
-    target[offset - 1] = mask2[3];
-    if (skipMasking) return [target, data];
-    if (merge) {
-      applyMask(data, mask2, target, offset, dataLength);
-      return [target];
-    }
-    applyMask(data, mask2, data, 0, dataLength);
-    return [target, data];
+  static frame(e, t) {
+    let r, n = !1, i = 2, o = !1;
+    t.mask && (r = t.maskBuffer || Kr, t.generateMask ? t.generateMask(r) : (z === ke && (V === void 0 && (V = Buffer.alloc(ke)), Cr(V, 0, ke), z = 0), r[0] = V[z++], r[1] = V[z++], r[2] = V[z++], r[3] = V[z++]), o = (r[0] | r[1] | r[2] | r[3]) === 0, i = 6);
+    let a;
+    typeof e == "string" ? (!t.mask || o) && t[D] !== void 0 ? a = t[D] : (e = Buffer.from(e), a = e.length) : (a = e.length, n = t.mask && t.readOnly && !o);
+    let c = a;
+    a >= 65536 ? (i += 8, c = 127) : a > 125 && (i += 2, c = 126);
+    const l = Buffer.allocUnsafe(n ? a + i : i);
+    return l[0] = t.fin ? t.opcode | 128 : t.opcode, t.rsv1 && (l[0] |= 64), l[1] = c, c === 126 ? l.writeUInt16BE(a, 2) : c === 127 && (l[2] = l[3] = 0, l.writeUIntBE(a, 4, 6)), t.mask ? (l[1] |= 128, l[i - 4] = r[0], l[i - 3] = r[1], l[i - 2] = r[2], l[i - 1] = r[3], o ? [l, e] : n ? (xt(e, r, l, i, a), [l]) : (xt(e, r, e, 0, a), [l, e])) : [l, e];
   }
   /**
    * Sends a close message to the other peer.
@@ -2126,43 +1590,33 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @public
    */
-  close(code, data, mask2, cb) {
-    let buf;
-    if (code === void 0) {
-      buf = EMPTY_BUFFER$1;
-    } else if (typeof code !== "number" || !isValidStatusCode(code)) {
-      throw new TypeError("First argument must be a valid error code number");
-    } else if (data === void 0 || !data.length) {
-      buf = Buffer.allocUnsafe(2);
-      buf.writeUInt16BE(code, 0);
-    } else {
-      const length = Buffer.byteLength(data);
-      if (length > 123) {
-        throw new RangeError("The message must not be greater than 123 bytes");
-      }
-      buf = Buffer.allocUnsafe(2 + length);
-      buf.writeUInt16BE(code, 0);
-      if (typeof data === "string") {
-        buf.write(data, 2);
-      } else {
-        buf.set(data, 2);
+  close(e, t, r, n) {
+    let i;
+    if (e === void 0)
+      i = Ur;
+    else {
+      if (typeof e != "number" || !$r(e))
+        throw new TypeError("First argument must be a valid error code number");
+      if (t === void 0 || !t.length)
+        i = Buffer.allocUnsafe(2), i.writeUInt16BE(e, 0);
+      else {
+        const a = Buffer.byteLength(t);
+        if (a > 123)
+          throw new RangeError("The message must not be greater than 123 bytes");
+        i = Buffer.allocUnsafe(2 + a), i.writeUInt16BE(e, 0), typeof t == "string" ? i.write(t, 2) : i.set(t, 2);
       }
     }
-    const options = {
-      [kByteLength]: buf.length,
-      fin: true,
+    const o = {
+      [D]: i.length,
+      fin: !0,
       generateMask: this._generateMask,
-      mask: mask2,
+      mask: r,
       maskBuffer: this._maskBuffer,
       opcode: 8,
-      readOnly: false,
-      rsv1: false
+      readOnly: !1,
+      rsv1: !1
     };
-    if (this._state !== DEFAULT) {
-      this.enqueue([this.dispatch, buf, false, options, cb]);
-    } else {
-      this.sendFrame(Sender.frame(buf, options), cb);
-    }
+    this._state !== R ? this.enqueue([this.dispatch, i, !1, o, n]) : this.sendFrame(G.frame(i, o), n);
   }
   /**
    * Sends a ping message to the other peer.
@@ -2172,44 +1626,21 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @public
    */
-  ping(data, mask2, cb) {
-    let byteLength;
-    let readOnly;
-    if (typeof data === "string") {
-      byteLength = Buffer.byteLength(data);
-      readOnly = false;
-    } else if (isBlob$1(data)) {
-      byteLength = data.size;
-      readOnly = false;
-    } else {
-      data = toBuffer$1(data);
-      byteLength = data.length;
-      readOnly = toBuffer$1.readOnly;
-    }
-    if (byteLength > 125) {
+  ping(e, t, r) {
+    let n, i;
+    if (typeof e == "string" ? (n = Buffer.byteLength(e), i = !1) : H(e) ? (n = e.size, i = !1) : (e = j(e), n = e.length, i = j.readOnly), n > 125)
       throw new RangeError("The data size must not be greater than 125 bytes");
-    }
-    const options = {
-      [kByteLength]: byteLength,
-      fin: true,
+    const o = {
+      [D]: n,
+      fin: !0,
       generateMask: this._generateMask,
-      mask: mask2,
+      mask: t,
       maskBuffer: this._maskBuffer,
       opcode: 9,
-      readOnly,
-      rsv1: false
+      readOnly: i,
+      rsv1: !1
     };
-    if (isBlob$1(data)) {
-      if (this._state !== DEFAULT) {
-        this.enqueue([this.getBlobData, data, false, options, cb]);
-      } else {
-        this.getBlobData(data, false, options, cb);
-      }
-    } else if (this._state !== DEFAULT) {
-      this.enqueue([this.dispatch, data, false, options, cb]);
-    } else {
-      this.sendFrame(Sender.frame(data, options), cb);
-    }
+    H(e) ? this._state !== R ? this.enqueue([this.getBlobData, e, !1, o, r]) : this.getBlobData(e, !1, o, r) : this._state !== R ? this.enqueue([this.dispatch, e, !1, o, r]) : this.sendFrame(G.frame(e, o), r);
   }
   /**
    * Sends a pong message to the other peer.
@@ -2219,44 +1650,21 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @public
    */
-  pong(data, mask2, cb) {
-    let byteLength;
-    let readOnly;
-    if (typeof data === "string") {
-      byteLength = Buffer.byteLength(data);
-      readOnly = false;
-    } else if (isBlob$1(data)) {
-      byteLength = data.size;
-      readOnly = false;
-    } else {
-      data = toBuffer$1(data);
-      byteLength = data.length;
-      readOnly = toBuffer$1.readOnly;
-    }
-    if (byteLength > 125) {
+  pong(e, t, r) {
+    let n, i;
+    if (typeof e == "string" ? (n = Buffer.byteLength(e), i = !1) : H(e) ? (n = e.size, i = !1) : (e = j(e), n = e.length, i = j.readOnly), n > 125)
       throw new RangeError("The data size must not be greater than 125 bytes");
-    }
-    const options = {
-      [kByteLength]: byteLength,
-      fin: true,
+    const o = {
+      [D]: n,
+      fin: !0,
       generateMask: this._generateMask,
-      mask: mask2,
+      mask: t,
       maskBuffer: this._maskBuffer,
       opcode: 10,
-      readOnly,
-      rsv1: false
+      readOnly: i,
+      rsv1: !1
     };
-    if (isBlob$1(data)) {
-      if (this._state !== DEFAULT) {
-        this.enqueue([this.getBlobData, data, false, options, cb]);
-      } else {
-        this.getBlobData(data, false, options, cb);
-      }
-    } else if (this._state !== DEFAULT) {
-      this.enqueue([this.dispatch, data, false, options, cb]);
-    } else {
-      this.sendFrame(Sender.frame(data, options), cb);
-    }
+    H(e) ? this._state !== R ? this.enqueue([this.getBlobData, e, !1, o, r]) : this.getBlobData(e, !1, o, r) : this._state !== R ? this.enqueue([this.dispatch, e, !1, o, r]) : this.sendFrame(G.frame(e, o), r);
   }
   /**
    * Sends a data message to the other peer.
@@ -2274,55 +1682,21 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @public
    */
-  send(data, options, cb) {
-    const perMessageDeflate = this._extensions[PerMessageDeflate$1.extensionName];
-    let opcode = options.binary ? 2 : 1;
-    let rsv1 = options.compress;
-    let byteLength;
-    let readOnly;
-    if (typeof data === "string") {
-      byteLength = Buffer.byteLength(data);
-      readOnly = false;
-    } else if (isBlob$1(data)) {
-      byteLength = data.size;
-      readOnly = false;
-    } else {
-      data = toBuffer$1(data);
-      byteLength = data.length;
-      readOnly = toBuffer$1.readOnly;
-    }
-    if (this._firstFragment) {
-      this._firstFragment = false;
-      if (rsv1 && perMessageDeflate && perMessageDeflate.params[perMessageDeflate._isServer ? "server_no_context_takeover" : "client_no_context_takeover"]) {
-        rsv1 = byteLength >= perMessageDeflate._threshold;
-      }
-      this._compress = rsv1;
-    } else {
-      rsv1 = false;
-      opcode = 0;
-    }
-    if (options.fin) this._firstFragment = true;
-    const opts = {
-      [kByteLength]: byteLength,
-      fin: options.fin,
+  send(e, t, r) {
+    const n = this._extensions[Tt.extensionName];
+    let i = t.binary ? 2 : 1, o = t.compress, a, c;
+    typeof e == "string" ? (a = Buffer.byteLength(e), c = !1) : H(e) ? (a = e.size, c = !1) : (e = j(e), a = e.length, c = j.readOnly), this._firstFragment ? (this._firstFragment = !1, o && n && n.params[n._isServer ? "server_no_context_takeover" : "client_no_context_takeover"] && (o = a >= n._threshold), this._compress = o) : (o = !1, i = 0), t.fin && (this._firstFragment = !0);
+    const l = {
+      [D]: a,
+      fin: t.fin,
       generateMask: this._generateMask,
-      mask: options.mask,
+      mask: t.mask,
       maskBuffer: this._maskBuffer,
-      opcode,
-      readOnly,
-      rsv1
+      opcode: i,
+      readOnly: c,
+      rsv1: o
     };
-    if (isBlob$1(data)) {
-      if (this._state !== DEFAULT) {
-        this.enqueue([this.getBlobData, data, this._compress, opts, cb]);
-      } else {
-        this.getBlobData(data, this._compress, opts, cb);
-      }
-    } else if (this._state !== DEFAULT) {
-      this.enqueue([this.dispatch, data, this._compress, opts, cb]);
-    } else {
-      this.dispatch(data, this._compress, opts, cb);
-    }
+    H(e) ? this._state !== R ? this.enqueue([this.getBlobData, e, this._compress, l, r]) : this.getBlobData(e, this._compress, l, r) : this._state !== R ? this.enqueue([this.dispatch, e, this._compress, l, r]) : this.dispatch(e, this._compress, l, r);
   }
   /**
    * Gets the contents of a blob as binary data.
@@ -2347,28 +1721,20 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @private
    */
-  getBlobData(blob, compress, options, cb) {
-    this._bufferedBytes += options[kByteLength];
-    this._state = GET_BLOB_DATA;
-    blob.arrayBuffer().then((arrayBuffer) => {
+  getBlobData(e, t, r, n) {
+    this._bufferedBytes += r[D], this._state = jr, e.arrayBuffer().then((i) => {
       if (this._socket.destroyed) {
-        const err = new Error(
+        const a = new Error(
           "The socket was closed while the blob was being read"
         );
-        process.nextTick(callCallbacks, this, err, cb);
+        process.nextTick(it, this, a, n);
         return;
       }
-      this._bufferedBytes -= options[kByteLength];
-      const data = toBuffer$1(arrayBuffer);
-      if (!compress) {
-        this._state = DEFAULT;
-        this.sendFrame(Sender.frame(data, options), cb);
-        this.dequeue();
-      } else {
-        this.dispatch(data, compress, options, cb);
-      }
-    }).catch((err) => {
-      process.nextTick(onError, this, err, cb);
+      this._bufferedBytes -= r[D];
+      const o = j(i);
+      t ? this.dispatch(o, t, r, n) : (this._state = R, this.sendFrame(G.frame(o, r), n), this.dequeue());
+    }).catch((i) => {
+      process.nextTick(qr, this, i, n);
     });
   }
   /**
@@ -2394,27 +1760,21 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @private
    */
-  dispatch(data, compress, options, cb) {
-    if (!compress) {
-      this.sendFrame(Sender.frame(data, options), cb);
+  dispatch(e, t, r, n) {
+    if (!t) {
+      this.sendFrame(G.frame(e, r), n);
       return;
     }
-    const perMessageDeflate = this._extensions[PerMessageDeflate$1.extensionName];
-    this._bufferedBytes += options[kByteLength];
-    this._state = DEFLATING;
-    perMessageDeflate.compress(data, options.fin, (_, buf) => {
+    const i = this._extensions[Tt.extensionName];
+    this._bufferedBytes += r[D], this._state = Wr, i.compress(e, r.fin, (o, a) => {
       if (this._socket.destroyed) {
-        const err = new Error(
+        const c = new Error(
           "The socket was closed while data was being compressed"
         );
-        callCallbacks(this, err, cb);
+        it(this, c, n);
         return;
       }
-      this._bufferedBytes -= options[kByteLength];
-      this._state = DEFAULT;
-      options.readOnly = false;
-      this.sendFrame(Sender.frame(buf, options), cb);
-      this.dequeue();
+      this._bufferedBytes -= r[D], this._state = R, r.readOnly = !1, this.sendFrame(G.frame(a, r), n), this.dequeue();
     });
   }
   /**
@@ -2423,10 +1783,9 @@ let Sender$1 = class Sender {
    * @private
    */
   dequeue() {
-    while (this._state === DEFAULT && this._queue.length) {
-      const params = this._queue.shift();
-      this._bufferedBytes -= params[3][kByteLength];
-      Reflect.apply(params[0], this, params.slice(1));
+    for (; this._state === R && this._queue.length; ) {
+      const e = this._queue.shift();
+      this._bufferedBytes -= e[3][D], Reflect.apply(e[0], this, e.slice(1));
     }
   }
   /**
@@ -2435,9 +1794,8 @@ let Sender$1 = class Sender {
    * @param {Array} params Send operation parameters.
    * @private
    */
-  enqueue(params) {
-    this._bufferedBytes += params[3][kByteLength];
-    this._queue.push(params);
+  enqueue(e) {
+    this._bufferedBytes += e[3][D], this._queue.push(e);
   }
   /**
    * Sends a frame.
@@ -2446,66 +1804,48 @@ let Sender$1 = class Sender {
    * @param {Function} [cb] Callback
    * @private
    */
-  sendFrame(list, cb) {
-    if (list.length === 2) {
-      this._socket.cork();
-      this._socket.write(list[0]);
-      this._socket.write(list[1], cb);
-      this._socket.uncork();
-    } else {
-      this._socket.write(list[0], cb);
-    }
+  sendFrame(e, t) {
+    e.length === 2 ? (this._socket.cork(), this._socket.write(e[0]), this._socket.write(e[1], t), this._socket.uncork()) : this._socket.write(e[0], t);
   }
 };
-var sender = Sender$1;
-function callCallbacks(sender2, err, cb) {
-  if (typeof cb === "function") cb(err);
-  for (let i = 0; i < sender2._queue.length; i++) {
-    const params = sender2._queue[i];
-    const callback = params[params.length - 1];
-    if (typeof callback === "function") callback(err);
+var Gr = Vr;
+function it(s, e, t) {
+  typeof t == "function" && t(e);
+  for (let r = 0; r < s._queue.length; r++) {
+    const n = s._queue[r], i = n[n.length - 1];
+    typeof i == "function" && i(e);
   }
 }
-function onError(sender2, err, cb) {
-  callCallbacks(sender2, err, cb);
-  sender2.onerror(err);
+function qr(s, e, t) {
+  it(s, e, t), s.onerror(e);
 }
-const { kForOnEventAttribute: kForOnEventAttribute$1, kListener: kListener$1 } = constants;
-const kCode = Symbol("kCode");
-const kData = Symbol("kData");
-const kError = Symbol("kError");
-const kMessage = Symbol("kMessage");
-const kReason = Symbol("kReason");
-const kTarget = Symbol("kTarget");
-const kType = Symbol("kType");
-const kWasClean = Symbol("kWasClean");
-class Event {
+const { kForOnEventAttribute: oe, kListener: Ge } = W, Ot = Symbol("kCode"), Pt = Symbol("kData"), Dt = Symbol("kError"), Rt = Symbol("kMessage"), Nt = Symbol("kReason"), Y = Symbol("kTarget"), It = Symbol("kType"), At = Symbol("kWasClean");
+class se {
   /**
    * Create a new `Event`.
    *
    * @param {String} type The name of the event
    * @throws {TypeError} If the `type` argument is not specified
    */
-  constructor(type) {
-    this[kTarget] = null;
-    this[kType] = type;
+  constructor(e) {
+    this[Y] = null, this[It] = e;
   }
   /**
    * @type {*}
    */
   get target() {
-    return this[kTarget];
+    return this[Y];
   }
   /**
    * @type {String}
    */
   get type() {
-    return this[kType];
+    return this[It];
   }
 }
-Object.defineProperty(Event.prototype, "target", { enumerable: true });
-Object.defineProperty(Event.prototype, "type", { enumerable: true });
-class CloseEvent extends Event {
+Object.defineProperty(se.prototype, "target", { enumerable: !0 });
+Object.defineProperty(se.prototype, "type", { enumerable: !0 });
+class Ae extends se {
   /**
    * Create a new `CloseEvent`.
    *
@@ -2519,35 +1859,32 @@ class CloseEvent extends Event {
    * @param {Boolean} [options.wasClean=false] Indicates whether or not the
    *     connection was cleanly closed
    */
-  constructor(type, options = {}) {
-    super(type);
-    this[kCode] = options.code === void 0 ? 0 : options.code;
-    this[kReason] = options.reason === void 0 ? "" : options.reason;
-    this[kWasClean] = options.wasClean === void 0 ? false : options.wasClean;
+  constructor(e, t = {}) {
+    super(e), this[Ot] = t.code === void 0 ? 0 : t.code, this[Nt] = t.reason === void 0 ? "" : t.reason, this[At] = t.wasClean === void 0 ? !1 : t.wasClean;
   }
   /**
    * @type {Number}
    */
   get code() {
-    return this[kCode];
+    return this[Ot];
   }
   /**
    * @type {String}
    */
   get reason() {
-    return this[kReason];
+    return this[Nt];
   }
   /**
    * @type {Boolean}
    */
   get wasClean() {
-    return this[kWasClean];
+    return this[At];
   }
 }
-Object.defineProperty(CloseEvent.prototype, "code", { enumerable: true });
-Object.defineProperty(CloseEvent.prototype, "reason", { enumerable: true });
-Object.defineProperty(CloseEvent.prototype, "wasClean", { enumerable: true });
-class ErrorEvent extends Event {
+Object.defineProperty(Ae.prototype, "code", { enumerable: !0 });
+Object.defineProperty(Ae.prototype, "reason", { enumerable: !0 });
+Object.defineProperty(Ae.prototype, "wasClean", { enumerable: !0 });
+class ut extends se {
   /**
    * Create a new `ErrorEvent`.
    *
@@ -2557,27 +1894,25 @@ class ErrorEvent extends Event {
    * @param {*} [options.error=null] The error that generated this event
    * @param {String} [options.message=''] The error message
    */
-  constructor(type, options = {}) {
-    super(type);
-    this[kError] = options.error === void 0 ? null : options.error;
-    this[kMessage] = options.message === void 0 ? "" : options.message;
+  constructor(e, t = {}) {
+    super(e), this[Dt] = t.error === void 0 ? null : t.error, this[Rt] = t.message === void 0 ? "" : t.message;
   }
   /**
    * @type {*}
    */
   get error() {
-    return this[kError];
+    return this[Dt];
   }
   /**
    * @type {String}
    */
   get message() {
-    return this[kMessage];
+    return this[Rt];
   }
 }
-Object.defineProperty(ErrorEvent.prototype, "error", { enumerable: true });
-Object.defineProperty(ErrorEvent.prototype, "message", { enumerable: true });
-class MessageEvent extends Event {
+Object.defineProperty(ut.prototype, "error", { enumerable: !0 });
+Object.defineProperty(ut.prototype, "message", { enumerable: !0 });
+class ns extends se {
   /**
    * Create a new `MessageEvent`.
    *
@@ -2586,19 +1921,18 @@ class MessageEvent extends Event {
    *     attributes via object members of the same name
    * @param {*} [options.data=null] The message content
    */
-  constructor(type, options = {}) {
-    super(type);
-    this[kData] = options.data === void 0 ? null : options.data;
+  constructor(e, t = {}) {
+    super(e), this[Pt] = t.data === void 0 ? null : t.data;
   }
   /**
    * @type {*}
    */
   get data() {
-    return this[kData];
+    return this[Pt];
   }
 }
-Object.defineProperty(MessageEvent.prototype, "data", { enumerable: true });
-const EventTarget = {
+Object.defineProperty(ns.prototype, "data", { enumerable: !0 });
+const Hr = {
   /**
    * Register an event listener.
    *
@@ -2611,56 +1945,43 @@ const EventTarget = {
    *     the listener would be automatically removed when invoked.
    * @public
    */
-  addEventListener(type, handler, options = {}) {
-    for (const listener of this.listeners(type)) {
-      if (!options[kForOnEventAttribute$1] && listener[kListener$1] === handler && !listener[kForOnEventAttribute$1]) {
+  addEventListener(s, e, t = {}) {
+    for (const n of this.listeners(s))
+      if (!t[oe] && n[Ge] === e && !n[oe])
         return;
-      }
-    }
-    let wrapper;
-    if (type === "message") {
-      wrapper = function onMessage(data, isBinary) {
-        const event = new MessageEvent("message", {
-          data: isBinary ? data : data.toString()
+    let r;
+    if (s === "message")
+      r = function(i, o) {
+        const a = new ns("message", {
+          data: o ? i : i.toString()
         });
-        event[kTarget] = this;
-        callListener(handler, this, event);
+        a[Y] = this, Se(e, this, a);
       };
-    } else if (type === "close") {
-      wrapper = function onClose(code, message) {
-        const event = new CloseEvent("close", {
-          code,
-          reason: message.toString(),
+    else if (s === "close")
+      r = function(i, o) {
+        const a = new Ae("close", {
+          code: i,
+          reason: o.toString(),
           wasClean: this._closeFrameReceived && this._closeFrameSent
         });
-        event[kTarget] = this;
-        callListener(handler, this, event);
+        a[Y] = this, Se(e, this, a);
       };
-    } else if (type === "error") {
-      wrapper = function onError2(error) {
-        const event = new ErrorEvent("error", {
-          error,
-          message: error.message
+    else if (s === "error")
+      r = function(i) {
+        const o = new ut("error", {
+          error: i,
+          message: i.message
         });
-        event[kTarget] = this;
-        callListener(handler, this, event);
+        o[Y] = this, Se(e, this, o);
       };
-    } else if (type === "open") {
-      wrapper = function onOpen() {
-        const event = new Event("open");
-        event[kTarget] = this;
-        callListener(handler, this, event);
+    else if (s === "open")
+      r = function() {
+        const i = new se("open");
+        i[Y] = this, Se(e, this, i);
       };
-    } else {
+    else
       return;
-    }
-    wrapper[kForOnEventAttribute$1] = !!options[kForOnEventAttribute$1];
-    wrapper[kListener$1] = handler;
-    if (options.once) {
-      this.once(type, wrapper);
-    } else {
-      this.on(type, wrapper);
-    }
+    r[oe] = !!t[oe], r[Ge] = e, t.once ? this.once(s, r) : this.on(s, r);
   },
   /**
    * Remove an event listener.
@@ -2669,204 +1990,113 @@ const EventTarget = {
    * @param {(Function|Object)} handler The listener to remove
    * @public
    */
-  removeEventListener(type, handler) {
-    for (const listener of this.listeners(type)) {
-      if (listener[kListener$1] === handler && !listener[kForOnEventAttribute$1]) {
-        this.removeListener(type, listener);
+  removeEventListener(s, e) {
+    for (const t of this.listeners(s))
+      if (t[Ge] === e && !t[oe]) {
+        this.removeListener(s, t);
         break;
       }
-    }
   }
 };
-var eventTarget = {
-  EventTarget
+var zr = {
+  EventTarget: Hr
 };
-function callListener(listener, thisArg, event) {
-  if (typeof listener === "object" && listener.handleEvent) {
-    listener.handleEvent.call(listener, event);
-  } else {
-    listener.call(thisArg, event);
-  }
+function Se(s, e, t) {
+  typeof s == "object" && s.handleEvent ? s.handleEvent.call(s, t) : s.call(e, t);
 }
-const { tokenChars: tokenChars$1 } = validationExports;
-function push(dest, name, elem) {
-  if (dest[name] === void 0) dest[name] = [elem];
-  else dest[name].push(elem);
+const { tokenChars: ae } = me;
+function N(s, e, t) {
+  s[e] === void 0 ? s[e] = [t] : s[e].push(t);
 }
-function parse$1(header) {
-  const offers = /* @__PURE__ */ Object.create(null);
-  let params = /* @__PURE__ */ Object.create(null);
-  let mustUnescape = false;
-  let isEscaping = false;
-  let inQuotes = false;
-  let extensionName;
-  let paramName;
-  let start = -1;
-  let code = -1;
-  let end = -1;
-  let i = 0;
-  for (; i < header.length; i++) {
-    code = header.charCodeAt(i);
-    if (extensionName === void 0) {
-      if (end === -1 && tokenChars$1[code] === 1) {
-        if (start === -1) start = i;
-      } else if (i !== 0 && (code === 32 || code === 9)) {
-        if (end === -1 && start !== -1) end = i;
-      } else if (code === 59 || code === 44) {
-        if (start === -1) {
-          throw new SyntaxError(`Unexpected character at index ${i}`);
-        }
-        if (end === -1) end = i;
-        const name = header.slice(start, end);
-        if (code === 44) {
-          push(offers, name, params);
-          params = /* @__PURE__ */ Object.create(null);
-        } else {
-          extensionName = name;
-        }
-        start = end = -1;
-      } else {
-        throw new SyntaxError(`Unexpected character at index ${i}`);
-      }
-    } else if (paramName === void 0) {
-      if (end === -1 && tokenChars$1[code] === 1) {
-        if (start === -1) start = i;
-      } else if (code === 32 || code === 9) {
-        if (end === -1 && start !== -1) end = i;
-      } else if (code === 59 || code === 44) {
-        if (start === -1) {
-          throw new SyntaxError(`Unexpected character at index ${i}`);
-        }
-        if (end === -1) end = i;
-        push(params, header.slice(start, end), true);
-        if (code === 44) {
-          push(offers, extensionName, params);
-          params = /* @__PURE__ */ Object.create(null);
-          extensionName = void 0;
-        }
-        start = end = -1;
-      } else if (code === 61 && start !== -1 && end === -1) {
-        paramName = header.slice(start, i);
-        start = end = -1;
-      } else {
-        throw new SyntaxError(`Unexpected character at index ${i}`);
-      }
-    } else {
-      if (isEscaping) {
-        if (tokenChars$1[code] !== 1) {
-          throw new SyntaxError(`Unexpected character at index ${i}`);
-        }
-        if (start === -1) start = i;
-        else if (!mustUnescape) mustUnescape = true;
-        isEscaping = false;
-      } else if (inQuotes) {
-        if (tokenChars$1[code] === 1) {
-          if (start === -1) start = i;
-        } else if (code === 34 && start !== -1) {
-          inQuotes = false;
-          end = i;
-        } else if (code === 92) {
-          isEscaping = true;
-        } else {
-          throw new SyntaxError(`Unexpected character at index ${i}`);
-        }
-      } else if (code === 34 && header.charCodeAt(i - 1) === 61) {
-        inQuotes = true;
-      } else if (end === -1 && tokenChars$1[code] === 1) {
-        if (start === -1) start = i;
-      } else if (start !== -1 && (code === 32 || code === 9)) {
-        if (end === -1) end = i;
-      } else if (code === 59 || code === 44) {
-        if (start === -1) {
-          throw new SyntaxError(`Unexpected character at index ${i}`);
-        }
-        if (end === -1) end = i;
-        let value = header.slice(start, end);
-        if (mustUnescape) {
-          value = value.replace(/\\/g, "");
-          mustUnescape = false;
-        }
-        push(params, paramName, value);
-        if (code === 44) {
-          push(offers, extensionName, params);
-          params = /* @__PURE__ */ Object.create(null);
-          extensionName = void 0;
-        }
-        paramName = void 0;
-        start = end = -1;
-      } else {
-        throw new SyntaxError(`Unexpected character at index ${i}`);
-      }
-    }
-  }
-  if (start === -1 || inQuotes || code === 32 || code === 9) {
+function Jr(s) {
+  const e = /* @__PURE__ */ Object.create(null);
+  let t = /* @__PURE__ */ Object.create(null), r = !1, n = !1, i = !1, o, a, c = -1, l = -1, f = -1, h = 0;
+  for (; h < s.length; h++)
+    if (l = s.charCodeAt(h), o === void 0)
+      if (f === -1 && ae[l] === 1)
+        c === -1 && (c = h);
+      else if (h !== 0 && (l === 32 || l === 9))
+        f === -1 && c !== -1 && (f = h);
+      else if (l === 59 || l === 44) {
+        if (c === -1)
+          throw new SyntaxError(`Unexpected character at index ${h}`);
+        f === -1 && (f = h);
+        const _ = s.slice(c, f);
+        l === 44 ? (N(e, _, t), t = /* @__PURE__ */ Object.create(null)) : o = _, c = f = -1;
+      } else
+        throw new SyntaxError(`Unexpected character at index ${h}`);
+    else if (a === void 0)
+      if (f === -1 && ae[l] === 1)
+        c === -1 && (c = h);
+      else if (l === 32 || l === 9)
+        f === -1 && c !== -1 && (f = h);
+      else if (l === 59 || l === 44) {
+        if (c === -1)
+          throw new SyntaxError(`Unexpected character at index ${h}`);
+        f === -1 && (f = h), N(t, s.slice(c, f), !0), l === 44 && (N(e, o, t), t = /* @__PURE__ */ Object.create(null), o = void 0), c = f = -1;
+      } else if (l === 61 && c !== -1 && f === -1)
+        a = s.slice(c, h), c = f = -1;
+      else
+        throw new SyntaxError(`Unexpected character at index ${h}`);
+    else if (n) {
+      if (ae[l] !== 1)
+        throw new SyntaxError(`Unexpected character at index ${h}`);
+      c === -1 ? c = h : r || (r = !0), n = !1;
+    } else if (i)
+      if (ae[l] === 1)
+        c === -1 && (c = h);
+      else if (l === 34 && c !== -1)
+        i = !1, f = h;
+      else if (l === 92)
+        n = !0;
+      else
+        throw new SyntaxError(`Unexpected character at index ${h}`);
+    else if (l === 34 && s.charCodeAt(h - 1) === 61)
+      i = !0;
+    else if (f === -1 && ae[l] === 1)
+      c === -1 && (c = h);
+    else if (c !== -1 && (l === 32 || l === 9))
+      f === -1 && (f = h);
+    else if (l === 59 || l === 44) {
+      if (c === -1)
+        throw new SyntaxError(`Unexpected character at index ${h}`);
+      f === -1 && (f = h);
+      let _ = s.slice(c, f);
+      r && (_ = _.replace(/\\/g, ""), r = !1), N(t, a, _), l === 44 && (N(e, o, t), t = /* @__PURE__ */ Object.create(null), o = void 0), a = void 0, c = f = -1;
+    } else
+      throw new SyntaxError(`Unexpected character at index ${h}`);
+  if (c === -1 || i || l === 32 || l === 9)
     throw new SyntaxError("Unexpected end of input");
-  }
-  if (end === -1) end = i;
-  const token = header.slice(start, end);
-  if (extensionName === void 0) {
-    push(offers, token, params);
-  } else {
-    if (paramName === void 0) {
-      push(params, token, true);
-    } else if (mustUnescape) {
-      push(params, paramName, token.replace(/\\/g, ""));
-    } else {
-      push(params, paramName, token);
-    }
-    push(offers, extensionName, params);
-  }
-  return offers;
+  f === -1 && (f = h);
+  const k = s.slice(c, f);
+  return o === void 0 ? N(e, k, t) : (a === void 0 ? N(t, k, !0) : r ? N(t, a, k.replace(/\\/g, "")) : N(t, a, k), N(e, o, t)), e;
 }
-function format$1(extensions) {
-  return Object.keys(extensions).map((extension2) => {
-    let configurations = extensions[extension2];
-    if (!Array.isArray(configurations)) configurations = [configurations];
-    return configurations.map((params) => {
-      return [extension2].concat(
-        Object.keys(params).map((k) => {
-          let values = params[k];
-          if (!Array.isArray(values)) values = [values];
-          return values.map((v) => v === true ? k : `${k}=${v}`).join("; ");
-        })
-      ).join("; ");
-    }).join(", ");
+function Yr(s) {
+  return Object.keys(s).map((e) => {
+    let t = s[e];
+    return Array.isArray(t) || (t = [t]), t.map((r) => [e].concat(
+      Object.keys(r).map((n) => {
+        let i = r[n];
+        return Array.isArray(i) || (i = [i]), i.map((o) => o === !0 ? n : `${n}=${o}`).join("; ");
+      })
+    ).join("; ")).join(", ");
   }).join(", ");
 }
-var extension = { format: format$1, parse: parse$1 };
-const EventEmitter = require$$0$3;
-const https = require$$1$1;
-const http = require$$2;
-const net = require$$3;
-const tls = require$$4;
-const { randomBytes, createHash: createHash$1 } = require$$1;
-const { Duplex: Duplex$2, Readable } = require$$0$2;
-const { URL: URL$1 } = require$$7;
-const PerMessageDeflate2 = permessageDeflate;
-const Receiver2 = receiver;
-const Sender2 = sender;
-const { isBlob } = validationExports;
-const {
-  BINARY_TYPES,
-  CLOSE_TIMEOUT: CLOSE_TIMEOUT$1,
-  EMPTY_BUFFER,
-  GUID: GUID$1,
-  kForOnEventAttribute,
-  kListener,
-  kStatusCode,
-  kWebSocket: kWebSocket$1,
-  NOOP
-} = constants;
-const {
-  EventTarget: { addEventListener, removeEventListener }
-} = eventTarget;
-const { format, parse } = extension;
-const { toBuffer } = bufferUtilExports;
-const kAborted = Symbol("kAborted");
-const protocolVersions = [8, 13];
-const readyStates = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"];
-const subprotocolRegex = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
-class WebSocket extends EventEmitter {
+var Xr = { format: Yr, parse: Jr };
+const Zr = Ps, Qr = Ds, en = Rs, is = Ns, tn = Is, { randomBytes: sn, createHash: rn } = at, { Duplex: Hi, Readable: zi } = fe, { URL: qe } = Ls, M = ct, nn = Fr, on = Gr, { isBlob: an } = me, {
+  BINARY_TYPES: Lt,
+  CLOSE_TIMEOUT: ln,
+  EMPTY_BUFFER: ve,
+  GUID: cn,
+  kForOnEventAttribute: He,
+  kListener: un,
+  kStatusCode: dn,
+  kWebSocket: v,
+  NOOP: os
+} = W, {
+  EventTarget: { addEventListener: fn, removeEventListener: hn }
+} = zr, { format: mn, parse: pn } = Xr, { toBuffer: gn } = Ie, as = Symbol("kAborted"), ze = [8, 13], C = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"], yn = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
+class u extends Zr {
   /**
    * Create a new `WebSocket`.
    *
@@ -2874,42 +2104,8 @@ class WebSocket extends EventEmitter {
    * @param {(String|String[])} [protocols] The subprotocols
    * @param {Object} [options] Connection options
    */
-  constructor(address, protocols, options) {
-    super();
-    this._binaryType = BINARY_TYPES[0];
-    this._closeCode = 1006;
-    this._closeFrameReceived = false;
-    this._closeFrameSent = false;
-    this._closeMessage = EMPTY_BUFFER;
-    this._closeTimer = null;
-    this._errorEmitted = false;
-    this._extensions = {};
-    this._paused = false;
-    this._protocol = "";
-    this._readyState = WebSocket.CONNECTING;
-    this._receiver = null;
-    this._sender = null;
-    this._socket = null;
-    if (address !== null) {
-      this._bufferedAmount = 0;
-      this._isServer = false;
-      this._redirects = 0;
-      if (protocols === void 0) {
-        protocols = [];
-      } else if (!Array.isArray(protocols)) {
-        if (typeof protocols === "object" && protocols !== null) {
-          options = protocols;
-          protocols = [];
-        } else {
-          protocols = [protocols];
-        }
-      }
-      initAsClient(this, address, protocols, options);
-    } else {
-      this._autoPong = options.autoPong;
-      this._closeTimeout = options.closeTimeout;
-      this._isServer = true;
-    }
+  constructor(e, t, r) {
+    super(), this._binaryType = Lt[0], this._closeCode = 1006, this._closeFrameReceived = !1, this._closeFrameSent = !1, this._closeMessage = ve, this._closeTimer = null, this._errorEmitted = !1, this._extensions = {}, this._paused = !1, this._protocol = "", this._readyState = u.CONNECTING, this._receiver = null, this._sender = null, this._socket = null, e !== null ? (this._bufferedAmount = 0, this._isServer = !1, this._redirects = 0, t === void 0 ? t = [] : Array.isArray(t) || (typeof t == "object" && t !== null ? (r = t, t = []) : t = [t]), ls(this, e, t, r)) : (this._autoPong = r.autoPong, this._closeTimeout = r.closeTimeout, this._isServer = !0);
   }
   /**
    * For historical reasons, the custom "nodebuffer" type is used by the default
@@ -2920,17 +2116,14 @@ class WebSocket extends EventEmitter {
   get binaryType() {
     return this._binaryType;
   }
-  set binaryType(type) {
-    if (!BINARY_TYPES.includes(type)) return;
-    this._binaryType = type;
-    if (this._receiver) this._receiver._binaryType = type;
+  set binaryType(e) {
+    Lt.includes(e) && (this._binaryType = e, this._receiver && (this._receiver._binaryType = e));
   }
   /**
    * @type {Number}
    */
   get bufferedAmount() {
-    if (!this._socket) return this._bufferedAmount;
-    return this._socket._writableState.length + this._sender._bufferedBytes;
+    return this._socket ? this._socket._writableState.length + this._sender._bufferedBytes : this._bufferedAmount;
   }
   /**
    * @type {String}
@@ -3006,38 +2199,16 @@ class WebSocket extends EventEmitter {
    *     not to skip UTF-8 validation for text and close messages
    * @private
    */
-  setSocket(socket, head, options) {
-    const receiver2 = new Receiver2({
-      allowSynchronousEvents: options.allowSynchronousEvents,
+  setSocket(e, t, r) {
+    const n = new nn({
+      allowSynchronousEvents: r.allowSynchronousEvents,
       binaryType: this.binaryType,
       extensions: this._extensions,
       isServer: this._isServer,
-      maxPayload: options.maxPayload,
-      skipUTF8Validation: options.skipUTF8Validation
-    });
-    const sender2 = new Sender2(socket, this._extensions, options.generateMask);
-    this._receiver = receiver2;
-    this._sender = sender2;
-    this._socket = socket;
-    receiver2[kWebSocket$1] = this;
-    sender2[kWebSocket$1] = this;
-    socket[kWebSocket$1] = this;
-    receiver2.on("conclude", receiverOnConclude);
-    receiver2.on("drain", receiverOnDrain);
-    receiver2.on("error", receiverOnError);
-    receiver2.on("message", receiverOnMessage);
-    receiver2.on("ping", receiverOnPing);
-    receiver2.on("pong", receiverOnPong);
-    sender2.onerror = senderOnError;
-    if (socket.setTimeout) socket.setTimeout(0);
-    if (socket.setNoDelay) socket.setNoDelay();
-    if (head.length > 0) socket.unshift(head);
-    socket.on("close", socketOnClose);
-    socket.on("data", socketOnData);
-    socket.on("end", socketOnEnd);
-    socket.on("error", socketOnError);
-    this._readyState = WebSocket.OPEN;
-    this.emit("open");
+      maxPayload: r.maxPayload,
+      skipUTF8Validation: r.skipUTF8Validation
+    }), i = new on(e, this._extensions, r.generateMask);
+    this._receiver = n, this._sender = i, this._socket = e, n[v] = this, i[v] = this, e[v] = this, n.on("conclude", wn), n.on("drain", En), n.on("error", kn), n.on("message", bn), n.on("ping", Tn), n.on("pong", xn), i.onerror = On, e.setTimeout && e.setTimeout(0), e.setNoDelay && e.setNoDelay(), t.length > 0 && e.unshift(t), e.on("close", ds), e.on("data", Le), e.on("end", fs), e.on("error", hs), this._readyState = u.OPEN, this.emit("open");
   }
   /**
    * Emit the `'close'` event.
@@ -3046,16 +2217,10 @@ class WebSocket extends EventEmitter {
    */
   emitClose() {
     if (!this._socket) {
-      this._readyState = WebSocket.CLOSED;
-      this.emit("close", this._closeCode, this._closeMessage);
+      this._readyState = u.CLOSED, this.emit("close", this._closeCode, this._closeMessage);
       return;
     }
-    if (this._extensions[PerMessageDeflate2.extensionName]) {
-      this._extensions[PerMessageDeflate2.extensionName].cleanup();
-    }
-    this._receiver.removeAllListeners();
-    this._readyState = WebSocket.CLOSED;
-    this.emit("close", this._closeCode, this._closeMessage);
+    this._extensions[M.extensionName] && this._extensions[M.extensionName].cleanup(), this._receiver.removeAllListeners(), this._readyState = u.CLOSED, this.emit("close", this._closeCode, this._closeMessage);
   }
   /**
    * Start a closing handshake.
@@ -3077,28 +2242,20 @@ class WebSocket extends EventEmitter {
    *     closing
    * @public
    */
-  close(code, data) {
-    if (this.readyState === WebSocket.CLOSED) return;
-    if (this.readyState === WebSocket.CONNECTING) {
-      const msg = "WebSocket was closed before the connection was established";
-      abortHandshake(this, this._req, msg);
-      return;
-    }
-    if (this.readyState === WebSocket.CLOSING) {
-      if (this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted)) {
-        this._socket.end();
+  close(e, t) {
+    if (this.readyState !== u.CLOSED) {
+      if (this.readyState === u.CONNECTING) {
+        x(this, this._req, "WebSocket was closed before the connection was established");
+        return;
       }
-      return;
-    }
-    this._readyState = WebSocket.CLOSING;
-    this._sender.close(code, data, !this._isServer, (err) => {
-      if (err) return;
-      this._closeFrameSent = true;
-      if (this._closeFrameReceived || this._receiver._writableState.errorEmitted) {
-        this._socket.end();
+      if (this.readyState === u.CLOSING) {
+        this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted) && this._socket.end();
+        return;
       }
-    });
-    setCloseTimer(this);
+      this._readyState = u.CLOSING, this._sender.close(e, t, !this._isServer, (r) => {
+        r || (this._closeFrameSent = !0, (this._closeFrameReceived || this._receiver._writableState.errorEmitted) && this._socket.end());
+      }), us(this);
+    }
   }
   /**
    * Pause the socket.
@@ -3106,11 +2263,7 @@ class WebSocket extends EventEmitter {
    * @public
    */
   pause() {
-    if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) {
-      return;
-    }
-    this._paused = true;
-    this._socket.pause();
+    this.readyState === u.CONNECTING || this.readyState === u.CLOSED || (this._paused = !0, this._socket.pause());
   }
   /**
    * Send a ping.
@@ -3120,24 +2273,14 @@ class WebSocket extends EventEmitter {
    * @param {Function} [cb] Callback which is executed when the ping is sent
    * @public
    */
-  ping(data, mask2, cb) {
-    if (this.readyState === WebSocket.CONNECTING) {
+  ping(e, t, r) {
+    if (this.readyState === u.CONNECTING)
       throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-    }
-    if (typeof data === "function") {
-      cb = data;
-      data = mask2 = void 0;
-    } else if (typeof mask2 === "function") {
-      cb = mask2;
-      mask2 = void 0;
-    }
-    if (typeof data === "number") data = data.toString();
-    if (this.readyState !== WebSocket.OPEN) {
-      sendAfterClose(this, data, cb);
+    if (typeof e == "function" ? (r = e, e = t = void 0) : typeof t == "function" && (r = t, t = void 0), typeof e == "number" && (e = e.toString()), this.readyState !== u.OPEN) {
+      Je(this, e, r);
       return;
     }
-    if (mask2 === void 0) mask2 = !this._isServer;
-    this._sender.ping(data || EMPTY_BUFFER, mask2, cb);
+    t === void 0 && (t = !this._isServer), this._sender.ping(e || ve, t, r);
   }
   /**
    * Send a pong.
@@ -3147,24 +2290,14 @@ class WebSocket extends EventEmitter {
    * @param {Function} [cb] Callback which is executed when the pong is sent
    * @public
    */
-  pong(data, mask2, cb) {
-    if (this.readyState === WebSocket.CONNECTING) {
+  pong(e, t, r) {
+    if (this.readyState === u.CONNECTING)
       throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-    }
-    if (typeof data === "function") {
-      cb = data;
-      data = mask2 = void 0;
-    } else if (typeof mask2 === "function") {
-      cb = mask2;
-      mask2 = void 0;
-    }
-    if (typeof data === "number") data = data.toString();
-    if (this.readyState !== WebSocket.OPEN) {
-      sendAfterClose(this, data, cb);
+    if (typeof e == "function" ? (r = e, e = t = void 0) : typeof t == "function" && (r = t, t = void 0), typeof e == "number" && (e = e.toString()), this.readyState !== u.OPEN) {
+      Je(this, e, r);
       return;
     }
-    if (mask2 === void 0) mask2 = !this._isServer;
-    this._sender.pong(data || EMPTY_BUFFER, mask2, cb);
+    t === void 0 && (t = !this._isServer), this._sender.pong(e || ve, t, r);
   }
   /**
    * Resume the socket.
@@ -3172,11 +2305,7 @@ class WebSocket extends EventEmitter {
    * @public
    */
   resume() {
-    if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) {
-      return;
-    }
-    this._paused = false;
-    if (!this._receiver._writableState.needDrain) this._socket.resume();
+    this.readyState === u.CONNECTING || this.readyState === u.CLOSED || (this._paused = !1, this._receiver._writableState.needDrain || this._socket.resume());
   }
   /**
    * Send a data message.
@@ -3193,30 +2322,21 @@ class WebSocket extends EventEmitter {
    * @param {Function} [cb] Callback which is executed when data is written out
    * @public
    */
-  send(data, options, cb) {
-    if (this.readyState === WebSocket.CONNECTING) {
+  send(e, t, r) {
+    if (this.readyState === u.CONNECTING)
       throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-    }
-    if (typeof options === "function") {
-      cb = options;
-      options = {};
-    }
-    if (typeof data === "number") data = data.toString();
-    if (this.readyState !== WebSocket.OPEN) {
-      sendAfterClose(this, data, cb);
+    if (typeof t == "function" && (r = t, t = {}), typeof e == "number" && (e = e.toString()), this.readyState !== u.OPEN) {
+      Je(this, e, r);
       return;
     }
-    const opts = {
-      binary: typeof data !== "string",
+    const n = {
+      binary: typeof e != "string",
       mask: !this._isServer,
-      compress: true,
-      fin: true,
-      ...options
+      compress: !0,
+      fin: !0,
+      ...t
     };
-    if (!this._extensions[PerMessageDeflate2.extensionName]) {
-      opts.compress = false;
-    }
-    this._sender.send(data || EMPTY_BUFFER, opts, cb);
+    this._extensions[M.extensionName] || (n.compress = !1), this._sender.send(e || ve, n, r);
   }
   /**
    * Forcibly close the connection.
@@ -3224,49 +2344,46 @@ class WebSocket extends EventEmitter {
    * @public
    */
   terminate() {
-    if (this.readyState === WebSocket.CLOSED) return;
-    if (this.readyState === WebSocket.CONNECTING) {
-      const msg = "WebSocket was closed before the connection was established";
-      abortHandshake(this, this._req, msg);
-      return;
-    }
-    if (this._socket) {
-      this._readyState = WebSocket.CLOSING;
-      this._socket.destroy();
+    if (this.readyState !== u.CLOSED) {
+      if (this.readyState === u.CONNECTING) {
+        x(this, this._req, "WebSocket was closed before the connection was established");
+        return;
+      }
+      this._socket && (this._readyState = u.CLOSING, this._socket.destroy());
     }
   }
 }
-Object.defineProperty(WebSocket, "CONNECTING", {
-  enumerable: true,
-  value: readyStates.indexOf("CONNECTING")
+Object.defineProperty(u, "CONNECTING", {
+  enumerable: !0,
+  value: C.indexOf("CONNECTING")
 });
-Object.defineProperty(WebSocket.prototype, "CONNECTING", {
-  enumerable: true,
-  value: readyStates.indexOf("CONNECTING")
+Object.defineProperty(u.prototype, "CONNECTING", {
+  enumerable: !0,
+  value: C.indexOf("CONNECTING")
 });
-Object.defineProperty(WebSocket, "OPEN", {
-  enumerable: true,
-  value: readyStates.indexOf("OPEN")
+Object.defineProperty(u, "OPEN", {
+  enumerable: !0,
+  value: C.indexOf("OPEN")
 });
-Object.defineProperty(WebSocket.prototype, "OPEN", {
-  enumerable: true,
-  value: readyStates.indexOf("OPEN")
+Object.defineProperty(u.prototype, "OPEN", {
+  enumerable: !0,
+  value: C.indexOf("OPEN")
 });
-Object.defineProperty(WebSocket, "CLOSING", {
-  enumerable: true,
-  value: readyStates.indexOf("CLOSING")
+Object.defineProperty(u, "CLOSING", {
+  enumerable: !0,
+  value: C.indexOf("CLOSING")
 });
-Object.defineProperty(WebSocket.prototype, "CLOSING", {
-  enumerable: true,
-  value: readyStates.indexOf("CLOSING")
+Object.defineProperty(u.prototype, "CLOSING", {
+  enumerable: !0,
+  value: C.indexOf("CLOSING")
 });
-Object.defineProperty(WebSocket, "CLOSED", {
-  enumerable: true,
-  value: readyStates.indexOf("CLOSED")
+Object.defineProperty(u, "CLOSED", {
+  enumerable: !0,
+  value: C.indexOf("CLOSED")
 });
-Object.defineProperty(WebSocket.prototype, "CLOSED", {
-  enumerable: true,
-  value: readyStates.indexOf("CLOSED")
+Object.defineProperty(u.prototype, "CLOSED", {
+  enumerable: !0,
+  value: C.indexOf("CLOSED")
 });
 [
   "binaryType",
@@ -3276,47 +2393,44 @@ Object.defineProperty(WebSocket.prototype, "CLOSED", {
   "protocol",
   "readyState",
   "url"
-].forEach((property) => {
-  Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
+].forEach((s) => {
+  Object.defineProperty(u.prototype, s, { enumerable: !0 });
 });
-["open", "error", "close", "message"].forEach((method) => {
-  Object.defineProperty(WebSocket.prototype, `on${method}`, {
-    enumerable: true,
+["open", "error", "close", "message"].forEach((s) => {
+  Object.defineProperty(u.prototype, `on${s}`, {
+    enumerable: !0,
     get() {
-      for (const listener of this.listeners(method)) {
-        if (listener[kForOnEventAttribute]) return listener[kListener];
-      }
+      for (const e of this.listeners(s))
+        if (e[He]) return e[un];
       return null;
     },
-    set(handler) {
-      for (const listener of this.listeners(method)) {
-        if (listener[kForOnEventAttribute]) {
-          this.removeListener(method, listener);
+    set(e) {
+      for (const t of this.listeners(s))
+        if (t[He]) {
+          this.removeListener(s, t);
           break;
         }
-      }
-      if (typeof handler !== "function") return;
-      this.addEventListener(method, handler, {
-        [kForOnEventAttribute]: true
+      typeof e == "function" && this.addEventListener(s, e, {
+        [He]: !0
       });
     }
   });
 });
-WebSocket.prototype.addEventListener = addEventListener;
-WebSocket.prototype.removeEventListener = removeEventListener;
-var websocket = WebSocket;
-function initAsClient(websocket2, address, protocols, options) {
-  const opts = {
-    allowSynchronousEvents: true,
-    autoPong: true,
-    closeTimeout: CLOSE_TIMEOUT$1,
-    protocolVersion: protocolVersions[1],
-    maxPayload: 100 * 1024 * 1024,
-    skipUTF8Validation: false,
-    perMessageDeflate: true,
-    followRedirects: false,
+u.prototype.addEventListener = fn;
+u.prototype.removeEventListener = hn;
+var _n = u;
+function ls(s, e, t, r) {
+  const n = {
+    allowSynchronousEvents: !0,
+    autoPong: !0,
+    closeTimeout: ln,
+    protocolVersion: ze[1],
+    maxPayload: 104857600,
+    skipUTF8Validation: !1,
+    perMessageDeflate: !0,
+    followRedirects: !1,
     maxRedirects: 10,
-    ...options,
+    ...r,
     socketPath: void 0,
     hostname: void 0,
     protocol: void 0,
@@ -3326,526 +2440,330 @@ function initAsClient(websocket2, address, protocols, options) {
     path: void 0,
     port: void 0
   };
-  websocket2._autoPong = opts.autoPong;
-  websocket2._closeTimeout = opts.closeTimeout;
-  if (!protocolVersions.includes(opts.protocolVersion)) {
+  if (s._autoPong = n.autoPong, s._closeTimeout = n.closeTimeout, !ze.includes(n.protocolVersion))
     throw new RangeError(
-      `Unsupported protocol version: ${opts.protocolVersion} (supported versions: ${protocolVersions.join(", ")})`
+      `Unsupported protocol version: ${n.protocolVersion} (supported versions: ${ze.join(", ")})`
     );
-  }
-  let parsedUrl;
-  if (address instanceof URL$1) {
-    parsedUrl = address;
-  } else {
+  let i;
+  if (e instanceof qe)
+    i = e;
+  else
     try {
-      parsedUrl = new URL$1(address);
-    } catch (e) {
-      throw new SyntaxError(`Invalid URL: ${address}`);
+      i = new qe(e);
+    } catch {
+      throw new SyntaxError(`Invalid URL: ${e}`);
     }
+  i.protocol === "http:" ? i.protocol = "ws:" : i.protocol === "https:" && (i.protocol = "wss:"), s._url = i.href;
+  const o = i.protocol === "wss:", a = i.protocol === "ws+unix:";
+  let c;
+  if (i.protocol !== "ws:" && !o && !a ? c = `The URL's protocol must be one of "ws:", "wss:", "http:", "https:", or "ws+unix:"` : a && !i.pathname ? c = "The URL's pathname is empty" : i.hash && (c = "The URL contains a fragment identifier"), c) {
+    const m = new SyntaxError(c);
+    if (s._redirects === 0)
+      throw m;
+    be(s, m);
+    return;
   }
-  if (parsedUrl.protocol === "http:") {
-    parsedUrl.protocol = "ws:";
-  } else if (parsedUrl.protocol === "https:") {
-    parsedUrl.protocol = "wss:";
-  }
-  websocket2._url = parsedUrl.href;
-  const isSecure = parsedUrl.protocol === "wss:";
-  const isIpcUrl = parsedUrl.protocol === "ws+unix:";
-  let invalidUrlMessage;
-  if (parsedUrl.protocol !== "ws:" && !isSecure && !isIpcUrl) {
-    invalidUrlMessage = `The URL's protocol must be one of "ws:", "wss:", "http:", "https:", or "ws+unix:"`;
-  } else if (isIpcUrl && !parsedUrl.pathname) {
-    invalidUrlMessage = "The URL's pathname is empty";
-  } else if (parsedUrl.hash) {
-    invalidUrlMessage = "The URL contains a fragment identifier";
-  }
-  if (invalidUrlMessage) {
-    const err = new SyntaxError(invalidUrlMessage);
-    if (websocket2._redirects === 0) {
-      throw err;
-    } else {
-      emitErrorAndClose(websocket2, err);
-      return;
-    }
-  }
-  const defaultPort = isSecure ? 443 : 80;
-  const key = randomBytes(16).toString("base64");
-  const request = isSecure ? https.request : http.request;
-  const protocolSet = /* @__PURE__ */ new Set();
-  let perMessageDeflate;
-  opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
-  opts.defaultPort = opts.defaultPort || defaultPort;
-  opts.port = parsedUrl.port || defaultPort;
-  opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
-  opts.headers = {
-    ...opts.headers,
-    "Sec-WebSocket-Version": opts.protocolVersion,
-    "Sec-WebSocket-Key": key,
+  const l = o ? 443 : 80, f = sn(16).toString("base64"), h = o ? Qr.request : en.request, k = /* @__PURE__ */ new Set();
+  let _;
+  if (n.createConnection = n.createConnection || (o ? vn : Sn), n.defaultPort = n.defaultPort || l, n.port = i.port || l, n.host = i.hostname.startsWith("[") ? i.hostname.slice(1, -1) : i.hostname, n.headers = {
+    ...n.headers,
+    "Sec-WebSocket-Version": n.protocolVersion,
+    "Sec-WebSocket-Key": f,
     Connection: "Upgrade",
     Upgrade: "websocket"
-  };
-  opts.path = parsedUrl.pathname + parsedUrl.search;
-  opts.timeout = opts.handshakeTimeout;
-  if (opts.perMessageDeflate) {
-    perMessageDeflate = new PerMessageDeflate2(
-      opts.perMessageDeflate !== true ? opts.perMessageDeflate : {},
-      false,
-      opts.maxPayload
-    );
-    opts.headers["Sec-WebSocket-Extensions"] = format({
-      [PerMessageDeflate2.extensionName]: perMessageDeflate.offer()
-    });
-  }
-  if (protocols.length) {
-    for (const protocol of protocols) {
-      if (typeof protocol !== "string" || !subprotocolRegex.test(protocol) || protocolSet.has(protocol)) {
+  }, n.path = i.pathname + i.search, n.timeout = n.handshakeTimeout, n.perMessageDeflate && (_ = new M(
+    n.perMessageDeflate !== !0 ? n.perMessageDeflate : {},
+    !1,
+    n.maxPayload
+  ), n.headers["Sec-WebSocket-Extensions"] = mn({
+    [M.extensionName]: _.offer()
+  })), t.length) {
+    for (const m of t) {
+      if (typeof m != "string" || !yn.test(m) || k.has(m))
         throw new SyntaxError(
           "An invalid or duplicated subprotocol was specified"
         );
-      }
-      protocolSet.add(protocol);
+      k.add(m);
     }
-    opts.headers["Sec-WebSocket-Protocol"] = protocols.join(",");
+    n.headers["Sec-WebSocket-Protocol"] = t.join(",");
   }
-  if (opts.origin) {
-    if (opts.protocolVersion < 13) {
-      opts.headers["Sec-WebSocket-Origin"] = opts.origin;
-    } else {
-      opts.headers.Origin = opts.origin;
+  if (n.origin && (n.protocolVersion < 13 ? n.headers["Sec-WebSocket-Origin"] = n.origin : n.headers.Origin = n.origin), (i.username || i.password) && (n.auth = `${i.username}:${i.password}`), a) {
+    const m = n.path.split(":");
+    n.socketPath = m[0], n.path = m[1];
+  }
+  let y;
+  if (n.followRedirects) {
+    if (s._redirects === 0) {
+      s._originalIpc = a, s._originalSecure = o, s._originalHostOrSocketPath = a ? n.socketPath : i.host;
+      const m = r && r.headers;
+      if (r = { ...r, headers: {} }, m)
+        for (const [w, A] of Object.entries(m))
+          r.headers[w.toLowerCase()] = A;
+    } else if (s.listenerCount("redirect") === 0) {
+      const m = a ? s._originalIpc ? n.socketPath === s._originalHostOrSocketPath : !1 : s._originalIpc ? !1 : i.host === s._originalHostOrSocketPath;
+      (!m || s._originalSecure && !o) && (delete n.headers.authorization, delete n.headers.cookie, m || delete n.headers.host, n.auth = void 0);
     }
-  }
-  if (parsedUrl.username || parsedUrl.password) {
-    opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
-  }
-  if (isIpcUrl) {
-    const parts = opts.path.split(":");
-    opts.socketPath = parts[0];
-    opts.path = parts[1];
-  }
-  let req;
-  if (opts.followRedirects) {
-    if (websocket2._redirects === 0) {
-      websocket2._originalIpc = isIpcUrl;
-      websocket2._originalSecure = isSecure;
-      websocket2._originalHostOrSocketPath = isIpcUrl ? opts.socketPath : parsedUrl.host;
-      const headers = options && options.headers;
-      options = { ...options, headers: {} };
-      if (headers) {
-        for (const [key2, value] of Object.entries(headers)) {
-          options.headers[key2.toLowerCase()] = value;
-        }
-      }
-    } else if (websocket2.listenerCount("redirect") === 0) {
-      const isSameHost = isIpcUrl ? websocket2._originalIpc ? opts.socketPath === websocket2._originalHostOrSocketPath : false : websocket2._originalIpc ? false : parsedUrl.host === websocket2._originalHostOrSocketPath;
-      if (!isSameHost || websocket2._originalSecure && !isSecure) {
-        delete opts.headers.authorization;
-        delete opts.headers.cookie;
-        if (!isSameHost) delete opts.headers.host;
-        opts.auth = void 0;
-      }
-    }
-    if (opts.auth && !options.headers.authorization) {
-      options.headers.authorization = "Basic " + Buffer.from(opts.auth).toString("base64");
-    }
-    req = websocket2._req = request(opts);
-    if (websocket2._redirects) {
-      websocket2.emit("redirect", websocket2.url, req);
-    }
-  } else {
-    req = websocket2._req = request(opts);
-  }
-  if (opts.timeout) {
-    req.on("timeout", () => {
-      abortHandshake(websocket2, req, "Opening handshake has timed out");
-    });
-  }
-  req.on("error", (err) => {
-    if (req === null || req[kAborted]) return;
-    req = websocket2._req = null;
-    emitErrorAndClose(websocket2, err);
-  });
-  req.on("response", (res) => {
-    const location = res.headers.location;
-    const statusCode = res.statusCode;
-    if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
-      if (++websocket2._redirects > opts.maxRedirects) {
-        abortHandshake(websocket2, req, "Maximum redirects exceeded");
+    n.auth && !r.headers.authorization && (r.headers.authorization = "Basic " + Buffer.from(n.auth).toString("base64")), y = s._req = h(n), s._redirects && s.emit("redirect", s.url, y);
+  } else
+    y = s._req = h(n);
+  n.timeout && y.on("timeout", () => {
+    x(s, y, "Opening handshake has timed out");
+  }), y.on("error", (m) => {
+    y === null || y[as] || (y = s._req = null, be(s, m));
+  }), y.on("response", (m) => {
+    const w = m.headers.location, A = m.statusCode;
+    if (w && n.followRedirects && A >= 300 && A < 400) {
+      if (++s._redirects > n.maxRedirects) {
+        x(s, y, "Maximum redirects exceeded");
         return;
       }
-      req.abort();
-      let addr;
+      y.abort();
+      let U;
       try {
-        addr = new URL$1(location, address);
-      } catch (e) {
-        const err = new SyntaxError(`Invalid URL: ${location}`);
-        emitErrorAndClose(websocket2, err);
+        U = new qe(w, e);
+      } catch {
+        const L = new SyntaxError(`Invalid URL: ${w}`);
+        be(s, L);
         return;
       }
-      initAsClient(websocket2, addr, protocols, options);
-    } else if (!websocket2.emit("unexpected-response", req, res)) {
-      abortHandshake(
-        websocket2,
-        req,
-        `Unexpected server response: ${res.statusCode}`
-      );
-    }
-  });
-  req.on("upgrade", (res, socket, head) => {
-    websocket2.emit("upgrade", res);
-    if (websocket2.readyState !== WebSocket.CONNECTING) return;
-    req = websocket2._req = null;
-    const upgrade = res.headers.upgrade;
-    if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
-      abortHandshake(websocket2, socket, "Invalid Upgrade header");
-      return;
-    }
-    const digest = createHash$1("sha1").update(key + GUID$1).digest("base64");
-    if (res.headers["sec-websocket-accept"] !== digest) {
-      abortHandshake(websocket2, socket, "Invalid Sec-WebSocket-Accept header");
-      return;
-    }
-    const serverProt = res.headers["sec-websocket-protocol"];
-    let protError;
-    if (serverProt !== void 0) {
-      if (!protocolSet.size) {
-        protError = "Server sent a subprotocol but none was requested";
-      } else if (!protocolSet.has(serverProt)) {
-        protError = "Server sent an invalid subprotocol";
-      }
-    } else if (protocolSet.size) {
-      protError = "Server sent no subprotocol";
-    }
-    if (protError) {
-      abortHandshake(websocket2, socket, protError);
-      return;
-    }
-    if (serverProt) websocket2._protocol = serverProt;
-    const secWebSocketExtensions = res.headers["sec-websocket-extensions"];
-    if (secWebSocketExtensions !== void 0) {
-      if (!perMessageDeflate) {
-        const message = "Server sent a Sec-WebSocket-Extensions header but no extension was requested";
-        abortHandshake(websocket2, socket, message);
-        return;
-      }
-      let extensions;
-      try {
-        extensions = parse(secWebSocketExtensions);
-      } catch (err) {
-        const message = "Invalid Sec-WebSocket-Extensions header";
-        abortHandshake(websocket2, socket, message);
-        return;
-      }
-      const extensionNames = Object.keys(extensions);
-      if (extensionNames.length !== 1 || extensionNames[0] !== PerMessageDeflate2.extensionName) {
-        const message = "Server indicated an extension that was not requested";
-        abortHandshake(websocket2, socket, message);
-        return;
-      }
-      try {
-        perMessageDeflate.accept(extensions[PerMessageDeflate2.extensionName]);
-      } catch (err) {
-        const message = "Invalid Sec-WebSocket-Extensions header";
-        abortHandshake(websocket2, socket, message);
-        return;
-      }
-      websocket2._extensions[PerMessageDeflate2.extensionName] = perMessageDeflate;
-    }
-    websocket2.setSocket(socket, head, {
-      allowSynchronousEvents: opts.allowSynchronousEvents,
-      generateMask: opts.generateMask,
-      maxPayload: opts.maxPayload,
-      skipUTF8Validation: opts.skipUTF8Validation
-    });
-  });
-  if (opts.finishRequest) {
-    opts.finishRequest(req, websocket2);
-  } else {
-    req.end();
-  }
-}
-function emitErrorAndClose(websocket2, err) {
-  websocket2._readyState = WebSocket.CLOSING;
-  websocket2._errorEmitted = true;
-  websocket2.emit("error", err);
-  websocket2.emitClose();
-}
-function netConnect(options) {
-  options.path = options.socketPath;
-  return net.connect(options);
-}
-function tlsConnect(options) {
-  options.path = void 0;
-  if (!options.servername && options.servername !== "") {
-    options.servername = net.isIP(options.host) ? "" : options.host;
-  }
-  return tls.connect(options);
-}
-function abortHandshake(websocket2, stream, message) {
-  websocket2._readyState = WebSocket.CLOSING;
-  const err = new Error(message);
-  Error.captureStackTrace(err, abortHandshake);
-  if (stream.setHeader) {
-    stream[kAborted] = true;
-    stream.abort();
-    if (stream.socket && !stream.socket.destroyed) {
-      stream.socket.destroy();
-    }
-    process.nextTick(emitErrorAndClose, websocket2, err);
-  } else {
-    stream.destroy(err);
-    stream.once("error", websocket2.emit.bind(websocket2, "error"));
-    stream.once("close", websocket2.emitClose.bind(websocket2));
-  }
-}
-function sendAfterClose(websocket2, data, cb) {
-  if (data) {
-    const length = isBlob(data) ? data.size : toBuffer(data).length;
-    if (websocket2._socket) websocket2._sender._bufferedBytes += length;
-    else websocket2._bufferedAmount += length;
-  }
-  if (cb) {
-    const err = new Error(
-      `WebSocket is not open: readyState ${websocket2.readyState} (${readyStates[websocket2.readyState]})`
+      ls(s, U, t, r);
+    } else s.emit("unexpected-response", y, m) || x(
+      s,
+      y,
+      `Unexpected server response: ${m.statusCode}`
     );
-    process.nextTick(cb, err);
+  }), y.on("upgrade", (m, w, A) => {
+    if (s.emit("upgrade", m), s.readyState !== u.CONNECTING) return;
+    y = s._req = null;
+    const U = m.headers.upgrade;
+    if (U === void 0 || U.toLowerCase() !== "websocket") {
+      x(s, w, "Invalid Upgrade header");
+      return;
+    }
+    const re = rn("sha1").update(f + cn).digest("base64");
+    if (m.headers["sec-websocket-accept"] !== re) {
+      x(s, w, "Invalid Sec-WebSocket-Accept header");
+      return;
+    }
+    const L = m.headers["sec-websocket-protocol"];
+    let ne;
+    if (L !== void 0 ? k.size ? k.has(L) || (ne = "Server sent an invalid subprotocol") : ne = "Server sent a subprotocol but none was requested" : k.size && (ne = "Server sent no subprotocol"), ne) {
+      x(s, w, ne);
+      return;
+    }
+    L && (s._protocol = L);
+    const ht = m.headers["sec-websocket-extensions"];
+    if (ht !== void 0) {
+      if (!_) {
+        x(s, w, "Server sent a Sec-WebSocket-Extensions header but no extension was requested");
+        return;
+      }
+      let Fe;
+      try {
+        Fe = pn(ht);
+      } catch {
+        x(s, w, "Invalid Sec-WebSocket-Extensions header");
+        return;
+      }
+      const mt = Object.keys(Fe);
+      if (mt.length !== 1 || mt[0] !== M.extensionName) {
+        x(s, w, "Server indicated an extension that was not requested");
+        return;
+      }
+      try {
+        _.accept(Fe[M.extensionName]);
+      } catch {
+        x(s, w, "Invalid Sec-WebSocket-Extensions header");
+        return;
+      }
+      s._extensions[M.extensionName] = _;
+    }
+    s.setSocket(w, A, {
+      allowSynchronousEvents: n.allowSynchronousEvents,
+      generateMask: n.generateMask,
+      maxPayload: n.maxPayload,
+      skipUTF8Validation: n.skipUTF8Validation
+    });
+  }), n.finishRequest ? n.finishRequest(y, s) : y.end();
+}
+function be(s, e) {
+  s._readyState = u.CLOSING, s._errorEmitted = !0, s.emit("error", e), s.emitClose();
+}
+function Sn(s) {
+  return s.path = s.socketPath, is.connect(s);
+}
+function vn(s) {
+  return s.path = void 0, !s.servername && s.servername !== "" && (s.servername = is.isIP(s.host) ? "" : s.host), tn.connect(s);
+}
+function x(s, e, t) {
+  s._readyState = u.CLOSING;
+  const r = new Error(t);
+  Error.captureStackTrace(r, x), e.setHeader ? (e[as] = !0, e.abort(), e.socket && !e.socket.destroyed && e.socket.destroy(), process.nextTick(be, s, r)) : (e.destroy(r), e.once("error", s.emit.bind(s, "error")), e.once("close", s.emitClose.bind(s)));
+}
+function Je(s, e, t) {
+  if (e) {
+    const r = an(e) ? e.size : gn(e).length;
+    s._socket ? s._sender._bufferedBytes += r : s._bufferedAmount += r;
+  }
+  if (t) {
+    const r = new Error(
+      `WebSocket is not open: readyState ${s.readyState} (${C[s.readyState]})`
+    );
+    process.nextTick(t, r);
   }
 }
-function receiverOnConclude(code, reason) {
-  const websocket2 = this[kWebSocket$1];
-  websocket2._closeFrameReceived = true;
-  websocket2._closeMessage = reason;
-  websocket2._closeCode = code;
-  if (websocket2._socket[kWebSocket$1] === void 0) return;
-  websocket2._socket.removeListener("data", socketOnData);
-  process.nextTick(resume, websocket2._socket);
-  if (code === 1005) websocket2.close();
-  else websocket2.close(code, reason);
+function wn(s, e) {
+  const t = this[v];
+  t._closeFrameReceived = !0, t._closeMessage = e, t._closeCode = s, t._socket[v] !== void 0 && (t._socket.removeListener("data", Le), process.nextTick(cs, t._socket), s === 1005 ? t.close() : t.close(s, e));
 }
-function receiverOnDrain() {
-  const websocket2 = this[kWebSocket$1];
-  if (!websocket2.isPaused) websocket2._socket.resume();
+function En() {
+  const s = this[v];
+  s.isPaused || s._socket.resume();
 }
-function receiverOnError(err) {
-  const websocket2 = this[kWebSocket$1];
-  if (websocket2._socket[kWebSocket$1] !== void 0) {
-    websocket2._socket.removeListener("data", socketOnData);
-    process.nextTick(resume, websocket2._socket);
-    websocket2.close(err[kStatusCode]);
-  }
-  if (!websocket2._errorEmitted) {
-    websocket2._errorEmitted = true;
-    websocket2.emit("error", err);
-  }
+function kn(s) {
+  const e = this[v];
+  e._socket[v] !== void 0 && (e._socket.removeListener("data", Le), process.nextTick(cs, e._socket), e.close(s[dn])), e._errorEmitted || (e._errorEmitted = !0, e.emit("error", s));
 }
-function receiverOnFinish() {
-  this[kWebSocket$1].emitClose();
+function Ft() {
+  this[v].emitClose();
 }
-function receiverOnMessage(data, isBinary) {
-  this[kWebSocket$1].emit("message", data, isBinary);
+function bn(s, e) {
+  this[v].emit("message", s, e);
 }
-function receiverOnPing(data) {
-  const websocket2 = this[kWebSocket$1];
-  if (websocket2._autoPong) websocket2.pong(data, !this._isServer, NOOP);
-  websocket2.emit("ping", data);
+function Tn(s) {
+  const e = this[v];
+  e._autoPong && e.pong(s, !this._isServer, os), e.emit("ping", s);
 }
-function receiverOnPong(data) {
-  this[kWebSocket$1].emit("pong", data);
+function xn(s) {
+  this[v].emit("pong", s);
 }
-function resume(stream) {
-  stream.resume();
+function cs(s) {
+  s.resume();
 }
-function senderOnError(err) {
-  const websocket2 = this[kWebSocket$1];
-  if (websocket2.readyState === WebSocket.CLOSED) return;
-  if (websocket2.readyState === WebSocket.OPEN) {
-    websocket2._readyState = WebSocket.CLOSING;
-    setCloseTimer(websocket2);
-  }
-  this._socket.end();
-  if (!websocket2._errorEmitted) {
-    websocket2._errorEmitted = true;
-    websocket2.emit("error", err);
-  }
+function On(s) {
+  const e = this[v];
+  e.readyState !== u.CLOSED && (e.readyState === u.OPEN && (e._readyState = u.CLOSING, us(e)), this._socket.end(), e._errorEmitted || (e._errorEmitted = !0, e.emit("error", s)));
 }
-function setCloseTimer(websocket2) {
-  websocket2._closeTimer = setTimeout(
-    websocket2._socket.destroy.bind(websocket2._socket),
-    websocket2._closeTimeout
+function us(s) {
+  s._closeTimer = setTimeout(
+    s._socket.destroy.bind(s._socket),
+    s._closeTimeout
   );
 }
-function socketOnClose() {
-  const websocket2 = this[kWebSocket$1];
-  this.removeListener("close", socketOnClose);
-  this.removeListener("data", socketOnData);
-  this.removeListener("end", socketOnEnd);
-  websocket2._readyState = WebSocket.CLOSING;
-  if (!this._readableState.endEmitted && !websocket2._closeFrameReceived && !websocket2._receiver._writableState.errorEmitted && this._readableState.length !== 0) {
-    const chunk = this.read(this._readableState.length);
-    websocket2._receiver.write(chunk);
+function ds() {
+  const s = this[v];
+  if (this.removeListener("close", ds), this.removeListener("data", Le), this.removeListener("end", fs), s._readyState = u.CLOSING, !this._readableState.endEmitted && !s._closeFrameReceived && !s._receiver._writableState.errorEmitted && this._readableState.length !== 0) {
+    const e = this.read(this._readableState.length);
+    s._receiver.write(e);
   }
-  websocket2._receiver.end();
-  this[kWebSocket$1] = void 0;
-  clearTimeout(websocket2._closeTimer);
-  if (websocket2._receiver._writableState.finished || websocket2._receiver._writableState.errorEmitted) {
-    websocket2.emitClose();
-  } else {
-    websocket2._receiver.on("error", receiverOnFinish);
-    websocket2._receiver.on("finish", receiverOnFinish);
-  }
+  s._receiver.end(), this[v] = void 0, clearTimeout(s._closeTimer), s._receiver._writableState.finished || s._receiver._writableState.errorEmitted ? s.emitClose() : (s._receiver.on("error", Ft), s._receiver.on("finish", Ft));
 }
-function socketOnData(chunk) {
-  if (!this[kWebSocket$1]._receiver.write(chunk)) {
-    this.pause();
-  }
+function Le(s) {
+  this[v]._receiver.write(s) || this.pause();
 }
-function socketOnEnd() {
-  const websocket2 = this[kWebSocket$1];
-  websocket2._readyState = WebSocket.CLOSING;
-  websocket2._receiver.end();
-  this.end();
+function fs() {
+  const s = this[v];
+  s._readyState = u.CLOSING, s._receiver.end(), this.end();
 }
-function socketOnError() {
-  const websocket2 = this[kWebSocket$1];
-  this.removeListener("error", socketOnError);
-  this.on("error", NOOP);
-  if (websocket2) {
-    websocket2._readyState = WebSocket.CLOSING;
-    this.destroy();
-  }
+function hs() {
+  const s = this[v];
+  this.removeListener("error", hs), this.on("error", os), s && (s._readyState = u.CLOSING, this.destroy());
 }
-const WebSocket$1 = /* @__PURE__ */ getDefaultExportFromCjs(websocket);
-const { Duplex: Duplex$1 } = require$$0$2;
-const { tokenChars } = validationExports;
-const { Duplex } = require$$0$2;
-const { createHash } = require$$1;
-const { CLOSE_TIMEOUT, GUID, kWebSocket } = constants;
-const DEFAULT_FETCH_INIT = {
+const Pn = /* @__PURE__ */ cr(_n), { Duplex: Ji } = fe, { tokenChars: Yi } = me, { Duplex: Xi } = fe, { createHash: Zi } = at, { CLOSE_TIMEOUT: Qi, GUID: eo, kWebSocket: to } = W, le = {
   cache: "no-store"
-};
-const buildUserAgent = (userAgent) => defaultUserAgentString + (userAgent === false ? "" : " AssemblyAI/1.0 (" + Object.entries({ ...defaultUserAgent, ...userAgent }).map(([key, item]) => item ? `${key}=${item.name}/${item.version}` : "").join(" ") + ")");
-let defaultUserAgentString = "";
-if (typeof navigator !== "undefined" && navigator.userAgent) {
-  defaultUserAgentString += navigator.userAgent;
-}
-const defaultUserAgent = {
+}, Dn = (s) => ue + (s === !1 ? "" : " AssemblyAI/1.0 (" + Object.entries({ ...De, ...s }).map(([e, t]) => t ? `${e}=${t.name}/${t.version}` : "").join(" ") + ")");
+let ue = "";
+typeof navigator < "u" && navigator.userAgent && (ue += navigator.userAgent);
+const De = {
   sdk: { name: "JavaScript", version: "4.22.1" }
 };
-if (typeof process !== "undefined") {
-  if (process.versions.node && defaultUserAgentString.indexOf("Node") === -1) {
-    defaultUserAgent.runtime_env = {
-      name: "Node",
-      version: process.versions.node
-    };
-  }
-  if (process.versions.bun && defaultUserAgentString.indexOf("Bun") === -1) {
-    defaultUserAgent.runtime_env = {
-      name: "Bun",
-      version: process.versions.bun
-    };
-  }
-}
-if (typeof Deno !== "undefined") {
-  if (process.versions.bun && defaultUserAgentString.indexOf("Deno") === -1) {
-    defaultUserAgent.runtime_env = { name: "Deno", version: Deno.version.deno };
-  }
-}
-class BaseService {
+typeof process < "u" && (process.versions.node && ue.indexOf("Node") === -1 && (De.runtime_env = {
+  name: "Node",
+  version: process.versions.node
+}), process.versions.bun && ue.indexOf("Bun") === -1 && (De.runtime_env = {
+  name: "Bun",
+  version: process.versions.bun
+}));
+typeof Deno < "u" && process.versions.bun && ue.indexOf("Deno") === -1 && (De.runtime_env = { name: "Deno", version: Deno.version.deno });
+class pe {
   /**
    * Create a new service.
    * @param params - The parameters to use for the service.
    */
-  constructor(params) {
-    this.params = params;
-    if (params.userAgent === false) {
-      this.userAgent = void 0;
-    } else {
-      this.userAgent = buildUserAgent(params.userAgent || {});
-    }
+  constructor(e) {
+    this.params = e, e.userAgent === !1 ? this.userAgent = void 0 : this.userAgent = Dn(e.userAgent || {});
   }
-  async fetch(input, init) {
-    init = { ...DEFAULT_FETCH_INIT, ...init };
-    let headers = {
+  async fetch(e, t) {
+    t = { ...le, ...t };
+    let r = {
       Authorization: this.params.apiKey,
       "Content-Type": "application/json"
     };
-    if (DEFAULT_FETCH_INIT == null ? void 0 : DEFAULT_FETCH_INIT.headers)
-      headers = { ...headers, ...DEFAULT_FETCH_INIT.headers };
-    if (init == null ? void 0 : init.headers)
-      headers = { ...headers, ...init.headers };
-    if (this.userAgent) {
-      headers["User-Agent"] = this.userAgent;
-    }
-    init.headers = headers;
-    if (!input.startsWith("http"))
-      input = this.params.baseUrl + input;
-    const response = await fetch(input, init);
-    if (response.status >= 400) {
-      let json;
-      const text = await response.text();
-      if (text) {
+    le != null && le.headers && (r = { ...r, ...le.headers }), t != null && t.headers && (r = { ...r, ...t.headers }), this.userAgent && (r["User-Agent"] = this.userAgent), t.headers = r, e.startsWith("http") || (e = this.params.baseUrl + e);
+    const n = await fetch(e, t);
+    if (n.status >= 400) {
+      let i;
+      const o = await n.text();
+      if (o) {
         try {
-          json = JSON.parse(text);
+          i = JSON.parse(o);
         } catch {
         }
-        if (json == null ? void 0 : json.error)
-          throw new Error(json.error);
-        throw new Error(text);
+        throw i != null && i.error ? new Error(i.error) : new Error(o);
       }
-      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+      throw new Error(`HTTP Error: ${n.status} ${n.statusText}`);
     }
-    return response;
+    return n;
   }
-  async fetchJson(input, init) {
-    const response = await this.fetch(input, init);
-    return response.json();
+  async fetchJson(e, t) {
+    return (await this.fetch(e, t)).json();
   }
 }
-class LemurService extends BaseService {
-  summary(params, signal) {
+class Rn extends pe {
+  summary(e, t) {
     return this.fetchJson("/lemur/v3/generate/summary", {
       method: "POST",
-      body: JSON.stringify(params),
-      signal
+      body: JSON.stringify(e),
+      signal: t
     });
   }
-  questionAnswer(params, signal) {
+  questionAnswer(e, t) {
     return this.fetchJson("/lemur/v3/generate/question-answer", {
       method: "POST",
-      body: JSON.stringify(params),
-      signal
+      body: JSON.stringify(e),
+      signal: t
     });
   }
-  actionItems(params, signal) {
+  actionItems(e, t) {
     return this.fetchJson("/lemur/v3/generate/action-items", {
       method: "POST",
-      body: JSON.stringify(params),
-      signal
+      body: JSON.stringify(e),
+      signal: t
     });
   }
-  task(params, signal) {
+  task(e, t) {
     return this.fetchJson("/lemur/v3/generate/task", {
       method: "POST",
-      body: JSON.stringify(params),
-      signal
+      body: JSON.stringify(e),
+      signal: t
     });
   }
-  getResponse(id, signal) {
-    return this.fetchJson(`/lemur/v3/${id}`, { signal });
+  getResponse(e, t) {
+    return this.fetchJson(`/lemur/v3/${e}`, { signal: t });
   }
   /**
    * Delete the data for a previously submitted LeMUR request.
    * @param id - ID of the LeMUR request
    * @param signal - Optional AbortSignal to cancel the request
    */
-  purgeRequestData(id, signal) {
-    return this.fetchJson(`/lemur/v3/${id}`, {
+  purgeRequestData(e, t) {
+    return this.fetchJson(`/lemur/v3/${e}`, {
       method: "DELETE",
-      signal
+      signal: t
     });
   }
 }
-const factory = (url, params) => new WebSocket$1(url, params);
-const RealtimeErrorType = {
+const Re = (s, e) => new Pn(s, e), S = {
   BadSampleRate: 4e3,
   AuthFailed: 4001,
   InsufficientFunds: 4002,
@@ -3871,31 +2789,30 @@ const RealtimeErrorType = {
    */
   ReconnectAttemptsExhausted: 1013,
   WordBoostParameterParsingFailed: 4104
+}, Ct = {
+  [S.BadSampleRate]: "Sample rate must be a positive integer",
+  [S.AuthFailed]: "Not Authorized",
+  [S.InsufficientFunds]: "Insufficient funds",
+  [S.FreeTierUser]: "This feature is paid-only and requires you to add a credit card. Please visit https://app.assemblyai.com/ to add a credit card to your account.",
+  [S.NonexistentSessionId]: "Session ID does not exist",
+  [S.SessionExpired]: "Session has expired",
+  [S.ClosedSession]: "Session is closed",
+  [S.RateLimited]: "Rate limited",
+  [S.UniqueSessionViolation]: "Unique session violation",
+  [S.SessionTimeout]: "Session Timeout",
+  [S.AudioTooShort]: "Audio too short",
+  [S.AudioTooLong]: "Audio too long",
+  [S.AudioTooSmallToTranscode]: "Audio too small to transcode",
+  [S.BadJson]: "Bad JSON",
+  [S.BadSchema]: "Bad schema",
+  [S.TooManyStreams]: "Too many streams",
+  [S.Reconnected]: "This session has been reconnected. This WebSocket is no longer valid.",
+  [S.ReconnectAttemptsExhausted]: "Reconnect attempts exhausted",
+  [S.WordBoostParameterParsingFailed]: "Could not parse word boost parameter"
 };
-const RealtimeErrorMessages = {
-  [RealtimeErrorType.BadSampleRate]: "Sample rate must be a positive integer",
-  [RealtimeErrorType.AuthFailed]: "Not Authorized",
-  [RealtimeErrorType.InsufficientFunds]: "Insufficient funds",
-  [RealtimeErrorType.FreeTierUser]: "This feature is paid-only and requires you to add a credit card. Please visit https://app.assemblyai.com/ to add a credit card to your account.",
-  [RealtimeErrorType.NonexistentSessionId]: "Session ID does not exist",
-  [RealtimeErrorType.SessionExpired]: "Session has expired",
-  [RealtimeErrorType.ClosedSession]: "Session is closed",
-  [RealtimeErrorType.RateLimited]: "Rate limited",
-  [RealtimeErrorType.UniqueSessionViolation]: "Unique session violation",
-  [RealtimeErrorType.SessionTimeout]: "Session Timeout",
-  [RealtimeErrorType.AudioTooShort]: "Audio too short",
-  [RealtimeErrorType.AudioTooLong]: "Audio too long",
-  [RealtimeErrorType.AudioTooSmallToTranscode]: "Audio too small to transcode",
-  [RealtimeErrorType.BadJson]: "Bad JSON",
-  [RealtimeErrorType.BadSchema]: "Bad schema",
-  [RealtimeErrorType.TooManyStreams]: "Too many streams",
-  [RealtimeErrorType.Reconnected]: "This session has been reconnected. This WebSocket is no longer valid.",
-  [RealtimeErrorType.ReconnectAttemptsExhausted]: "Reconnect attempts exhausted",
-  [RealtimeErrorType.WordBoostParameterParsingFailed]: "Could not parse word boost parameter"
-};
-class RealtimeError extends Error {
+class Nn extends Error {
 }
-const StreamingErrorType = {
+const b = {
   BadSampleRate: 4e3,
   AuthFailed: 4001,
   InsufficientFunds: 4002,
@@ -3912,73 +2829,42 @@ const StreamingErrorType = {
   BadSchema: 4101,
   TooManyStreams: 4102,
   Reconnected: 4103
+}, Ut = {
+  [b.BadSampleRate]: "Sample rate must be a positive integer",
+  [b.AuthFailed]: "Not Authorized",
+  [b.InsufficientFunds]: "Insufficient funds",
+  [b.FreeTierUser]: "This feature is paid-only and requires you to add a credit card. Please visit https://app.assemblyai.com/ to add a credit card to your account.",
+  [b.NonexistentSessionId]: "Session ID does not exist",
+  [b.SessionExpired]: "Session has expired",
+  [b.ClosedSession]: "Session is closed",
+  [b.RateLimited]: "Rate limited",
+  [b.UniqueSessionViolation]: "Unique session violation",
+  [b.SessionTimeout]: "Session Timeout",
+  [b.AudioTooShort]: "Audio too short",
+  [b.AudioTooLong]: "Audio too long",
+  [b.AudioTooSmallToTranscode]: "Audio too small to transcode",
+  [b.BadSchema]: "Bad schema",
+  [b.TooManyStreams]: "Too many streams",
+  [b.Reconnected]: "This session has been reconnected. This WebSocket is no longer valid."
 };
-const StreamingErrorMessages = {
-  [StreamingErrorType.BadSampleRate]: "Sample rate must be a positive integer",
-  [StreamingErrorType.AuthFailed]: "Not Authorized",
-  [StreamingErrorType.InsufficientFunds]: "Insufficient funds",
-  [StreamingErrorType.FreeTierUser]: "This feature is paid-only and requires you to add a credit card. Please visit https://app.assemblyai.com/ to add a credit card to your account.",
-  [StreamingErrorType.NonexistentSessionId]: "Session ID does not exist",
-  [StreamingErrorType.SessionExpired]: "Session has expired",
-  [StreamingErrorType.ClosedSession]: "Session is closed",
-  [StreamingErrorType.RateLimited]: "Rate limited",
-  [StreamingErrorType.UniqueSessionViolation]: "Unique session violation",
-  [StreamingErrorType.SessionTimeout]: "Session Timeout",
-  [StreamingErrorType.AudioTooShort]: "Audio too short",
-  [StreamingErrorType.AudioTooLong]: "Audio too long",
-  [StreamingErrorType.AudioTooSmallToTranscode]: "Audio too small to transcode",
-  [StreamingErrorType.BadSchema]: "Bad schema",
-  [StreamingErrorType.TooManyStreams]: "Too many streams",
-  [StreamingErrorType.Reconnected]: "This session has been reconnected. This WebSocket is no longer valid."
-};
-class StreamingError extends Error {
+class In extends Error {
 }
-const defaultRealtimeUrl = "wss://api.assemblyai.com/v2/realtime/ws";
-const forceEndOfUtteranceMessage = `{"force_end_utterance":true}`;
-const terminateSessionMessage$1 = `{"terminate_session":true}`;
-class RealtimeTranscriber {
+const An = "wss://api.assemblyai.com/v2/realtime/ws", Ln = '{"force_end_utterance":true}', Bt = '{"terminate_session":true}';
+class Fn {
   /**
    * Create a new RealtimeTranscriber.
    * @param params - Parameters to configure the RealtimeTranscriber
    */
-  constructor(params) {
-    this.listeners = {};
-    this.realtimeUrl = params.realtimeUrl ?? defaultRealtimeUrl;
-    this.sampleRate = params.sampleRate ?? 16e3;
-    this.wordBoost = params.wordBoost;
-    this.encoding = params.encoding;
-    this.endUtteranceSilenceThreshold = params.endUtteranceSilenceThreshold;
-    this.disablePartialTranscripts = params.disablePartialTranscripts;
-    if ("token" in params && params.token)
-      this.token = params.token;
-    if ("apiKey" in params && params.apiKey)
-      this.apiKey = params.apiKey;
-    if (!(this.token || this.apiKey)) {
+  constructor(e) {
+    if (this.listeners = {}, this.realtimeUrl = e.realtimeUrl ?? An, this.sampleRate = e.sampleRate ?? 16e3, this.wordBoost = e.wordBoost, this.encoding = e.encoding, this.endUtteranceSilenceThreshold = e.endUtteranceSilenceThreshold, this.disablePartialTranscripts = e.disablePartialTranscripts, "token" in e && e.token && (this.token = e.token), "apiKey" in e && e.apiKey && (this.apiKey = e.apiKey), !(this.token || this.apiKey))
       throw new Error("API key or temporary token is required.");
-    }
   }
   connectionUrl() {
-    const url = new URL(this.realtimeUrl);
-    if (url.protocol !== "wss:") {
+    const e = new URL(this.realtimeUrl);
+    if (e.protocol !== "wss:")
       throw new Error("Invalid protocol, must be wss");
-    }
-    const searchParams = new URLSearchParams();
-    if (this.token) {
-      searchParams.set("token", this.token);
-    }
-    searchParams.set("sample_rate", this.sampleRate.toString());
-    if (this.wordBoost && this.wordBoost.length > 0) {
-      searchParams.set("word_boost", JSON.stringify(this.wordBoost));
-    }
-    if (this.encoding) {
-      searchParams.set("encoding", this.encoding);
-    }
-    searchParams.set("enable_extra_session_information", "true");
-    if (this.disablePartialTranscripts) {
-      searchParams.set("disable_partial_transcripts", this.disablePartialTranscripts.toString());
-    }
-    url.search = searchParams.toString();
-    return url;
+    const t = new URLSearchParams();
+    return this.token && t.set("token", this.token), t.set("sample_rate", this.sampleRate.toString()), this.wordBoost && this.wordBoost.length > 0 && t.set("word_boost", JSON.stringify(this.wordBoost)), this.encoding && t.set("encoding", this.encoding), t.set("enable_extra_session_information", "true"), this.disablePartialTranscripts && t.set("disable_partial_transcripts", this.disablePartialTranscripts.toString()), e.search = t.toString(), e;
   }
   /**
    * Add a listener for an event.
@@ -3986,84 +2872,58 @@ class RealtimeTranscriber {
    * @param listener - The function to call when the event is emitted.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event, listener) {
-    this.listeners[event] = listener;
+  on(e, t) {
+    this.listeners[e] = t;
   }
   /**
    * Connect to the server and begin a new session.
    * @returns A promise that resolves when the connection is established and the session begins.
    */
   connect() {
-    return new Promise((resolve) => {
-      if (this.socket) {
+    return new Promise((e) => {
+      if (this.socket)
         throw new Error("Already connected");
-      }
-      const url = this.connectionUrl();
-      if (this.token) {
-        this.socket = factory(url.toString());
-      } else {
-        this.socket = factory(url.toString(), {
-          headers: { Authorization: this.apiKey }
-        });
-      }
-      this.socket.binaryType = "arraybuffer";
-      this.socket.onopen = () => {
-        if (this.endUtteranceSilenceThreshold === void 0 || this.endUtteranceSilenceThreshold === null) {
+      const t = this.connectionUrl();
+      this.token ? this.socket = Re(t.toString()) : this.socket = Re(t.toString(), {
+        headers: { Authorization: this.apiKey }
+      }), this.socket.binaryType = "arraybuffer", this.socket.onopen = () => {
+        this.endUtteranceSilenceThreshold === void 0 || this.endUtteranceSilenceThreshold === null || this.configureEndUtteranceSilenceThreshold(this.endUtteranceSilenceThreshold);
+      }, this.socket.onclose = ({ code: r, reason: n }) => {
+        var i, o;
+        n || r in Ct && (n = Ct[r]), (o = (i = this.listeners).close) == null || o.call(i, r, n);
+      }, this.socket.onerror = (r) => {
+        var n, i, o, a;
+        r.error ? (i = (n = this.listeners).error) == null || i.call(n, r.error) : (a = (o = this.listeners).error) == null || a.call(o, new Error(r.message));
+      }, this.socket.onmessage = ({ data: r }) => {
+        var i, o, a, c, l, f, h, k, _, y, m, w, A, U, re;
+        const n = JSON.parse(r.toString());
+        if ("error" in n) {
+          (o = (i = this.listeners).error) == null || o.call(i, new Nn(n.error));
           return;
         }
-        this.configureEndUtteranceSilenceThreshold(this.endUtteranceSilenceThreshold);
-      };
-      this.socket.onclose = ({ code, reason }) => {
-        var _a, _b;
-        if (!reason) {
-          if (code in RealtimeErrorMessages) {
-            reason = RealtimeErrorMessages[code];
-          }
-        }
-        (_b = (_a = this.listeners).close) == null ? void 0 : _b.call(_a, code, reason);
-      };
-      this.socket.onerror = (event) => {
-        var _a, _b, _c, _d;
-        if (event.error)
-          (_b = (_a = this.listeners).error) == null ? void 0 : _b.call(_a, event.error);
-        else
-          (_d = (_c = this.listeners).error) == null ? void 0 : _d.call(_c, new Error(event.message));
-      };
-      this.socket.onmessage = ({ data }) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
-        const message = JSON.parse(data.toString());
-        if ("error" in message) {
-          (_b = (_a = this.listeners).error) == null ? void 0 : _b.call(_a, new RealtimeError(message.error));
-          return;
-        }
-        switch (message.message_type) {
+        switch (n.message_type) {
           case "SessionBegins": {
-            const openObject = {
-              sessionId: message.session_id,
-              expiresAt: new Date(message.expires_at)
+            const L = {
+              sessionId: n.session_id,
+              expiresAt: new Date(n.expires_at)
             };
-            resolve(openObject);
-            (_d = (_c = this.listeners).open) == null ? void 0 : _d.call(_c, openObject);
+            e(L), (c = (a = this.listeners).open) == null || c.call(a, L);
             break;
           }
           case "PartialTranscript": {
-            message.created = new Date(message.created);
-            (_f = (_e = this.listeners).transcript) == null ? void 0 : _f.call(_e, message);
-            (_h = (_g = this.listeners)["transcript.partial"]) == null ? void 0 : _h.call(_g, message);
+            n.created = new Date(n.created), (f = (l = this.listeners).transcript) == null || f.call(l, n), (k = (h = this.listeners)["transcript.partial"]) == null || k.call(h, n);
             break;
           }
           case "FinalTranscript": {
-            message.created = new Date(message.created);
-            (_j = (_i = this.listeners).transcript) == null ? void 0 : _j.call(_i, message);
-            (_l = (_k = this.listeners)["transcript.final"]) == null ? void 0 : _l.call(_k, message);
+            n.created = new Date(n.created), (y = (_ = this.listeners).transcript) == null || y.call(_, n), (w = (m = this.listeners)["transcript.final"]) == null || w.call(m, n);
             break;
           }
           case "SessionInformation": {
-            (_n = (_m = this.listeners).session_information) == null ? void 0 : _n.call(_m, message);
+            (U = (A = this.listeners).session_information) == null || U.call(A, n);
             break;
           }
           case "SessionTerminated": {
-            (_o = this.sessionTerminatedResolve) == null ? void 0 : _o.call(this);
+            (re = this.sessionTerminatedResolve) == null || re.call(this);
             break;
           }
         }
@@ -4074,17 +2934,17 @@ class RealtimeTranscriber {
    * Send audio data to the server.
    * @param audio - The audio data to send to the server.
    */
-  sendAudio(audio) {
-    this.send(audio);
+  sendAudio(e) {
+    this.send(e);
   }
   /**
    * Create a writable stream that can be used to send audio data to the server.
    * @returns A writable stream that can be used to send audio data to the server.
    */
   stream() {
-    return new WritableStream({
-      write: (chunk) => {
-        this.sendAudio(chunk);
+    return new zt({
+      write: (e) => {
+        this.sendAudio(e);
       }
     });
   }
@@ -4092,92 +2952,69 @@ class RealtimeTranscriber {
    * Manually end an utterance
    */
   forceEndUtterance() {
-    this.send(forceEndOfUtteranceMessage);
+    this.send(Ln);
   }
   /**
    * Configure the threshold for how long to wait before ending an utterance. Default is 700ms.
    * @param threshold - The duration of the end utterance silence threshold in milliseconds.
    * This value must be an integer between 0 and 20_000.
    */
-  configureEndUtteranceSilenceThreshold(threshold) {
-    this.send(`{"end_utterance_silence_threshold":${threshold}}`);
+  configureEndUtteranceSilenceThreshold(e) {
+    this.send(`{"end_utterance_silence_threshold":${e}}`);
   }
-  send(data) {
-    if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
+  send(e) {
+    if (!this.socket || this.socket.readyState !== this.socket.OPEN)
       throw new Error("Socket is not open for communication");
-    }
-    this.socket.send(data);
+    this.socket.send(e);
   }
   /**
    * Close the connection to the server.
    * @param waitForSessionTermination - If true, the method will wait for the session to be terminated before closing the connection.
    * While waiting for the session to be terminated, you will receive the final transcript and session information.
    */
-  async close(waitForSessionTermination = true) {
-    var _a;
+  async close(e = !0) {
+    var t;
     if (this.socket) {
-      if (this.socket.readyState === this.socket.OPEN) {
-        if (waitForSessionTermination) {
-          const sessionTerminatedPromise = new Promise((resolve) => {
-            this.sessionTerminatedResolve = resolve;
+      if (this.socket.readyState === this.socket.OPEN)
+        if (e) {
+          const r = new Promise((n) => {
+            this.sessionTerminatedResolve = n;
           });
-          this.socket.send(terminateSessionMessage$1);
-          await sessionTerminatedPromise;
-        } else {
-          this.socket.send(terminateSessionMessage$1);
-        }
-      }
-      if ((_a = this.socket) == null ? void 0 : _a.removeAllListeners)
-        this.socket.removeAllListeners();
-      this.socket.close();
+          this.socket.send(Bt), await r;
+        } else
+          this.socket.send(Bt);
+      (t = this.socket) != null && t.removeAllListeners && this.socket.removeAllListeners(), this.socket.close();
     }
-    this.listeners = {};
-    this.socket = void 0;
+    this.listeners = {}, this.socket = void 0;
   }
 }
-class RealtimeTranscriberFactory extends BaseService {
-  constructor(params) {
-    super(params);
-    this.rtFactoryParams = params;
+class Cn extends pe {
+  constructor(e) {
+    super(e), this.rtFactoryParams = e;
   }
   /**
    * @deprecated Use transcriber(...) instead
    */
-  createService(params) {
-    return this.transcriber(params);
+  createService(e) {
+    return this.transcriber(e);
   }
-  transcriber(params) {
-    const serviceParams = { ...params };
-    if (!serviceParams.token && !serviceParams.apiKey) {
-      serviceParams.apiKey = this.rtFactoryParams.apiKey;
-    }
-    return new RealtimeTranscriber(serviceParams);
+  transcriber(e) {
+    const t = { ...e };
+    return !t.token && !t.apiKey && (t.apiKey = this.rtFactoryParams.apiKey), new Fn(t);
   }
-  async createTemporaryToken(params) {
-    const data = await this.fetchJson("/v2/realtime/token", {
+  async createTemporaryToken(e) {
+    return (await this.fetchJson("/v2/realtime/token", {
       method: "POST",
-      body: JSON.stringify(params)
-    });
-    return data.token;
+      body: JSON.stringify(e)
+    })).token;
   }
 }
-function getPath(path2) {
-  if (path2.startsWith("http"))
-    return null;
-  if (path2.startsWith("https"))
-    return null;
-  if (path2.startsWith("data:"))
-    return null;
-  if (path2.startsWith("file://"))
-    return path2.substring(7);
-  if (path2.startsWith("file:"))
-    return path2.substring(5);
-  return path2;
+function Mt(s) {
+  return s.startsWith("http") || s.startsWith("https") || s.startsWith("data:") ? null : s.startsWith("file://") ? s.substring(7) : s.startsWith("file:") ? s.substring(5) : s;
 }
-class TranscriptService extends BaseService {
-  constructor(params, files) {
-    super(params);
-    this.files = files;
+class Un extends pe {
+  constructor(e, t) {
+    super(e), this.files = t;
   }
   /**
    * Transcribe an audio file. This will create a transcript and wait until the transcript status is "completed" or "error".
@@ -4185,43 +3022,31 @@ class TranscriptService extends BaseService {
    * @param options - The options to transcribe an audio file.
    * @returns A promise that resolves to the transcript. The transcript status is "completed" or "error".
    */
-  async transcribe(params, options) {
-    const transcript = await this.submit(params);
-    return await this.waitUntilReady(transcript.id, options);
+  async transcribe(e, t) {
+    const r = await this.submit(e);
+    return await this.waitUntilReady(r.id, t);
   }
   /**
    * Submits a transcription job for an audio file. This will not wait until the transcript status is "completed" or "error".
    * @param params - The parameters to start the transcription of an audio file.
    * @returns A promise that resolves to the queued transcript.
    */
-  async submit(params) {
-    let audioUrl;
-    let transcriptParams = void 0;
-    if ("audio" in params) {
-      const { audio, ...audioTranscriptParams } = params;
-      if (typeof audio === "string") {
-        const path2 = getPath(audio);
-        if (path2 !== null) {
-          audioUrl = await this.files.upload(path2);
-        } else {
-          if (audio.startsWith("data:")) {
-            audioUrl = await this.files.upload(audio);
-          } else {
-            audioUrl = audio;
-          }
-        }
-      } else {
-        audioUrl = await this.files.upload(audio);
-      }
-      transcriptParams = { ...audioTranscriptParams, audio_url: audioUrl };
-    } else {
-      transcriptParams = params;
-    }
-    const data = await this.fetchJson("/v2/transcript", {
+  async submit(e) {
+    let t, r;
+    if ("audio" in e) {
+      const { audio: i, ...o } = e;
+      if (typeof i == "string") {
+        const a = Mt(i);
+        a !== null ? t = await this.files.upload(a) : i.startsWith("data:") ? t = await this.files.upload(i) : t = i;
+      } else
+        t = await this.files.upload(i);
+      r = { ...o, audio_url: t };
+    } else
+      r = e;
+    return await this.fetchJson("/v2/transcript", {
       method: "POST",
-      body: JSON.stringify(transcriptParams)
+      body: JSON.stringify(r)
     });
-    return data;
   }
   /**
    * Create a transcript.
@@ -4230,20 +3055,17 @@ class TranscriptService extends BaseService {
    * @returns A promise that resolves to the transcript.
    * @deprecated Use `transcribe` instead to transcribe a audio file that includes polling, or `submit` to transcribe a audio file without polling.
    */
-  async create(params, options) {
-    const path2 = getPath(params.audio_url);
-    if (path2 !== null) {
-      const uploadUrl = await this.files.upload(path2);
-      params.audio_url = uploadUrl;
+  async create(e, t) {
+    const r = Mt(e.audio_url);
+    if (r !== null) {
+      const i = await this.files.upload(r);
+      e.audio_url = i;
     }
-    const data = await this.fetchJson("/v2/transcript", {
+    const n = await this.fetchJson("/v2/transcript", {
       method: "POST",
-      body: JSON.stringify(params)
+      body: JSON.stringify(e)
     });
-    if ((options == null ? void 0 : options.poll) ?? true) {
-      return await this.waitUntilReady(data.id, options);
-    }
-    return data;
+    return (t == null ? void 0 : t.poll) ?? !0 ? await this.waitUntilReady(n.id, t) : n;
   }
   /**
    * Wait until the transcript ready, either the status is "completed" or "error".
@@ -4251,19 +3073,15 @@ class TranscriptService extends BaseService {
    * @param options - The options to wait until the transcript is ready.
    * @returns A promise that resolves to the transcript. The transcript status is "completed" or "error".
    */
-  async waitUntilReady(transcriptId, options) {
-    const pollingInterval = (options == null ? void 0 : options.pollingInterval) ?? 3e3;
-    const pollingTimeout = (options == null ? void 0 : options.pollingTimeout) ?? -1;
-    const startTime = Date.now();
-    while (true) {
-      const transcript = await this.get(transcriptId);
-      if (transcript.status === "completed" || transcript.status === "error") {
-        return transcript;
-      } else if (pollingTimeout > 0 && Date.now() - startTime > pollingTimeout) {
+  async waitUntilReady(e, t) {
+    const r = (t == null ? void 0 : t.pollingInterval) ?? 3e3, n = (t == null ? void 0 : t.pollingTimeout) ?? -1, i = Date.now();
+    for (; ; ) {
+      const o = await this.get(e);
+      if (o.status === "completed" || o.status === "error")
+        return o;
+      if (n > 0 && Date.now() - i > n)
         throw new Error("Polling timeout");
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-      }
+      await new Promise((a) => setTimeout(a, r));
     }
   }
   /**
@@ -4271,42 +3089,34 @@ class TranscriptService extends BaseService {
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the transcript.
    */
-  get(id) {
-    return this.fetchJson(`/v2/transcript/${id}`);
+  get(e) {
+    return this.fetchJson(`/v2/transcript/${e}`);
   }
   /**
    * Retrieves a page of transcript listings.
    * @param params - The parameters to filter the transcript list by, or the URL to retrieve the transcript list from.
    */
-  async list(params) {
-    let url = "/v2/transcript";
-    if (typeof params === "string") {
-      url = params;
-    } else if (params) {
-      url = `${url}?${new URLSearchParams(Object.keys(params).map((key) => {
-        var _a;
-        return [
-          key,
-          ((_a = params[key]) == null ? void 0 : _a.toString()) || ""
-        ];
-      }))}`;
-    }
-    const data = await this.fetchJson(url);
-    for (const transcriptListItem of data.transcripts) {
-      transcriptListItem.created = new Date(transcriptListItem.created);
-      if (transcriptListItem.completed) {
-        transcriptListItem.completed = new Date(transcriptListItem.completed);
-      }
-    }
-    return data;
+  async list(e) {
+    let t = "/v2/transcript";
+    typeof e == "string" ? t = e : e && (t = `${t}?${new URLSearchParams(Object.keys(e).map((n) => {
+      var i;
+      return [
+        n,
+        ((i = e[n]) == null ? void 0 : i.toString()) || ""
+      ];
+    }))}`);
+    const r = await this.fetchJson(t);
+    for (const n of r.transcripts)
+      n.created = new Date(n.created), n.completed && (n.completed = new Date(n.completed));
+    return r;
   }
   /**
    * Delete a transcript
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the transcript.
    */
-  delete(id) {
-    return this.fetchJson(`/v2/transcript/${id}`, { method: "DELETE" });
+  delete(e) {
+    return this.fetchJson(`/v2/transcript/${e}`, { method: "DELETE" });
   }
   /**
    * Search through the transcript for a specific set of keywords.
@@ -4315,25 +3125,25 @@ class TranscriptService extends BaseService {
    * @param words - Keywords to search for.
    * @returns A promise that resolves to the sentences.
    */
-  wordSearch(id, words) {
-    const params = new URLSearchParams({ words: words.join(",") });
-    return this.fetchJson(`/v2/transcript/${id}/word-search?${params.toString()}`);
+  wordSearch(e, t) {
+    const r = new URLSearchParams({ words: t.join(",") });
+    return this.fetchJson(`/v2/transcript/${e}/word-search?${r.toString()}`);
   }
   /**
    * Retrieve all sentences of a transcript.
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the sentences.
    */
-  sentences(id) {
-    return this.fetchJson(`/v2/transcript/${id}/sentences`);
+  sentences(e) {
+    return this.fetchJson(`/v2/transcript/${e}/sentences`);
   }
   /**
    * Retrieve all paragraphs of a transcript.
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the paragraphs.
    */
-  paragraphs(id) {
-    return this.fetchJson(`/v2/transcript/${id}/paragraphs`);
+  paragraphs(e) {
+    return this.fetchJson(`/v2/transcript/${e}/paragraphs`);
   }
   /**
    * Retrieve subtitles of a transcript.
@@ -4342,15 +3152,13 @@ class TranscriptService extends BaseService {
    * @param chars_per_caption - The maximum number of characters per caption.
    * @returns A promise that resolves to the subtitles text.
    */
-  async subtitles(id, format2 = "srt", chars_per_caption) {
-    let url = `/v2/transcript/${id}/${format2}`;
-    if (chars_per_caption) {
-      const params = new URLSearchParams();
-      params.set("chars_per_caption", chars_per_caption.toString());
-      url += `?${params.toString()}`;
+  async subtitles(e, t = "srt", r) {
+    let n = `/v2/transcript/${e}/${t}`;
+    if (r) {
+      const o = new URLSearchParams();
+      o.set("chars_per_caption", r.toString()), n += `?${o.toString()}`;
     }
-    const response = await this.fetch(url);
-    return await response.text();
+    return await (await this.fetch(n)).text();
   }
   /**
    * Retrieve the redacted audio URL of a transcript.
@@ -4358,199 +3166,116 @@ class TranscriptService extends BaseService {
    * @returns A promise that resolves to the details of the redacted audio.
    * @deprecated Use `redactedAudio` instead.
    */
-  redactions(id) {
-    return this.redactedAudio(id);
+  redactions(e) {
+    return this.redactedAudio(e);
   }
   /**
    * Retrieve the redacted audio URL of a transcript.
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the details of the redacted audio.
    */
-  redactedAudio(id) {
-    return this.fetchJson(`/v2/transcript/${id}/redacted-audio`);
+  redactedAudio(e) {
+    return this.fetchJson(`/v2/transcript/${e}/redacted-audio`);
   }
   /**
    * Retrieve the redacted audio file of a transcript.
    * @param id - The identifier of the transcript.
    * @returns A promise that resolves to the fetch HTTP response of the redacted audio file.
    */
-  async redactedAudioFile(id) {
-    const { redacted_audio_url, status } = await this.redactedAudio(id);
-    if (status !== "redacted_audio_ready") {
-      throw new Error(`Redacted audio status is ${status}`);
-    }
-    const response = await fetch(redacted_audio_url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch redacted audio: ${response.statusText}`);
-    }
+  async redactedAudioFile(e) {
+    const { redacted_audio_url: t, status: r } = await this.redactedAudio(e);
+    if (r !== "redacted_audio_ready")
+      throw new Error(`Redacted audio status is ${r}`);
+    const n = await fetch(t);
+    if (!n.ok)
+      throw new Error(`Failed to fetch redacted audio: ${n.statusText}`);
     return {
-      arrayBuffer: response.arrayBuffer.bind(response),
-      blob: response.blob.bind(response),
-      body: response.body,
-      bodyUsed: response.bodyUsed
+      arrayBuffer: n.arrayBuffer.bind(n),
+      blob: n.blob.bind(n),
+      body: n.body,
+      bodyUsed: n.bodyUsed
     };
   }
 }
-const readFile = async (path2) => Readable$1.toWeb(createReadStream(path2));
-class FileService extends BaseService {
+const Bn = async (s) => As.toWeb(Us(s));
+class Mn extends pe {
   /**
    * Upload a local file to AssemblyAI.
    * @param input - The local file path to upload, or a stream or buffer of the file to upload.
    * @returns A promise that resolves to the uploaded file URL.
    */
-  async upload(input) {
-    let fileData;
-    if (typeof input === "string") {
-      if (input.startsWith("data:")) {
-        fileData = dataUrlToBlob(input);
-      } else {
-        fileData = await readFile(input);
-      }
-    } else
-      fileData = input;
-    const data = await this.fetchJson("/v2/upload", {
+  async upload(e) {
+    let t;
+    return typeof e == "string" ? e.startsWith("data:") ? t = $n(e) : t = await Bn(e) : t = e, (await this.fetchJson("/v2/upload", {
       method: "POST",
-      body: fileData,
+      body: t,
       headers: {
         "Content-Type": "application/octet-stream"
       },
       duplex: "half"
-    });
-    return data.upload_url;
+    })).upload_url;
   }
 }
-function dataUrlToBlob(dataUrl) {
-  const arr = dataUrl.split(",");
-  const mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mime });
+function $n(s) {
+  const e = s.split(","), t = e[0].match(/:(.*?);/)[1], r = atob(e[1]);
+  let n = r.length;
+  const i = new Uint8Array(n);
+  for (; n--; )
+    i[n] = r.charCodeAt(n);
+  return new Blob([i], { type: t });
 }
-const defaultStreamingUrl$1 = "wss://streaming.assemblyai.com/v3/ws";
-const terminateSessionMessage = `{"type":"Terminate"}`;
-class StreamingTranscriber {
-  constructor(params) {
-    this.listeners = {};
-    this.params = {
-      ...params,
-      websocketBaseUrl: params.websocketBaseUrl || defaultStreamingUrl$1
-    };
-    if ("token" in params && params.token)
-      this.token = params.token;
-    if ("apiKey" in params && params.apiKey)
-      this.apiKey = params.apiKey;
-    if (!(this.token || this.apiKey)) {
+const Kn = "wss://streaming.assemblyai.com/v3/ws", $t = '{"type":"Terminate"}';
+class Wn {
+  constructor(e) {
+    if (this.listeners = {}, this.params = {
+      ...e,
+      websocketBaseUrl: e.websocketBaseUrl || Kn
+    }, "token" in e && e.token && (this.token = e.token), "apiKey" in e && e.apiKey && (this.apiKey = e.apiKey), !(this.token || this.apiKey))
       throw new Error("API key or temporary token is required.");
-    }
   }
   connectionUrl() {
-    const url = new URL(this.params.websocketBaseUrl ?? "");
-    if (url.protocol !== "wss:") {
+    const e = new URL(this.params.websocketBaseUrl ?? "");
+    if (e.protocol !== "wss:")
       throw new Error("Invalid protocol, must be wss");
-    }
-    const searchParams = new URLSearchParams();
-    if (this.token) {
-      searchParams.set("token", this.token);
-    }
-    searchParams.set("sample_rate", this.params.sampleRate.toString());
-    if (this.params.endOfTurnConfidenceThreshold) {
-      searchParams.set("end_of_turn_confidence_threshold", this.params.endOfTurnConfidenceThreshold.toString());
-    }
-    if (this.params.minEndOfTurnSilenceWhenConfident) {
-      searchParams.set("min_end_of_turn_silence_when_confident", this.params.minEndOfTurnSilenceWhenConfident.toString());
-    }
-    if (this.params.maxTurnSilence) {
-      searchParams.set("max_turn_silence", this.params.maxTurnSilence.toString());
-    }
-    if (this.params.vadThreshold !== void 0) {
-      searchParams.set("vad_threshold", this.params.vadThreshold.toString());
-    }
-    if (this.params.formatTurns) {
-      searchParams.set("format_turns", this.params.formatTurns.toString());
-    }
-    if (this.params.encoding) {
-      searchParams.set("encoding", this.params.encoding.toString());
-    }
-    if (this.params.keytermsPrompt) {
-      searchParams.set("keyterms_prompt", JSON.stringify(this.params.keytermsPrompt));
-    } else if (this.params.keyterms) {
-      console.warn("[Deprecation Warning] `keyterms` is deprecated and will be removed in a future release. Please use `keytermsPrompt` instead.");
-      searchParams.set("keyterms_prompt", JSON.stringify(this.params.keyterms));
-    }
-    if (this.params.filterProfanity) {
-      searchParams.set("filter_profanity", this.params.filterProfanity.toString());
-    }
-    if (this.params.speechModel) {
-      searchParams.set("speech_model", this.params.speechModel.toString());
-    }
-    if (this.params.languageDetection !== void 0) {
-      searchParams.set("language_detection", this.params.languageDetection.toString());
-    }
-    if (this.params.inactivityTimeout !== void 0) {
-      searchParams.set("inactivity_timeout", this.params.inactivityTimeout.toString());
-    }
-    url.search = searchParams.toString();
-    return url;
+    const t = new URLSearchParams();
+    return this.token && t.set("token", this.token), t.set("sample_rate", this.params.sampleRate.toString()), this.params.endOfTurnConfidenceThreshold && t.set("end_of_turn_confidence_threshold", this.params.endOfTurnConfidenceThreshold.toString()), this.params.minEndOfTurnSilenceWhenConfident && t.set("min_end_of_turn_silence_when_confident", this.params.minEndOfTurnSilenceWhenConfident.toString()), this.params.maxTurnSilence && t.set("max_turn_silence", this.params.maxTurnSilence.toString()), this.params.vadThreshold !== void 0 && t.set("vad_threshold", this.params.vadThreshold.toString()), this.params.formatTurns && t.set("format_turns", this.params.formatTurns.toString()), this.params.encoding && t.set("encoding", this.params.encoding.toString()), this.params.keytermsPrompt ? t.set("keyterms_prompt", JSON.stringify(this.params.keytermsPrompt)) : this.params.keyterms && (console.warn("[Deprecation Warning] `keyterms` is deprecated and will be removed in a future release. Please use `keytermsPrompt` instead."), t.set("keyterms_prompt", JSON.stringify(this.params.keyterms))), this.params.filterProfanity && t.set("filter_profanity", this.params.filterProfanity.toString()), this.params.speechModel && t.set("speech_model", this.params.speechModel.toString()), this.params.languageDetection !== void 0 && t.set("language_detection", this.params.languageDetection.toString()), this.params.inactivityTimeout !== void 0 && t.set("inactivity_timeout", this.params.inactivityTimeout.toString()), e.search = t.toString(), e;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event, listener) {
-    this.listeners[event] = listener;
+  on(e, t) {
+    this.listeners[e] = t;
   }
   connect() {
-    return new Promise((resolve) => {
-      if (this.socket) {
+    return new Promise((e) => {
+      if (this.socket)
         throw new Error("Already connected");
-      }
-      const url = this.connectionUrl();
-      if (this.token) {
-        this.socket = factory(url.toString());
-      } else {
-        this.socket = factory(url.toString(), {
-          headers: { Authorization: this.apiKey }
-        });
-      }
-      this.socket.binaryType = "arraybuffer";
-      this.socket.onopen = () => {
-      };
-      this.socket.onclose = ({ code, reason }) => {
-        var _a, _b;
-        if (!reason) {
-          if (code in StreamingErrorMessages) {
-            reason = StreamingErrorMessages[code];
-          }
-        }
-        (_b = (_a = this.listeners).close) == null ? void 0 : _b.call(_a, code, reason);
-      };
-      this.socket.onerror = (event) => {
-        var _a, _b, _c, _d;
-        if (event.error)
-          (_b = (_a = this.listeners).error) == null ? void 0 : _b.call(_a, event.error);
-        else
-          (_d = (_c = this.listeners).error) == null ? void 0 : _d.call(_c, new Error(event.message));
-      };
-      this.socket.onmessage = ({ data }) => {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const message = JSON.parse(data.toString());
-        if ("error" in message) {
-          (_b = (_a = this.listeners).error) == null ? void 0 : _b.call(_a, new StreamingError(message.error));
+      const t = this.connectionUrl();
+      this.token ? this.socket = Re(t.toString()) : this.socket = Re(t.toString(), {
+        headers: { Authorization: this.apiKey }
+      }), this.socket.binaryType = "arraybuffer", this.socket.onopen = () => {
+      }, this.socket.onclose = ({ code: r, reason: n }) => {
+        var i, o;
+        n || r in Ut && (n = Ut[r]), (o = (i = this.listeners).close) == null || o.call(i, r, n);
+      }, this.socket.onerror = (r) => {
+        var n, i, o, a;
+        r.error ? (i = (n = this.listeners).error) == null || i.call(n, r.error) : (a = (o = this.listeners).error) == null || a.call(o, new Error(r.message));
+      }, this.socket.onmessage = ({ data: r }) => {
+        var i, o, a, c, l, f, h;
+        const n = JSON.parse(r.toString());
+        if ("error" in n) {
+          (o = (i = this.listeners).error) == null || o.call(i, new In(n.error));
           return;
         }
-        switch (message.type) {
+        switch (n.type) {
           case "Begin": {
-            resolve(message);
-            (_d = (_c = this.listeners).open) == null ? void 0 : _d.call(_c, message);
+            e(n), (c = (a = this.listeners).open) == null || c.call(a, n);
             break;
           }
           case "Turn": {
-            (_f = (_e = this.listeners).turn) == null ? void 0 : _f.call(_e, message);
+            (f = (l = this.listeners).turn) == null || f.call(l, n);
             break;
           }
           case "Termination": {
-            (_g = this.sessionTerminatedResolve) == null ? void 0 : _g.call(this);
+            (h = this.sessionTerminatedResolve) == null || h.call(this);
             break;
           }
         }
@@ -4558,112 +3283,83 @@ class StreamingTranscriber {
     });
   }
   stream() {
-    return new WritableStream({
-      write: (chunk) => {
-        this.sendAudio(chunk);
+    return new zt({
+      write: (e) => {
+        this.sendAudio(e);
       }
     });
   }
-  sendAudio(audio) {
-    this.send(audio);
+  sendAudio(e) {
+    this.send(e);
   }
-  send(data) {
-    if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
+  send(e) {
+    if (!this.socket || this.socket.readyState !== this.socket.OPEN)
       throw new Error("Socket is not open for communication");
-    }
-    this.socket.send(data);
+    this.socket.send(e);
   }
-  async close(waitForSessionTermination = true) {
-    var _a;
+  async close(e = !0) {
+    var t;
     if (this.socket) {
-      if (this.socket.readyState === this.socket.OPEN) {
-        if (waitForSessionTermination) {
-          const sessionTerminatedPromise = new Promise((resolve) => {
-            this.sessionTerminatedResolve = resolve;
+      if (this.socket.readyState === this.socket.OPEN)
+        if (e) {
+          const r = new Promise((n) => {
+            this.sessionTerminatedResolve = n;
           });
-          this.socket.send(terminateSessionMessage);
-          await sessionTerminatedPromise;
-        } else {
-          this.socket.send(terminateSessionMessage);
-        }
-      }
-      if ((_a = this.socket) == null ? void 0 : _a.removeAllListeners)
-        this.socket.removeAllListeners();
-      this.socket.close();
+          this.socket.send($t), await r;
+        } else
+          this.socket.send($t);
+      (t = this.socket) != null && t.removeAllListeners && this.socket.removeAllListeners(), this.socket.close();
     }
-    this.listeners = {};
-    this.socket = void 0;
+    this.listeners = {}, this.socket = void 0;
   }
 }
-class StreamingTranscriberFactory extends BaseService {
-  constructor(params) {
-    super(params);
-    this.baseServiceParams = params;
+class jn extends pe {
+  constructor(e) {
+    super(e), this.baseServiceParams = e;
   }
-  transcriber(params) {
-    const serviceParams = { ...params };
-    if (!serviceParams.token && !serviceParams.apiKey) {
-      serviceParams.apiKey = this.baseServiceParams.apiKey;
-    }
-    return new StreamingTranscriber(serviceParams);
+  transcriber(e) {
+    const t = { ...e };
+    return !t.token && !t.apiKey && (t.apiKey = this.baseServiceParams.apiKey), new Wn(t);
   }
-  async createTemporaryToken(params) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== void 0 && value !== null) {
-        searchParams.append(key, String(value));
-      }
+  async createTemporaryToken(e) {
+    const t = new URLSearchParams();
+    Object.entries(e).forEach(([o, a]) => {
+      a != null && t.append(o, String(a));
     });
-    const queryString = searchParams.toString();
-    const url = queryString ? `/v3/token?${queryString}` : "/v3/token";
-    const data = await this.fetchJson(url, {
+    const r = t.toString(), n = r ? `/v3/token?${r}` : "/v3/token";
+    return (await this.fetchJson(n, {
       method: "GET"
-    });
-    return data.token;
+    })).token;
   }
 }
-const defaultBaseUrl = "https://api.assemblyai.com";
-const defaultStreamingUrl = "https://streaming.assemblyai.com";
-class AssemblyAI {
+const Vn = "https://api.assemblyai.com", Gn = "https://streaming.assemblyai.com";
+class qn {
   /**
    * Create a new AssemblyAI client.
    * @param params - The parameters for the service, including the API key and base URL, if any.
    */
-  constructor(params) {
-    params.baseUrl = params.baseUrl || defaultBaseUrl;
-    if (params.baseUrl && params.baseUrl.endsWith("/")) {
-      params.baseUrl = params.baseUrl.slice(0, -1);
-    }
-    this.files = new FileService(params);
-    this.transcripts = new TranscriptService(params, this.files);
-    this.lemur = new LemurService(params);
-    this.realtime = new RealtimeTranscriberFactory(params);
-    this.streaming = new StreamingTranscriberFactory({
-      ...params,
-      baseUrl: params.streamingBaseUrl || defaultStreamingUrl
+  constructor(e) {
+    e.baseUrl = e.baseUrl || Vn, e.baseUrl && e.baseUrl.endsWith("/") && (e.baseUrl = e.baseUrl.slice(0, -1)), this.files = new Mn(e), this.transcripts = new Un(e, this.files), this.lemur = new Rn(e), this.realtime = new Cn(e), this.streaming = new jn({
+      ...e,
+      baseUrl: e.streamingBaseUrl || Gn
     });
   }
 }
-function getFFmpegPath() {
-  const { app: app2 } = require("electron");
-  if (app2.isPackaged) {
-    const platform = process.platform;
-    const ffmpegName = platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
-    const resourcePath = path.join(process.resourcesPath, "bin", ffmpegName);
-    if (fs.existsSync(resourcePath)) {
-      return resourcePath;
-    }
+function Hn() {
+  const { app: s } = require("electron");
+  if (s.isPackaged) {
+    const t = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg", r = Jt.join(process.resourcesPath, "bin", t);
+    if (Qe.existsSync(r))
+      return r;
   }
   return process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 }
-async function extractAudio(videoPath) {
-  const tempDir = os.tmpdir();
-  const audioPath = path.join(tempDir, `audio-${Date.now()}.wav`);
-  const ffmpegPath = getFFmpegPath();
-  return new Promise((resolve, reject) => {
-    const ffmpeg = spawn(ffmpegPath, [
+async function zn(s) {
+  const e = Ms.tmpdir(), t = Jt.join(e, `audio-${Date.now()}.wav`), r = Hn();
+  return new Promise((n, i) => {
+    const o = Bs(r, [
       "-i",
-      videoPath,
+      s,
       "-vn",
       // No video
       "-acodec",
@@ -4677,125 +3373,105 @@ async function extractAudio(videoPath) {
       // Mono audio
       "-y",
       // Overwrite output file
-      audioPath
+      t
     ]);
-    let stderr = "";
-    ffmpeg.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-    ffmpeg.on("close", (code) => {
-      if (code === 0) {
-        resolve(audioPath);
-      } else {
-        reject(new Error(`FFmpeg exited with code ${code}: ${stderr}`));
-      }
-    });
-    ffmpeg.on("error", (err) => {
-      reject(new Error(`Failed to spawn ffmpeg: ${err.message}. Make sure ffmpeg is installed and in PATH.`));
+    let a = "";
+    o.stderr.on("data", (c) => {
+      a += c.toString();
+    }), o.on("close", (c) => {
+      c === 0 ? n(t) : i(new Error(`FFmpeg exited with code ${c}: ${a}`));
+    }), o.on("error", (c) => {
+      i(new Error(`Failed to spawn ffmpeg: ${c.message}. Make sure ffmpeg is installed and in PATH.`));
     });
   });
 }
-async function transcribeVideo(request, onProgress) {
+async function Jn(s, e) {
   try {
-    if (!request.videoPath) {
-      return { success: false, error: "Video path is required" };
-    }
-    if (!request.apiKey) {
-      return { success: false, error: "AssemblyAI API key is required" };
-    }
-    if (!fs.existsSync(request.videoPath)) {
-      return { success: false, error: `Video file not found: ${request.videoPath}` };
-    }
-    onProgress == null ? void 0 : onProgress({
+    if (!s.videoPath)
+      return { success: !1, error: "Video path is required" };
+    if (!s.apiKey)
+      return { success: !1, error: "AssemblyAI API key is required" };
+    if (!Qe.existsSync(s.videoPath))
+      return { success: !1, error: `Video file not found: ${s.videoPath}` };
+    e == null || e({
       status: "extracting",
       progress: 10,
       message: "Extracting audio from video..."
     });
-    let audioPath;
+    let t;
     try {
-      audioPath = await extractAudio(request.videoPath);
-    } catch (error) {
+      t = await zn(s.videoPath);
+    } catch (a) {
       return {
-        success: false,
-        error: `Failed to extract audio: ${error instanceof Error ? error.message : String(error)}`
+        success: !1,
+        error: `Failed to extract audio: ${a instanceof Error ? a.message : String(a)}`
       };
     }
-    onProgress == null ? void 0 : onProgress({
+    e == null || e({
       status: "uploading",
       progress: 20,
       message: "Uploading audio to AssemblyAI..."
     });
-    const client = new AssemblyAI({ apiKey: request.apiKey });
-    onProgress == null ? void 0 : onProgress({
+    const r = new qn({ apiKey: s.apiKey });
+    e == null || e({
       status: "transcribing",
       progress: 30,
       message: "Transcribing audio (this may take a few minutes)..."
     });
-    const transcriptConfig = {
-      audio: audioPath
+    const n = {
+      audio: t
     };
-    if (request.language && request.language !== "auto") {
-      transcriptConfig.language_code = request.language;
-    }
-    const transcript = await client.transcripts.transcribe(transcriptConfig);
-    onProgress == null ? void 0 : onProgress({
+    s.language && s.language !== "auto" && (n.language_code = s.language);
+    const i = await r.transcripts.transcribe(n);
+    e == null || e({
       status: "processing",
       progress: 90,
       message: "Processing transcription results..."
     });
     try {
-      fs.unlinkSync(audioPath);
+      Qe.unlinkSync(t);
     } catch {
-      console.warn("Failed to cleanup temp audio file:", audioPath);
+      console.warn("Failed to cleanup temp audio file:", t);
     }
-    if (transcript.status === "error") {
+    if (i.status === "error")
       return {
-        success: false,
-        error: transcript.error || "Transcription failed"
+        success: !1,
+        error: i.error || "Transcription failed"
       };
-    }
-    const words = (transcript.words || []).map((w) => ({
-      text: w.text,
-      startMs: w.start,
-      endMs: w.end,
-      confidence: w.confidence
+    const o = (i.words || []).map((a) => ({
+      text: a.text,
+      startMs: a.start,
+      endMs: a.end,
+      confidence: a.confidence
     }));
-    onProgress == null ? void 0 : onProgress({
+    return e == null || e({
       status: "complete",
       progress: 100,
-      message: `Transcription complete! ${words.length} words detected.`
-    });
-    return {
-      success: true,
-      words
+      message: `Transcription complete! ${o.length} words detected.`
+    }), {
+      success: !0,
+      words: o
     };
-  } catch (error) {
-    console.error("Transcription error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown transcription error"
+  } catch (t) {
+    return console.error("Transcription error:", t), {
+      success: !1,
+      error: t instanceof Error ? t.message : "Unknown transcription error"
     };
   }
 }
-const require$1 = createRequire(import.meta.url);
-const MIN_DRAG_DURATION_MS = 100;
-const MIN_DRAG_DISTANCE = 5;
-const POLL_INTERVAL_MS = 16;
-const VK_LBUTTON = 1;
-const VK_RBUTTON = 2;
-const VK_MBUTTON = 4;
-class MouseEventDetectorService {
+const we = $s(import.meta.url), Yn = 100, Kt = 5, Xn = 16, Zn = 1, Qn = 2, ei = 4;
+class ti {
   constructor() {
-    __publicField(this, "running", false);
-    __publicField(this, "recordingId", "");
-    __publicField(this, "screenBounds", { width: 1920, height: 1080 });
-    __publicField(this, "recordingStartTime", 0);
-    __publicField(this, "events", []);
-    __publicField(this, "pendingDrag", null);
-    __publicField(this, "mouseHookAvailable", false);
-    __publicField(this, "pollInterval", null);
-    __publicField(this, "windowsApi", null);
-    __publicField(this, "lastButtonState", { left: false, right: false, middle: false });
+    g(this, "running", !1);
+    g(this, "recordingId", "");
+    g(this, "screenBounds", { width: 1920, height: 1080 });
+    g(this, "recordingStartTime", 0);
+    g(this, "events", []);
+    g(this, "pendingDrag", null);
+    g(this, "mouseHookAvailable", !1);
+    g(this, "pollInterval", null);
+    g(this, "windowsApi", null);
+    g(this, "lastButtonState", { left: !1, right: !1, middle: !1 });
     this.initializeWindowsApi();
   }
   /**
@@ -4803,32 +3479,23 @@ class MouseEventDetectorService {
    */
   initializeWindowsApi() {
     try {
-      const koffi = require$1("koffi");
+      const e = we("koffi");
       console.log("MouseEventDetector: koffi loaded successfully");
-      const user32 = koffi.load("user32.dll");
-      console.log("MouseEventDetector: user32.dll loaded");
-      koffi.struct("POINT", {
+      const t = e.load("user32.dll");
+      console.log("MouseEventDetector: user32.dll loaded"), e.struct("POINT", {
         x: "long",
         y: "long"
       });
-      const GetAsyncKeyState = user32.func("short __stdcall GetAsyncKeyState(int vKey)");
-      const GetCursorPos = user32.func("bool __stdcall GetCursorPos(_Out_ POINT *lpPoint)");
+      const r = t.func("short __stdcall GetAsyncKeyState(int vKey)"), n = t.func("bool __stdcall GetCursorPos(_Out_ POINT *lpPoint)");
       this.windowsApi = {
-        GetAsyncKeyState: (vKey) => GetAsyncKeyState(vKey),
-        GetCursorPos: (point) => {
-          const p = { x: 0, y: 0 };
-          const result = GetCursorPos(p);
-          point[0] = p.x;
-          point[1] = p.y;
-          return result;
+        GetAsyncKeyState: (i) => r(i),
+        GetCursorPos: (i) => {
+          const o = { x: 0, y: 0 }, a = n(o);
+          return i[0] = o.x, i[1] = o.y, a;
         }
-      };
-      this.mouseHookAvailable = true;
-      console.log("MouseEventDetector: Windows API initialized via koffi (no native compilation required)");
-    } catch (error) {
-      console.warn("MouseEventDetector: koffi not available, trying global-mouse-events fallback");
-      console.warn("MouseEventDetector: koffi error:", error);
-      this.tryGlobalMouseEventsFallback();
+      }, this.mouseHookAvailable = !0, console.log("MouseEventDetector: Windows API initialized via koffi (no native compilation required)");
+    } catch (e) {
+      console.warn("MouseEventDetector: koffi not available, trying global-mouse-events fallback"), console.warn("MouseEventDetector: koffi error:", e), this.tryGlobalMouseEventsFallback();
     }
   }
   /**
@@ -4836,13 +3503,9 @@ class MouseEventDetectorService {
    */
   tryGlobalMouseEventsFallback() {
     try {
-      require$1("global-mouse-events");
-      this.mouseHookAvailable = true;
-      console.log("MouseEventDetector: Using global-mouse-events fallback");
-    } catch (error) {
-      console.warn("MouseEventDetector: No mouse detection available");
-      console.warn("MouseEventDetector: Install koffi (npm install koffi) for mouse detection without Visual Studio Build Tools");
-      this.mouseHookAvailable = false;
+      we("global-mouse-events"), this.mouseHookAvailable = !0, console.log("MouseEventDetector: Using global-mouse-events fallback");
+    } catch {
+      console.warn("MouseEventDetector: No mouse detection available"), console.warn("MouseEventDetector: Install koffi (npm install koffi) for mouse detection without Visual Studio Build Tools"), this.mouseHookAvailable = !1;
     }
   }
   /**
@@ -4850,104 +3513,62 @@ class MouseEventDetectorService {
    * @param recordingId - Unique identifier for the recording
    * @param screenBounds - Screen dimensions for coordinate validation
    */
-  start(recordingId, screenBounds) {
+  start(e, t) {
     if (this.running) {
       console.warn("MouseEventDetector: Already running");
       return;
     }
-    this.recordingId = recordingId;
-    this.screenBounds = screenBounds;
-    this.recordingStartTime = Date.now();
-    this.events = [];
-    this.pendingDrag = null;
-    this.running = true;
-    this.lastButtonState = { left: false, right: false, middle: false };
-    if (this.windowsApi) {
-      this.startPolling();
-    } else {
-      this.initializeGlobalMouseEventsHook();
-    }
+    this.recordingId = e, this.screenBounds = t, this.recordingStartTime = Date.now(), this.events = [], this.pendingDrag = null, this.running = !0, this.lastButtonState = { left: !1, right: !1, middle: !1 }, this.windowsApi ? this.startPolling() : this.initializeGlobalMouseEventsHook();
   }
   /**
    * Start polling Windows API for mouse state
    */
   startPolling() {
-    if (!this.windowsApi) return;
-    this.pollInterval = setInterval(() => {
+    this.windowsApi && (this.pollInterval = setInterval(() => {
       if (!this.running || !this.windowsApi) return;
-      const point = [0, 0];
-      this.windowsApi.GetCursorPos(point);
-      const x = point[0];
-      const y = point[1];
-      const leftDown = (this.windowsApi.GetAsyncKeyState(VK_LBUTTON) & 32768) !== 0;
-      const rightDown = (this.windowsApi.GetAsyncKeyState(VK_RBUTTON) & 32768) !== 0;
-      const middleDown = (this.windowsApi.GetAsyncKeyState(VK_MBUTTON) & 32768) !== 0;
-      if (leftDown && !this.lastButtonState.left) {
-        this.onMouseDown(x, y, "left");
-      }
-      if (rightDown && !this.lastButtonState.right) {
-        this.onMouseDown(x, y, "right");
-      }
-      if (middleDown && !this.lastButtonState.middle) {
-        this.onMouseDown(x, y, "middle");
-      }
-      if (!leftDown && this.lastButtonState.left) {
-        this.onMouseUp(x, y, "left");
-      }
-      if (!rightDown && this.lastButtonState.right) {
-        this.onMouseUp(x, y, "right");
-      }
-      if (!middleDown && this.lastButtonState.middle) {
-        this.onMouseUp(x, y, "middle");
-      }
-      this.lastButtonState = { left: leftDown, right: rightDown, middle: middleDown };
-    }, POLL_INTERVAL_MS);
-    console.log("MouseEventDetector: Polling started");
+      const e = [0, 0];
+      this.windowsApi.GetCursorPos(e);
+      const t = e[0], r = e[1], n = (this.windowsApi.GetAsyncKeyState(Zn) & 32768) !== 0, i = (this.windowsApi.GetAsyncKeyState(Qn) & 32768) !== 0, o = (this.windowsApi.GetAsyncKeyState(ei) & 32768) !== 0;
+      n && !this.lastButtonState.left && this.onMouseDown(t, r, "left"), i && !this.lastButtonState.right && this.onMouseDown(t, r, "right"), o && !this.lastButtonState.middle && this.onMouseDown(t, r, "middle"), !n && this.lastButtonState.left && this.onMouseUp(t, r, "left"), !i && this.lastButtonState.right && this.onMouseUp(t, r, "right"), !o && this.lastButtonState.middle && this.onMouseUp(t, r, "middle"), this.lastButtonState = { left: n, right: i, middle: o };
+    }, Xn), console.log("MouseEventDetector: Polling started"));
   }
   /**
    * Handle mouse button down event
    */
-  onMouseDown(x, y, button) {
-    if (!this.running) return;
-    if (this.pendingDrag && this.pendingDrag.button !== button) {
-      this.completePendingAsClick();
-    }
-    this.pendingDrag = {
+  onMouseDown(e, t, r) {
+    this.running && (this.pendingDrag && this.pendingDrag.button !== r && this.completePendingAsClick(), this.pendingDrag = {
       startTimestamp: this.getRelativeTimestamp(),
-      startX: x,
-      startY: y,
-      button
-    };
+      startX: e,
+      startY: t,
+      button: r
+    });
   }
   /**
    * Handle mouse button up event
    */
-  onMouseUp(x, y, button) {
-    if (!this.running || !this.pendingDrag) return;
-    if (this.pendingDrag.button !== button) return;
-    const endTimestamp = this.getRelativeTimestamp();
-    const duration = endTimestamp - this.pendingDrag.startTimestamp;
-    const positionChanged = Math.abs(x - this.pendingDrag.startX) > MIN_DRAG_DISTANCE || Math.abs(y - this.pendingDrag.startY) > MIN_DRAG_DISTANCE;
-    if (duration > MIN_DRAG_DURATION_MS && positionChanged) {
-      const dragEvent = {
+  onMouseUp(e, t, r) {
+    if (!this.running || !this.pendingDrag || this.pendingDrag.button !== r) return;
+    const n = this.getRelativeTimestamp(), i = n - this.pendingDrag.startTimestamp, o = Math.abs(e - this.pendingDrag.startX) > Kt || Math.abs(t - this.pendingDrag.startY) > Kt;
+    if (i > Yn && o) {
+      const a = {
         type: "drag",
         startTimestamp: this.pendingDrag.startTimestamp,
-        endTimestamp,
+        endTimestamp: n,
         startX: this.pendingDrag.startX,
         startY: this.pendingDrag.startY,
-        endX: x,
-        endY: y
+        endX: e,
+        endY: t
       };
-      this.events.push(dragEvent);
+      this.events.push(a);
     } else {
-      const clickEvent = {
+      const a = {
         type: "click",
         timestamp: this.pendingDrag.startTimestamp,
         x: this.pendingDrag.startX,
         y: this.pendingDrag.startY,
-        button
+        button: r
       };
-      this.events.push(clickEvent);
+      this.events.push(a);
     }
     this.pendingDrag = null;
   }
@@ -4956,34 +3577,31 @@ class MouseEventDetectorService {
    */
   completePendingAsClick() {
     if (!this.pendingDrag) return;
-    const clickEvent = {
+    const e = {
       type: "click",
       timestamp: this.pendingDrag.startTimestamp,
       x: this.pendingDrag.startX,
       y: this.pendingDrag.startY,
       button: this.pendingDrag.button
     };
-    this.events.push(clickEvent);
-    this.pendingDrag = null;
+    this.events.push(e), this.pendingDrag = null;
   }
   /**
    * Initialize global-mouse-events hook (fallback for non-koffi systems)
    */
   initializeGlobalMouseEventsHook() {
     try {
-      const mouseEvents = require$1("global-mouse-events");
-      mouseEvents.on("mousedown", (event) => {
+      const e = we("global-mouse-events");
+      e.on("mousedown", (t) => {
         if (!this.running) return;
-        const button = this.mapButton(event.button);
-        this.onMouseDown(event.x, event.y, button);
-      });
-      mouseEvents.on("mouseup", (event) => {
+        const r = this.mapButton(t.button);
+        this.onMouseDown(t.x, t.y, r);
+      }), e.on("mouseup", (t) => {
         if (!this.running) return;
-        const button = this.mapButton(event.button);
-        this.onMouseUp(event.x, event.y, button);
-      });
-      console.log("MouseEventDetector: global-mouse-events hook initialized");
-    } catch (error) {
+        const r = this.mapButton(t.button);
+        this.onMouseUp(t.x, t.y, r);
+      }), console.log("MouseEventDetector: global-mouse-events hook initialized");
+    } catch {
       console.warn("MouseEventDetector: Failed to initialize global-mouse-events");
     }
   }
@@ -4991,37 +3609,25 @@ class MouseEventDetectorService {
    * Stop capturing and return collected events
    */
   stop() {
-    if (!this.running) {
-      console.warn("MouseEventDetector: Not running");
-      return this.createEmptyEventData();
-    }
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-      this.pollInterval = null;
-    }
-    this.cleanupGlobalMouseEvents();
-    this.running = false;
-    this.pendingDrag = null;
-    const eventData = {
+    if (!this.running)
+      return console.warn("MouseEventDetector: Not running"), this.createEmptyEventData();
+    this.pollInterval && (clearInterval(this.pollInterval), this.pollInterval = null), this.cleanupGlobalMouseEvents(), this.running = !1, this.pendingDrag = null;
+    const e = {
       version: 1,
       recordingId: this.recordingId,
       screenWidth: this.screenBounds.width,
       screenHeight: this.screenBounds.height,
       events: [...this.events]
     };
-    this.events = [];
-    this.recordingId = "";
-    console.log(`MouseEventDetector: Stopped, captured ${eventData.events.length} events`);
-    return eventData;
+    return this.events = [], this.recordingId = "", console.log(`MouseEventDetector: Stopped, captured ${e.events.length} events`), e;
   }
   /**
    * Cleanup global-mouse-events listeners
    */
   cleanupGlobalMouseEvents() {
     try {
-      const mouseEvents = require$1("global-mouse-events");
-      mouseEvents.removeAllListeners("mousedown");
-      mouseEvents.removeAllListeners("mouseup");
+      const e = we("global-mouse-events");
+      e.removeAllListeners("mousedown"), e.removeAllListeners("mouseup");
     } catch {
     }
   }
@@ -5046,8 +3652,8 @@ class MouseEventDetectorService {
   /**
    * Map button number to button name
    */
-  mapButton(button) {
-    switch (button) {
+  mapButton(e) {
+    switch (e) {
       case 1:
         return "left";
       case 2:
@@ -5073,351 +3679,222 @@ class MouseEventDetectorService {
   /**
    * Manually add a click event (for testing or alternative input methods)
    */
-  addClickEvent(x, y, button = "left") {
+  addClickEvent(e, t, r = "left") {
     if (!this.running) return;
-    const clickEvent = {
+    const n = {
       type: "click",
       timestamp: this.getRelativeTimestamp(),
-      x,
-      y,
-      button
+      x: e,
+      y: t,
+      button: r
     };
-    this.events.push(clickEvent);
+    this.events.push(n);
   }
   /**
    * Manually add a drag event (for testing or alternative input methods)
    */
-  addDragEvent(startX, startY, endX, endY, durationMs = 200) {
+  addDragEvent(e, t, r, n, i = 200) {
     if (!this.running) return;
-    const startTimestamp = this.getRelativeTimestamp();
-    const dragEvent = {
+    const o = this.getRelativeTimestamp(), a = {
       type: "drag",
-      startTimestamp,
-      endTimestamp: startTimestamp + durationMs,
-      startX,
-      startY,
-      endX,
-      endY
+      startTimestamp: o,
+      endTimestamp: o + i,
+      startX: e,
+      startY: t,
+      endX: r,
+      endY: n
     };
-    this.events.push(dragEvent);
+    this.events.push(a);
   }
 }
-const mouseEventDetector = new MouseEventDetectorService();
-let selectedSource = null;
-function registerIpcHandlers(createEditorWindow2, createSourceSelectorWindow2, getMainWindow, getSourceSelectorWindow, onRecordingStateChange) {
-  ipcMain.handle("get-sources", async (_, opts) => {
-    const sources = await desktopCapturer.getSources(opts);
-    return sources.map((source) => ({
-      id: source.id,
-      name: source.name,
-      display_id: source.display_id,
-      thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
-      appIcon: source.appIcon ? source.appIcon.toDataURL() : null
-    }));
-  });
-  ipcMain.handle("select-source", (_, source) => {
-    selectedSource = source;
-    const sourceSelectorWin = getSourceSelectorWindow();
-    if (sourceSelectorWin) {
-      sourceSelectorWin.close();
-    }
-    return selectedSource;
-  });
-  ipcMain.handle("get-selected-source", () => {
-    return selectedSource;
-  });
-  ipcMain.handle("open-source-selector", () => {
-    const sourceSelectorWin = getSourceSelectorWindow();
-    if (sourceSelectorWin) {
-      sourceSelectorWin.focus();
+const Ye = new ti();
+let Ee = null;
+function si(s, e, t, r, n) {
+  d.handle("get-sources", async (o, a) => (await ks.getSources(a)).map((l) => ({
+    id: l.id,
+    name: l.name,
+    display_id: l.display_id,
+    thumbnail: l.thumbnail ? l.thumbnail.toDataURL() : null,
+    appIcon: l.appIcon ? l.appIcon.toDataURL() : null
+  }))), d.handle("select-source", (o, a) => {
+    Ee = a;
+    const c = r();
+    return c && c.close(), Ee;
+  }), d.handle("get-selected-source", () => Ee), d.handle("open-source-selector", () => {
+    const o = r();
+    if (o) {
+      o.focus();
       return;
     }
-    createSourceSelectorWindow2();
-  });
-  ipcMain.handle("switch-to-editor", () => {
-    const mainWin = getMainWindow();
-    if (mainWin) {
-      mainWin.close();
-    }
-    createEditorWindow2();
-  });
-  ipcMain.handle("store-recorded-video", async (_, videoData, fileName) => {
+    e();
+  }), d.handle("switch-to-editor", () => {
+    const o = t();
+    o && o.close(), s();
+  }), d.handle("store-recorded-video", async (o, a, c) => {
     try {
-      const videoPath = path$1.join(RECORDINGS_DIR, fileName);
-      await fs$1.writeFile(videoPath, Buffer.from(videoData));
-      currentVideoPath = videoPath;
-      return {
-        success: true,
-        path: videoPath,
+      const l = p.join($, c);
+      return await E.writeFile(l, Buffer.from(a)), i = l, {
+        success: !0,
+        path: l,
         message: "Video stored successfully"
       };
-    } catch (error) {
-      console.error("Failed to store video:", error);
-      return {
-        success: false,
+    } catch (l) {
+      return console.error("Failed to store video:", l), {
+        success: !1,
         message: "Failed to store video",
-        error: String(error)
+        error: String(l)
       };
     }
-  });
-  ipcMain.handle("get-recorded-video-path", async () => {
+  }), d.handle("get-recorded-video-path", async () => {
     try {
-      const files = await fs$1.readdir(RECORDINGS_DIR);
-      const videoFiles = files.filter((file) => file.endsWith(".webm"));
-      if (videoFiles.length === 0) {
-        return { success: false, message: "No recorded video found" };
-      }
-      const latestVideo = videoFiles.sort().reverse()[0];
-      const videoPath = path$1.join(RECORDINGS_DIR, latestVideo);
-      return { success: true, path: videoPath };
-    } catch (error) {
-      console.error("Failed to get video path:", error);
-      return { success: false, message: "Failed to get video path", error: String(error) };
+      const a = (await E.readdir($)).filter((f) => f.endsWith(".webm"));
+      if (a.length === 0)
+        return { success: !1, message: "No recorded video found" };
+      const c = a.sort().reverse()[0];
+      return { success: !0, path: p.join($, c) };
+    } catch (o) {
+      return console.error("Failed to get video path:", o), { success: !1, message: "Failed to get video path", error: String(o) };
     }
-  });
-  ipcMain.handle("set-recording-state", (_, recording) => {
-    const source = selectedSource || { name: "Screen" };
-    if (onRecordingStateChange) {
-      onRecordingStateChange(recording, source.name);
-    }
-  });
-  ipcMain.handle("open-external-url", async (_, url) => {
+  }), d.handle("set-recording-state", (o, a) => {
+    n && n(a, (Ee || { name: "Screen" }).name);
+  }), d.handle("open-external-url", async (o, a) => {
     try {
-      await shell.openExternal(url);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to open URL:", error);
-      return { success: false, error: String(error) };
+      return await bs.openExternal(a), { success: !0 };
+    } catch (c) {
+      return console.error("Failed to open URL:", c), { success: !1, error: String(c) };
     }
-  });
-  ipcMain.handle("get-asset-base-path", () => {
+  }), d.handle("get-asset-base-path", () => {
     try {
-      if (app.isPackaged) {
-        return path$1.join(process.resourcesPath, "assets");
-      }
-      return path$1.join(app.getAppPath(), "public", "assets");
-    } catch (err) {
-      console.error("Failed to resolve asset base path:", err);
-      return null;
+      return O.isPackaged ? p.join(process.resourcesPath, "assets") : p.join(O.getAppPath(), "public", "assets");
+    } catch (o) {
+      return console.error("Failed to resolve asset base path:", o), null;
     }
-  });
-  ipcMain.handle("save-exported-video", async (_, videoData, fileName) => {
+  }), d.handle("save-exported-video", async (o, a, c) => {
     try {
-      const mainWindow2 = getMainWindow();
-      const isGif = fileName.toLowerCase().endsWith(".gif");
-      const filters = isGif ? [{ name: "GIF Image", extensions: ["gif"] }] : [{ name: "MP4 Video", extensions: ["mp4"] }];
-      const dialogOptions = {
-        title: isGif ? "Save Exported GIF" : "Save Exported Video",
-        defaultPath: path$1.join(app.getPath("downloads"), fileName),
-        filters,
+      const l = t(), f = c.toLowerCase().endsWith(".gif"), h = f ? [{ name: "GIF Image", extensions: ["gif"] }] : [{ name: "MP4 Video", extensions: ["mp4"] }], k = {
+        title: f ? "Save Exported GIF" : "Save Exported Video",
+        defaultPath: p.join(O.getPath("downloads"), c),
+        filters: h,
         properties: ["createDirectory", "showOverwriteConfirmation"]
-      };
-      const result = mainWindow2 ? await dialog.showSaveDialog(mainWindow2, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
-      if (result.canceled || !result.filePath) {
-        return {
-          success: false,
-          cancelled: true,
-          message: "Export cancelled"
-        };
-      }
-      await fs$1.writeFile(result.filePath, Buffer.from(videoData));
-      return {
-        success: true,
-        path: result.filePath,
+      }, _ = l ? await Ue.showSaveDialog(l, k) : await Ue.showSaveDialog(k);
+      return _.canceled || !_.filePath ? {
+        success: !1,
+        cancelled: !0,
+        message: "Export cancelled"
+      } : (await E.writeFile(_.filePath, Buffer.from(a)), {
+        success: !0,
+        path: _.filePath,
         message: "Video exported successfully"
-      };
-    } catch (error) {
-      console.error("Failed to save exported video:", error);
-      return {
-        success: false,
+      });
+    } catch (l) {
+      return console.error("Failed to save exported video:", l), {
+        success: !1,
         message: "Failed to save exported video",
-        error: String(error)
+        error: String(l)
       };
     }
-  });
-  ipcMain.handle("open-video-file-picker", async () => {
+  }), d.handle("open-video-file-picker", async () => {
     try {
-      const result = await dialog.showOpenDialog({
+      const o = await Ue.showOpenDialog({
         title: "Select Video File",
-        defaultPath: RECORDINGS_DIR,
+        defaultPath: $,
         filters: [
           { name: "Video Files", extensions: ["webm", "mp4", "mov", "avi", "mkv"] },
           { name: "All Files", extensions: ["*"] }
         ],
         properties: ["openFile"]
       });
-      if (result.canceled || result.filePaths.length === 0) {
-        return { success: false, cancelled: true };
-      }
-      return {
-        success: true,
-        path: result.filePaths[0]
+      return o.canceled || o.filePaths.length === 0 ? { success: !1, cancelled: !0 } : {
+        success: !0,
+        path: o.filePaths[0]
       };
-    } catch (error) {
-      console.error("Failed to open file picker:", error);
-      return {
-        success: false,
+    } catch (o) {
+      return console.error("Failed to open file picker:", o), {
+        success: !1,
         message: "Failed to open file picker",
-        error: String(error)
+        error: String(o)
       };
     }
   });
-  let currentVideoPath = null;
-  ipcMain.handle("set-current-video-path", (_, path2) => {
-    currentVideoPath = path2;
-    return { success: true };
-  });
-  ipcMain.handle("get-current-video-path", () => {
-    return currentVideoPath ? { success: true, path: currentVideoPath } : { success: false };
-  });
-  ipcMain.handle("clear-current-video-path", () => {
-    currentVideoPath = null;
-    return { success: true };
-  });
-  ipcMain.handle("get-platform", () => {
-    return process.platform;
-  });
-  ipcMain.handle("presets:get", async () => {
-    return await getPresets();
-  });
-  ipcMain.handle("presets:save", async (_, preset) => {
-    return await savePreset(preset);
-  });
-  ipcMain.handle("presets:update", async (_, id, updates) => {
-    return await updatePreset(id, updates);
-  });
-  ipcMain.handle("presets:delete", async (_, id) => {
-    return await deletePreset(id);
-  });
-  ipcMain.handle("presets:duplicate", async (_, id) => {
-    return await duplicatePreset(id);
-  });
-  ipcMain.handle("presets:setDefault", async (_, id) => {
-    return await setDefaultPreset(id);
-  });
-  ipcMain.handle("keystroke:start", async () => {
+  let i = null;
+  d.handle("set-current-video-path", (o, a) => (i = a, { success: !0 })), d.handle("get-current-video-path", () => i ? { success: !0, path: i } : { success: !1 }), d.handle("clear-current-video-path", () => (i = null, { success: !0 })), d.handle("get-platform", () => process.platform), d.handle("presets:get", async () => await Xs()), d.handle("presets:save", async (o, a) => await Zs(a)), d.handle("presets:update", async (o, a, c) => await Qs(a, c)), d.handle("presets:delete", async (o, a) => await er(a)), d.handle("presets:duplicate", async (o, a) => await tr(a)), d.handle("presets:setDefault", async (o, a) => await sr(a)), d.handle("keystroke:start", async () => {
     try {
-      await keystrokeService.start();
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to start keystroke service:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      return await q.start(), { success: !0 };
+    } catch (o) {
+      return console.error("Failed to start keystroke service:", o), {
+        success: !1,
+        error: o instanceof Error ? o.message : String(o)
       };
     }
-  });
-  ipcMain.handle("keystroke:stop", () => {
+  }), d.handle("keystroke:stop", () => {
     try {
-      keystrokeService.stop();
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to stop keystroke service:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      return q.stop(), { success: !0 };
+    } catch (o) {
+      return console.error("Failed to stop keystroke service:", o), {
+        success: !1,
+        error: o instanceof Error ? o.message : String(o)
       };
     }
-  });
-  ipcMain.handle("keystroke:get-settings", async () => {
-    return await getKeystrokeSettings();
-  });
-  ipcMain.handle("keystroke:set-settings", async (_, settings) => {
-    return await setKeystrokeSettings(settings);
-  });
-  ipcMain.handle("keystroke:show-overlay", async () => {
+  }), d.handle("keystroke:get-settings", async () => await ar()), d.handle("keystroke:set-settings", async (o, a) => await lr(a)), d.handle("keystroke:show-overlay", async () => {
     try {
-      let overlayWindow = getKeystrokeOverlayWindow();
-      if (!overlayWindow || overlayWindow.isDestroyed()) {
-        overlayWindow = createKeystrokeOverlayWindow();
-        keystrokeService.onEvent((event) => {
-          if (overlayWindow && !overlayWindow.isDestroyed()) {
-            overlayWindow.webContents.send("keystroke:event", event);
-          }
-        });
-      } else {
-        showKeystrokeOverlayWindow();
-      }
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to show keystroke overlay:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      let o = qs();
+      return !o || o.isDestroyed() ? (o = Gs(), q.onEvent((a) => {
+        o && !o.isDestroyed() && o.webContents.send("keystroke:event", a);
+      })) : zs(), { success: !0 };
+    } catch (o) {
+      return console.error("Failed to show keystroke overlay:", o), {
+        success: !1,
+        error: o instanceof Error ? o.message : String(o)
       };
     }
-  });
-  ipcMain.handle("keystroke:hide-overlay", async () => {
+  }), d.handle("keystroke:hide-overlay", async () => {
     try {
-      hideKeystrokeOverlayWindow();
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to hide keystroke overlay:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      return Hs(), { success: !0 };
+    } catch (o) {
+      return console.error("Failed to hide keystroke overlay:", o), {
+        success: !1,
+        error: o instanceof Error ? o.message : String(o)
       };
     }
-  });
-  ipcMain.handle("transcribe-video", async (_event, request) => {
-    return await transcribeVideo(request, (progress) => {
-      const mainWindow2 = getMainWindow();
-      if (mainWindow2 && !mainWindow2.isDestroyed()) {
-        mainWindow2.webContents.send("transcription-progress", progress);
-      }
-    });
-  });
-  ipcMain.handle("auto-zoom:start-detection", async (_, recordingId, screenBounds) => {
+  }), d.handle("transcribe-video", async (o, a) => await Jn(a, (c) => {
+    const l = t();
+    l && !l.isDestroyed() && l.webContents.send("transcription-progress", c);
+  })), d.handle("auto-zoom:start-detection", async (o, a, c) => {
     try {
-      mouseEventDetector.start(recordingId, screenBounds);
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to start mouse event detection:", error);
-      return { success: false, error: String(error) };
+      return Ye.start(a, c), { success: !0 };
+    } catch (l) {
+      return console.error("Failed to start mouse event detection:", l), { success: !1, error: String(l) };
     }
-  });
-  ipcMain.handle("auto-zoom:stop-detection", async () => {
+  }), d.handle("auto-zoom:stop-detection", async () => {
     try {
-      const eventData = mouseEventDetector.stop();
-      return { success: true, data: eventData };
-    } catch (error) {
-      console.error("Failed to stop mouse event detection:", error);
-      return { success: false, error: String(error) };
+      return { success: !0, data: Ye.stop() };
+    } catch (o) {
+      return console.error("Failed to stop mouse event detection:", o), { success: !1, error: String(o) };
     }
-  });
-  ipcMain.handle("auto-zoom:save-events", async (_, eventData, fileName) => {
+  }), d.handle("auto-zoom:save-events", async (o, a, c) => {
     try {
-      const eventsPath = path$1.join(RECORDINGS_DIR, fileName);
-      await fs$1.writeFile(eventsPath, JSON.stringify(eventData, null, 2));
-      return { success: true, path: eventsPath };
-    } catch (error) {
-      console.error("Failed to save mouse events:", error);
-      return { success: false, error: String(error) };
+      const l = p.join($, c);
+      return await E.writeFile(l, JSON.stringify(a, null, 2)), { success: !0, path: l };
+    } catch (l) {
+      return console.error("Failed to save mouse events:", l), { success: !1, error: String(l) };
     }
-  });
-  ipcMain.handle("auto-zoom:get-events", async (_, videoPath) => {
+  }), d.handle("auto-zoom:get-events", async (o, a) => {
     try {
-      const eventsPath = videoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, ".events.json");
+      const c = a.replace(/\.(webm|mp4|mov|avi|mkv)$/i, ".events.json");
       try {
-        const data = await fs$1.readFile(eventsPath, "utf-8");
-        const eventData = JSON.parse(data);
-        return { success: true, data: eventData };
-      } catch (readError) {
-        if (readError.code === "ENOENT") {
-          return { success: false, notFound: true };
-        }
-        throw readError;
+        const l = await E.readFile(c, "utf-8");
+        return { success: !0, data: JSON.parse(l) };
+      } catch (l) {
+        if (l.code === "ENOENT")
+          return { success: !1, notFound: !0 };
+        throw l;
       }
-    } catch (error) {
-      console.error("Failed to get mouse events:", error);
-      return { success: false, error: String(error) };
+    } catch (c) {
+      return console.error("Failed to get mouse events:", c), { success: !1, error: String(c) };
     }
-  });
-  ipcMain.handle("auto-zoom:is-running", () => {
-    return mouseEventDetector.isRunning();
-  });
+  }), d.handle("auto-zoom:is-running", () => Ye.isRunning());
 }
-const SPECIAL_KEY_CODES = {
+const Wt = {
   // Function keys
   59: "F1",
   60: "F2",
@@ -5482,8 +3959,7 @@ const SPECIAL_KEY_CODES = {
   74: "Num -",
   78: "Num +",
   57372: "Num Enter"
-};
-const ALPHA_KEY_CODES = {
+}, jt = {
   // Letters A-Z
   30: "A",
   48: "B",
@@ -5522,8 +3998,7 @@ const ALPHA_KEY_CODES = {
   8: "7",
   9: "8",
   10: "9"
-};
-const SYMBOL_KEY_CODES = {
+}, Vt = {
   41: "`",
   12: "-",
   13: "=",
@@ -5536,25 +4011,16 @@ const SYMBOL_KEY_CODES = {
   52: ".",
   53: "/"
 };
-function getKeyDisplayName(keyCode) {
-  if (SPECIAL_KEY_CODES[keyCode]) {
-    return SPECIAL_KEY_CODES[keyCode];
-  }
-  if (ALPHA_KEY_CODES[keyCode]) {
-    return ALPHA_KEY_CODES[keyCode];
-  }
-  if (SYMBOL_KEY_CODES[keyCode]) {
-    return SYMBOL_KEY_CODES[keyCode];
-  }
-  return `Key(0x${keyCode.toString(16).toUpperCase().padStart(4, "0")})`;
+function ri(s) {
+  return Wt[s] ? Wt[s] : jt[s] ? jt[s] : Vt[s] ? Vt[s] : `Key(0x${s.toString(16).toUpperCase().padStart(4, "0")})`;
 }
-class KeystrokeEventRecorder {
+class ni {
   constructor() {
-    __publicField(this, "running", false);
-    __publicField(this, "recordingId", "");
-    __publicField(this, "recordingStartTime", 0);
-    __publicField(this, "events", []);
-    __publicField(this, "eventHandler", null);
+    g(this, "running", !1);
+    g(this, "recordingId", "");
+    g(this, "recordingStartTime", 0);
+    g(this, "events", []);
+    g(this, "eventHandler", null);
   }
   /**
    * Start recording keystroke and mouse events
@@ -5566,27 +4032,16 @@ class KeystrokeEventRecorder {
    * - 2.2: Start capturing mouse events
    * - 2.3: Initialize recording start time for relative timestamps
    */
-  start(recordingId) {
+  start(e) {
     if (this.running) {
       console.warn("[KeystrokeEventRecorder] Already recording, ignoring start call");
       return;
     }
-    this.recordingId = recordingId;
-    this.recordingStartTime = Date.now();
-    this.events = [];
-    this.running = true;
-    this.eventHandler = (event) => {
-      this.handleEvent(event);
-    };
-    keystrokeService.onEvent(this.eventHandler);
-    if (!keystrokeService.isRunning()) {
-      keystrokeService.start().catch((error) => {
-        console.error("[KeystrokeEventRecorder] Failed to start keystroke service:", error);
-        this.running = false;
-        this.eventHandler = null;
-      });
-    }
-    console.log(`[KeystrokeEventRecorder] Started recording: ${recordingId}`);
+    this.recordingId = e, this.recordingStartTime = Date.now(), this.events = [], this.running = !0, this.eventHandler = (t) => {
+      this.handleEvent(t);
+    }, q.onEvent(this.eventHandler), q.isRunning() || q.start().catch((t) => {
+      console.error("[KeystrokeEventRecorder] Failed to start keystroke service:", t), this.running = !1, this.eventHandler = null;
+    }), console.log(`[KeystrokeEventRecorder] Started recording: ${e}`);
   }
   /**
    * Stop recording and return the captured event data
@@ -5597,27 +4052,19 @@ class KeystrokeEventRecorder {
    * - 3.3: Return data with version metadata
    */
   stop() {
-    if (!this.running) {
-      console.warn("[KeystrokeEventRecorder] Not recording, returning empty data");
-      return {
+    if (!this.running)
+      return console.warn("[KeystrokeEventRecorder] Not recording, returning empty data"), {
         version: 1,
         recordingId: "",
         events: []
       };
-    }
-    keystrokeService.removeEventListener();
-    this.eventHandler = null;
-    const eventData = {
+    q.removeEventListener(), this.eventHandler = null;
+    const e = {
       version: 1,
       recordingId: this.recordingId,
       events: [...this.events]
     };
-    this.running = false;
-    this.recordingId = "";
-    this.recordingStartTime = 0;
-    this.events = [];
-    console.log(`[KeystrokeEventRecorder] Stopped recording, captured ${eventData.events.length} events`);
-    return eventData;
+    return this.running = !1, this.recordingId = "", this.recordingStartTime = 0, this.events = [], console.log(`[KeystrokeEventRecorder] Stopped recording, captured ${e.events.length} events`), e;
   }
   /**
    * Check if the recorder is currently running
@@ -5647,159 +4094,121 @@ class KeystrokeEventRecorder {
    * - 2.5: Record button type and modifier state for mouse events
    * - 2.6: Use key name mapping for display names
    */
-  handleEvent(event) {
-    if (!this.running) {
+  handleEvent(e) {
+    if (!this.running)
       return;
-    }
-    const relativeTimestamp = event.timestamp - this.recordingStartTime;
-    const timestamp = Math.max(0, relativeTimestamp);
-    if (event.type === "keystroke") {
-      const recordedEvent = {
+    const t = e.timestamp - this.recordingStartTime, r = Math.max(0, t);
+    if (e.type === "keystroke") {
+      const n = {
         type: "keystroke",
-        timestamp,
-        keyCode: event.keyCode,
-        keyName: getKeyDisplayName(event.keyCode),
+        timestamp: r,
+        keyCode: e.keyCode,
+        keyName: ri(e.keyCode),
         modifiers: {
-          ctrl: event.modifiers.ctrl,
-          alt: event.modifiers.alt,
-          shift: event.modifiers.shift,
-          meta: event.modifiers.meta
+          ctrl: e.modifiers.ctrl,
+          alt: e.modifiers.alt,
+          shift: e.modifiers.shift,
+          meta: e.modifiers.meta
         }
       };
-      this.events.push(recordedEvent);
-    } else if (event.type === "mouse") {
-      const recordedEvent = {
+      this.events.push(n);
+    } else if (e.type === "mouse") {
+      const n = {
         type: "mouse",
-        timestamp,
-        button: event.button,
+        timestamp: r,
+        button: e.button,
         modifiers: {
-          ctrl: event.modifiers.ctrl,
-          alt: event.modifiers.alt,
-          shift: event.modifiers.shift,
-          meta: event.modifiers.meta
+          ctrl: e.modifiers.ctrl,
+          alt: e.modifiers.alt,
+          shift: e.modifiers.shift,
+          meta: e.modifiers.meta
         }
       };
-      this.events.push(recordedEvent);
+      this.events.push(n);
     }
   }
 }
-const keystrokeEventRecorder = new KeystrokeEventRecorder();
-function getKeystrokeFilePathFromVideo(videoPath) {
-  return videoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, ".keystroke.json");
+const Xe = new ni();
+function ii(s) {
+  return s.replace(/\.(webm|mp4|mov|avi|mkv)$/i, ".keystroke.json");
 }
-async function saveKeystrokeEvents(eventData, filePath) {
+async function oi(s, e) {
   try {
-    if (!eventData || typeof eventData.version !== "number" || !Array.isArray(eventData.events)) {
-      console.error("[KeystrokeEventRecorder] Invalid event data: missing required fields");
-      return {
-        success: false,
+    if (!s || typeof s.version != "number" || !Array.isArray(s.events))
+      return console.error("[KeystrokeEventRecorder] Invalid event data: missing required fields"), {
+        success: !1,
         error: "Invalid event data: missing required fields"
       };
-    }
-    const jsonContent = JSON.stringify(eventData, null, 2);
-    await fs$1.writeFile(filePath, jsonContent, "utf-8");
-    console.log(`[KeystrokeEventRecorder] Saved ${eventData.events.length} events to ${filePath}`);
-    return {
-      success: true,
-      path: filePath
+    const t = JSON.stringify(s, null, 2);
+    return await E.writeFile(e, t, "utf-8"), console.log(`[KeystrokeEventRecorder] Saved ${s.events.length} events to ${e}`), {
+      success: !0,
+      path: e
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[KeystrokeEventRecorder] Failed to save events to ${filePath}:`, errorMessage);
-    return {
-      success: false,
-      error: errorMessage
+  } catch (t) {
+    const r = t instanceof Error ? t.message : String(t);
+    return console.error(`[KeystrokeEventRecorder] Failed to save events to ${e}:`, r), {
+      success: !1,
+      error: r
     };
   }
 }
-async function loadKeystrokeEvents(filePath) {
+async function ai(s) {
   try {
-    const content = await fs$1.readFile(filePath, "utf-8");
-    let data;
+    const e = await E.readFile(s, "utf-8");
+    let t;
     try {
-      data = JSON.parse(content);
-    } catch (parseError) {
-      const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-      console.error(`[KeystrokeEventRecorder] Corrupt JSON in ${filePath}:`, parseErrorMessage);
-      return {
-        success: false,
+      t = JSON.parse(e);
+    } catch (r) {
+      const n = r instanceof Error ? r.message : String(r);
+      return console.error(`[KeystrokeEventRecorder] Corrupt JSON in ${s}:`, n), {
+        success: !1,
         error: "Invalid JSON format in keystroke event file"
       };
     }
-    if (!isValidKeystrokeEventData(data)) {
-      console.error(`[KeystrokeEventRecorder] Invalid keystroke event file format in ${filePath}`);
+    return li(t) ? (console.log(`[KeystrokeEventRecorder] Loaded ${t.events.length} events from ${s}`), {
+      success: !0,
+      data: t
+    }) : (console.error(`[KeystrokeEventRecorder] Invalid keystroke event file format in ${s}`), {
+      success: !1,
+      error: "Invalid keystroke event file format"
+    });
+  } catch (e) {
+    if (e instanceof Error && "code" in e && e.code === "ENOENT")
       return {
-        success: false,
-        error: "Invalid keystroke event file format"
+        success: !1,
+        notFound: !0
       };
-    }
-    console.log(`[KeystrokeEventRecorder] Loaded ${data.events.length} events from ${filePath}`);
-    return {
-      success: true,
-      data
-    };
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return {
-        success: false,
-        notFound: true
-      };
-    }
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[KeystrokeEventRecorder] Failed to load events from ${filePath}:`, errorMessage);
-    return {
-      success: false,
-      error: errorMessage
+    const t = e instanceof Error ? e.message : String(e);
+    return console.error(`[KeystrokeEventRecorder] Failed to load events from ${s}:`, t), {
+      success: !1,
+      error: t
     };
   }
 }
-function isValidKeystrokeEventData(data) {
-  if (!data || typeof data !== "object") {
-    return false;
-  }
-  const obj = data;
-  if (obj.version !== 1) {
-    return false;
-  }
-  if (typeof obj.recordingId !== "string") {
-    return false;
-  }
-  if (!Array.isArray(obj.events)) {
-    return false;
-  }
-  for (const event of obj.events) {
-    if (!isValidRecordedInputEvent(event)) {
-      return false;
-    }
-  }
-  return true;
+function li(s) {
+  if (!s || typeof s != "object")
+    return !1;
+  const e = s;
+  if (e.version !== 1 || typeof e.recordingId != "string" || !Array.isArray(e.events))
+    return !1;
+  for (const t of e.events)
+    if (!ci(t))
+      return !1;
+  return !0;
 }
-function isValidRecordedInputEvent(event) {
-  if (!event || typeof event !== "object") {
-    return false;
-  }
-  const obj = event;
-  if (typeof obj.timestamp !== "number" || obj.timestamp < 0) {
-    return false;
-  }
-  if (!isValidModifiers(obj.modifiers)) {
-    return false;
-  }
-  if (obj.type === "keystroke") {
-    return typeof obj.keyCode === "number" && typeof obj.keyName === "string" && obj.keyName.length > 0;
-  } else if (obj.type === "mouse") {
-    return obj.button === "left" || obj.button === "right" || obj.button === "middle";
-  }
-  return false;
+function ci(s) {
+  if (!s || typeof s != "object")
+    return !1;
+  const e = s;
+  return typeof e.timestamp != "number" || e.timestamp < 0 || !ui(e.modifiers) ? !1 : e.type === "keystroke" ? typeof e.keyCode == "number" && typeof e.keyName == "string" && e.keyName.length > 0 : e.type === "mouse" ? e.button === "left" || e.button === "right" || e.button === "middle" : !1;
 }
-function isValidModifiers(modifiers) {
-  if (!modifiers || typeof modifiers !== "object") {
-    return false;
-  }
-  const obj = modifiers;
-  return typeof obj.ctrl === "boolean" && typeof obj.alt === "boolean" && typeof obj.shift === "boolean" && typeof obj.meta === "boolean";
+function ui(s) {
+  if (!s || typeof s != "object")
+    return !1;
+  const e = s;
+  return typeof e.ctrl == "boolean" && typeof e.alt == "boolean" && typeof e.shift == "boolean" && typeof e.meta == "boolean";
 }
-const DEFAULT_KEYSTROKE_STYLE = {
+const di = {
   textColor: "#FFFFFF",
   backgroundColor: "#000000CC",
   modifierColor: "#34B27B",
@@ -5809,293 +4218,206 @@ const DEFAULT_KEYSTROKE_STYLE = {
   lingerDurationMs: 1500,
   animationIn: "fade",
   animationOut: "fade",
-  showOnlyHotkeys: false
-};
-const DEFAULT_KEYSTROKE_EDITOR_SETTINGS = {
-  captureEnabled: false,
-  defaultStyle: DEFAULT_KEYSTROKE_STYLE,
+  showOnlyHotkeys: !1
+}, dt = {
+  captureEnabled: !1,
+  defaultStyle: di,
   defaultPosition: "bottom-center"
-};
-const KEYSTROKE_EDITOR_SETTINGS_FILE_NAME = "keystroke-editor-settings.json";
-const CURRENT_VERSION = 1;
-function getKeystrokeEditorSettingsFilePath() {
-  return path$1.join(app.getPath("userData"), KEYSTROKE_EDITOR_SETTINGS_FILE_NAME);
+}, fi = "keystroke-editor-settings.json", ms = 1;
+function ot() {
+  return p.join(O.getPath("userData"), fi);
 }
-function createDefaultStore() {
+function Ze() {
   return {
-    version: CURRENT_VERSION,
-    settings: { ...DEFAULT_KEYSTROKE_EDITOR_SETTINGS }
+    version: ms,
+    settings: { ...dt }
   };
 }
-async function readKeystrokeEditorSettingsStore() {
+async function ps() {
   try {
-    const filePath = getKeystrokeEditorSettingsFilePath();
-    const data = await fs$1.readFile(filePath, "utf-8");
-    const store = JSON.parse(data);
-    if (!store.settings || typeof store.settings !== "object") {
-      console.warn("[KeystrokeEditor] Invalid settings file, creating new store");
-      return createDefaultStore();
-    }
-    return {
-      version: store.version || CURRENT_VERSION,
-      settings: { ...DEFAULT_KEYSTROKE_EDITOR_SETTINGS, ...store.settings }
+    const s = ot(), e = await E.readFile(s, "utf-8"), t = JSON.parse(e);
+    return !t.settings || typeof t.settings != "object" ? (console.warn("[KeystrokeEditor] Invalid settings file, creating new store"), Ze()) : {
+      version: t.version || ms,
+      settings: { ...dt, ...t.settings }
     };
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return createDefaultStore();
-    }
-    console.error("[KeystrokeEditor] Failed to read settings file:", error);
+  } catch (s) {
+    if (s instanceof Error && "code" in s && s.code === "ENOENT")
+      return Ze();
+    console.error("[KeystrokeEditor] Failed to read settings file:", s);
     try {
-      const filePath = getKeystrokeEditorSettingsFilePath();
-      const backupPath = filePath + ".backup." + Date.now();
-      await fs$1.rename(filePath, backupPath);
-      console.log("[KeystrokeEditor] Backed up corrupt settings file to:", backupPath);
+      const e = ot(), t = e + ".backup." + Date.now();
+      await E.rename(e, t), console.log("[KeystrokeEditor] Backed up corrupt settings file to:", t);
     } catch {
     }
-    return createDefaultStore();
+    return Ze();
   }
 }
-async function writeKeystrokeEditorSettingsStore(store) {
-  const filePath = getKeystrokeEditorSettingsFilePath();
-  await fs$1.writeFile(filePath, JSON.stringify(store, null, 2), "utf-8");
+async function hi(s) {
+  const e = ot();
+  await E.writeFile(e, JSON.stringify(s, null, 2), "utf-8");
 }
-async function getKeystrokeEditorSettings() {
+async function mi() {
   try {
-    const store = await readKeystrokeEditorSettingsStore();
     return {
-      success: true,
-      settings: store.settings
+      success: !0,
+      settings: (await ps()).settings
     };
-  } catch (error) {
-    console.error("[KeystrokeEditor] Failed to get settings:", error);
-    return {
-      success: false,
-      settings: { ...DEFAULT_KEYSTROKE_EDITOR_SETTINGS }
+  } catch (s) {
+    return console.error("[KeystrokeEditor] Failed to get settings:", s), {
+      success: !1,
+      settings: { ...dt }
     };
   }
 }
-async function setKeystrokeEditorSettings(settings) {
+async function pi(s) {
   try {
-    const store = await readKeystrokeEditorSettingsStore();
-    store.settings = { ...store.settings, ...settings };
-    await writeKeystrokeEditorSettingsStore(store);
-    return { success: true, settings: store.settings };
-  } catch (error) {
-    console.error("[KeystrokeEditor] Failed to save settings:", error);
-    return { success: false, error: String(error) };
+    const e = await ps();
+    return e.settings = { ...e.settings, ...s }, await hi(e), { success: !0, settings: e.settings };
+  } catch (e) {
+    return console.error("[KeystrokeEditor] Failed to save settings:", e), { success: !1, error: String(e) };
   }
 }
-async function checkKeystrokeServiceAvailability() {
+async function gi() {
   try {
-    await import("uiohook-napi");
-    return { available: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[KeystrokeEditor] Keystroke service not available:", errorMessage);
-    return {
-      available: false,
+    return await import("uiohook-napi"), { available: !0 };
+  } catch (s) {
+    const e = s instanceof Error ? s.message : String(s);
+    return console.error("[KeystrokeEditor] Keystroke service not available:", e), {
+      available: !1,
       error: "Keystroke capture is not available on this system. The native library could not be loaded."
     };
   }
 }
-function registerKeystrokeEditorIpcHandlers(recordingsDir) {
-  ipcMain.handle("keystroke-editor:check-availability", async () => {
-    return await checkKeystrokeServiceAvailability();
-  });
-  ipcMain.handle("keystroke-editor:start-capture", async (_, recordingId) => {
+function yi(s) {
+  d.handle("keystroke-editor:check-availability", async () => await gi()), d.handle("keystroke-editor:start-capture", async (e, t) => {
     try {
-      keystrokeEventRecorder.start(recordingId);
-      return { success: true };
-    } catch (error) {
-      console.error("[KeystrokeEditor] Failed to start capture:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      return Xe.start(t), { success: !0 };
+    } catch (r) {
+      return console.error("[KeystrokeEditor] Failed to start capture:", r), {
+        success: !1,
+        error: r instanceof Error ? r.message : String(r)
       };
     }
-  });
-  ipcMain.handle("keystroke-editor:stop-capture", async () => {
+  }), d.handle("keystroke-editor:stop-capture", async () => {
     try {
-      const eventData = keystrokeEventRecorder.stop();
-      return { success: true, data: eventData };
-    } catch (error) {
-      console.error("[KeystrokeEditor] Failed to stop capture:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      return { success: !0, data: Xe.stop() };
+    } catch (e) {
+      return console.error("[KeystrokeEditor] Failed to stop capture:", e), {
+        success: !1,
+        error: e instanceof Error ? e.message : String(e)
       };
     }
-  });
-  ipcMain.handle("keystroke-editor:is-capturing", () => {
-    return keystrokeEventRecorder.isRunning();
-  });
-  ipcMain.handle(
+  }), d.handle("keystroke-editor:is-capturing", () => Xe.isRunning()), d.handle(
     "keystroke-editor:save-events",
-    async (_, eventData, fileName) => {
+    async (e, t, r) => {
       try {
-        const filePath = path$1.join(recordingsDir, fileName);
-        const result = await saveKeystrokeEvents(eventData, filePath);
-        if (!result.success) {
-          console.error("[KeystrokeEditor] Failed to save events:", result.error);
-        }
-        return result;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("[KeystrokeEditor] Failed to save events:", errorMessage);
-        return {
-          success: false,
-          error: errorMessage
+        const n = p.join(s, r), i = await oi(t, n);
+        return i.success || console.error("[KeystrokeEditor] Failed to save events:", i.error), i;
+      } catch (n) {
+        const i = n instanceof Error ? n.message : String(n);
+        return console.error("[KeystrokeEditor] Failed to save events:", i), {
+          success: !1,
+          error: i
         };
       }
     }
-  );
-  ipcMain.handle("keystroke-editor:load-events", async (_, videoPath) => {
+  ), d.handle("keystroke-editor:load-events", async (e, t) => {
     try {
-      const keystrokeFilePath = getKeystrokeFilePathFromVideo(videoPath);
-      const result = await loadKeystrokeEvents(keystrokeFilePath);
-      if (!result.success && !result.notFound && result.error) {
-        console.error("[KeystrokeEditor] Failed to load events (corrupt file):", result.error);
-      }
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("[KeystrokeEditor] Failed to load events:", errorMessage);
-      return {
-        success: false,
-        error: errorMessage
+      const r = ii(t), n = await ai(r);
+      return !n.success && !n.notFound && n.error && console.error("[KeystrokeEditor] Failed to load events (corrupt file):", n.error), n;
+    } catch (r) {
+      const n = r instanceof Error ? r.message : String(r);
+      return console.error("[KeystrokeEditor] Failed to load events:", n), {
+        success: !1,
+        error: n
       };
     }
-  });
-  ipcMain.handle("keystroke-editor:get-settings", async () => {
-    return await getKeystrokeEditorSettings();
-  });
-  ipcMain.handle(
+  }), d.handle("keystroke-editor:get-settings", async () => await mi()), d.handle(
     "keystroke-editor:set-settings",
-    async (_, settings) => {
-      return await setKeystrokeEditorSettings(settings);
-    }
-  );
-  console.log("[KeystrokeEditor] IPC handlers registered");
+    async (e, t) => await pi(t)
+  ), console.log("[KeystrokeEditor] IPC handlers registered");
 }
-const __dirname = path$1.dirname(fileURLToPath(import.meta.url));
-const RECORDINGS_DIR = path$1.join(app.getPath("userData"), "recordings");
-async function ensureRecordingsDir() {
+const _i = p.dirname(Ht(import.meta.url)), $ = p.join(O.getPath("userData"), "recordings");
+async function Si() {
   try {
-    await fs$1.mkdir(RECORDINGS_DIR, { recursive: true });
-    console.log("RECORDINGS_DIR:", RECORDINGS_DIR);
-    console.log("User Data Path:", app.getPath("userData"));
-  } catch (error) {
-    console.error("Failed to create recordings directory:", error);
+    await E.mkdir($, { recursive: !0 }), console.log("RECORDINGS_DIR:", $), console.log("User Data Path:", O.getPath("userData"));
+  } catch (s) {
+    console.error("Failed to create recordings directory:", s);
   }
 }
-process.env.APP_ROOT = path$1.join(__dirname, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path$1.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path$1.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$1.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let mainWindow = null;
-let sourceSelectorWindow = null;
-let tray = null;
-let selectedSourceName = "";
-const defaultTrayIcon = getTrayIcon("openscreen.png");
-const recordingTrayIcon = getTrayIcon("rec-button.png");
-function createWindow() {
-  mainWindow = createHudOverlayWindow();
+process.env.APP_ROOT = p.join(_i, "..");
+const vi = process.env.VITE_DEV_SERVER_URL, so = p.join(process.env.APP_ROOT, "dist-electron"), gs = p.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = vi ? p.join(process.env.APP_ROOT, "public") : gs;
+let T = null, ce = null, X = null, ys = "";
+const _s = Ss("openscreen.png"), wi = Ss("rec-button.png");
+function ft() {
+  T = Ws();
 }
-function createTray() {
-  tray = new Tray(defaultTrayIcon);
+function Gt() {
+  X = new xs(_s);
 }
-function getTrayIcon(filename) {
-  return nativeImage.createFromPath(path$1.join(process.env.VITE_PUBLIC || RENDERER_DIST, filename)).resize({
+function Ss(s) {
+  return Ts.createFromPath(p.join(process.env.VITE_PUBLIC || gs, s)).resize({
     width: 24,
     height: 24,
     quality: "best"
   });
 }
-function updateTrayMenu(recording = false) {
-  if (!tray) return;
-  const trayIcon = recording ? recordingTrayIcon : defaultTrayIcon;
-  const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "OpenScreen";
-  const menuTemplate = recording ? [
+function qt(s = !1) {
+  if (!X) return;
+  const e = s ? wi : _s, t = s ? `Recording: ${ys}` : "OpenScreen", r = s ? [
     {
       label: "Stop Recording",
       click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("stop-recording-from-tray");
-        }
+        T && !T.isDestroyed() && T.webContents.send("stop-recording-from-tray");
       }
     }
   ] : [
     {
       label: "Open",
       click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.isMinimized() && mainWindow.restore();
-        } else {
-          createWindow();
-        }
+        T && !T.isDestroyed() ? T.isMinimized() && T.restore() : ft();
       }
     },
     {
       label: "Quit",
       click: () => {
-        app.quit();
+        O.quit();
       }
     }
   ];
-  tray.setImage(trayIcon);
-  tray.setToolTip(trayToolTip);
-  tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
+  X.setImage(e), X.setToolTip(t), X.setContextMenu(Os.buildFromTemplate(r));
 }
-function createEditorWindowWrapper() {
-  if (mainWindow) {
-    mainWindow.close();
-    mainWindow = null;
-  }
-  mainWindow = createEditorWindow();
+function Ei() {
+  T && (T.close(), T = null), T = js();
 }
-function createSourceSelectorWindowWrapper() {
-  sourceSelectorWindow = createSourceSelectorWindow();
-  sourceSelectorWindow.on("closed", () => {
-    sourceSelectorWindow = null;
-  });
-  return sourceSelectorWindow;
+function ki() {
+  return ce = Vs(), ce.on("closed", () => {
+    ce = null;
+  }), ce;
 }
-app.on("window-all-closed", () => {
+O.on("window-all-closed", () => {
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+O.on("activate", () => {
+  de.getAllWindows().length === 0 && ft();
 });
-app.whenReady().then(async () => {
-  const { ipcMain: ipcMain2 } = await import("electron");
-  ipcMain2.on("hud-overlay-close", () => {
-    app.quit();
-  });
-  createTray();
-  updateTrayMenu();
-  await ensureRecordingsDir();
-  registerIpcHandlers(
-    createEditorWindowWrapper,
-    createSourceSelectorWindowWrapper,
-    () => mainWindow,
-    () => sourceSelectorWindow,
-    (recording, sourceName) => {
-      selectedSourceName = sourceName;
-      if (!tray) createTray();
-      updateTrayMenu(recording);
-      if (!recording) {
-        if (mainWindow) mainWindow.restore();
-      }
+O.whenReady().then(async () => {
+  const { ipcMain: s } = await import("electron");
+  s.on("hud-overlay-close", () => {
+    O.quit();
+  }), Gt(), qt(), await Si(), si(
+    Ei,
+    ki,
+    () => T,
+    () => ce,
+    (e, t) => {
+      ys = t, X || Gt(), qt(e), e || T && T.restore();
     }
-  );
-  registerKeystrokeEditorIpcHandlers(RECORDINGS_DIR);
-  createWindow();
+  ), yi($), ft();
 });
 export {
-  MAIN_DIST,
-  RECORDINGS_DIR,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  so as MAIN_DIST,
+  $ as RECORDINGS_DIR,
+  gs as RENDERER_DIST,
+  vi as VITE_DEV_SERVER_URL
 };

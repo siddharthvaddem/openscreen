@@ -336,15 +336,16 @@ export function SettingsPanel({
   // If a keystroke is selected, show keystroke settings instead
   // This enables live preview updates (Requirement 7.10)
   if (selectedKeystroke && onKeystrokeStyleChange && onKeystrokePositionChange && onKeystrokeDelete) {
-    return (
-      <KeystrokeSettingsPanel
-        keystroke={selectedKeystroke}
-        onStyleChange={(style) => onKeystrokeStyleChange(selectedKeystroke.id, style)}
-        onPositionChange={(position) => onKeystrokePositionChange(selectedKeystroke.id, position)}
-        onApplyStyleToAll={onApplyStyleToAll}
-        onDelete={() => onKeystrokeDelete(selectedKeystroke.id)}
-      />
-    );
+  return (
+    <KeystrokeSettingsPanel
+      keystroke={selectedKeystroke}
+      onStyleChange={(style) => onKeystrokeStyleChange(selectedKeystroke.id, style)}
+      onPositionChange={(position) => onKeystrokePositionChange(selectedKeystroke.id, position)}
+      onApplyStyleToAll={onApplyStyleToAll}
+      onDelete={() => onKeystrokeDelete(selectedKeystroke.id)}
+      onDeleteAll={onDeleteAllKeystrokes}
+    />
+  );
   }
 
   return (
