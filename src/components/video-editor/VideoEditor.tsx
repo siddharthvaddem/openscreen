@@ -706,6 +706,11 @@ export default function VideoEditor() {
     }
   }, [selectedKeystrokeId]);
 
+  const handleDeleteAllKeystrokes = useCallback(() => {
+    setKeystrokeRegions([]);
+    setSelectedKeystrokeId(null);
+  }, []);
+
   // Handler for keystroke style changes - enables live preview updates (Requirement 7.10)
   const handleKeystrokeStyleChange = useCallback((id: string, style: Partial<KeystrokeStyle>) => {
     setKeystrokeRegions((prev) =>
