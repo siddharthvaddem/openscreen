@@ -109,6 +109,7 @@ interface SettingsPanelProps {
   onKeystrokePositionChange?: (id: string, position: KeystrokePositionPreset) => void;
   onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
   onKeystrokeDelete?: (id: string) => void;
+  onDeleteAllKeystrokes?: () => void;
   // Preset props
   presets?: Preset[];
   defaultPresetId?: string | null;
@@ -190,6 +191,7 @@ export function SettingsPanel({
   onKeystrokePositionChange,
   onApplyStyleToAll,
   onKeystrokeDelete,
+  onDeleteAllKeystrokes,
   // Preset props
   presets = [],
   defaultPresetId = null,

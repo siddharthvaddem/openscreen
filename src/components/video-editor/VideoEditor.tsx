@@ -1335,6 +1335,7 @@ export default function VideoEditor() {
           onKeystrokePositionChange={handleKeystrokePositionChange}
           onApplyStyleToAll={handleApplyStyleToAll}
           onKeystrokeDelete={handleKeystrokeDelete}
+          onDeleteAllKeystrokes={handleDeleteAllKeystrokes}
           // Preset props
           presets={presets}
           defaultPresetId={defaultPresetId}
