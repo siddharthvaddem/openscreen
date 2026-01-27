@@ -258,7 +258,7 @@ export function KeystrokeSettingsPanel({
             className="w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all mt-3"
           >
             <Trash2 className="w-4 h-4" />
-            Delete All Keystrokes
+            Delete All Keystroke
           </Button>
         )}
       </div>
