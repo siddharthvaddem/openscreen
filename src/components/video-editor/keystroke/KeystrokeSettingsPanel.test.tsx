@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as fc from 'fast-check';
-import type { KeystrokePositionPreset, AnimationPreset } from '../types';
+import type { KeystrokePositionPreset, AnimationPreset, KeystrokeRegion, KeystrokeStyle } from '../types';
+import { DEFAULT_KEYSTROKE_STYLE } from '../types';
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { KeystrokeSettingsPanel } from './KeystrokeSettingsPanel';
 
 // ============================================
 // VALIDATION HELPER FUNCTIONS
@@ -2657,5 +2661,58 @@ describe('Property 7: Switch Visual State Consistency', () => {
         { numRuns: 100 }
       );
     });
+  });
+});
+
+describe('KeystrokeSettingsPanel Delete All', () => {
+  const defaultProps = {
+    keystroke: {
+      id: 'k1',
+      startMs: 0,
+      endMs: 100,
+      text: 'Ctrl+C',
+      eventType: 'keystroke' as const,
+      positionPreset: 'bottom-center' as const,
+      style: DEFAULT_KEYSTROKE_STYLE,
+    },
+    onStyleChange: vi.fn(),
+    onPositionChange: vi.fn(),
+    onDelete: vi.fn(),
+  };
+
+  it('should call onDeleteAll when Delete All button is clicked', () => {
+    const onDeleteAll = vi.fn();
+    render(
+      <KeystrokeSettingsPanel
+        {...defaultProps}
+        onDeleteAll={onDeleteAll}
+      />
+    );
+    
+    const deleteAllButton = screen.getByText('Delete All Keystroke');
+    fireEvent.click(deleteAllButton);
+    
+    expect(onDeleteAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not render Delete All button when onDeleteAll is not provided', () => {
+    render(
+      <KeystrokeSettingsPanel {...defaultProps} />
+    );
+    
+    expect(screen.queryByText('Delete All Keystroke')).not.toBeInTheDocument();
+  });
+
+  it('should have proper styling matching Delete Keystroke button', () => {
+    const onDeleteAll = vi.fn();
+    render(
+      <KeystrokeSettingsPanel
+        {...defaultProps}
+        onDeleteAll={onDeleteAll}
+      />
+    );
+    
+    const deleteAllButton = screen.getByText('Delete All Keystroke');
+    expect(deleteAllButton).toHaveClass('w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20');
   });
 });
