@@ -24,7 +24,7 @@ import {
 } from '../types';
 import { groupWordsIntoSubtitles, type TranscriptionWord } from '@/lib/subtitleProcessor';
 
-const STORAGE_KEY = 'assemblyai-api-key';
+const SERVICE_NAME = 'assemblyai';
 
 interface SubtitleGenerateDialogProps {
   isOpen: boolean;
@@ -65,16 +65,46 @@ export function SubtitleGenerateDialog({
   // Check for stored API key on mount
   useEffect(() => {
     if (isOpen) {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setApiKey(stored);
-        setHasStoredKey(true);
-        setPhase('config');
+      checkStoredApiKey();
+    }
+  }, [isOpen]);
+
+  const checkStoredApiKey = async () => {
+    try {
+      // First, try to migrate from localStorage if exists
+      const localStorageKey = localStorage.getItem('assemblyai-api-key');
+      if (localStorageKey) {
+        // Migrate to secure storage
+        const result = await window.electronAPI.secureStorage.setApiKey(SERVICE_NAME, localStorageKey);
+        if (result.success) {
+          // Remove from localStorage after successful migration
+          localStorage.removeItem('assemblyai-api-key');
+          setApiKey(localStorageKey);
+          setHasStoredKey(true);
+          setPhase('config');
+          return;
+        }
+      }
+
+      // Check secure storage
+      const result = await window.electronAPI.secureStorage.hasApiKey(SERVICE_NAME);
+      if (result.hasKey) {
+        const keyResult = await window.electronAPI.secureStorage.getApiKey(SERVICE_NAME);
+        if (keyResult.success && keyResult.apiKey) {
+          setApiKey(keyResult.apiKey);
+          setHasStoredKey(true);
+          setPhase('config');
+        } else {
+          setPhase('api-key');
+        }
       } else {
         setPhase('api-key');
       }
+    } catch (err) {
+      console.error('Error checking stored API key:', err);
+      setPhase('api-key');
     }
-  }, [isOpen]);
+  };
   
   // Listen for transcription progress
   useEffect(() => {
@@ -95,18 +125,36 @@ export function SubtitleGenerateDialog({
     };
   }, [isOpen, phase]);
   
-  const handleSaveApiKey = useCallback(() => {
+  const handleSaveApiKey = useCallback(async () => {
     if (!apiKey.trim()) return;
-    localStorage.setItem(STORAGE_KEY, apiKey.trim());
-    setHasStoredKey(true);
-    setPhase('config');
+    
+    try {
+      const result = await window.electronAPI.secureStorage.setApiKey(SERVICE_NAME, apiKey.trim());
+      if (result.success) {
+        setHasStoredKey(true);
+        setPhase('config');
+      } else {
+        setError(result.error || 'Failed to save API key');
+        setPhase('error');
+      }
+    } catch (err) {
+      console.error('Error saving API key:', err);
+      setError('Failed to save API key securely');
+      setPhase('error');
+    }
   }, [apiKey]);
   
-  const handleClearApiKey = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setApiKey('');
-    setHasStoredKey(false);
-    setPhase('api-key');
+  const handleClearApiKey = useCallback(async () => {
+    try {
+      await window.electronAPI.secureStorage.deleteApiKey(SERVICE_NAME);
+      // Also clear from localStorage if it exists there
+      localStorage.removeItem('assemblyai-api-key');
+      setApiKey('');
+      setHasStoredKey(false);
+      setPhase('api-key');
+    } catch (err) {
+      console.error('Error clearing API key:', err);
+    }
   }, []);
   
   const handleGenerate = useCallback(async () => {
@@ -133,10 +181,10 @@ export function SubtitleGenerateDialog({
       }
       
       // Convert words to our format
-      const transcriptionWords: TranscriptionWord[] = result.words.map((word: any) => ({
+      const transcriptionWords: TranscriptionWord[] = result.words.map((word) => ({
         text: word.text,
-        startMs: word.start,
-        endMs: word.end,
+        startMs: word.startMs,
+        endMs: word.endMs,
         confidence: word.confidence || 1,
       }));
       

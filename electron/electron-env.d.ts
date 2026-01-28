@@ -99,6 +99,16 @@ interface Window {
       getSettings: () => Promise<{ success: boolean; settings: KeystrokeEditorSettingsType }>
       setSettings: (settings: Partial<KeystrokeEditorSettingsType>) => Promise<{ success: boolean; settings?: KeystrokeEditorSettingsType; error?: string }>
     }
+    // ============================================
+    // SECURE STORAGE API
+    // ============================================
+    secureStorage: {
+      isAvailable: () => Promise<{ available: boolean }>
+      setApiKey: (service: string, apiKey: string) => Promise<{ success: boolean; error?: string }>
+      getApiKey: (service: string) => Promise<{ success: boolean; apiKey?: string; error?: string; notFound?: boolean }>
+      deleteApiKey: (service: string) => Promise<{ success: boolean; error?: string }>
+      hasApiKey: (service: string) => Promise<{ hasKey: boolean }>
+    }
   }
 }
 

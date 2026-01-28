@@ -26,6 +26,13 @@ import { transcribeVideo } from '../services/transcription'
 import type { TranscriptionRequest, TranscriptionProgress } from '../../src/types/transcription'
 import { mouseEventDetector } from '../services/mouseEventDetector'
 import type { MouseEventData } from '../../src/types/mouseEvents'
+import { 
+  setApiKey, 
+  getApiKey, 
+  deleteApiKey, 
+  hasApiKey,
+  isEncryptionAvailable 
+} from '../services/secureStorage'
 
 let selectedSource: any = null
 
@@ -364,6 +371,30 @@ export function registerIpcHandlers(
         mainWindow.webContents.send('transcription-progress', progress);
       }
     });
+  });
+
+  // ============================================
+  // SECURE STORAGE HANDLERS
+  // ============================================
+
+  ipcMain.handle('secure-storage:is-available', () => {
+    return { available: isEncryptionAvailable() };
+  });
+
+  ipcMain.handle('secure-storage:set-api-key', async (_, service: string, apiKey: string) => {
+    return setApiKey(service, apiKey);
+  });
+
+  ipcMain.handle('secure-storage:get-api-key', async (_, service: string) => {
+    return getApiKey(service);
+  });
+
+  ipcMain.handle('secure-storage:delete-api-key', async (_, service: string) => {
+    return deleteApiKey(service);
+  });
+
+  ipcMain.handle('secure-storage:has-api-key', async (_, service: string) => {
+    return { hasKey: hasApiKey(service) };
   });
 
   // ============================================

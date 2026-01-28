@@ -131,6 +131,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // ============================================
+  // SECURE STORAGE API
+  // ============================================
+  secureStorage: {
+    isAvailable: () => {
+      return ipcRenderer.invoke('secure-storage:is-available')
+    },
+    setApiKey: (service: string, apiKey: string) => {
+      return ipcRenderer.invoke('secure-storage:set-api-key', service, apiKey)
+    },
+    getApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:get-api-key', service)
+    },
+    deleteApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:delete-api-key', service)
+    },
+    hasApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:has-api-key', service)
+    },
+  },
+
+  // ============================================
   // AUTO ZOOM API
   // ============================================
   autoZoom: {
