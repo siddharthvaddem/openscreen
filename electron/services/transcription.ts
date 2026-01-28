@@ -8,6 +8,7 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { app } from 'electron';
 import type { TranscriptionRequest, TranscriptionResult, TranscriptionWord, TranscriptionProgress } from '../../src/types/transcription';
 
 /**
@@ -17,7 +18,6 @@ import type { TranscriptionRequest, TranscriptionResult, TranscriptionWord, Tran
  */
 function getFFmpegPath(): string {
   // Try to use bundled ffmpeg first in production
-  const { app } = require('electron');
   if (app.isPackaged) {
     const platform = process.platform;
     const ffmpegName = platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
