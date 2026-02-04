@@ -1,34 +1,88 @@
-# AGENTS
+# OpenScreen - AI Agent Guide
 
-<skills_system priority="1">
+## Project Snapshot
+- **Type**: Single-project Electron + React desktop app (screen recorder & video editor)
+- **Stack**: Electron 39, React 18, TypeScript, Vite, Tailwind CSS, PixiJS
+- **Testing**: Vitest with colocated tests (`*.test.ts`)
+- **Sub-guides**: See `src/AGENTS.md`, `electron/AGENTS.md`, `src/lib/exporter/AGENTS.md`
 
-## Available Skills
+## Quick Commands
+```bash
+# Install
+npm install
 
-<!-- SKILLS_TABLE_START -->
-<usage>
-When users ask you to perform tasks, check if any of the available skills below can help complete the task more effectively. Skills provide specialized capabilities and domain knowledge.
+# Dev (runs Vite + Electron)
+npm run dev
 
-How to use skills:
-- Invoke: `npx openskills read <skill-name>` (run in your shell)
-  - For multiple: `npx openskills read skill-one,skill-two`
-- The skill content will load with detailed instructions on how to complete the task
-- Base directory provided in output for resolving bundled resources (references/, scripts/, assets/)
+# Build (all platforms)
+npm run build
 
-Usage notes:
-- Only use skills listed in <available_skills> below
-- Do not invoke a skill that is already loaded in your context
-- Each skill invocation is stateless
-</usage>
+# Platform-specific builds
+npm run build:mac
+npm run build:win
+npm run build:linux
 
-<available_skills>
+# Test
+npm test              # Run once
+npm run test:watch    # Watch mode
 
-<skill>
-<name>frontend-design</name>
-<description>Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.</description>
-<location>project</location>
-</skill>
+# Lint
+npm run lint
+```
 
-</available_skills>
-<!-- SKILLS_TABLE_END -->
+## Universal Conventions
 
-</skills_system>
+### TypeScript
+- Strict mode enabled (`noUnusedLocals`, `noUnusedParameters`)
+- Use `@/` alias for `src/` imports (e.g., `@/components/ui/button`)
+- Define types in `src/types/` with `DEFAULT_*` exports
+
+### Styling
+- Tailwind CSS with CSS variables (`hsl(var(--background))`)
+- shadcn/ui components in `src/components/ui/`
+- Use `cn()` from `@/lib/utils` for class merging
+
+### Code Style
+- Functional components only (no class components)
+- Named exports preferred over default exports
+- Tests colocated with source (`foo.ts` → `foo.test.ts`)
+
+## Security & Secrets
+- **NEVER** commit API keys or tokens
+- Use `electron/services/secureStorage.ts` for encrypted key storage
+- Renderer accesses secrets via `window.electronAPI.secureStorage`
+- Environment variables not used; app-level storage only
+
+## JIT Index
+
+### Directory Map
+- **Renderer (React)**: `src/` → [see src/AGENTS.md](src/AGENTS.md)
+- **Main Process (Electron)**: `electron/` → [see electron/AGENTS.md](electron/AGENTS.md)
+- **Video Export Engine**: `src/lib/exporter/` → [see src/lib/exporter/AGENTS.md](src/lib/exporter/AGENTS.md)
+- **UI Primitives**: `src/components/ui/` (shadcn/ui, add via `npx shadcn@latest add`)
+- **Static Assets**: `public/`
+
+### Quick Find
+```bash
+# Find React component
+rg -n "export function|export const" src/components --type ts
+
+# Find hook
+rg -n "export function use" src/hooks
+
+# Find type definition
+rg -n "export interface|export type" src/types
+
+# Find IPC handler
+rg -n "ipcMain.handle" electron/ipc
+
+# Find tests
+rg -l "\.test\.ts$" src electron
+```
+
+## Definition of Done
+Before submitting PR:
+1. `npm run lint` passes
+2. `npm test` passes
+3. `npm run build` succeeds (includes tsc)
+4. Manual test of affected feature in dev mode
