@@ -42,6 +42,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('stop-recording-from-tray', listener)
     return () => ipcRenderer.removeListener('stop-recording-from-tray', listener)
   },
+  onStartRecordingFromShortcut: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('start-recording-from-shortcut', listener)
+    return () => ipcRenderer.removeListener('start-recording-from-shortcut', listener)
+  },
   openExternalUrl: (url: string) => {
     return ipcRenderer.invoke('open-external-url', url)
   },
