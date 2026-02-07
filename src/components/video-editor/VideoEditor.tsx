@@ -59,7 +59,7 @@ export default function VideoEditor() {
   const [wallpaper, setWallpaper] = useState<string>(WALLPAPER_PATHS[0]);
   const [shadowIntensity, setShadowIntensity] = useState(0);
   const [showBlur, setShowBlur] = useState(false);
-  const [motionBlurEnabled, setMotionBlurEnabled] = useState(true);
+  const [motionBlurEnabled, setMotionBlurEnabled] = useState(false);
   const [borderRadius, setBorderRadius] = useState(0);
   const [padding, setPadding] = useState(50);
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
@@ -482,7 +482,7 @@ export default function VideoEditor() {
       });
       return updated;
     });
-  }, []);;
+  }, []);
 
   const handleAnnotationTypeChange = useCallback((id: string, type: AnnotationRegion['type']) => {
     setAnnotationRegions((prev) => {
@@ -860,6 +860,7 @@ export default function VideoEditor() {
     handleExport(settings);
   }, [videoPath, exportFormat, exportQuality, gifFrameRate, gifLoop, gifSizePreset]);
 
+
   const handleExport = useCallback(async (settings: ExportSettings) => {
     if (!videoPath) {
       toast.error('No video loaded');
@@ -882,17 +883,10 @@ export default function VideoEditor() {
         videoPlaybackRef.current?.pause();
       }
 
-      // Get actual video dimensions to match recording resolution
-      const video = videoPlaybackRef.current?.video;
-      if (!video) {
-        toast.error('Video not ready');
-        return;
-      }
-      
       const aspectRatioValue = getAspectRatioValue(aspectRatio);
       const sourceWidth = video.videoWidth || 1920;
       const sourceHeight = video.videoHeight || 1080;
-      
+
       // Get preview CONTAINER dimensions for scaling
       const playbackRef = videoPlaybackRef.current;
       const containerElement = playbackRef?.containerRef?.current;
@@ -936,9 +930,9 @@ export default function VideoEditor() {
           const arrayBuffer = await result.blob.arrayBuffer();
           const timestamp = Date.now();
           const fileName = `export-${timestamp}.gif`;
-          
+
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
-          
+
           if (saveResult.cancelled) {
             toast.info('Export cancelled');
           } else if (saveResult.success) {
@@ -1013,11 +1007,11 @@ export default function VideoEditor() {
         } else {
           // Use quality-based target resolution
           const targetHeight = quality === 'medium' ? 720 : 1080;
-          
+
           // Calculate dimensions maintaining aspect ratio
           exportHeight = Math.floor(targetHeight / 2) * 2;
           exportWidth = Math.floor((exportHeight * aspectRatioValue) / 2) * 2;
-          
+
           // Adjust bitrate for lower resolutions
           const totalPixels = exportWidth * exportHeight;
           if (totalPixels <= 1280 * 720) {
@@ -1064,9 +1058,9 @@ export default function VideoEditor() {
           const arrayBuffer = await result.blob.arrayBuffer();
           const timestamp = Date.now();
           const fileName = `export-${timestamp}.mp4`;
-          
+
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
-          
+
           if (saveResult.cancelled) {
             toast.info('Export cancelled');
           } else if (saveResult.success) {

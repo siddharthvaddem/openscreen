@@ -1,0 +1,149 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Search existing issues
+      description: Please search to see if an issue already exists for the bug you encountered.
+      options:
+        - label: I have searched the existing issues
+          required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: e.g., When I click submit, nothing happens...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: e.g., The form should submit and show a success message
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: Drag and drop images here or paste them
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os-type
+    attributes:
+      label: OS
+      description: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - iOS
+        - Android
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Please specify your OS version
+      placeholder: e.g., Windows 11, macOS Sonoma, Ubuntu 22.04
+    validations:
+      required: false
+
+  - type: input
+    id: os-other
+    attributes:
+      label: Other OS
+      description: If you selected "Other" for OS, please specify your operating system
+      placeholder: e.g., FreeBSD, Solaris
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: What browser are you using?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser Version
+      description: Please specify your browser version
+      placeholder: e.g., 120.0, 121.0.1
+    validations:
+      required: false
+
+  - type: input
+    id: browser-other
+    attributes:
+      label: Other Browser
+      description: If you selected "Other" for Browser, please specify your browser
+      placeholder: e.g., Brave, Vivaldi, Opera
+    validations:
+      required: false
+
+  - type: dropdown
+    id: device-type
+    attributes:
+      label: Device Type
+      description: Device category
+      options:
+        - Desktop
+        - Laptop
+        - Tablet
+        - Mobile
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: device-other
+    attributes:
+      label: Other Device
+      description: If you selected "Other" for Device Type, please specify your device
+      placeholder: e.g., Smart TV, IoT device
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+      placeholder: Links, references, or any additional information
+    validations:
+      required: false

@@ -82,7 +82,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   showShadow,
   shadowIntensity = 0,
   showBlur,
-  motionBlurEnabled = true,
+  motionBlurEnabled = false,
   borderRadius = 0,
   padding = 50,
   cropRegion,

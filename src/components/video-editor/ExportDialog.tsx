@@ -24,6 +24,20 @@ export function ExportDialog({
 }: ExportDialogProps) {
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Reset showSuccess when a new export starts or dialog reopens
+  useEffect(() => {
+    if (isExporting) {
+      setShowSuccess(false);
+    }
+  }, [isExporting]);
+
+  // Reset showSuccess when dialog opens fresh
+  useEffect(() => {
+    if (isOpen && !isExporting && !progress) {
+      setShowSuccess(false);
+    }
+  }, [isOpen, isExporting, progress]);
+
   useEffect(() => {
     if (!isExporting && progress && progress.percentage >= 100 && !error) {
       setShowSuccess(true);

@@ -1,4 +1,4 @@
-import {useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Trash2, Type, Image as ImageIcon, Upload, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, ChevronDown, Info } from "lucide-react";
@@ -11,6 +11,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { getArrowComponent } from "./ArrowSvgs";
+import { AddCustomFontDialog } from "./AddCustomFontDialog";
+import { getCustomFonts, type CustomFont } from "@/lib/customFonts";
 
 interface AnnotationSettingsPanelProps {
   annotation: AnnotationRegion;
@@ -43,6 +45,13 @@ export function AnnotationSettingsPanel({
   onDelete,
 }: AnnotationSettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
+
+  // Load custom fonts on mount
+  useEffect(() => {
+    setCustomFonts(getCustomFonts());
+  }, []);
+
   const colorPalette = [
     '#FF0000', // Red
     '#FFD700', // Yellow/Gold
@@ -148,19 +157,35 @@ export function AnnotationSettingsPanel({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-medium text-slate-200 mb-2 block">Font Style</label>
-                  <Select 
-                    value={annotation.style.fontFamily} 
+                  <Select
+                    value={annotation.style.fontFamily}
                     onValueChange={(value) => onStyleChange({ fontFamily: value })}
                   >
                     <SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
                       <SelectValue placeholder="Select style" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1c] border-white/10 text-slate-200">
+                    <SelectContent className="bg-[#1a1a1c] border-white/10 text-slate-200 max-h-[300px]">
                       {FONT_FAMILIES.map((font) => (
                         <SelectItem key={font.value} value={font.value} style={{ fontFamily: font.value }}>
                           {font.label}
                         </SelectItem>
                       ))}
+                      {customFonts.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                            Custom Fonts
+                          </div>
+                          {customFonts.map((font) => (
+                            <SelectItem
+                              key={font.id}
+                              value={font.fontFamily}
+                              style={{ fontFamily: font.fontFamily }}
+                            >
+                              {font.name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -182,6 +207,16 @@ export function AnnotationSettingsPanel({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Add Custom Font Button */}
+              <div>
+                <AddCustomFontDialog
+                  onFontAdded={(font) => {
+                    setCustomFonts(getCustomFonts());
+                    onStyleChange({ fontFamily: font.fontFamily });
+                  }}
+                />
               </div>
 
               {/* Formatting Toggles */}
