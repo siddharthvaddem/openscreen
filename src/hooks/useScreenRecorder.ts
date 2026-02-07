@@ -57,17 +57,28 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
     }
   });
 
+  // Stable ref for startRecording so shortcut listener always has latest
+  const startRecordingRef = useRef<() => void>(() => {});
+
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
+    let cleanupStop: (() => void) | undefined;
+    let cleanupStart: (() => void) | undefined;
     
     if (window.electronAPI?.onStopRecordingFromTray) {
-      cleanup = window.electronAPI.onStopRecordingFromTray(() => {
+      cleanupStop = window.electronAPI.onStopRecordingFromTray(() => {
         stopRecording.current();
       });
     }
 
+    if (window.electronAPI?.onStartRecordingFromShortcut) {
+      cleanupStart = window.electronAPI.onStartRecordingFromShortcut(() => {
+        startRecordingRef.current();
+      });
+    }
+
     return () => {
-      if (cleanup) cleanup();
+      cleanupStop?.();
+      cleanupStart?.();
       
       if (mediaRecorder.current?.state === "recording") {
         mediaRecorder.current.stop();
@@ -182,6 +193,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
       }
     }
   };
+
+  // Keep startRecordingRef in sync
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  });
 
   const toggleRecording = () => {
     recording ? stopRecording.current() : startRecording();

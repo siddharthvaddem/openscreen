@@ -31,6 +31,7 @@ interface Window {
     getAssetBasePath: () => Promise<string | null>
     setRecordingState: (recording: boolean) => Promise<void>
     onStopRecordingFromTray: (callback: () => void) => () => void
+    onStartRecordingFromShortcut: (callback: () => void) => () => void
     openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>
     saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => Promise<{
       success: boolean
