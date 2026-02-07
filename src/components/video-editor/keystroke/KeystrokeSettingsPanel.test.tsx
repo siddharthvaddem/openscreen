@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import * as fc from 'fast-check';
 import type { KeystrokePositionPreset, AnimationPreset, KeystrokeRegion, KeystrokeStyle } from '../types';
 import { DEFAULT_KEYSTROKE_STYLE } from '../types';
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { KeystrokeSettingsPanel } from './KeystrokeSettingsPanel';
 
@@ -694,8 +693,6 @@ describe('Integration: Combined Settings Validation', () => {
 // ============================================
 // PROPERTY-BASED TESTS FOR APPLY TO ALL
 // ============================================
-
-import type { KeystrokeRegion, KeystrokeStyle } from '../types';
 
 /**
  * Helper function to apply style to all regions

@@ -51,15 +51,6 @@ interface Window {
       duplicate: (id: string) => Promise<{ success: boolean; preset?: Preset; error?: string }>
       setDefault: (id: string | null) => Promise<{ success: boolean; error?: string }>
     }
-    keystroke: {
-      start: () => Promise<{ success: boolean; error?: string }>
-      stop: () => Promise<{ success: boolean }>
-      getSettings: () => Promise<KeystrokeSettings | null>
-      setSettings: (settings: KeystrokeSettings) => Promise<{ success: boolean; error?: string }>
-      showOverlay: () => Promise<{ success: boolean; error?: string }>
-      hideOverlay: () => Promise<{ success: boolean }>
-      onEvent: (callback: (event: KeystrokeOrMouseEvent) => void) => () => void
-    }
     // Transcription API
     transcribeVideo: (request: { 
       videoPath: string; 
@@ -74,12 +65,12 @@ interface Window {
         confidence: number;
       }>;
       error?: string;
-    }>
+    }>;
     onTranscriptionProgress: (callback: (progress: {
       status: string;
       progress: number;
       message: string;
-    }) => void) => () => void
+    }) => void) => () => void;
     // Auto Zoom API
     autoZoom: {
       startDetection: (recordingId: string, screenBounds: { width: number; height: number }) => Promise<{ success: boolean; error?: string }>
@@ -137,41 +128,6 @@ interface Preset {
   isDefault: boolean
   settings: PresetSettings
 }
-
-// Keystroke types for electronAPI
-interface KeystrokeSettings {
-  enabled: boolean
-  position: 'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center'
-  fadeDurationMs: number
-  fadeDelayMs: number
-  groupingThresholdMs: number
-  showMouseClicks: boolean
-  textScale: number
-}
-
-interface KeystrokeModifiers {
-  ctrl: boolean
-  alt: boolean
-  shift: boolean
-  meta: boolean
-}
-
-interface KeystrokeInputEvent {
-  type: 'keystroke'
-  timestamp: number
-  key: string
-  keyCode: number
-  modifiers: KeystrokeModifiers
-}
-
-interface MouseInputEvent {
-  type: 'mouse'
-  timestamp: number
-  button: 'left' | 'right' | 'middle'
-  modifiers: KeystrokeModifiers
-}
-
-type KeystrokeOrMouseEvent = KeystrokeInputEvent | MouseInputEvent
 
 // ============================================
 // Keystroke Editor types for electronAPI

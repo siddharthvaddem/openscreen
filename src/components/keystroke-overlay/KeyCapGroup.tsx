@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { KeyCap } from './KeyCap';
-import type { ParsedKey } from '../../utils/keyNameMapping';
+import type { ParsedKey } from '@/utils/keyNameMapping';
 
 /**
  * Base font size for calculations (in pixels)

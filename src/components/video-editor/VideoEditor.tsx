@@ -876,14 +876,6 @@ export default function VideoEditor() {
     setExportProgress(null);
     setExportError(null);
 
-    // Hide keystroke overlay during export to prevent it from capturing keystrokes
-    // while user interacts with the export dialog
-    try {
-      await window.electronAPI?.keystroke?.hideOverlay();
-    } catch {
-      // Silently ignore - overlay may not be active
-    }
-
     try {
       const wasPlaying = isPlaying;
       if (wasPlaying) {
@@ -1105,12 +1097,6 @@ export default function VideoEditor() {
       setShowExportDialog(false);
       setExportProgress(null);
       
-      // Restore keystroke overlay after export completes
-      try {
-        await window.electronAPI?.keystroke?.showOverlay();
-      } catch {
-        // Silently ignore - overlay may not have been active
-      }
     }
   }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
 
@@ -1122,13 +1108,6 @@ export default function VideoEditor() {
       setIsExporting(false);
       setExportProgress(null);
       setExportError(null);
-      
-      // Restore keystroke overlay after export is cancelled
-      try {
-        await window.electronAPI?.keystroke?.showOverlay();
-      } catch {
-        // Silently ignore - overlay may not have been active
-      }
     }
   }, []);
 

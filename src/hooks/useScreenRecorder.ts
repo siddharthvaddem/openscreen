@@ -12,23 +12,6 @@ type UseScreenRecorderReturn = {
   toggleRecording: () => void;
 };
 
-/**
- * Helper to check if keystroke overlay is enabled and manage it during recording
- */
-async function ensureKeystrokeOverlayForRecording(): Promise<void> {
-  if (!window.electronAPI?.keystroke) return;
-  
-  try {
-    const settings = await window.electronAPI.keystroke.getSettings();
-    if (settings?.enabled) {
-      // Ensure overlay is visible when recording starts
-      await window.electronAPI.keystroke.showOverlay();
-    }
-  } catch (error) {
-    console.warn('Failed to check keystroke settings for recording:', error);
-  }
-}
-
 export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreenRecorderReturn {
   const [recording, setRecording] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -179,7 +162,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       console.log(
         `Recording at ${width}x${height} @ ${frameRate ?? TARGET_FRAME_RATE}fps using ${mimeType} / ${Math.round(
           videoBitsPerSecond / 1_000_000
-        )} Mbps${hasAudio ? ' with audio' : ' (video only)'}`
+        )} Mbps${hasAudio ? ' with audio' : ' (video only)'}`,
       );
       
       chunks.current = [];
@@ -287,9 +270,6 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       startTime.current = Date.now();
       setRecording(true);
       window.electronAPI?.setRecordingState(true);
-      
-      // Ensure keystroke overlay is visible if enabled
-      await ensureKeystrokeOverlayForRecording();
     } catch (error) {
       console.error('Failed to start recording:', error);
       setRecording(false);

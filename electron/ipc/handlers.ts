@@ -13,15 +13,6 @@ import {
   type Preset,
   type PresetSettings
 } from './presets'
-import { keystrokeService } from '../services/keystrokeService'
-import { getKeystrokeSettings, setKeystrokeSettings } from './keystrokeSettings'
-import type { KeystrokeSettings } from '../../src/types/keystrokeSettings'
-import { 
-  createKeystrokeOverlayWindow, 
-  getKeystrokeOverlayWindow, 
-  showKeystrokeOverlayWindow, 
-  hideKeystrokeOverlayWindow 
-} from '../windows'
 import { transcribeVideo } from '../services/transcription'
 import type { TranscriptionRequest, TranscriptionProgress } from '../../src/types/transcription'
 import { mouseEventDetector } from '../services/mouseEventDetector'
@@ -280,84 +271,6 @@ export function registerIpcHandlers(
 
   ipcMain.handle('presets:setDefault', async (_, id: string | null) => {
     return await setDefaultPreset(id);
-  });
-
-  // ============================================
-  // KEYSTROKE HANDLERS
-  // Requirements: 6.4, 9.1, 9.2, 9.3, 9.4
-  // ============================================
-
-  ipcMain.handle('keystroke:start', async () => {
-    try {
-      await keystrokeService.start();
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to start keystroke service:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
-      };
-    }
-  });
-
-  ipcMain.handle('keystroke:stop', () => {
-    try {
-      keystrokeService.stop();
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to stop keystroke service:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
-      };
-    }
-  });
-
-  ipcMain.handle('keystroke:get-settings', async () => {
-    return await getKeystrokeSettings();
-  });
-
-  ipcMain.handle('keystroke:set-settings', async (_, settings: Partial<KeystrokeSettings>) => {
-    return await setKeystrokeSettings(settings);
-  });
-
-  ipcMain.handle('keystroke:show-overlay', async () => {
-    try {
-      let overlayWindow = getKeystrokeOverlayWindow();
-      
-      if (!overlayWindow || overlayWindow.isDestroyed()) {
-        overlayWindow = createKeystrokeOverlayWindow();
-        
-        keystrokeService.onEvent((event) => {
-          if (overlayWindow && !overlayWindow.isDestroyed()) {
-            overlayWindow.webContents.send('keystroke:event', event);
-          }
-        });
-      } else {
-        showKeystrokeOverlayWindow();
-      }
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to show keystroke overlay:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
-      };
-    }
-  });
-
-  ipcMain.handle('keystroke:hide-overlay', async () => {
-    try {
-      hideKeystrokeOverlayWindow();
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to hide keystroke overlay:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
-      };
-    }
   });
 
   // ============================================
