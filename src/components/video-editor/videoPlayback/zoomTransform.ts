@@ -23,7 +23,7 @@ export function applyZoomTransform({
   focusY,
   motionIntensity,
   isPlaying,
-  motionBlurEnabled = true,
+  motionBlurEnabled = false,
 }: TransformParams) {
   if (
     stageSize.width <= 0 ||

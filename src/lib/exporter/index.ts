@@ -2,6 +2,7 @@ export { VideoExporter } from './videoExporter';
 export { VideoFileDecoder } from './videoDecoder';
 export { FrameRenderer } from './frameRenderer';
 export { VideoMuxer } from './muxer';
+export { AudioExtractor } from './audioExtractor';
 export { GifExporter, calculateOutputDimensions } from './gifExporter';
 export type { 
   ExportConfig, 

@@ -1,7 +1,7 @@
 import { useItem } from "dnd-timeline";
 import type { Span } from "dnd-timeline";
 import { cn } from "@/lib/utils";
-import { ZoomIn, Scissors, MessageSquare } from "lucide-react";
+import { ZoomIn, Scissors, MessageSquare, Subtitles, Keyboard } from "lucide-react";
 import glassStyles from "./ItemGlass.module.css";
 
 interface ItemProps {
@@ -12,7 +12,7 @@ interface ItemProps {
   isSelected?: boolean;
   onSelect?: () => void;
   zoomDepth?: number;
-  variant?: 'zoom' | 'trim' | 'annotation';
+  variant?: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke';
 }
 
 // Map zoom depth to multiplier labels
@@ -43,17 +43,27 @@ export default function Item({
 
   const isZoom = variant === 'zoom';
   const isTrim = variant === 'trim';
+  const isSubtitle = variant === 'subtitle';
+  const isKeystroke = variant === 'keystroke';
   
   const glassClass = isZoom 
     ? glassStyles.glassGreen 
     : isTrim 
     ? glassStyles.glassRed 
+    : isSubtitle
+    ? glassStyles.glassCyan
+    : isKeystroke
+    ? glassStyles.glassPurple
     : glassStyles.glassYellow;
     
   const endCapColor = isZoom 
     ? '#21916A' 
     : isTrim 
     ? '#ef4444' 
+    : isSubtitle
+    ? '#00BCD4'
+    : isKeystroke
+    ? '#9333EA'
     : '#B4A046';
 
   return (
@@ -102,6 +112,20 @@ export default function Item({
                 <Scissors className="w-3.5 h-3.5" />
                 <span className="text-[11px] font-semibold tracking-tight">
                   Trim
+                </span>
+              </>
+            ) : isSubtitle ? (
+              <>
+                <Subtitles className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold tracking-tight">
+                  {children}
+                </span>
+              </>
+            ) : isKeystroke ? (
+              <>
+                <Keyboard className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold tracking-tight">
+                  {children}
                 </span>
               </>
             ) : (

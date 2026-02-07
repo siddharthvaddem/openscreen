@@ -10,6 +10,7 @@ import PlaybackControls from "./PlaybackControls";
 import TimelineEditor from "./timeline/TimelineEditor";
 import { SettingsPanel } from "./SettingsPanel";
 import { ExportDialog } from "./ExportDialog";
+import { usePresets } from "@/hooks/usePresets";
 
 import type { Span } from "dnd-timeline";
 import {
@@ -20,6 +21,11 @@ import {
   DEFAULT_ANNOTATION_SIZE,
   DEFAULT_ANNOTATION_STYLE,
   DEFAULT_FIGURE_DATA,
+  DEFAULT_PRESET_SETTINGS,
+  DEFAULT_SUBTITLE_STYLE,
+  DEFAULT_SUBTITLE_POSITION,
+  DEFAULT_KEYSTROKE_STYLE,
+  DEFAULT_KEYSTROKE_POSITION,
   type ZoomDepth,
   type ZoomFocus,
   type ZoomRegion,
@@ -27,6 +33,14 @@ import {
   type AnnotationRegion,
   type CropRegion,
   type FigureData,
+  type Preset,
+  type PresetSettings,
+  type SubtitleRegion,
+  type SubtitleStyle,
+  type SubtitlePositionPreset,
+  type KeystrokeRegion,
+  type KeystrokeStyle,
+  type KeystrokePositionPreset,
 } from "./types";
 import { VideoExporter, GifExporter, type ExportProgress, type ExportQuality, type ExportSettings, type ExportFormat, type GifFrameRate, type GifSizePreset, GIF_SIZE_PRESETS, calculateOutputDimensions } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
@@ -45,7 +59,7 @@ export default function VideoEditor() {
   const [wallpaper, setWallpaper] = useState<string>(WALLPAPER_PATHS[0]);
   const [shadowIntensity, setShadowIntensity] = useState(0);
   const [showBlur, setShowBlur] = useState(false);
-  const [motionBlurEnabled, setMotionBlurEnabled] = useState(true);
+  const [motionBlurEnabled, setMotionBlurEnabled] = useState(false);
   const [borderRadius, setBorderRadius] = useState(0);
   const [padding, setPadding] = useState(50);
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
@@ -55,6 +69,10 @@ export default function VideoEditor() {
   const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
   const [annotationRegions, setAnnotationRegions] = useState<AnnotationRegion[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [subtitleRegions, setSubtitleRegions] = useState<SubtitleRegion[]>([]);
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
+  const [keystrokeRegions, setKeystrokeRegions] = useState<KeystrokeRegion[]>([]);
+  const [selectedKeystrokeId, setSelectedKeystrokeId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -62,6 +80,7 @@ export default function VideoEditor() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [exportQuality, setExportQuality] = useState<ExportQuality>('good');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('mp4');
+  const [audioBitrate, setAudioBitrate] = useState<128 | 192 | 256 | 320>(192);
   const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
   const [gifLoop, setGifLoop] = useState(true);
   const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>('medium');
@@ -71,7 +90,67 @@ export default function VideoEditor() {
   const nextTrimIdRef = useRef(1);
   const nextAnnotationIdRef = useRef(1);
   const nextAnnotationZIndexRef = useRef(1); // Track z-index for stacking order
+  const nextSubtitleIdRef = useRef(1);
+  const nextKeystrokeIdRef = useRef(1);
   const exporterRef = useRef<VideoExporter | null>(null);
+  const hasAppliedDefaultPreset = useRef(false);
+
+  // Presets hook
+  const {
+    presets,
+    defaultPresetId,
+    savePreset,
+    updatePreset,
+    deletePreset,
+    duplicatePreset,
+    setDefaultPreset,
+    getDefaultPreset,
+  } = usePresets();
+
+  // Apply preset settings to state
+  const applyPresetSettings = useCallback((settings: PresetSettings) => {
+    setPadding(settings.padding);
+    setShadowIntensity(settings.shadowIntensity);
+    setBorderRadius(settings.borderRadius);
+    setMotionBlurEnabled(settings.motionBlurEnabled);
+    setShowBlur(settings.showBlur);
+    setWallpaper(settings.wallpaper);
+  }, []);
+
+  // Handle apply preset
+  const handleApplyPreset = useCallback((preset: Preset) => {
+    applyPresetSettings(preset.settings);
+  }, [applyPresetSettings]);
+
+  // Handle save preset
+  const handleSavePreset = useCallback(async (
+    name: string,
+    settings: PresetSettings,
+    isDefault: boolean
+  ): Promise<Preset | null> => {
+    return await savePreset(name, settings, isDefault);
+  }, [savePreset]);
+
+  // Handle rename preset
+  const handleRenamePreset = useCallback(async (id: string, name: string): Promise<boolean> => {
+    return await updatePreset(id, { name });
+  }, [updatePreset]);
+
+  // Handle reset to defaults
+  const handleResetToDefaults = useCallback(() => {
+    applyPresetSettings(DEFAULT_PRESET_SETTINGS);
+  }, [applyPresetSettings]);
+
+  // Load default preset on mount
+  useEffect(() => {
+    if (hasAppliedDefaultPreset.current) return;
+    
+    const defaultPreset = getDefaultPreset();
+    if (defaultPreset) {
+      applyPresetSettings(defaultPreset.settings);
+      hasAppliedDefaultPreset.current = true;
+    }
+  }, [getDefaultPreset, applyPresetSettings]);
 
   // Helper to convert file path to proper file:// URL
   const toFileUrl = (filePath: string): string => {
@@ -97,6 +176,75 @@ export default function VideoEditor() {
         if (result.success && result.path) {
           const videoUrl = toFileUrl(result.path);
           setVideoPath(videoUrl);
+          
+          // Try to load auto zoom events for this video
+          try {
+            if (window.electronAPI?.autoZoom) {
+              const eventsResult = await window.electronAPI.autoZoom.getEvents(result.path);
+              if (eventsResult.success && eventsResult.data) {
+                // Import zoom keyframe generator dynamically to avoid circular deps
+                const { generateZoomRegions } = await import('@/utils/zoomKeyframeGenerator');
+                const { DEFAULT_AUTO_ZOOM_SETTINGS } = await import('./types');
+                
+                // Generate zoom regions from mouse events
+                // We'll get the video duration from the video element later
+                // For now, use a large value and let the generator clamp
+                const autoZoomRegions = generateZoomRegions(
+                  eventsResult.data,
+                  { ...DEFAULT_AUTO_ZOOM_SETTINGS, enabled: true },
+                  Number.MAX_SAFE_INTEGER // Will be clamped when video loads
+                );
+                
+                if (autoZoomRegions.length > 0) {
+                  setZoomRegions(autoZoomRegions);
+                  console.log(`Auto zoom: loaded ${autoZoomRegions.length} regions from mouse events`);
+                }
+              }
+            }
+          } catch (autoZoomError) {
+            // Silently ignore - auto zoom events may not exist
+            console.debug('No auto zoom events found for video:', autoZoomError);
+          }
+
+          // Try to load keystroke events for this video
+          // Requirements: 4.1, 4.2, 4.3, 4.4
+          try {
+            if (window.electronAPI?.keystrokeEditor) {
+              const keystrokeResult = await window.electronAPI.keystrokeEditor.loadEvents(result.path);
+              if (keystrokeResult.success && keystrokeResult.data) {
+                // Import keystroke region generator dynamically to avoid circular deps
+                const { generateKeystrokeRegions } = await import('@/utils/keystrokeRegionGenerator');
+                const { DEFAULT_KEYSTROKE_EDITOR_SETTINGS } = await import('@/types/keystrokeEditorSettings');
+                
+                // Get settings for region generation (use defaults if not available)
+                let settings = DEFAULT_KEYSTROKE_EDITOR_SETTINGS;
+                try {
+                  const settingsResult = await window.electronAPI.keystrokeEditor.getSettings();
+                  if (settingsResult.success && settingsResult.settings) {
+                    settings = settingsResult.settings;
+                  }
+                } catch {
+                  // Use defaults if settings fetch fails
+                }
+                
+                // Generate keystroke regions from loaded events
+                const keystrokeRegionsFromFile = generateKeystrokeRegions(
+                  keystrokeResult.data,
+                  settings
+                );
+                
+                if (keystrokeRegionsFromFile.length > 0) {
+                  setKeystrokeRegions(keystrokeRegionsFromFile);
+                  // Update the next ID ref to avoid collisions
+                  nextKeystrokeIdRef.current = keystrokeRegionsFromFile.length + 1;
+                  console.log(`Keystroke editor: loaded ${keystrokeRegionsFromFile.length} regions from events`);
+                }
+              }
+            }
+          } catch (keystrokeError) {
+            // Silently ignore - keystroke events may not exist (Requirement 4.4)
+            console.debug('No keystroke events found for video:', keystrokeError);
+          }
         } else {
           setError('No video to load. Please record or select a video.');
         }
@@ -146,7 +294,11 @@ export default function VideoEditor() {
 
   const handleSelectZoom = useCallback((id: string | null) => {
     setSelectedZoomId(id);
-    if (id) setSelectedTrimId(null);
+    if (id) {
+      setSelectedTrimId(null);
+      setSelectedSubtitleId(null);
+      setSelectedKeystrokeId(null);
+    }
   }, []);
 
   const handleSelectTrim = useCallback((id: string | null) => {
@@ -154,6 +306,8 @@ export default function VideoEditor() {
     if (id) {
       setSelectedZoomId(null);
       setSelectedAnnotationId(null);
+      setSelectedSubtitleId(null);
+      setSelectedKeystrokeId(null);
     }
   }, []);
 
@@ -162,6 +316,8 @@ export default function VideoEditor() {
     if (id) {
       setSelectedZoomId(null);
       setSelectedTrimId(null);
+      setSelectedSubtitleId(null);
+      setSelectedKeystrokeId(null);
     }
   }, []);
 
@@ -178,6 +334,8 @@ export default function VideoEditor() {
     setSelectedZoomId(id);
     setSelectedTrimId(null);
     setSelectedAnnotationId(null);
+    setSelectedSubtitleId(null);
+    setSelectedKeystrokeId(null);
   }, []);
 
   const handleTrimAdded = useCallback((span: Span) => {
@@ -191,6 +349,8 @@ export default function VideoEditor() {
     setSelectedTrimId(id);
     setSelectedZoomId(null);
     setSelectedAnnotationId(null);
+    setSelectedSubtitleId(null);
+    setSelectedKeystrokeId(null);
   }, []);
 
   const handleZoomSpanChange = useCallback((id: string, span: Span) => {
@@ -281,6 +441,8 @@ export default function VideoEditor() {
     setSelectedAnnotationId(id);
     setSelectedZoomId(null);
     setSelectedTrimId(null);
+    setSelectedSubtitleId(null);
+    setSelectedKeystrokeId(null);
   }, []);
 
   const handleAnnotationSpanChange = useCallback((id: string, span: Span) => {
@@ -320,7 +482,7 @@ export default function VideoEditor() {
       });
       return updated;
     });
-  }, []);;
+  }, []);
 
   const handleAnnotationTypeChange = useCallback((id: string, type: AnnotationRegion['type']) => {
     setAnnotationRegions((prev) => {
@@ -386,6 +548,218 @@ export default function VideoEditor() {
       ),
     );
   }, []);
+
+  // ============================================
+  // SUBTITLE HANDLERS
+  // ============================================
+
+  const handleSelectSubtitle = useCallback((id: string | null) => {
+    setSelectedSubtitleId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedAnnotationId(null);
+      setSelectedKeystrokeId(null);
+    }
+  }, []);
+
+  const handleSubtitleAdded = useCallback((span: Span) => {
+    const id = `subtitle-${nextSubtitleIdRef.current++}`;
+    const newRegion: SubtitleRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      text: 'Enter subtitle...',
+      words: [],
+      positionPreset: 'bottom-center',
+      customPosition: { ...DEFAULT_SUBTITLE_POSITION },
+      style: { ...DEFAULT_SUBTITLE_STYLE },
+    };
+    setSubtitleRegions((prev) => [...prev, newRegion]);
+    setSelectedSubtitleId(id);
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+    setSelectedKeystrokeId(null);
+  }, []);
+
+  const handleSubtitleSpanChange = useCallback((id: string, span: Span) => {
+    setSubtitleRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? {
+              ...region,
+              startMs: Math.round(span.start),
+              endMs: Math.round(span.end),
+            }
+          : region,
+      ),
+    );
+  }, []);
+
+  const handleSubtitleDelete = useCallback((id: string) => {
+    setSubtitleRegions((prev) => prev.filter((region) => region.id !== id));
+    if (selectedSubtitleId === id) {
+      setSelectedSubtitleId(null);
+    }
+  }, [selectedSubtitleId]);
+
+  const handleSubtitleContentChange = useCallback((id: string, text: string) => {
+    setSubtitleRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? { ...region, text }
+          : region,
+      ),
+    );
+  }, []);
+
+  const handleSubtitleStyleChange = useCallback((id: string, style: Partial<SubtitleStyle>) => {
+    setSubtitleRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? { ...region, style: { ...region.style, ...style } }
+          : region,
+      ),
+    );
+  }, []);
+
+  const handleSubtitlePositionChange = useCallback((
+    id: string,
+    position: SubtitlePositionPreset,
+    customPosition?: { x: number; y: number }
+  ) => {
+    setSubtitleRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? {
+              ...region,
+              positionPreset: position,
+              customPosition: customPosition ?? region.customPosition,
+            }
+          : region,
+      ),
+    );
+  }, []);
+
+  // Handler for auto-generated subtitles
+  const handleAutoGenerateSubtitles = useCallback((newSubtitles: SubtitleRegion[]) => {
+    // Assign unique IDs using the ref
+    const subtitlesWithIds = newSubtitles.map(s => ({
+      ...s,
+      id: `subtitle-${nextSubtitleIdRef.current++}`,
+    }));
+    setSubtitleRegions(prev => [...prev, ...subtitlesWithIds]);
+  }, []);
+
+  // ============================================
+  // KEYSTROKE HANDLERS
+  // ============================================
+
+  const handleSelectKeystroke = useCallback((id: string | null) => {
+    setSelectedKeystrokeId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedAnnotationId(null);
+      setSelectedSubtitleId(null);
+    }
+  }, []);
+
+  const handleKeystrokeAdded = useCallback((span: Span) => {
+    const id = `keystroke-${nextKeystrokeIdRef.current++}`;
+    const newRegion: KeystrokeRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      text: 'Key',
+      eventType: 'keystroke',
+      positionPreset: DEFAULT_KEYSTROKE_POSITION,
+      style: { ...DEFAULT_KEYSTROKE_STYLE },
+    };
+    setKeystrokeRegions((prev) => [...prev, newRegion]);
+    setSelectedKeystrokeId(id);
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+    setSelectedSubtitleId(null);
+  }, []);
+
+  const handleKeystrokeSpanChange = useCallback((id: string, span: Span) => {
+    setKeystrokeRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? {
+              ...region,
+              startMs: Math.round(span.start),
+              endMs: Math.round(span.end),
+            }
+          : region,
+      ),
+    );
+  }, []);
+
+  const handleKeystrokeDelete = useCallback((id: string) => {
+    setKeystrokeRegions((prev) => prev.filter((region) => region.id !== id));
+    if (selectedKeystrokeId === id) {
+      setSelectedKeystrokeId(null);
+    }
+  }, [selectedKeystrokeId]);
+
+  const handleDeleteAllKeystrokes = useCallback(() => {
+    setKeystrokeRegions([]);
+    setSelectedKeystrokeId(null);
+  }, []);
+
+  // Handler for keystroke style changes - enables live preview updates (Requirement 7.10)
+  const handleKeystrokeStyleChange = useCallback((id: string, style: Partial<KeystrokeStyle>) => {
+    setKeystrokeRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? { ...region, style: { ...region.style, ...style } }
+          : region,
+      ),
+    );
+  }, []);
+
+  // Handler for keystroke position changes - enables live preview updates (Requirement 7.10)
+  const handleKeystrokePositionChange = useCallback((id: string, position: KeystrokePositionPreset) => {
+    setKeystrokeRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? { ...region, positionPreset: position }
+          : region,
+      ),
+    );
+  }, []);
+
+  // Handler for applying style and position to all keystroke regions (Requirement 4.4, 2.1, 2.2, 2.4)
+  const handleApplyStyleToAll = useCallback((
+    style: Partial<KeystrokeStyle>,
+    position?: KeystrokePositionPreset
+  ) => {
+    setKeystrokeRegions((prev) =>
+      prev.map((region) => ({
+        ...region,
+        style: { ...region.style, ...style },
+        ...(position && { positionPreset: position }),
+      }))
+    );
+  }, []);
+
+  // Helper to extract file path from file:// URL
+  const getVideoFilePath = useCallback((): string | undefined => {
+    if (!videoPath) return undefined;
+    // Remove file:// or file:/// prefix and decode URI
+    let path = videoPath;
+    if (path.startsWith('file:///')) {
+      path = path.slice(8); // Remove 'file:///'
+    } else if (path.startsWith('file://')) {
+      path = path.slice(7); // Remove 'file://'
+    }
+    // Decode URI components
+    return decodeURIComponent(path);
+  }, [videoPath]);
   
   // Global Tab prevention
   useEffect(() => {
@@ -438,6 +812,18 @@ export default function VideoEditor() {
     }
   }, [selectedAnnotationId, annotationRegions]);
 
+  useEffect(() => {
+    if (selectedSubtitleId && !subtitleRegions.some((region) => region.id === selectedSubtitleId)) {
+      setSelectedSubtitleId(null);
+    }
+  }, [selectedSubtitleId, subtitleRegions]);
+
+  useEffect(() => {
+    if (selectedKeystrokeId && !keystrokeRegions.some((region) => region.id === selectedKeystrokeId)) {
+      setSelectedKeystrokeId(null);
+    }
+  }, [selectedKeystrokeId, keystrokeRegions]);
+
   const handleOpenExportDialog = useCallback(() => {
     if (!videoPath) {
       toast.error('No video loaded');
@@ -474,6 +860,7 @@ export default function VideoEditor() {
     handleExport(settings);
   }, [videoPath, exportFormat, exportQuality, gifFrameRate, gifLoop, gifSizePreset]);
 
+
   const handleExport = useCallback(async (settings: ExportSettings) => {
     if (!videoPath) {
       toast.error('No video loaded');
@@ -496,17 +883,10 @@ export default function VideoEditor() {
         videoPlaybackRef.current?.pause();
       }
 
-      // Get actual video dimensions to match recording resolution
-      const video = videoPlaybackRef.current?.video;
-      if (!video) {
-        toast.error('Video not ready');
-        return;
-      }
-      
       const aspectRatioValue = getAspectRatioValue(aspectRatio);
       const sourceWidth = video.videoWidth || 1920;
       const sourceHeight = video.videoHeight || 1080;
-      
+
       // Get preview CONTAINER dimensions for scaling
       const playbackRef = videoPlaybackRef.current;
       const containerElement = playbackRef?.containerRef?.current;
@@ -534,6 +914,8 @@ export default function VideoEditor() {
           videoPadding: padding,
           cropRegion,
           annotationRegions,
+          subtitleRegions,
+          keystrokeRegions,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -548,9 +930,9 @@ export default function VideoEditor() {
           const arrayBuffer = await result.blob.arrayBuffer();
           const timestamp = Date.now();
           const fileName = `export-${timestamp}.gif`;
-          
+
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
-          
+
           if (saveResult.cancelled) {
             toast.info('Export cancelled');
           } else if (saveResult.success) {
@@ -625,11 +1007,11 @@ export default function VideoEditor() {
         } else {
           // Use quality-based target resolution
           const targetHeight = quality === 'medium' ? 720 : 1080;
-          
+
           // Calculate dimensions maintaining aspect ratio
           exportHeight = Math.floor(targetHeight / 2) * 2;
           exportWidth = Math.floor((exportHeight * aspectRatioValue) / 2) * 2;
-          
+
           // Adjust bitrate for lower resolutions
           const totalPixels = exportWidth * exportHeight;
           if (totalPixels <= 1280 * 720) {
@@ -648,6 +1030,7 @@ export default function VideoEditor() {
           frameRate: 60,
           bitrate,
           codec: 'avc1.640033',
+          audioBitrate,
           wallpaper,
           zoomRegions,
           trimRegions,
@@ -659,6 +1042,8 @@ export default function VideoEditor() {
           padding,
           cropRegion,
           annotationRegions,
+          subtitleRegions,
+          keystrokeRegions,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -673,9 +1058,9 @@ export default function VideoEditor() {
           const arrayBuffer = await result.blob.arrayBuffer();
           const timestamp = Date.now();
           const fileName = `export-${timestamp}.mp4`;
-          
+
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
-          
+
           if (saveResult.cancelled) {
             toast.info('Export cancelled');
           } else if (saveResult.success) {
@@ -705,10 +1090,11 @@ export default function VideoEditor() {
       // This fixes the bug where second export doesn't show save dialog
       setShowExportDialog(false);
       setExportProgress(null);
+      
     }
   }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
 
-  const handleCancelExport = useCallback(() => {
+  const handleCancelExport = useCallback(async () => {
     if (exporterRef.current) {
       exporterRef.current.cancel();
       toast.info('Export cancelled');
@@ -782,6 +1168,13 @@ export default function VideoEditor() {
                       onSelectAnnotation={handleSelectAnnotation}
                       onAnnotationPositionChange={handleAnnotationPositionChange}
                       onAnnotationSizeChange={handleAnnotationSizeChange}
+                      subtitleRegions={subtitleRegions}
+                      selectedSubtitleId={selectedSubtitleId}
+                      onSelectSubtitle={handleSelectSubtitle}
+                      onSubtitlePositionChange={handleSubtitlePositionChange}
+                      keystrokeRegions={keystrokeRegions}
+                      selectedKeystrokeId={selectedKeystrokeId}
+                      onSelectKeystroke={handleSelectKeystroke}
                     />
                   </div>
                 </div>
@@ -829,6 +1222,20 @@ export default function VideoEditor() {
               onAnnotationDelete={handleAnnotationDelete}
               selectedAnnotationId={selectedAnnotationId}
               onSelectAnnotation={handleSelectAnnotation}
+              subtitleRegions={subtitleRegions}
+              onSubtitleAdded={handleSubtitleAdded}
+              onSubtitleSpanChange={handleSubtitleSpanChange}
+              onSubtitleDelete={handleSubtitleDelete}
+              selectedSubtitleId={selectedSubtitleId}
+              onSelectSubtitle={handleSelectSubtitle}
+              keystrokeRegions={keystrokeRegions}
+              onKeystrokeAdded={handleKeystrokeAdded}
+              onKeystrokeSpanChange={handleKeystrokeSpanChange}
+              onKeystrokeDelete={handleKeystrokeDelete}
+              selectedKeystrokeId={selectedKeystrokeId}
+              onSelectKeystroke={handleSelectKeystroke}
+              videoPath={getVideoFilePath()}
+              onAutoGenerateSubtitles={handleAutoGenerateSubtitles}
               aspectRatio={aspectRatio}
               onAspectRatioChange={setAspectRatio}
             />
@@ -865,6 +1272,8 @@ export default function VideoEditor() {
           onExportQualityChange={setExportQuality}
           exportFormat={exportFormat}
           onExportFormatChange={setExportFormat}
+          audioBitrate={audioBitrate}
+          onAudioBitrateChange={setAudioBitrate}
           gifFrameRate={gifFrameRate}
           onGifFrameRateChange={setGifFrameRate}
           gifLoop={gifLoop}
@@ -885,6 +1294,31 @@ export default function VideoEditor() {
           onAnnotationStyleChange={handleAnnotationStyleChange}
           onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
           onAnnotationDelete={handleAnnotationDelete}
+          // Subtitle props
+          selectedSubtitleId={selectedSubtitleId}
+          subtitleRegions={subtitleRegions}
+          onSubtitleContentChange={handleSubtitleContentChange}
+          onSubtitleStyleChange={handleSubtitleStyleChange}
+          onSubtitlePositionChange={handleSubtitlePositionChange}
+          onSubtitleDelete={handleSubtitleDelete}
+          // Keystroke props
+          selectedKeystrokeId={selectedKeystrokeId}
+          keystrokeRegions={keystrokeRegions}
+          onKeystrokeStyleChange={handleKeystrokeStyleChange}
+          onKeystrokePositionChange={handleKeystrokePositionChange}
+          onApplyStyleToAll={handleApplyStyleToAll}
+          onKeystrokeDelete={handleKeystrokeDelete}
+          onDeleteAllKeystrokes={handleDeleteAllKeystrokes}
+          // Preset props
+          presets={presets}
+          defaultPresetId={defaultPresetId}
+          onApplyPreset={handleApplyPreset}
+          onSavePreset={handleSavePreset}
+          onDeletePreset={deletePreset}
+          onDuplicatePreset={duplicatePreset}
+          onRenamePreset={handleRenamePreset}
+          onSetDefaultPreset={setDefaultPreset}
+          onResetToDefaults={handleResetToDefaults}
         />
       </div>
 

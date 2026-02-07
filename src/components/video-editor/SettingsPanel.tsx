@@ -9,10 +9,13 @@ import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star, Film, Image, Sparkles, Palette } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, Preset, PresetSettings, SubtitleRegion, SubtitleStyle, SubtitlePositionPreset, KeystrokeRegion, KeystrokeStyle, KeystrokePositionPreset } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
+import { SubtitleSettingsPanel } from "./subtitle/SubtitleSettingsPanel";
+import { KeystrokeSettingsPanel } from "./keystroke/KeystrokeSettingsPanel";
+import { PresetSelector } from "./PresetSelector";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
@@ -72,6 +75,9 @@ interface SettingsPanelProps {
   videoElement?: HTMLVideoElement | null;
   exportQuality?: ExportQuality;
   onExportQualityChange?: (quality: ExportQuality) => void;
+  // Audio export settings
+  audioBitrate?: 128 | 192 | 256 | 320;
+  onAudioBitrateChange?: (bitrate: 128 | 192 | 256 | 320) => void;
   // Export format settings
   exportFormat?: ExportFormat;
   onExportFormatChange?: (format: ExportFormat) => void;
@@ -90,6 +96,31 @@ interface SettingsPanelProps {
   onAnnotationStyleChange?: (id: string, style: Partial<AnnotationRegion['style']>) => void;
   onAnnotationFigureDataChange?: (id: string, figureData: any) => void;
   onAnnotationDelete?: (id: string) => void;
+  // Subtitle props
+  selectedSubtitleId?: string | null;
+  subtitleRegions?: SubtitleRegion[];
+  onSubtitleContentChange?: (id: string, text: string) => void;
+  onSubtitleStyleChange?: (id: string, style: Partial<SubtitleStyle>) => void;
+  onSubtitlePositionChange?: (id: string, position: SubtitlePositionPreset, customPosition?: { x: number; y: number }) => void;
+  onSubtitleDelete?: (id: string) => void;
+  // Keystroke props
+  selectedKeystrokeId?: string | null;
+  keystrokeRegions?: KeystrokeRegion[];
+  onKeystrokeStyleChange?: (id: string, style: Partial<KeystrokeStyle>) => void;
+  onKeystrokePositionChange?: (id: string, position: KeystrokePositionPreset) => void;
+  onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
+  onKeystrokeDelete?: (id: string) => void;
+  onDeleteAllKeystrokes?: () => void;
+  // Preset props
+  presets?: Preset[];
+  defaultPresetId?: string | null;
+  onApplyPreset?: (preset: Preset) => void;
+  onSavePreset?: (name: string, settings: PresetSettings, isDefault: boolean) => Promise<Preset | null>;
+  onDeletePreset?: (id: string) => Promise<boolean>;
+  onDuplicatePreset?: (id: string) => Promise<Preset | null>;
+  onRenamePreset?: (id: string, name: string) => Promise<boolean>;
+  onSetDefaultPreset?: (id: string | null) => Promise<boolean>;
+  onResetToDefaults?: () => void;
 }
 
 export default SettingsPanel;
@@ -116,7 +147,7 @@ export function SettingsPanel({
   onShadowChange, 
   showBlur, 
   onBlurChange, 
-  motionBlurEnabled = true, 
+  motionBlurEnabled = false,
   onMotionBlurChange, 
   borderRadius = 0, 
   onBorderRadiusChange, 
@@ -128,6 +159,8 @@ export function SettingsPanel({
   videoElement, 
   exportQuality = 'good',
   onExportQualityChange,
+  audioBitrate = 192,
+  onAudioBitrateChange,
   exportFormat = 'mp4',
   onExportFormatChange,
   gifFrameRate = 15,
@@ -145,6 +178,31 @@ export function SettingsPanel({
   onAnnotationStyleChange,
   onAnnotationFigureDataChange,
   onAnnotationDelete,
+  // Subtitle props
+  selectedSubtitleId,
+  subtitleRegions = [],
+  onSubtitleContentChange,
+  onSubtitleStyleChange,
+  onSubtitlePositionChange,
+  onSubtitleDelete,
+  // Keystroke props
+  selectedKeystrokeId,
+  keystrokeRegions = [],
+  onKeystrokeStyleChange,
+  onKeystrokePositionChange,
+  onApplyStyleToAll,
+  onKeystrokeDelete,
+  onDeleteAllKeystrokes,
+  // Preset props
+  presets = [],
+  defaultPresetId = null,
+  onApplyPreset,
+  onSavePreset,
+  onDeletePreset,
+  onDuplicatePreset,
+  onRenamePreset,
+  onSetDefaultPreset,
+  onResetToDefaults,
 }: SettingsPanelProps) {
   const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
   const [customImages, setCustomImages] = useState<string[]>([]);
@@ -239,6 +297,11 @@ export function SettingsPanel({
     ? annotationRegions.find(a => a.id === selectedAnnotationId)
     : null;
 
+  // Find selected subtitle
+  const selectedSubtitle = selectedSubtitleId 
+    ? subtitleRegions.find(s => s.id === selectedSubtitleId)
+    : null;
+
   // If an annotation is selected, show annotation settings instead
   if (selectedAnnotation && onAnnotationContentChange && onAnnotationTypeChange && onAnnotationStyleChange && onAnnotationDelete) {
     return (
@@ -253,9 +316,65 @@ export function SettingsPanel({
     );
   }
 
+  // If a subtitle is selected, show subtitle settings instead
+  if (selectedSubtitle && onSubtitleContentChange && onSubtitleStyleChange && onSubtitlePositionChange && onSubtitleDelete) {
+    return (
+      <SubtitleSettingsPanel
+        subtitle={selectedSubtitle}
+        onContentChange={(text) => onSubtitleContentChange(selectedSubtitle.id, text)}
+        onStyleChange={(style) => onSubtitleStyleChange(selectedSubtitle.id, style)}
+        onPositionChange={(position, customPosition) => onSubtitlePositionChange(selectedSubtitle.id, position, customPosition)}
+        onDelete={() => onSubtitleDelete(selectedSubtitle.id)}
+      />
+    );
+  }
+
+  // Find selected keystroke
+  const selectedKeystroke = selectedKeystrokeId 
+    ? keystrokeRegions.find(k => k.id === selectedKeystrokeId)
+    : null;
+
+  // If a keystroke is selected, show keystroke settings instead
+  // This enables live preview updates (Requirement 7.10)
+  if (selectedKeystroke && onKeystrokeStyleChange && onKeystrokePositionChange && onKeystrokeDelete) {
+  return (
+    <KeystrokeSettingsPanel
+      keystroke={selectedKeystroke}
+      onStyleChange={(style) => onKeystrokeStyleChange(selectedKeystroke.id, style)}
+      onPositionChange={(position) => onKeystrokePositionChange(selectedKeystroke.id, position)}
+      onApplyStyleToAll={onApplyStyleToAll}
+      onDelete={() => onKeystrokeDelete(selectedKeystroke.id)}
+      onDeleteAll={onDeleteAllKeystrokes}
+    />
+  );
+  }
+
   return (
     <div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
+      {/* Preset Selector - at top of settings panel */}
+      {onApplyPreset && onSavePreset && onDeletePreset && onDuplicatePreset && onRenamePreset && onSetDefaultPreset && onResetToDefaults && (
+        <PresetSelector
+          presets={presets}
+          defaultPresetId={defaultPresetId}
+          currentSettings={{
+            padding,
+            shadowIntensity,
+            borderRadius,
+            motionBlurEnabled,
+            showBlur: showBlur ?? false,
+            wallpaper: selected,
+          }}
+          onApplyPreset={onApplyPreset}
+          onSavePreset={onSavePreset}
+          onDeletePreset={onDeletePreset}
+          onDuplicatePreset={onDuplicatePreset}
+          onRenamePreset={onRenamePreset}
+          onSetDefaultPreset={onSetDefaultPreset}
+          onResetToDefaults={onResetToDefaults}
+        />
+      )}
+
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-slate-200">Zoom Level</span>
@@ -633,6 +752,28 @@ export function SettingsPanel({
             >
               High
             </button>
+          </div>
+        )}
+
+        {exportFormat === 'mp4' && (
+          <div className="mb-3">
+            <div className="mb-1.5 text-[10px] font-medium text-slate-400">Audio Bitrate (kbps)</div>
+            <div className="bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-4 h-7 rounded-lg">
+              {([128, 192, 256, 320] as const).map((bitrate) => (
+                <button
+                  key={bitrate}
+                  onClick={() => onAudioBitrateChange?.(bitrate)}
+                  className={cn(
+                    "rounded-md transition-all text-[10px] font-medium",
+                    audioBitrate === bitrate
+                      ? "bg-white text-black"
+                      : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  {bitrate}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

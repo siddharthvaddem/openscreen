@@ -1,17 +1,123 @@
 import { useState, useEffect } from "react";
 import styles from "./LaunchWindow.module.css";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
+import { useMicrophone } from "../../hooks/useMicrophone";
+import { useAutoZoomSettings } from "../../hooks/useAutoZoomSettings";
+import { useKeystrokeEditorSettings } from "../../hooks/useKeystrokeEditorSettings";
 import { Button } from "../ui/button";
-import { BsRecordCircle } from "react-icons/bs";
+import { BsRecordCircle, BsKeyboard } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { MdMonitor } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { FaFolderMinus } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
+import { TbZoomScan } from "react-icons/tb";
 import { ContentClamp } from "../ui/content-clamp";
+import { MicrophoneSelector } from "./MicrophoneSelector";
+import { 
+  getAudioSettings, 
+  STORAGE_KEY,
+  type AudioSettings 
+} from "../../stores/audioSettings";
 
 export function LaunchWindow() {
-  const { recording, toggleRecording } = useScreenRecorder();
+  // Track audio settings in state so we can react to changes
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>(() => getAudioSettings());
+  
+  // Listen for localStorage changes from the settings window
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY) {
+        const newSettings = getAudioSettings();
+        console.log('[LaunchWindow] Storage event detected, new settings:', newSettings);
+        setAudioSettings(newSettings);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    const pollInterval = setInterval(() => {
+      const currentSettings = getAudioSettings();
+      setAudioSettings(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(currentSettings)) {
+          console.log('[LaunchWindow] Polling detected settings change:', currentSettings);
+          return currentSettings;
+        }
+        return prev;
+      });
+    }, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+  // Get all microphone state from the hook
+  const {
+    stream: audioStream,
+    devices,
+    isEnabled,
+    selectDevice,
+    enable,
+    disable,
+    error: micError,
+    permissionState,
+  } = useMicrophone({
+    sampleRate: audioSettings.sampleRate,
+    channelCount: audioSettings.channelCount,
+    noiseSuppression: audioSettings.noiseSuppression,
+    echoCancellation: audioSettings.echoCancellation,
+    autoGainControl: audioSettings.autoGainControl,
+  });
+
+  // Sync microphone state with settings (bidirectional)
+  useEffect(() => {
+    // Enable mic if settings say enabled but hook says disabled
+    if (audioSettings.enabled && !isEnabled) {
+      console.log('[LaunchWindow] Syncing mic state: enabling mic', { 
+        deviceId: audioSettings.deviceId,
+        audioSettingsEnabled: audioSettings.enabled,
+        hookIsEnabled: isEnabled 
+      });
+      if (audioSettings.deviceId) {
+        selectDevice(audioSettings.deviceId).catch((err) => {
+          console.warn('[LaunchWindow] Failed to select saved device, trying default:', err);
+          enable().catch((enableErr) => {
+            console.error('[LaunchWindow] Failed to enable mic:', enableErr);
+          });
+        });
+      } else {
+        enable().catch((err) => {
+          console.error('[LaunchWindow] Failed to enable mic:', err);
+        });
+      }
+    }
+    // Disable mic if settings say disabled but hook says enabled
+    else if (!audioSettings.enabled && isEnabled) {
+      console.log('[LaunchWindow] Syncing mic state: disabling mic');
+      disable();
+    }
+  }, [audioSettings.enabled, audioSettings.deviceId, isEnabled, selectDevice, enable, disable]);
+
+  // Auto zoom settings
+  const { settings: autoZoomSettings, setEnabled: setAutoZoomEnabled } = useAutoZoomSettings();
+  
+  // Keystroke editor settings (for capturing during recording)
+  const { 
+    captureEnabled: keystrokeCaptureEnabled, 
+    toggleCaptureEnabled: toggleKeystrokeCapture, 
+    loading: keystrokeLoading,
+    serviceAvailable: keystrokeServiceAvailable,
+    serviceError: keystrokeServiceError,
+  } = useKeystrokeEditorSettings();
+  
+  // Pass audio stream and auto zoom setting to screen recorder
+  const { recording, toggleRecording } = useScreenRecorder({ 
+    audioStream,
+    autoZoomEnabled: autoZoomSettings.enabled,
+    keysEnabled: keystrokeCaptureEnabled,
+  });
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -81,7 +187,6 @@ export function LaunchWindow() {
     }
   };
 
-  // IPC events for hide/close
   const sendHudOverlayHide = () => {
     if (window.electronAPI && window.electronAPI.hudOverlayHide) {
       window.electronAPI.hudOverlayHide();
@@ -94,9 +199,9 @@ export function LaunchWindow() {
   };
 
   return (
-    <div className="w-full h-full flex items-center bg-transparent">
+    <div className="w-full h-full flex items-end pb-2 bg-transparent">
       <div
-        className={`w-full max-w-[500px] mx-auto flex items-center justify-between px-4 py-2 ${styles.electronDrag}`}
+        className={`w-full max-w-[600px] mx-auto flex items-center gap-3 px-3 py-2 ${styles.electronDrag}`}
         style={{
           borderRadius: 16,
           background: 'linear-gradient(135deg, rgba(30,30,40,0.92) 0%, rgba(20,20,30,0.85) 100%)',
@@ -107,12 +212,16 @@ export function LaunchWindow() {
           minHeight: 44,
         }}
       >
-        <div className={`flex items-center gap-1 ${styles.electronDrag}`}> <RxDragHandleDots2 size={18} className="text-white/40" /> </div>
+        {/* Drag handle */}
+        <div className={`flex items-center ${styles.electronDrag}`}>
+          <RxDragHandleDots2 size={18} className="text-white/40" />
+        </div>
 
+        {/* Screen selector */}
         <Button
           variant="link"
           size="sm"
-          className={`gap-1 text-white bg-transparent hover:bg-transparent px-0 flex-1 text-left text-xs ${styles.electronNoDrag}`}
+          className={`gap-1.5 text-white bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
           onClick={openSourceSelector}
           disabled={recording}
         >
@@ -120,14 +229,15 @@ export function LaunchWindow() {
           <ContentClamp truncateLength={6}>{selectedSource}</ContentClamp>
         </Button>
 
-        <div className="w-px h-6 bg-white/30" />
+        <div className="w-px h-5 bg-white/30" />
 
+        {/* Record button */}
         <Button
           variant="link"
           size="sm"
           onClick={hasSelectedSource ? toggleRecording : openSourceSelector}
           disabled={!hasSelectedSource && !recording}
-          className={`gap-1 text-white bg-transparent hover:bg-transparent px-0 flex-1 text-center text-xs ${styles.electronNoDrag}`}
+          className={`gap-1.5 text-white bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
         >
           {recording ? (
             <>
@@ -141,44 +251,115 @@ export function LaunchWindow() {
             </>
           )}
         </Button>
-        
 
-        <div className="w-px h-6 bg-white/30" />
+        <div className="w-px h-5 bg-white/30" />
 
-
+        {/* Open file */}
         <Button
           variant="link"
           size="sm"
           onClick={openVideoFile}
-          className={`gap-1 text-white bg-transparent hover:bg-transparent px-0 flex-1 text-right text-xs ${styles.electronNoDrag} ${styles.folderButton}`}
+          className={`gap-1.5 text-white bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
           disabled={recording}
         >
           <FaFolderMinus size={14} className="text-white" />
-          <span className={styles.folderText}>Open</span>
+          <span className="text-white">Open</span>
         </Button>
 
-         {/* Separator before hide/close buttons */}
-        <div className="w-px h-6 bg-white/30 mx-2" />
+        <div className="w-px h-5 bg-white/30" />
+
+        {/* Mic */}
+        <MicrophoneSelector
+          devices={devices}
+          isEnabled={isEnabled}
+          error={micError}
+          permissionState={permissionState}
+          disabled={recording}
+        />
+
+        <div className="w-px h-5 bg-white/30" />
+
+        {/* Keys toggle for keystroke capture during recording */}
+        {/* Requirement 10.1: Disable toggle if keystroke service fails to initialize */}
         <Button
           variant="link"
-          size="icon"
-          className={`ml-2 ${styles.electronNoDrag} hudOverlayButton`}
-          title="Hide HUD"
-          onClick={sendHudOverlayHide}
+          size="sm"
+          onClick={toggleKeystrokeCapture}
+          disabled={keystrokeLoading || recording || !keystrokeServiceAvailable}
+          className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
+          title={
+            !keystrokeServiceAvailable 
+              ? keystrokeServiceError || "Keystroke capture unavailable" 
+              : keystrokeCaptureEnabled 
+                ? "Keystroke capture: ON" 
+                : "Keystroke capture: OFF"
+          }
         >
-          <FiMinus size={18} style={{ color: '#fff', opacity: 0.7 }} />
-          
+          <BsKeyboard 
+            size={14} 
+            className={
+              !keystrokeServiceAvailable 
+                ? "text-red-400/50" 
+                : keystrokeCaptureEnabled 
+                  ? "text-green-400" 
+                  : "text-white/50"
+            } 
+          />
+          <span className={
+            !keystrokeServiceAvailable 
+              ? "text-zinc-500" 
+              : keystrokeCaptureEnabled 
+                ? "text-white" 
+                : "text-zinc-400"
+          }>
+            Keys
+          </span>
         </Button>
 
+        <div className="w-px h-5 bg-white/30" />
+
+        {/* Auto Zoom */}
         <Button
           variant="link"
-          size="icon"
-          className={`ml-1 ${styles.electronNoDrag} hudOverlayButton`}
-          title="Close App"
-          onClick={sendHudOverlayClose}
+          size="sm"
+          onClick={() => setAutoZoomEnabled(!autoZoomSettings.enabled)}
+          disabled={recording}
+          className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
+          title={autoZoomSettings.enabled ? "Auto Zoom: ON" : "Auto Zoom: OFF"}
         >
-          <FiX size={18} style={{ color: '#fff', opacity: 0.7 }} />
+          <TbZoomScan 
+            size={14} 
+            className={autoZoomSettings.enabled ? "text-green-400" : "text-white/50"} 
+          />
+          <span className={autoZoomSettings.enabled ? "text-white" : "text-zinc-400"}>
+            Zoom
+          </span>
         </Button>
+
+        <div className="w-px h-5 bg-white/30" />
+
+        {/* Window controls */}
+        <div className={`flex items-center gap-1 ${styles.electronNoDrag}`}>
+          <Button
+            variant="link"
+            size="icon"
+            className="hudOverlayButton p-0"
+            title="Hide HUD"
+            onClick={sendHudOverlayHide}
+          >
+            <FiMinus size={16} style={{ color: '#fff', opacity: 0.7 }} />
+          </Button>
+
+          <Button
+            variant="link"
+            size="icon"
+            className="hudOverlayButton p-0"
+            title="Close App"
+            onClick={sendHudOverlayClose}
+          >
+            <FiX size={16} style={{ color: '#fff', opacity: 0.7 }} />
+          </Button>
+        </div>
       </div>
     </div>
   );

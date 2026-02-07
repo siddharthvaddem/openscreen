@@ -42,6 +42,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('stop-recording-from-tray', listener)
     return () => ipcRenderer.removeListener('stop-recording-from-tray', listener)
   },
+  onStartRecordingFromShortcut: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('start-recording-from-shortcut', listener)
+    return () => ipcRenderer.removeListener('start-recording-from-shortcut', listener)
+  },
   openExternalUrl: (url: string) => {
     return ipcRenderer.invoke('open-external-url', url)
   },
@@ -62,5 +67,114 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getPlatform: () => {
     return ipcRenderer.invoke('get-platform')
+  },
+
+  // ============================================
+  // PRESET API
+  // ============================================
+  presets: {
+    get: () => {
+      return ipcRenderer.invoke('presets:get')
+    },
+    save: (preset: { name: string; isDefault: boolean; settings: any }) => {
+      return ipcRenderer.invoke('presets:save', preset)
+    },
+    update: (id: string, updates: any) => {
+      return ipcRenderer.invoke('presets:update', id, updates)
+    },
+    delete: (id: string) => {
+      return ipcRenderer.invoke('presets:delete', id)
+    },
+    duplicate: (id: string) => {
+      return ipcRenderer.invoke('presets:duplicate', id)
+    },
+    setDefault: (id: string | null) => {
+      return ipcRenderer.invoke('presets:setDefault', id)
+    },
+  },
+
+  // ============================================
+  // TRANSCRIPTION API
+  // ============================================
+  transcribeVideo: (request: { videoPath: string; language: string; apiKey: string }) => {
+    return ipcRenderer.invoke('transcribe-video', request)
+  },
+
+  onTranscriptionProgress: (callback: (progress: { status: string; progress: number; message: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: { status: string; progress: number; message: string }) => callback(progress)
+    ipcRenderer.on('transcription-progress', listener)
+    return () => ipcRenderer.removeListener('transcription-progress', listener)
+  },
+
+  // ============================================
+  // SECURE STORAGE API
+  // ============================================
+  secureStorage: {
+    isAvailable: () => {
+      return ipcRenderer.invoke('secure-storage:is-available')
+    },
+    setApiKey: (service: string, apiKey: string) => {
+      return ipcRenderer.invoke('secure-storage:set-api-key', service, apiKey)
+    },
+    getApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:get-api-key', service)
+    },
+    deleteApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:delete-api-key', service)
+    },
+    hasApiKey: (service: string) => {
+      return ipcRenderer.invoke('secure-storage:has-api-key', service)
+    },
+  },
+
+  // ============================================
+  // AUTO ZOOM API
+  // ============================================
+  autoZoom: {
+    startDetection: (recordingId: string, screenBounds: { width: number; height: number }) => {
+      return ipcRenderer.invoke('auto-zoom:start-detection', recordingId, screenBounds)
+    },
+    stopDetection: () => {
+      return ipcRenderer.invoke('auto-zoom:stop-detection')
+    },
+    saveEvents: (eventData: any, fileName: string) => {
+      return ipcRenderer.invoke('auto-zoom:save-events', eventData, fileName)
+    },
+    getEvents: (videoPath: string) => {
+      return ipcRenderer.invoke('auto-zoom:get-events', videoPath)
+    },
+    isRunning: () => {
+      return ipcRenderer.invoke('auto-zoom:is-running')
+    },
+  },
+
+  // ============================================
+  // KEYSTROKE EDITOR API
+  // ============================================
+  keystrokeEditor: {
+    checkAvailability: () => {
+      return ipcRenderer.invoke('keystroke-editor:check-availability')
+    },
+    startCapture: (recordingId: string) => {
+      return ipcRenderer.invoke('keystroke-editor:start-capture', recordingId)
+    },
+    stopCapture: () => {
+      return ipcRenderer.invoke('keystroke-editor:stop-capture')
+    },
+    isCapturing: () => {
+      return ipcRenderer.invoke('keystroke-editor:is-capturing')
+    },
+    saveEvents: (eventData: any, fileName: string) => {
+      return ipcRenderer.invoke('keystroke-editor:save-events', eventData, fileName)
+    },
+    loadEvents: (videoPath: string) => {
+      return ipcRenderer.invoke('keystroke-editor:load-events', videoPath)
+    },
+    getSettings: () => {
+      return ipcRenderer.invoke('keystroke-editor:get-settings')
+    },
+    setSettings: (settings: any) => {
+      return ipcRenderer.invoke('keystroke-editor:set-settings', settings)
+    },
   },
 })

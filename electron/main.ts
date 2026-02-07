@@ -1,9 +1,10 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow } from './windows'
 import { registerIpcHandlers } from './ipc/handlers'
+import { registerKeystrokeEditorIpcHandlers } from './ipc/keystrokeEditor'
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -44,6 +45,7 @@ let mainWindow: BrowserWindow | null = null
 let sourceSelectorWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let selectedSourceName = ''
+let isRecording = false
 
 // Tray Icons
 const defaultTrayIcon = getTrayIcon('openscreen.png');
@@ -69,11 +71,15 @@ function getTrayIcon(filename: string) {
 function updateTrayMenu(recording: boolean = false) {
   if (!tray) return;
   const trayIcon = recording ? recordingTrayIcon : defaultTrayIcon;
-  const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "OpenScreen";
+  const shortcutLabel = process.platform === 'darwin' ? '⌃⇧R' : 'Ctrl+Shift+R';
+  const trayToolTip = recording
+    ? `Recording: ${selectedSourceName} (${shortcutLabel} to stop)`
+    : `OpenScreen (${shortcutLabel} to record)`;
   const menuTemplate = recording
     ? [
         {
           label: "Stop Recording",
+          accelerator: "CommandOrControl+Shift+R",
           click: () => {
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.webContents.send("stop-recording-from-tray");
@@ -154,6 +160,7 @@ app.whenReady().then(async () => {
     () => mainWindow,
     () => sourceSelectorWindow,
     (recording: boolean, sourceName: string) => {
+      isRecording = recording
       selectedSourceName = sourceName
       if (!tray) createTray();
       updateTrayMenu(recording);
@@ -162,5 +169,22 @@ app.whenReady().then(async () => {
       }
     }
   )
+  registerKeystrokeEditorIpcHandlers(RECORDINGS_DIR)
+
+  // Register global shortcut for toggle recording
+  globalShortcut.register('CommandOrControl+Shift+R', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    if (isRecording) {
+      mainWindow.webContents.send('stop-recording-from-tray')
+    } else {
+      mainWindow.webContents.send('start-recording-from-shortcut')
+    }
+  })
+
+
   createWindow()
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })

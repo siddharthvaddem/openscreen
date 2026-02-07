@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTimelineContext } from "dnd-timeline";
 import { Button } from "@/components/ui/button";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, Subtitles, ChevronDown, Check, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TimelineWrapper from "./TimelineWrapper";
@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -17,13 +17,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
+import { type AspectRatio, getAspectRatioLabel, ASPECT_RATIOS } from "@/utils/aspectRatioUtils";
+import { filterKeystrokeRegions } from "@/utils/keystrokeFilterUtils";
 import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
+import { SubtitleGenerateDialog } from "../subtitle";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
+const SUBTITLE_ROW_ID = "row-subtitle";
+const KEYSTROKE_ROW_ID = "row-keystroke";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 
@@ -49,6 +53,23 @@ interface TimelineEditorProps {
   onAnnotationDelete?: (id: string) => void;
   selectedAnnotationId?: string | null;
   onSelectAnnotation?: (id: string | null) => void;
+  // Subtitle props
+  subtitleRegions?: SubtitleRegion[];
+  onSubtitleAdded?: (span: Span) => void;
+  onSubtitleSpanChange?: (id: string, span: Span) => void;
+  onSubtitleDelete?: (id: string) => void;
+  selectedSubtitleId?: string | null;
+  onSelectSubtitle?: (id: string | null) => void;
+  // Keystroke props
+  keystrokeRegions?: KeystrokeRegion[];
+  onKeystrokeAdded?: (span: Span) => void;
+  onKeystrokeSpanChange?: (id: string, span: Span) => void;
+  onKeystrokeDelete?: (id: string) => void;
+  selectedKeystrokeId?: string | null;
+  onSelectKeystroke?: (id: string | null) => void;
+  // Auto-generate props
+  videoPath?: string;
+  onAutoGenerateSubtitles?: (subtitles: SubtitleRegion[]) => void;
   aspectRatio: AspectRatio;
   onAspectRatioChange: (aspectRatio: AspectRatio) => void;
 }
@@ -67,7 +88,7 @@ interface TimelineRenderItem {
   span: Span;
   label: string;
   zoomDepth?: number;
-  variant: 'zoom' | 'trim' | 'annotation';
+  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke';
 }
 
 const SCALE_CANDIDATES = [
@@ -155,16 +176,18 @@ function formatTimeLabel(milliseconds: number, intervalMs: number) {
   return `${minutes}:${Math.floor(seconds).toString().padStart(2, "0")}`;
 }
 
-function PlaybackCursor({ 
-  currentTimeMs, 
+function PlaybackCursor({
+  currentTimeMs,
   videoDurationMs,
   onSeek,
   timelineRef,
-}: { 
-  currentTimeMs: number; 
+  keyframes = [],
+}: {
+  currentTimeMs: number;
   videoDurationMs: number;
   onSeek?: (time: number) => void;
   timelineRef: React.RefObject<HTMLDivElement>;
+  keyframes?: { id: string; time: number }[];
 }) {
   const { sidebarWidth, direction, range, valueToPixels, pixelsToValue } = useTimelineContext();
   const sideProperty = direction === "rtl" ? "right" : "left";
@@ -175,14 +198,26 @@ function PlaybackCursor({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!timelineRef.current || !onSeek) return;
-      
+
       const rect = timelineRef.current.getBoundingClientRect();
       const clickX = e.clientX - rect.left - sidebarWidth;
-      
+
       // Allow dragging outside to 0 or max, but clamp the value
       const relativeMs = pixelsToValue(clickX);
-      const absoluteMs = Math.max(0, Math.min(range.start + relativeMs, videoDurationMs));
-      
+      let absoluteMs = Math.max(0, Math.min(range.start + relativeMs, videoDurationMs));
+
+      // Snap to nearby keyframe if within threshold (150ms)
+      const snapThresholdMs = 150;
+      const nearbyKeyframe = keyframes.find(kf =>
+        Math.abs(kf.time - absoluteMs) <= snapThresholdMs &&
+        kf.time >= range.start &&
+        kf.time <= range.end
+      );
+
+      if (nearbyKeyframe) {
+        absoluteMs = nearbyKeyframe.time;
+      }
+
       onSeek(absoluteMs / 1000);
     };
 
@@ -200,14 +235,14 @@ function PlaybackCursor({
       window.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
     };
-  }, [isDragging, onSeek, timelineRef, sidebarWidth, range.start, videoDurationMs, pixelsToValue]);
+  }, [isDragging, onSeek, timelineRef, sidebarWidth, range.start, range.end, videoDurationMs, pixelsToValue, keyframes]);
 
   if (videoDurationMs <= 0 || currentTimeMs < 0) {
     return null;
   }
 
   const clampedTime = Math.min(currentTimeMs, videoDurationMs);
-  
+
   if (clampedTime < range.start || clampedTime > range.end) {
     return null;
   }
@@ -276,7 +311,7 @@ function TimelineAxis({
     if (visibleStart <= maxTime) {
       markerTimes.add(Math.round(visibleStart));
     }
-    
+
     if (videoDurationMs > 0) {
       markerTimes.add(Math.round(videoDurationMs));
     }
@@ -288,7 +323,7 @@ function TimelineAxis({
     // Generate minor ticks (4 ticks between major intervals)
     const minorTicks = [];
     const minorInterval = intervalMs / 5;
-    
+
     for (let time = firstMarker; time <= maxTime; time += minorInterval) {
       if (time >= visibleStart && time <= visibleEnd) {
         // Skip if it's close to a major marker
@@ -299,12 +334,12 @@ function TimelineAxis({
       }
     }
 
-    return { 
+    return {
       markers: sorted.map((time) => ({
         time,
         label: formatTimeLabel(time, intervalMs),
-      })), 
-      minorTicks 
+      })),
+      minorTicks
     };
   }, [intervalMs, range.end, range.start, videoDurationMs]);
 
@@ -369,9 +404,14 @@ function Timeline({
   onSelectZoom,
   onSelectTrim,
   onSelectAnnotation,
+  onSelectSubtitle,
+  onSelectKeystroke,
   selectedZoomId,
   selectedTrimId,
   selectedAnnotationId,
+  selectedSubtitleId,
+  selectedKeystrokeId,
+  keyframes = [],
 }: {
   items: TimelineRenderItem[];
   videoDurationMs: number;
@@ -381,9 +421,14 @@ function Timeline({
   onSelectZoom?: (id: string | null) => void;
   onSelectTrim?: (id: string | null) => void;
   onSelectAnnotation?: (id: string | null) => void;
+  onSelectSubtitle?: (id: string | null) => void;
+  onSelectKeystroke?: (id: string | null) => void;
   selectedZoomId: string | null;
   selectedTrimId?: string | null;
   selectedAnnotationId?: string | null;
+  selectedSubtitleId?: string | null;
+  selectedKeystrokeId?: string | null;
+  keyframes?: { id: string; time: number }[];
 }) {
   const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
   const localTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -395,28 +440,32 @@ function Timeline({
 
   const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!onSeek || videoDurationMs <= 0) return;
-    
+
     // Only clear selection if clicking on empty space (not on items)
     // This is handled by event propagation - items stop propagation
     onSelectZoom?.(null);
     onSelectTrim?.(null);
     onSelectAnnotation?.(null);
+    onSelectSubtitle?.(null);
+    onSelectKeystroke?.(null);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left - sidebarWidth;
-    
+
     if (clickX < 0) return;
-    
+
     const relativeMs = pixelsToValue(clickX);
     const absoluteMs = Math.max(0, Math.min(range.start + relativeMs, videoDurationMs));
     const timeInSeconds = absoluteMs / 1000;
-    
+
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, onSelectKeystroke, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
+  const subtitleItems = items.filter(item => item.rowId === SUBTITLE_ROW_ID);
+  const keystrokeItems = items.filter(item => item.rowId === KEYSTROKE_ROW_ID);
 
   return (
     <div
@@ -427,13 +476,14 @@ function Timeline({
     >
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px)] bg-[length:20px_100%] pointer-events-none" />
       <TimelineAxis intervalMs={intervalMs} videoDurationMs={videoDurationMs} currentTimeMs={currentTimeMs} />
-      <PlaybackCursor 
-        currentTimeMs={currentTimeMs} 
-        videoDurationMs={videoDurationMs} 
+      <PlaybackCursor
+        currentTimeMs={currentTimeMs}
+        videoDurationMs={videoDurationMs}
         onSeek={onSeek}
         timelineRef={localTimelineRef}
+        keyframes={keyframes}
       />
-      
+
       <Row id={ZOOM_ROW_ID}>
         {zoomItems.map((item) => (
           <Item
@@ -482,6 +532,38 @@ function Timeline({
           </Item>
         ))}
       </Row>
+
+      <Row id={SUBTITLE_ROW_ID}>
+        {subtitleItems.map((item) => (
+          <Item
+            id={item.id}
+            key={item.id}
+            rowId={item.rowId}
+            span={item.span}
+            isSelected={item.id === selectedSubtitleId}
+            onSelect={() => onSelectSubtitle?.(item.id)}
+            variant="subtitle"
+          >
+            {item.label}
+          </Item>
+        ))}
+      </Row>
+
+      <Row id={KEYSTROKE_ROW_ID}>
+        {keystrokeItems.map((item) => (
+          <Item
+            id={item.id}
+            key={item.id}
+            rowId={item.rowId}
+            span={item.span}
+            isSelected={item.id === selectedKeystrokeId}
+            onSelect={() => onSelectKeystroke?.(item.id)}
+            variant="keystroke"
+          >
+            {item.label}
+          </Item>
+        ))}
+      </Row>
     </div>
   );
 }
@@ -508,6 +590,20 @@ export default function TimelineEditor({
   onAnnotationDelete,
   selectedAnnotationId,
   onSelectAnnotation,
+  subtitleRegions = [],
+  onSubtitleAdded,
+  onSubtitleSpanChange,
+  onSubtitleDelete,
+  selectedSubtitleId,
+  onSelectSubtitle,
+  keystrokeRegions = [],
+  onKeystrokeAdded: _onKeystrokeAdded,
+  onKeystrokeSpanChange,
+  onKeystrokeDelete: _onKeystrokeDelete,
+  selectedKeystrokeId,
+  onSelectKeystroke,
+  videoPath,
+  onAutoGenerateSubtitles,
   aspectRatio,
   onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -526,6 +622,8 @@ export default function TimelineEditor({
     pan: 'Shift + Ctrl + Scroll',
     zoom: 'Ctrl + Scroll'
   });
+  const [showSubtitleGenerateDialog, setShowSubtitleGenerateDialog] = useState(false);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     formatShortcut(['shift', 'mod', 'Scroll']).then(pan => {
@@ -550,6 +648,11 @@ export default function TimelineEditor({
     setSelectedKeyframeId(null);
   }, [selectedKeyframeId]);
 
+  // Move keyframe to new time position
+  const handleKeyframeMove = useCallback((id: string, newTime: number) => {
+    setKeyframes(prev => prev.map(kf => kf.id === id ? { ...kf, time: Math.max(0, Math.min(newTime, totalMs)) } : kf));
+  }, [totalMs]);
+
   // Delete selected zoom item
   const deleteSelectedZoom = useCallback(() => {
     if (!selectedZoomId) return;
@@ -569,6 +672,12 @@ export default function TimelineEditor({
     onAnnotationDelete(selectedAnnotationId);
     onSelectAnnotation(null);
   }, [selectedAnnotationId, onAnnotationDelete, onSelectAnnotation]);
+
+  const deleteSelectedSubtitle = useCallback(() => {
+    if (!selectedSubtitleId || !onSubtitleDelete || !onSelectSubtitle) return;
+    onSubtitleDelete(selectedSubtitleId);
+    onSelectSubtitle(null);
+  }, [selectedSubtitleId, onSubtitleDelete, onSelectSubtitle]);
 
   useEffect(() => {
     setRange(createInitialRange(totalMs));
@@ -609,8 +718,11 @@ export default function TimelineEditor({
     const isZoomItem = zoomRegions.some(r => r.id === excludeId);
     const isTrimItem = trimRegions.some(r => r.id === excludeId);
     const isAnnotationItem = annotationRegions.some(r => r.id === excludeId);
+    const isSubtitleItem = subtitleRegions.some(r => r.id === excludeId);
+    const isKeystrokeItem = keystrokeRegions.some(r => r.id === excludeId);
 
-    if (isAnnotationItem) {
+    // Annotations, subtitles, and keystrokes can overlap
+    if (isAnnotationItem || isSubtitleItem || isKeystrokeItem) {
       return false;
     }
 
@@ -636,7 +748,7 @@ export default function TimelineEditor({
     }
 
     return false;
-  }, [zoomRegions, trimRegions, annotationRegions]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
 
   const handleAddZoom = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0) {
@@ -711,9 +823,26 @@ export default function TimelineEditor({
     // Multiple annotations can exist at the same timestamp
     const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
     const endPos = Math.min(startPos + defaultDuration, totalMs);
-    
+
     onAnnotationAdded({ start: startPos, end: endPos });
   }, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded]);
+
+  const handleAddSubtitle = useCallback(() => {
+    if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onSubtitleAdded) {
+      return;
+    }
+
+    const defaultDuration = Math.min(2000, totalMs); // Subtitles are typically longer
+    if (defaultDuration <= 0) {
+      return;
+    }
+
+    // Multiple subtitles can exist at the same timestamp (though typically shouldn't)
+    const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+    const endPos = Math.min(startPos + defaultDuration, totalMs);
+    
+    onSubtitleAdded({ start: startPos, end: endPos });
+  }, [videoDuration, totalMs, currentTimeMs, onSubtitleAdded]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -733,30 +862,35 @@ export default function TimelineEditor({
       if (e.key === 'a' || e.key === 'A') {
         handleAddAnnotation();
       }
+      if (e.key === 's' || e.key === 'S') {
+        handleAddSubtitle();
+      }
       
+
       // Tab: Cycle through overlapping annotations at current time
       if (e.key === 'Tab' && annotationRegions.length > 0) {
         const currentTimeMs = Math.round(currentTime * 1000);
         const overlapping = annotationRegions
           .filter(a => currentTimeMs >= a.startMs && currentTimeMs <= a.endMs)
           .sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index
-        
+
         if (overlapping.length > 0) {
-          e.preventDefault(); 
-          
+          e.preventDefault();
+
           if (!selectedAnnotationId || !overlapping.some(a => a.id === selectedAnnotationId)) {
             onSelectAnnotation?.(overlapping[0].id);
           } else {
             // Cycle to next annotation
             const currentIndex = overlapping.findIndex(a => a.id === selectedAnnotationId);
-            const nextIndex = e.shiftKey 
+            const nextIndex = e.shiftKey
               ? (currentIndex - 1 + overlapping.length) % overlapping.length // Shift+Tab = backward
               : (currentIndex + 1) % overlapping.length; // Tab = forward
             onSelectAnnotation?.(overlapping[nextIndex].id);
           }
         }
-      }    
-      if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey)) {
+      }
+      // Delete key or Ctrl+D / Cmd+D
+      if (e.key === 'Delete' || e.key === 'Backspace' || ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey))) {
         if (selectedKeyframeId) {
           deleteSelectedKeyframe();
         } else if (selectedZoomId) {
@@ -765,12 +899,14 @@ export default function TimelineEditor({
           deleteSelectedTrim();
         } else if (selectedAnnotationId) {
           deleteSelectedAnnotation();
+        } else if (selectedSubtitleId) {
+          deleteSelectedSubtitle();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, annotationRegions, currentTime, onSelectAnnotation]);
+  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSubtitle, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSubtitle, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSubtitleId, annotationRegions, currentTime, onSelectAnnotation]);
 
   const clampedRange = useMemo<Range>(() => {
     if (totalMs === 0) {
@@ -803,7 +939,7 @@ export default function TimelineEditor({
 
     const annotations: TimelineRenderItem[] = annotationRegions.map((region) => {
       let label: string;
-      
+
       if (region.type === 'text') {
         // Show text preview
         const preview = region.content.trim() || 'Empty text';
@@ -813,7 +949,7 @@ export default function TimelineEditor({
       } else {
         label = 'Annotation';
       }
-      
+
       return {
         id: region.id,
         rowId: ANNOTATION_ROW_ID,
@@ -823,19 +959,55 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations];
-  }, [zoomRegions, trimRegions, annotationRegions]);
+    const subtitles: TimelineRenderItem[] = subtitleRegions.map((region) => {
+      const preview = region.text.trim() || 'Empty subtitle';
+      const label = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
+      
+      return {
+        id: region.id,
+        rowId: SUBTITLE_ROW_ID,
+        span: { start: region.startMs, end: region.endMs },
+        label,
+        variant: 'subtitle',
+      };
+    });
+
+    // Apply runtime filter for hotkeys before rendering timeline items
+    const showOnlyHotkeys = keystrokeRegions.length > 0 
+      ? keystrokeRegions[0].style.showOnlyHotkeys 
+      : false;
+    const filteredKeystrokeRegions = filterKeystrokeRegions(keystrokeRegions, showOnlyHotkeys);
+
+    const keystrokes: TimelineRenderItem[] = filteredKeystrokeRegions.map((region) => {
+      const preview = region.text.trim() || 'Keystroke';
+      const label = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
+      
+      return {
+        id: region.id,
+        rowId: KEYSTROKE_ROW_ID,
+        span: { start: region.startMs, end: region.endMs },
+        label,
+        variant: 'keystroke',
+      };
+    });
+
+    return [...zooms, ...trims, ...annotations, ...subtitles, ...keystrokes];
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span) => {
-    // Check if it's a zoom or trim item
+    // Check if it's a zoom, trim, annotation, subtitle, or keystroke item
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
     } else if (trimRegions.some(r => r.id === id)) {
       onTrimSpanChange?.(id, span);
     } else if (annotationRegions.some(r => r.id === id)) {
       onAnnotationSpanChange?.(id, span);
+    } else if (subtitleRegions.some(r => r.id === id)) {
+      onSubtitleSpanChange?.(id, span);
+    } else if (keystrokeRegions.some(r => r.id === id)) {
+      onKeystrokeSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, annotationRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange, onKeystrokeSpanChange]);
 
   if (!videoDuration || videoDuration === 0) {
     return (
@@ -882,6 +1054,27 @@ export default function TimelineEditor({
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
+          <Button
+            onClick={handleAddSubtitle}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all"
+            title="Add Subtitle (S)"
+          >
+            <Subtitles className="w-4 h-4" />
+          </Button>
+          {videoPath && onAutoGenerateSubtitles && (
+            <Button
+              onClick={() => setShowSubtitleGenerateDialog(true)}
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all gap-1"
+              title="Auto Generate Subtitles"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              <span className="text-xs">Auto</span>
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -896,7 +1089,7 @@ export default function TimelineEditor({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10">
-              {(['16:9', '9:16', '1:1', '4:3', '4:5'] as AspectRatio[]).map((ratio) => (
+              {ASPECT_RATIOS.map((ratio) => (
                 <DropdownMenuItem
                   key={ratio}
                   onClick={() => onAspectRatioChange(ratio)}
@@ -918,12 +1111,14 @@ export default function TimelineEditor({
             <span>Pan</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-sans">{shortcuts.zoom}</kbd>            
+            <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-sans">{shortcuts.zoom}</kbd>
             <span>Zoom</span>
           </span>
         </div>
       </div>
-      <div className="flex-1 overflow-hidden bg-[#09090b] relative"
+      <div
+        ref={timelineContainerRef}
+        className="flex-1 overflow-hidden bg-[#09090b] relative"
         onClick={() => setSelectedKeyframeId(null)}
       >
         <TimelineWrapper
@@ -940,6 +1135,9 @@ export default function TimelineEditor({
             keyframes={keyframes}
             selectedKeyframeId={selectedKeyframeId}
             setSelectedKeyframeId={setSelectedKeyframeId}
+            onKeyframeMove={handleKeyframeMove}
+            videoDurationMs={totalMs}
+            timelineRef={timelineContainerRef}
           />
           <Timeline
             items={timelineItems}
@@ -950,12 +1148,27 @@ export default function TimelineEditor({
             onSelectZoom={onSelectZoom}
             onSelectTrim={onSelectTrim}
             onSelectAnnotation={onSelectAnnotation}
+            onSelectSubtitle={onSelectSubtitle}
+            onSelectKeystroke={onSelectKeystroke}
             selectedZoomId={selectedZoomId}
             selectedTrimId={selectedTrimId}
             selectedAnnotationId={selectedAnnotationId}
+            selectedSubtitleId={selectedSubtitleId}
+            selectedKeystrokeId={selectedKeystrokeId}
+            keyframes={keyframes}
           />
         </TimelineWrapper>
       </div>
+      
+      {/* Subtitle Generation Dialog */}
+      {videoPath && onAutoGenerateSubtitles && (
+        <SubtitleGenerateDialog
+          isOpen={showSubtitleGenerateDialog}
+          onClose={() => setShowSubtitleGenerateDialog(false)}
+          videoPath={videoPath}
+          onSubtitlesGenerated={onAutoGenerateSubtitles}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import type React from "react";
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, useCallback } from "react";
 import { getAssetPath } from "@/lib/assetPath";
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from 'pixi.js';
-import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type AnnotationRegion } from "./types";
+import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type AnnotationRegion, type SubtitleRegion, type SubtitlePositionPreset } from "./types";
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from "./videoPlayback/constants";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { findDominantRegion } from "./videoPlayback/zoomRegionUtils";
@@ -13,6 +13,10 @@ import { applyZoomTransform } from "./videoPlayback/zoomTransform";
 import { createVideoEventHandlers } from "./videoPlayback/videoEventHandlers";
 import { type AspectRatio, formatAspectRatioForCSS } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
+import { SubtitleOverlay } from "./subtitle";
+import { KeystrokeEditorOverlay, calculateStackIndices } from "./keystroke/KeystrokeEditorOverlay";
+import type { KeystrokeRegion } from "./types";
+import { filterKeystrokeRegions } from "@/utils/keystrokeFilterUtils";
 
 interface VideoPlaybackProps {
   videoPath: string;
@@ -41,6 +45,15 @@ interface VideoPlaybackProps {
   onSelectAnnotation?: (id: string | null) => void;
   onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
   onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
+  // Subtitle props
+  subtitleRegions?: SubtitleRegion[];
+  selectedSubtitleId?: string | null;
+  onSelectSubtitle?: (id: string | null) => void;
+  onSubtitlePositionChange?: (id: string, position: SubtitlePositionPreset, customPosition?: { x: number; y: number }) => void;
+  // Keystroke props
+  keystrokeRegions?: KeystrokeRegion[];
+  selectedKeystrokeId?: string | null;
+  onSelectKeystroke?: (id: string | null) => void;
 }
 
 export interface VideoPlaybackRef {
@@ -69,7 +82,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   showShadow,
   shadowIntensity = 0,
   showBlur,
-  motionBlurEnabled = true,
+  motionBlurEnabled = false,
   borderRadius = 0,
   padding = 50,
   cropRegion,
@@ -80,6 +93,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   onSelectAnnotation,
   onAnnotationPositionChange,
   onAnnotationSizeChange,
+  subtitleRegions = [],
+  selectedSubtitleId,
+  onSelectSubtitle,
+  onSubtitlePositionChange,
+  keystrokeRegions = [],
+  selectedKeystrokeId,
+  onSelectKeystroke,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -866,6 +886,76 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
                 isSelectedBoost={annotation.id === selectedAnnotationId}
               />
             ));
+          })()}
+          {/* Subtitle Overlays */}
+          {(() => {
+            const timeMs = Math.round(currentTime * 1000);
+            const filtered = (subtitleRegions || []).filter((subtitle) => {
+              if (typeof subtitle.startMs !== 'number' || typeof subtitle.endMs !== 'number') return false;
+              
+              if (subtitle.id === selectedSubtitleId) return true;
+              
+              return timeMs >= subtitle.startMs && timeMs <= subtitle.endMs;
+            });
+            
+            return filtered.map((subtitle) => (
+              <SubtitleOverlay
+                key={subtitle.id}
+                subtitle={subtitle}
+                isSelected={subtitle.id === selectedSubtitleId}
+                containerWidth={overlayRef.current?.clientWidth || 800}
+                containerHeight={overlayRef.current?.clientHeight || 600}
+                onPositionChange={(id, position, customPosition) => 
+                  onSubtitlePositionChange?.(id, position, customPosition)
+                }
+                onClick={(id) => onSelectSubtitle?.(id)}
+              />
+            ));
+          })()}
+          {/* Keystroke Overlays */}
+          {(() => {
+            const timeMs = Math.round(currentTime * 1000);
+            
+            // First, apply the hotkey filter if any region has showOnlyHotkeys enabled
+            // We check the first region's style as a representative (all regions should have consistent filter setting)
+            const showOnlyHotkeys = keystrokeRegions && keystrokeRegions.length > 0 
+              ? keystrokeRegions[0].style.showOnlyHotkeys 
+              : false;
+            
+            // Apply runtime filter for hotkeys
+            const hotkeyFiltered = filterKeystrokeRegions(keystrokeRegions || [], showOnlyHotkeys);
+            
+            // Then filter by time visibility
+            const filtered = hotkeyFiltered.filter((keystroke) => {
+              if (typeof keystroke.startMs !== 'number' || typeof keystroke.endMs !== 'number') return false;
+              
+              // Always show selected keystroke
+              if (keystroke.id === selectedKeystrokeId) return true;
+              
+              // Show if current time is within region range
+              return timeMs >= keystroke.startMs && timeMs < keystroke.endMs;
+            });
+            
+            // Calculate stack indices for overlays at the same position
+            const stackIndices = calculateStackIndices(filtered);
+            
+            return filtered.map((keystroke) => {
+              const stackInfo = stackIndices.get(keystroke.id) || { stackIndex: 0, stackCount: 1 };
+              
+              return (
+                <KeystrokeEditorOverlay
+                  key={keystroke.id}
+                  keystroke={keystroke}
+                  isSelected={keystroke.id === selectedKeystrokeId}
+                  containerWidth={overlayRef.current?.clientWidth || 800}
+                  containerHeight={overlayRef.current?.clientHeight || 600}
+                  currentTimeMs={timeMs}
+                  onClick={(id) => onSelectKeystroke?.(id)}
+                  stackIndex={stackInfo.stackIndex}
+                  stackCount={stackInfo.stackCount}
+                />
+              );
+            });
           })()}
         </div>
       )}

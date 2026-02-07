@@ -1,11 +1,13 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
-import type { ZoomRegion, CropRegion, AnnotationRegion } from '@/components/video-editor/types';
+import type { ZoomRegion, CropRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from '@/components/video-editor/videoPlayback/constants';
 import { clampFocusToStage as clampFocusToStageUtil } from '@/components/video-editor/videoPlayback/focusUtils';
 import { renderAnnotations } from './annotationRenderer';
+import { renderSubtitles } from './subtitleRenderer';
+import { renderKeystrokes } from './keystrokeRenderer';
 
 interface FrameRenderConfig {
   width: number;
@@ -22,6 +24,8 @@ interface FrameRenderConfig {
   videoWidth: number;
   videoHeight: number;
   annotationRegions?: AnnotationRegion[];
+  subtitleRegions?: SubtitleRegion[];
+  keystrokeRegions?: KeystrokeRegion[];
   previewWidth?: number;
   previewHeight?: number;
 }
@@ -84,7 +88,7 @@ export class FrameRenderer {
       width: this.config.width,
       height: this.config.height,
       backgroundAlpha: 0,
-      antialias: false,
+      antialias: true,
       resolution: 1,
       autoDensity: true,
     });
@@ -100,7 +104,7 @@ export class FrameRenderer {
 
     // Setup blur filter for video container
     this.blurFilter = new BlurFilter();
-    this.blurFilter.quality = 3;
+    this.blurFilter.quality = 5;
     this.blurFilter.resolution = this.app.renderer.resolution;
     this.blurFilter.blur = 0;
     this.videoContainer.filters = [this.blurFilter];
@@ -293,7 +297,7 @@ export class FrameRenderer {
       focusY: this.animationState.focusY,
       motionIntensity: maxMotionIntensity,
       isPlaying: true,
-      motionBlurEnabled: this.config.motionBlurEnabled ?? true,
+      motionBlurEnabled: this.config.motionBlurEnabled ?? false,
     });
 
     // Render the PixiJS stage to its canvas (video only, transparent background)
@@ -314,6 +318,45 @@ export class FrameRenderer {
       await renderAnnotations(
         this.compositeCtx,
         this.config.annotationRegions,
+        this.config.width,
+        this.config.height,
+        timeMs,
+        scaleFactor
+      );
+    }
+
+    // Render subtitles on top of everything (highest z-index)
+    if (this.config.subtitleRegions && this.config.subtitleRegions.length > 0 && this.compositeCtx) {
+      // Calculate scale factor based on export vs preview dimensions
+      const previewWidth = this.config.previewWidth || 1920;
+      const previewHeight = this.config.previewHeight || 1080;
+      const scaleX = this.config.width / previewWidth;
+      const scaleY = this.config.height / previewHeight;
+      const scaleFactor = (scaleX + scaleY) / 2;
+
+      renderSubtitles(
+        this.compositeCtx,
+        this.config.subtitleRegions,
+        this.config.width,
+        this.config.height,
+        timeMs,
+        scaleFactor
+      );
+    }
+
+    // Render keystroke overlays on top of subtitles (highest z-index)
+    // Requirements: 8.1, 8.2, 8.3, 8.4 - Export support for keystroke overlays
+    if (this.config.keystrokeRegions && this.config.keystrokeRegions.length > 0 && this.compositeCtx) {
+      // Calculate scale factor based on export vs preview dimensions
+      const previewWidth = this.config.previewWidth || 1920;
+      const previewHeight = this.config.previewHeight || 1080;
+      const scaleX = this.config.width / previewWidth;
+      const scaleY = this.config.height / previewHeight;
+      const scaleFactor = (scaleX + scaleY) / 2;
+
+      renderKeystrokes(
+        this.compositeCtx,
+        this.config.keystrokeRegions,
         this.config.width,
         this.config.height,
         timeMs,
