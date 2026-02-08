@@ -162,20 +162,13 @@ export default function VideoEditor() {
     }
   }, [getDefaultPreset, applyPresetSettings]);
 
-  // Helper to convert file path to proper file:// URL
+  // Helper to convert file path to app-file:// URL
   const toFileUrl = (filePath: string): string => {
-    // Normalize path separators to forward slashes
     const normalized = filePath.replace(/\\/g, '/');
-    
-    // Check if it's a Windows absolute path (e.g., C:/Users/...)
     if (normalized.match(/^[a-zA-Z]:/)) {
-      const fileUrl = `file:///${normalized}`;
-      return fileUrl;
+      return `app-file:///${normalized}`;
     }
-    
-    // Unix-style absolute path
-    const fileUrl = `file://${normalized}`;
-    return fileUrl;
+    return `app-file://${normalized}`;
   };
 
   useEffect(() => {
@@ -814,17 +807,19 @@ export default function VideoEditor() {
     if (selectedWebcamId === id) setSelectedWebcamId(null);
   }, [selectedWebcamId]);
 
-  // Helper to extract file path from file:// URL
+  // Helper to extract file path from app-file:// URL
   const getVideoFilePath = useCallback((): string | undefined => {
     if (!videoPath) return undefined;
-    // Remove file:// or file:/// prefix and decode URI
     let path = videoPath;
-    if (path.startsWith('file:///')) {
-      path = path.slice(8); // Remove 'file:///'
+    if (path.startsWith('app-file:///')) {
+      path = path.slice(12); // Remove 'app-file:///'
+    } else if (path.startsWith('app-file://')) {
+      path = path.slice(11); // Remove 'app-file://'
+    } else if (path.startsWith('file:///')) {
+      path = path.slice(8);
     } else if (path.startsWith('file://')) {
-      path = path.slice(7); // Remove 'file://'
+      path = path.slice(7);
     }
-    // Decode URI components
     return decodeURIComponent(path);
   }, [videoPath]);
   

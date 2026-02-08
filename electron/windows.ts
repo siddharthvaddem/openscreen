@@ -28,7 +28,7 @@ export function createHudOverlayWindow(): BrowserWindow {
   const { workArea } = primaryDisplay;
 
 
-  const windowWidth = 500;
+  const windowWidth = 580;
   const windowHeight = 350; // Increased to accommodate mic popover
 
   const x = Math.floor(workArea.x + (workArea.width - windowWidth) / 2);

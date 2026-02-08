@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, protocol, net } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -157,6 +157,31 @@ app.whenReady().then(async () => {
 
   // Set up camera/media permission handlers (must be after app.whenReady)
   setupPermissionHandlers()
+
+  // Register custom protocol to serve local recording files securely
+  // This is needed because in dev mode, the renderer loads from http://localhost
+  // and cannot access file:// URLs due to Chromium's same-origin policy.
+  protocol.handle('app-file', (request) => {
+    const url = new URL(request.url)
+    let filePath = decodeURIComponent(url.pathname)
+    if (process.platform === 'win32' && filePath.startsWith('/')) {
+      filePath = filePath.slice(1)
+    }
+
+    const normalizedPath = path.resolve(filePath)
+    const resolvedRecordingsDir = path.resolve(RECORDINGS_DIR)
+    const isInRecordingsDir =
+      normalizedPath.startsWith(resolvedRecordingsDir + path.sep) ||
+      normalizedPath === resolvedRecordingsDir
+
+    if (!isInRecordingsDir) {
+      console.warn('[Security] Blocked app-file:// access to:', normalizedPath)
+      return new Response('Forbidden', { status: 403 })
+    }
+
+    const fileUrl = `file://${process.platform === 'win32' ? '/' : ''}${normalizedPath.replace(/\\/g, '/')}`
+    return net.fetch(fileUrl)
+  })
 
   registerIpcHandlers(
     createEditorWindowWrapper,

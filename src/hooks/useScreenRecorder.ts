@@ -91,8 +91,14 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         videoStream.current = null;
       }
       // Stop webcam recorder if active
-      if (camRecorder.current?.state === "recording") {
-        camRecorder.current.stop();
+      if (camRecorder.current) {
+        if (camRecorder.current.state === "recording") {
+          camRecorder.current.stop();
+        } else {
+          // Recorder already stopped/errored - force-resolve the promise
+          // so the onstop handler doesn't hang waiting
+          camStoppedPromise.current = Promise.resolve();
+        }
       }
       // Stop webcam stream tracks
       if (camStreamRef.current) {
@@ -260,12 +266,19 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
             if (e.data && e.data.size > 0) camChunks.current.push(e.data);
           };
 
+          let resolveCamStopped: (() => void) | null = null;
           camStoppedPromise.current = new Promise<void>((resolve) => {
+            resolveCamStopped = resolve;
             webcamRecorder.onstop = () => resolve();
           });
 
           webcamRecorder.onerror = () => {
             console.warn('Webcam recorder error, continuing with screen recording');
+            // Force-resolve so the main recording flow is never blocked
+            if (resolveCamStopped) {
+              resolveCamStopped();
+              resolveCamStopped = null;
+            }
           };
 
           webcamRecorder.start(1000);
@@ -338,7 +351,11 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           // Process webcam recording if active
           if (camStoppedPromise.current) {
             try {
-              await camStoppedPromise.current;
+              // Race against timeout to prevent hanging forever if webcam recorder errored
+              await Promise.race([
+                camStoppedPromise.current,
+                new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+              ]);
               if (camChunks.current.length > 0) {
                 const webcamBuggyBlob = new Blob(camChunks.current, { type: selectMimeType() });
                 camChunks.current = [];

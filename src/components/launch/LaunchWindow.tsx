@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "./LaunchWindow.module.css";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useMicrophone } from "../../hooks/useMicrophone";
@@ -221,6 +221,16 @@ export function LaunchWindow() {
     return () => clearInterval(interval);
   }, []);
 
+  const camPreviewRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (camPreviewRef.current && camStream) {
+      camPreviewRef.current.srcObject = camStream;
+    } else if (camPreviewRef.current) {
+      camPreviewRef.current.srcObject = null;
+    }
+  }, [camStream]);
+
   const openSourceSelector = () => {
     if (window.electronAPI) {
       window.electronAPI.openSourceSelector();
@@ -252,9 +262,21 @@ export function LaunchWindow() {
   };
 
   return (
-    <div className="w-full h-full flex items-end pb-2 bg-transparent">
+    <div className="w-full h-full flex items-end pb-2 bg-transparent overflow-hidden relative">
+      {camIsEnabled && camStream && (
+        <div className={`absolute bottom-16 right-4 ${styles.electronNoDrag}`}>
+          <video
+            ref={camPreviewRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-[120px] h-[120px] rounded-full object-cover border-2 border-white/20 shadow-xl"
+            style={{ transform: 'scaleX(-1)' }}
+          />
+        </div>
+      )}
       <div
-        className={`w-full max-w-[600px] mx-auto flex items-center gap-3 px-3 py-2 ${styles.electronDrag}`}
+        className={`w-full max-w-[560px] mx-auto flex items-center gap-3 px-3 py-2 ${styles.electronDrag}`}
         style={{
           borderRadius: 16,
           background: 'linear-gradient(135deg, rgba(30,30,40,0.92) 0%, rgba(20,20,30,0.85) 100%)',
