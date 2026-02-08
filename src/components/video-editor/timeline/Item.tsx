@@ -1,7 +1,7 @@
 import { useItem } from "dnd-timeline";
 import type { Span } from "dnd-timeline";
 import { cn } from "@/lib/utils";
-import { ZoomIn, Scissors, MessageSquare, Subtitles, Keyboard } from "lucide-react";
+import { ZoomIn, Scissors, MessageSquare, Subtitles, Keyboard, Video } from "lucide-react";
 import glassStyles from "./ItemGlass.module.css";
 
 interface ItemProps {
@@ -12,7 +12,7 @@ interface ItemProps {
   isSelected?: boolean;
   onSelect?: () => void;
   zoomDepth?: number;
-  variant?: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke';
+  variant?: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke' | 'webcam';
 }
 
 // Map zoom depth to multiplier labels
@@ -45,6 +45,7 @@ export default function Item({
   const isTrim = variant === 'trim';
   const isSubtitle = variant === 'subtitle';
   const isKeystroke = variant === 'keystroke';
+  const isWebcam = variant === 'webcam';
   
   const glassClass = isZoom 
     ? glassStyles.glassGreen 
@@ -54,6 +55,8 @@ export default function Item({
     ? glassStyles.glassCyan
     : isKeystroke
     ? glassStyles.glassPurple
+    : isWebcam
+    ? glassStyles.glassTeal
     : glassStyles.glassYellow;
     
   const endCapColor = isZoom 
@@ -64,6 +67,8 @@ export default function Item({
     ? '#00BCD4'
     : isKeystroke
     ? '#9333EA'
+    : isWebcam
+    ? '#14b8a6'
     : '#B4A046';
 
   return (
@@ -124,6 +129,13 @@ export default function Item({
             ) : isKeystroke ? (
               <>
                 <Keyboard className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold tracking-tight">
+                  {children}
+                </span>
+              </>
+            ) : isWebcam ? (
+              <>
+                <Video className="w-3.5 h-3.5" />
                 <span className="text-[11px] font-semibold tracking-tight">
                   {children}
                 </span>

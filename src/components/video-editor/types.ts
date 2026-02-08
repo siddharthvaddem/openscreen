@@ -19,6 +19,12 @@ export interface TrimRegion {
   endMs: number;
 }
 
+export interface WebcamRegion {
+  id: string;
+  startMs: number;
+  endMs: number;
+}
+
 export type AnnotationType = 'text' | 'image' | 'figure';
 
 export type ArrowDirection = 'up' | 'down' | 'left' | 'right' | 'up-right' | 'up-left' | 'down-right' | 'down-left';
@@ -330,3 +336,24 @@ export const DEFAULT_KEYSTROKE_STYLE: KeystrokeStyle = {
 };
 
 export const DEFAULT_KEYSTROKE_POSITION: KeystrokePositionPreset = 'bottom-center';
+
+// ============================================
+// WEBCAM OVERLAY TYPES
+// ============================================
+
+export type WebcamPositionPreset = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'custom';
+
+export type WebcamShape = 'circle' | 'square' | 'rounded';
+
+export interface WebcamOverlaySettings {
+  position: WebcamPositionPreset;
+  customPosition?: { x: number; y: number }; // Normalized 0-1
+  shape: WebcamShape;
+  shadowIntensity: number; // 0-100
+}
+
+export const DEFAULT_WEBCAM_OVERLAY_SETTINGS: WebcamOverlaySettings = {
+  position: 'bottom-right',
+  shape: 'rounded',
+  shadowIntensity: 50,
+};

@@ -43,5 +43,18 @@ interface Window {
     setCurrentVideoPath: (path: string) => Promise<{ success: boolean }>
     getCurrentVideoPath: () => Promise<{ success: boolean; path?: string }>
     clearCurrentVideoPath: () => Promise<{ success: boolean }>
+    getPlatform: () => Promise<string>
+    camera: {
+      getPermissionStatus: () => Promise<{ success: boolean; status: string; error?: string }>
+      requestAccess: () => Promise<{ success: boolean; granted: boolean; error?: string }>
+    }
+    webcam: {
+      getWebcamVideoPath: (mainVideoPath: string) => Promise<{
+        success: boolean;
+        path?: string;
+        notFound?: boolean;
+        error?: string;
+      }>
+    }
   }
 }

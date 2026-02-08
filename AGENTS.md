@@ -59,6 +59,7 @@ npm run lint
 - **Renderer (React)**: `src/` → [see src/AGENTS.md](src/AGENTS.md)
 - **Main Process (Electron)**: `electron/` → [see electron/AGENTS.md](electron/AGENTS.md)
 - **Video Export Engine**: `src/lib/exporter/` → [see src/lib/exporter/AGENTS.md](src/lib/exporter/AGENTS.md)
+- **Webcam Overlay**: Dual recording + editor overlay + export compositing (see `src/AGENTS.md` → Webcam section)
 - **UI Primitives**: `src/components/ui/` (shadcn/ui, add via `npx shadcn@latest add`)
 - **Static Assets**: `public/`
 

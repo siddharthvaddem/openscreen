@@ -162,6 +162,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // ============================================
+  // CAMERA PERMISSION API
+  // ============================================
+  camera: {
+    getPermissionStatus: () => {
+      return ipcRenderer.invoke('camera:get-permission-status')
+    },
+    requestAccess: () => {
+      return ipcRenderer.invoke('camera:request-access')
+    },
+  },
+
+  // ============================================
+  // WEBCAM FILE DISCOVERY API
+  // ============================================
+  webcam: {
+    getWebcamVideoPath: (mainVideoPath: string) => {
+      return ipcRenderer.invoke('webcam:get-webcam-video-path', mainVideoPath)
+    },
+  },
+
+  // ============================================
   // KEYSTROKE EDITOR API
   // ============================================
   keystrokeEditor: {

@@ -15,7 +15,8 @@ import { type AspectRatio, formatAspectRatioForCSS } from "@/utils/aspectRatioUt
 import { AnnotationOverlay } from "./AnnotationOverlay";
 import { SubtitleOverlay } from "./subtitle";
 import { KeystrokeEditorOverlay, calculateStackIndices } from "./keystroke/KeystrokeEditorOverlay";
-import type { KeystrokeRegion } from "./types";
+import { WebcamOverlay } from "./WebcamOverlay";
+import type { KeystrokeRegion, WebcamOverlaySettings, WebcamPositionPreset } from "./types";
 import { filterKeystrokeRegions } from "@/utils/keystrokeFilterUtils";
 
 interface VideoPlaybackProps {
@@ -54,6 +55,11 @@ interface VideoPlaybackProps {
   keystrokeRegions?: KeystrokeRegion[];
   selectedKeystrokeId?: string | null;
   onSelectKeystroke?: (id: string | null) => void;
+  // Webcam props
+  webcamPath?: string | null;
+  webcamSettings?: WebcamOverlaySettings;
+  onWebcamSettingsChange?: (settings: WebcamOverlaySettings) => void;
+  onWebcamPositionChange?: (position: WebcamPositionPreset, customPosition?: { x: number; y: number }) => void;
 }
 
 export interface VideoPlaybackRef {
@@ -100,6 +106,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   keystrokeRegions = [],
   selectedKeystrokeId,
   onSelectKeystroke,
+  // Webcam props
+  webcamPath,
+  webcamSettings,
+  onWebcamSettingsChange,
+  onWebcamPositionChange,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -957,6 +968,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
               );
             });
           })()}
+          {/* Webcam Overlay */}
+          {webcamPath && webcamSettings && (
+            <WebcamOverlay
+              webcamPath={webcamPath}
+              containerWidth={overlayRef.current?.clientWidth || 800}
+              containerHeight={overlayRef.current?.clientHeight || 600}
+              currentTimeMs={Math.round(currentTime * 1000)}
+              isPlaying={isPlaying}
+              settings={webcamSettings}
+              onSettingsChange={onWebcamSettingsChange}
+              onPositionChange={onWebcamPositionChange}
+            />
+          )}
         </div>
       )}
       <video

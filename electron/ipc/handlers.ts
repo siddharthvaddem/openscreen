@@ -24,6 +24,7 @@ import {
   hasApiKey,
   isEncryptionAvailable 
 } from '../services/secureStorage'
+import { getCameraPermissionStatus, requestCameraAccess } from '../permissions'
 
 interface SelectedSource {
   name: string
@@ -395,5 +396,60 @@ export function registerIpcHandlers(
 
   ipcMain.handle('auto-zoom:is-running', () => {
     return mouseEventDetector.isRunning();
+  });
+
+  // ============================================
+  // CAMERA PERMISSION HANDLERS
+  // ============================================
+
+  ipcMain.handle('camera:get-permission-status', () => {
+    try {
+      const status = getCameraPermissionStatus();
+      return { success: true, status };
+    } catch (error) {
+      console.error('Failed to get camera permission status:', error);
+      return { success: false, status: 'unknown', error: String(error) };
+    }
+  });
+
+   ipcMain.handle('camera:request-access', async () => {
+    try {
+      const granted = await requestCameraAccess();
+      return { success: true, granted };
+    } catch (error) {
+      console.error('Failed to request camera access:', error);
+      return { success: false, granted: false, error: String(error) };
+    }
+  });
+
+  // ============================================
+  // WEBCAM FILE DISCOVERY HANDLERS
+  // ============================================
+
+  ipcMain.handle('webcam:get-webcam-video-path', async (_, mainVideoPath: string) => {
+    try {
+      const resolvedVideoPath = path.resolve(mainVideoPath)
+      const isInRecordingsDir = validatePathWithinDir(resolvedVideoPath, RECORDINGS_DIR)
+      const isExplicitlySelected = explicitlySelectedVideoPaths.has(resolvedVideoPath)
+
+      if (!isInRecordingsDir && !isExplicitlySelected) {
+        return { success: false, error: 'Invalid video path' }
+      }
+
+      const webcamPath = resolvedVideoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, '.webcam.webm');
+
+      try {
+        await fs.access(webcamPath);
+        return { success: true, path: webcamPath };
+      } catch (accessError: unknown) {
+        if (isErrnoException(accessError) && (accessError as NodeJS.ErrnoException).code === 'ENOENT') {
+          return { success: false, notFound: true };
+        }
+        throw accessError;
+      }
+    } catch (error) {
+      console.error('Failed to get webcam video path:', error);
+      return { success: false, error: String(error) };
+    }
   });
 }

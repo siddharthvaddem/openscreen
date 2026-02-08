@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTimelineContext } from "dnd-timeline";
 import { Button } from "@/components/ui/button";
-import { Plus, Scissors, ZoomIn, MessageSquare, Subtitles, ChevronDown, Check, Wand2 } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, Subtitles, ChevronDown, Check, Wand2, Video } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TimelineWrapper from "./TimelineWrapper";
@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion, WebcamRegion } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const SUBTITLE_ROW_ID = "row-subtitle";
 const KEYSTROKE_ROW_ID = "row-keystroke";
+const WEBCAM_ROW_ID = "row-webcam";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 
@@ -67,6 +68,14 @@ interface TimelineEditorProps {
   onKeystrokeDelete?: (id: string) => void;
   selectedKeystrokeId?: string | null;
   onSelectKeystroke?: (id: string | null) => void;
+  // Webcam props
+  webcamRegions?: WebcamRegion[];
+  onWebcamAdded?: (span: Span) => void;
+  onWebcamSpanChange?: (id: string, span: Span) => void;
+  onWebcamDelete?: (id: string) => void;
+  selectedWebcamId?: string | null;
+  onSelectWebcam?: (id: string | null) => void;
+  hasWebcam?: boolean;
   // Auto-generate props
   videoPath?: string;
   onAutoGenerateSubtitles?: (subtitles: SubtitleRegion[]) => void;
@@ -88,7 +97,7 @@ interface TimelineRenderItem {
   span: Span;
   label: string;
   zoomDepth?: number;
-  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke';
+  variant: 'zoom' | 'trim' | 'annotation' | 'subtitle' | 'keystroke' | 'webcam';
 }
 
 const SCALE_CANDIDATES = [
@@ -411,7 +420,10 @@ function Timeline({
   selectedAnnotationId,
   selectedSubtitleId,
   selectedKeystrokeId,
+  selectedWebcamId,
   keyframes = [],
+  hasWebcam = false,
+  onSelectWebcam,
 }: {
   items: TimelineRenderItem[];
   videoDurationMs: number;
@@ -429,6 +441,9 @@ function Timeline({
   selectedSubtitleId?: string | null;
   selectedKeystrokeId?: string | null;
   keyframes?: { id: string; time: number }[];
+  selectedWebcamId?: string | null;
+  onSelectWebcam?: (id: string | null) => void;
+  hasWebcam?: boolean;
 }) {
   const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
   const localTimelineRef = useRef<HTMLDivElement | null>(null);
@@ -448,6 +463,7 @@ function Timeline({
     onSelectAnnotation?.(null);
     onSelectSubtitle?.(null);
     onSelectKeystroke?.(null);
+    onSelectWebcam?.(null);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left - sidebarWidth;
@@ -459,13 +475,14 @@ function Timeline({
     const timeInSeconds = absoluteMs / 1000;
 
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, onSelectKeystroke, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSubtitle, onSelectKeystroke, onSelectWebcam, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
   const subtitleItems = items.filter(item => item.rowId === SUBTITLE_ROW_ID);
   const keystrokeItems = items.filter(item => item.rowId === KEYSTROKE_ROW_ID);
+  const webcamItems = items.filter(item => item.rowId === WEBCAM_ROW_ID);
 
   return (
     <div
@@ -564,6 +581,24 @@ function Timeline({
           </Item>
         ))}
       </Row>
+
+      {hasWebcam && (
+        <Row id={WEBCAM_ROW_ID}>
+          {webcamItems.map((item) => (
+            <Item
+              id={item.id}
+              key={item.id}
+              rowId={item.rowId}
+              span={item.span}
+              isSelected={item.id === selectedWebcamId}
+              onSelect={() => onSelectWebcam?.(item.id)}
+              variant="webcam"
+            >
+              {item.label}
+            </Item>
+          ))}
+        </Row>
+      )}
     </div>
   );
 }
@@ -600,6 +635,13 @@ export default function TimelineEditor({
   onKeystrokeSpanChange,
   selectedKeystrokeId,
   onSelectKeystroke,
+  webcamRegions = [],
+  onWebcamAdded,
+  onWebcamSpanChange,
+  onWebcamDelete,
+  selectedWebcamId,
+  onSelectWebcam,
+  hasWebcam = false,
   videoPath,
   onAutoGenerateSubtitles,
   aspectRatio,
@@ -677,6 +719,12 @@ export default function TimelineEditor({
     onSelectSubtitle(null);
   }, [selectedSubtitleId, onSubtitleDelete, onSelectSubtitle]);
 
+  const deleteSelectedWebcam = useCallback(() => {
+    if (!selectedWebcamId || !onWebcamDelete || !onSelectWebcam) return;
+    onWebcamDelete(selectedWebcamId);
+    onSelectWebcam(null);
+  }, [selectedWebcamId, onWebcamDelete, onSelectWebcam]);
+
   useEffect(() => {
     setRange(createInitialRange(totalMs));
   }, [totalMs]);
@@ -709,7 +757,19 @@ export default function TimelineEditor({
         onTrimSpanChange?.(region.id, { start: normalizedStart, end: normalizedEnd });
       }
     });
-  }, [zoomRegions, trimRegions, annotationRegions, totalMs, safeMinDurationMs, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange]);
+
+    webcamRegions.forEach((region) => {
+      const clampedStart = Math.max(0, Math.min(region.startMs, totalMs));
+      const minEnd = clampedStart + safeMinDurationMs;
+      const clampedEnd = Math.min(totalMs, Math.max(minEnd, region.endMs));
+      const normalizedStart = Math.max(0, Math.min(clampedStart, totalMs - safeMinDurationMs));
+      const normalizedEnd = Math.max(minEnd, Math.min(clampedEnd, totalMs));
+
+      if (normalizedStart !== region.startMs || normalizedEnd !== region.endMs) {
+        onWebcamSpanChange?.(region.id, { start: normalizedStart, end: normalizedEnd });
+      }
+    });
+  }, [zoomRegions, trimRegions, annotationRegions, webcamRegions, totalMs, safeMinDurationMs, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onWebcamSpanChange]);
 
   const hasOverlap = useCallback((newSpan: Span, excludeId?: string): boolean => {
     // Determine which row the item belongs to
@@ -718,6 +778,7 @@ export default function TimelineEditor({
     const isAnnotationItem = annotationRegions.some(r => r.id === excludeId);
     const isSubtitleItem = subtitleRegions.some(r => r.id === excludeId);
     const isKeystrokeItem = keystrokeRegions.some(r => r.id === excludeId);
+    const isWebcamItem = webcamRegions.some(r => r.id === excludeId);
 
     // Annotations, subtitles, and keystrokes can overlap
     if (isAnnotationItem || isSubtitleItem || isKeystrokeItem) {
@@ -725,7 +786,7 @@ export default function TimelineEditor({
     }
 
     // Helper to check overlap against a specific set of regions
-    const checkOverlap = (regions: (ZoomRegion | TrimRegion)[]) => {
+    const checkOverlap = (regions: (ZoomRegion | TrimRegion | WebcamRegion)[]) => {
       return regions.some((region) => {
         if (region.id === excludeId) return false;
         const gapBefore = newSpan.start - region.endMs;
@@ -745,8 +806,12 @@ export default function TimelineEditor({
       return checkOverlap(trimRegions);
     }
 
+    if (isWebcamItem) {
+      return checkOverlap(webcamRegions);
+    }
+
     return false;
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, webcamRegions]);
 
   const handleAddZoom = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0) {
@@ -842,6 +907,36 @@ export default function TimelineEditor({
     onSubtitleAdded({ start: startPos, end: endPos });
   }, [videoDuration, totalMs, currentTimeMs, onSubtitleAdded]);
 
+  const handleAddWebcam = useCallback(() => {
+    if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onWebcamAdded || !hasWebcam) {
+      return;
+    }
+
+    const defaultDuration = Math.min(1000, totalMs);
+    if (defaultDuration <= 0) {
+      return;
+    }
+
+    // Always place webcam at playhead
+    const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+    // Find the next webcam region after the playhead
+    const sorted = [...webcamRegions].sort((a, b) => a.startMs - b.startMs);
+    const nextRegion = sorted.find(region => region.startMs > startPos);
+    const gapToNext = nextRegion ? nextRegion.startMs - startPos : totalMs - startPos;
+
+    // Check if playhead is inside any webcam region
+    const isOverlapping = sorted.some(region => startPos >= region.startMs && startPos < region.endMs);
+    if (isOverlapping || gapToNext <= 0) {
+      toast.error("Cannot place webcam here", {
+        description: "Webcam region already exists at this location or not enough space available.",
+      });
+      return;
+    }
+
+    const actualDuration = Math.min(1000, gapToNext);
+    onWebcamAdded({ start: startPos, end: startPos + actualDuration });
+  }, [videoDuration, totalMs, currentTimeMs, webcamRegions, onWebcamAdded, hasWebcam]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -862,6 +957,9 @@ export default function TimelineEditor({
       }
       if (e.key === 's' || e.key === 'S') {
         handleAddSubtitle();
+      }
+      if (hasWebcam && (e.key === 'w' || e.key === 'W')) {
+        handleAddWebcam();
       }
       
 
@@ -899,12 +997,14 @@ export default function TimelineEditor({
           deleteSelectedAnnotation();
         } else if (selectedSubtitleId) {
           deleteSelectedSubtitle();
+        } else if (selectedWebcamId) {
+          deleteSelectedWebcam();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSubtitle, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSubtitle, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSubtitleId, annotationRegions, currentTime, onSelectAnnotation]);
+  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSubtitle, handleAddWebcam, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSubtitle, deleteSelectedWebcam, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSubtitleId, selectedWebcamId, annotationRegions, currentTime, onSelectAnnotation, hasWebcam]);
 
   const clampedRange = useMemo<Range>(() => {
     if (totalMs === 0) {
@@ -989,8 +1089,16 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations, ...subtitles, ...keystrokes];
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions]);
+    const webcams: TimelineRenderItem[] = (webcamRegions || []).map((region, index) => ({
+      id: region.id,
+      rowId: WEBCAM_ROW_ID,
+      span: { start: region.startMs, end: region.endMs },
+      label: `Webcam ${index + 1}`,
+      variant: 'webcam',
+    }));
+
+    return [...zooms, ...trims, ...annotations, ...subtitles, ...keystrokes, ...webcams];
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, webcamRegions]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span) => {
     // Check if it's a zoom, trim, annotation, subtitle, or keystroke item
@@ -1004,8 +1112,10 @@ export default function TimelineEditor({
       onSubtitleSpanChange?.(id, span);
     } else if (keystrokeRegions.some(r => r.id === id)) {
       onKeystrokeSpanChange?.(id, span);
+    } else if (webcamRegions?.some(r => r.id === id)) {
+      onWebcamSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange, onKeystrokeSpanChange]);
+  }, [zoomRegions, trimRegions, annotationRegions, subtitleRegions, keystrokeRegions, webcamRegions, onZoomSpanChange, onTrimSpanChange, onAnnotationSpanChange, onSubtitleSpanChange, onKeystrokeSpanChange, onWebcamSpanChange]);
 
   if (!videoDuration || videoDuration === 0) {
     return (
@@ -1052,15 +1162,26 @@ export default function TimelineEditor({
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
-          <Button
-            onClick={handleAddSubtitle}
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all"
-            title="Add Subtitle (S)"
-          >
-            <Subtitles className="w-4 h-4" />
-          </Button>
+            <Button
+              onClick={handleAddSubtitle}
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-400 hover:text-[#00BCD4] hover:bg-[#00BCD4]/10 transition-all"
+              title="Add Subtitle (S)"
+            >
+              <Subtitles className="w-4 h-4" />
+            </Button>
+            {hasWebcam && (
+              <Button
+                onClick={handleAddWebcam}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-slate-400 hover:text-[#14b8a6] hover:bg-[#14b8a6]/10 transition-all"
+                title="Add Webcam (W)"
+              >
+                <Video className="w-4 h-4" />
+              </Button>
+            )}
           {videoPath && onAutoGenerateSubtitles && (
             <Button
               onClick={() => setShowSubtitleGenerateDialog(true)}
@@ -1148,12 +1269,15 @@ export default function TimelineEditor({
             onSelectAnnotation={onSelectAnnotation}
             onSelectSubtitle={onSelectSubtitle}
             onSelectKeystroke={onSelectKeystroke}
+            onSelectWebcam={onSelectWebcam}
             selectedZoomId={selectedZoomId}
             selectedTrimId={selectedTrimId}
             selectedAnnotationId={selectedAnnotationId}
             selectedSubtitleId={selectedSubtitleId}
             selectedKeystrokeId={selectedKeystrokeId}
+            selectedWebcamId={selectedWebcamId}
             keyframes={keyframes}
+            hasWebcam={hasWebcam}
           />
         </TimelineWrapper>
       </div>

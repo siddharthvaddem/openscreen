@@ -165,3 +165,34 @@
   border-top-right-radius: 7px;
   border-bottom-right-radius: 7px;
 }
+
+.glassTeal {
+  position: relative;
+  border-radius: 8px;
+  -corner-smoothing: antialiased;
+  background: rgba(20, 184, 166, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  box-shadow: 0 2px 12px 0 rgba(20, 184, 166, 0.1) inset;
+  margin: 2px 0;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glassTeal:hover {
+  background: rgba(20, 184, 166, 0.25);
+  border-color: rgba(20, 184, 166, 0.5);
+  box-shadow: 0 4px 20px 0 rgba(20, 184, 166, 0.2) inset;
+}
+
+.glassTeal.selected {
+  background: rgba(20, 184, 166, 0.35);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px #14b8a6, 0 4px 20px 0 rgba(20, 184, 166, 0.3) inset;
+  z-index: 10;
+}
+
+.glassTeal:hover .zoomEndCap,
+.glassTeal.selected .zoomEndCap {
+  opacity: 1;
+}

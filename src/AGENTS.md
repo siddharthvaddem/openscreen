@@ -86,6 +86,16 @@ export function useKeystrokeSettings() {
 | Exporter entry   | `src/lib/exporter/index.ts`                   |
 | Type definitions | `src/types/*.ts`                              |
 
+### Webcam Overlay Feature
+- **Recording**: `src/hooks/useScreenRecorder.ts` — Dual recording (screen + webcam), `useCamSettings.ts` for toggle state
+- **Editor**: `src/components/video-editor/WebcamOverlay.tsx` — Draggable overlay with shape/position presets
+- **Timeline**: Webcam visibility row in `TimelineEditor.tsx` (`WEBCAM_ROW_ID`)
+- **Export**: `src/lib/exporter/frameRenderer.ts` — `renderWebcam()` composites webcam onto export frames
+- **Types**: `src/components/video-editor/types.ts` — `WebcamRegion`, `WebcamOverlaySettings`, `WebcamPositionPreset`, `WebcamShape`
+- **Permissions**: `electron/permissions.ts` — Camera permission handler
+- **File Discovery**: `electron/ipc/handlers.ts` — `webcam:get-webcam-video-path` IPC handler
+- **File Convention**: Screen `recording-{ts}.webm`, webcam `recording-{ts}.webcam.webm`
+
 ## JIT Search Commands
 ```bash
 # Find component by name

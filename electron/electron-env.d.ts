@@ -101,6 +101,17 @@ interface Window {
       deleteApiKey: (service: string) => Promise<{ success: boolean; error?: string }>
       hasApiKey: (service: string) => Promise<{ hasKey: boolean }>
     }
+    // ============================================
+    // WEBCAM FILE DISCOVERY API
+    // ============================================
+    webcam: {
+      getWebcamVideoPath: (mainVideoPath: string) => Promise<{
+        success: boolean;
+        path?: string;
+        notFound?: boolean;
+        error?: string;
+      }>
+    }
   }
 }
 

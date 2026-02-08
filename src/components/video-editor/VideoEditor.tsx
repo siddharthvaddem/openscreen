@@ -41,6 +41,9 @@ import {
   type KeystrokeRegion,
   type KeystrokeStyle,
   type KeystrokePositionPreset,
+  type WebcamOverlaySettings,
+  type WebcamRegion,
+  DEFAULT_WEBCAM_OVERLAY_SETTINGS,
 } from "./types";
 import { VideoExporter, GifExporter, type ExportProgress, type ExportQuality, type ExportSettings, type ExportFormat, type GifFrameRate, type GifSizePreset, GIF_SIZE_PRESETS, calculateOutputDimensions } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
@@ -51,8 +54,12 @@ const WALLPAPER_PATHS = Array.from({ length: WALLPAPER_COUNT }, (_, i) => `/wall
 
 export default function VideoEditor() {
   const [videoPath, setVideoPath] = useState<string | null>(null);
+  // Webcam companion video path
+  const [webcamPath, setWebcamPath] = useState<string | null>(null);
+  const [webcamSettings, setWebcamSettings] = useState<WebcamOverlaySettings>(DEFAULT_WEBCAM_OVERLAY_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -73,6 +80,8 @@ export default function VideoEditor() {
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
   const [keystrokeRegions, setKeystrokeRegions] = useState<KeystrokeRegion[]>([]);
   const [selectedKeystrokeId, setSelectedKeystrokeId] = useState<string | null>(null);
+  const [webcamRegions, setWebcamRegions] = useState<WebcamRegion[]>([]);
+  const [selectedWebcamId, setSelectedWebcamId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -92,6 +101,7 @@ export default function VideoEditor() {
   const nextAnnotationZIndexRef = useRef(1); // Track z-index for stacking order
   const nextSubtitleIdRef = useRef(1);
   const nextKeystrokeIdRef = useRef(1);
+  const nextWebcamIdRef = useRef(1);
   const exporterRef = useRef<VideoExporter | null>(null);
   const hasAppliedDefaultPreset = useRef(false);
 
@@ -204,6 +214,31 @@ export default function VideoEditor() {
           } catch (autoZoomError) {
             // Silently ignore - auto zoom events may not exist
             console.debug('No auto zoom events found for video:', autoZoomError);
+          }
+
+          // Try to load webcam companion file for this video
+          try {
+            if (window.electronAPI?.webcam) {
+              const webcamResult = await window.electronAPI.webcam.getWebcamVideoPath(result.path);
+              if (webcamResult.success && webcamResult.path) {
+                const webcamUrl = toFileUrl(webcamResult.path);
+                setWebcamPath(webcamUrl);
+                
+                // Create default webcam region spanning entire video
+                // Duration will be clamped when video metadata loads
+                setWebcamRegions([{ id: 'webcam-1', startMs: 0, endMs: Number.MAX_SAFE_INTEGER }]);
+                nextWebcamIdRef.current = 2;
+                
+                console.log('Webcam file found:', webcamResult.path);
+              } else {
+                setWebcamPath(null);
+                setWebcamRegions([]);
+                console.log('No webcam file found for this video');
+              }
+            }
+          } catch (webcamError) {
+            // Silently ignore - webcam file may not exist
+            console.debug('No webcam file found for video:', webcamError);
           }
 
           // Try to load keystroke events for this video
@@ -747,6 +782,38 @@ export default function VideoEditor() {
     );
   }, []);
 
+  const handleSelectWebcam = useCallback((id: string | null) => {
+    setSelectedWebcamId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedAnnotationId(null);
+      setSelectedSubtitleId(null);
+      setSelectedKeystrokeId(null);
+    }
+  }, []);
+
+  const handleWebcamAdded = useCallback((span: Span) => {
+    const id = `webcam-${nextWebcamIdRef.current++}`;
+    // WebcamRegion type is simple: { id, startMs, endMs }
+    setWebcamRegions(prev => [...prev, { id, startMs: span.start, endMs: span.end }]);
+    setSelectedWebcamId(id);
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+    setSelectedSubtitleId(null);
+    setSelectedKeystrokeId(null);
+  }, []);
+
+  const handleWebcamSpanChange = useCallback((id: string, span: Span) => {
+    setWebcamRegions(prev => prev.map(r => r.id === id ? { ...r, startMs: span.start, endMs: span.end } : r));
+  }, []);
+
+  const handleWebcamDelete = useCallback((id: string) => {
+    setWebcamRegions(prev => prev.filter(r => r.id !== id));
+    if (selectedWebcamId === id) setSelectedWebcamId(null);
+  }, [selectedWebcamId]);
+
   // Helper to extract file path from file:// URL
   const getVideoFilePath = useCallback((): string | undefined => {
     if (!videoPath) return undefined;
@@ -1044,6 +1111,9 @@ export default function VideoEditor() {
           annotationRegions,
           subtitleRegions,
           keystrokeRegions,
+          webcamPath: webcamPath || undefined,
+          webcamSettings: webcamPath ? webcamSettings : undefined,
+          webcamRegions: webcamPath ? webcamRegions : undefined,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -1175,9 +1245,16 @@ export default function VideoEditor() {
                       keystrokeRegions={keystrokeRegions}
                       selectedKeystrokeId={selectedKeystrokeId}
                       onSelectKeystroke={handleSelectKeystroke}
+                      webcamPath={webcamPath}
+                      webcamSettings={webcamSettings}
+                      onWebcamSettingsChange={setWebcamSettings}
+                      onWebcamPositionChange={(position, customPosition) => 
+                        setWebcamSettings((prev) => ({ ...prev, position, customPosition }))
+                      }
                     />
                   </div>
                 </div>
+
                 {/* Playback controls */}
                 <div className="w-full flex justify-center items-center" style={{ height: '48px', flexShrink: 0, padding: '6px 12px', margin: '6px 0 6px 0' }}>
                   <div style={{ width: '100%', maxWidth: '700px' }}>
@@ -1234,6 +1311,13 @@ export default function VideoEditor() {
               onKeystrokeDelete={handleKeystrokeDelete}
               selectedKeystrokeId={selectedKeystrokeId}
               onSelectKeystroke={handleSelectKeystroke}
+              webcamRegions={webcamRegions}
+              onWebcamAdded={handleWebcamAdded}
+              onWebcamSpanChange={handleWebcamSpanChange}
+              onWebcamDelete={handleWebcamDelete}
+              selectedWebcamId={selectedWebcamId}
+              onSelectWebcam={handleSelectWebcam}
+              hasWebcam={webcamPath !== null}
               videoPath={getVideoFilePath()}
               onAutoGenerateSubtitles={handleAutoGenerateSubtitles}
               aspectRatio={aspectRatio}

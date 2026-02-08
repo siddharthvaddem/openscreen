@@ -4,8 +4,9 @@ import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useMicrophone } from "../../hooks/useMicrophone";
 import { useAutoZoomSettings } from "../../hooks/useAutoZoomSettings";
 import { useKeystrokeEditorSettings } from "../../hooks/useKeystrokeEditorSettings";
+import { useCamSettings } from "../../hooks/useCamSettings";
 import { Button } from "../ui/button";
-import { BsRecordCircle, BsKeyboard } from "react-icons/bs";
+import { BsRecordCircle, BsKeyboard, BsCameraVideo, BsCameraVideoOff } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { MdMonitor } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
@@ -111,12 +112,20 @@ export function LaunchWindow() {
     serviceAvailable: keystrokeServiceAvailable,
     serviceError: keystrokeServiceError,
   } = useKeystrokeEditorSettings();
+
+  // Cam settings
+  const {
+    settings: camSettings,
+    setEnabled: setCamEnabled,
+    permissionStatus: camPermissionStatus
+  } = useCamSettings();
   
   // Pass audio stream and auto zoom setting to screen recorder
   const { recording, toggleRecording } = useScreenRecorder({ 
     audioStream,
     autoZoomEnabled: autoZoomSettings.enabled,
     keysEnabled: keystrokeCaptureEnabled,
+    camEnabled: camSettings.enabled,
   });
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -313,6 +322,45 @@ export function LaunchWindow() {
                 : "text-zinc-400"
           }>
             Keys
+          </span>
+        </Button>
+
+        <div className="w-px h-5 bg-white/30" />
+
+        {/* Cam Toggle */}
+        <Button
+          variant="link"
+          size="sm"
+          onClick={() => setCamEnabled(!camSettings.enabled)}
+          disabled={recording || camPermissionStatus === 'denied'}
+          className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
+          title={
+            camPermissionStatus === 'denied'
+              ? "Camera access denied"
+              : camSettings.enabled 
+                ? "Camera: ON" 
+                : "Camera: OFF"
+          }
+        >
+          {camSettings.enabled ? (
+            <BsCameraVideo 
+              size={14} 
+              className="text-green-400"
+            />
+          ) : (
+            <BsCameraVideoOff 
+              size={14} 
+              className={camPermissionStatus === 'denied' ? "text-red-400/50" : "text-white/50"} 
+            />
+          )}
+          <span className={
+            camPermissionStatus === 'denied'
+              ? "text-zinc-500"
+              : camSettings.enabled 
+                ? "text-white" 
+                : "text-zinc-400"
+          }>
+            Cam
           </span>
         </Button>
 

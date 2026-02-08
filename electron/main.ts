@@ -5,6 +5,7 @@ import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow } from './windows'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerKeystrokeEditorIpcHandlers } from './ipc/keystrokeEditor'
+import { setupPermissionHandlers } from './permissions'
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -153,6 +154,9 @@ app.whenReady().then(async () => {
     updateTrayMenu()
   // Ensure recordings directory exists
   await ensureRecordingsDir()
+
+  // Set up camera/media permission handlers (must be after app.whenReady)
+  setupPermissionHandlers()
 
   registerIpcHandlers(
     createEditorWindowWrapper,

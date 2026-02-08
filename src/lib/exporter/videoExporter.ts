@@ -3,7 +3,16 @@ import { VideoFileDecoder } from './videoDecoder';
 import { FrameRenderer } from './frameRenderer';
 import { VideoMuxer } from './muxer';
 import { AudioExtractor } from './audioExtractor';
-import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from '@/components/video-editor/types';
+import type {
+  ZoomRegion,
+  CropRegion,
+  TrimRegion,
+  AnnotationRegion,
+  SubtitleRegion,
+  KeystrokeRegion,
+  WebcamOverlaySettings,
+  WebcamRegion,
+} from '@/components/video-editor/types';
 
 interface VideoExporterConfig extends ExportConfig {
   videoUrl: string;
@@ -21,6 +30,9 @@ interface VideoExporterConfig extends ExportConfig {
   annotationRegions?: AnnotationRegion[];
   subtitleRegions?: SubtitleRegion[];
   keystrokeRegions?: KeystrokeRegion[];
+  webcamPath?: string;
+  webcamSettings?: WebcamOverlaySettings;
+  webcamRegions?: WebcamRegion[];
   previewWidth?: number;
   previewHeight?: number;
   onProgress?: (progress: ExportProgress) => void;
@@ -47,6 +59,7 @@ export class VideoExporter {
   private chunkCount = 0;
   private audioChunkCount = 0;
   private hasAudio = false;
+  private webcamVideo: HTMLVideoElement | null = null;
 
   constructor(config: VideoExporterConfig) {
     this.config = config;
@@ -105,6 +118,36 @@ export class VideoExporter {
         console.log('[VideoExporter] Audio channels:', audioResult.numberOfChannels);
       }
 
+      if (this.config.webcamPath) {
+        this.webcamVideo = document.createElement('video');
+        this.webcamVideo.src = this.config.webcamPath;
+        this.webcamVideo.muted = true;
+        this.webcamVideo.playsInline = true;
+        this.webcamVideo.preload = 'auto';
+
+        await new Promise<void>((resolve) => {
+          this.webcamVideo!.onloadeddata = () => {
+            if (this.webcamVideo) {
+              this.webcamVideo.onloadeddata = null;
+              this.webcamVideo.onerror = null;
+            }
+            resolve();
+          };
+
+          this.webcamVideo!.onerror = () => {
+            console.warn('[VideoExporter] Failed to load webcam video, continuing without webcam');
+            if (this.webcamVideo) {
+              this.webcamVideo.onloadeddata = null;
+              this.webcamVideo.onerror = null;
+            }
+            this.webcamVideo = null;
+            resolve(); // Don't fail export
+          };
+
+          this.webcamVideo!.load();
+        });
+      }
+
       // Initialize frame renderer
       this.renderer = new FrameRenderer({
         width: this.config.width,
@@ -123,6 +166,9 @@ export class VideoExporter {
         annotationRegions: this.config.annotationRegions,
         subtitleRegions: this.config.subtitleRegions,
         keystrokeRegions: this.config.keystrokeRegions,
+        webcamVideoElement: this.webcamVideo || undefined,
+        webcamSettings: this.config.webcamSettings,
+        webcamRegions: this.config.webcamRegions,
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,
       });
@@ -193,6 +239,18 @@ export class VideoExporter {
 
         // Render the frame with all effects using source timestamp
         const sourceTimestamp = sourceTimeMs * 1000; // Convert to microseconds
+
+        if (this.webcamVideo) {
+          const webcamTime = sourceTimeMs / 1000;
+          if (Math.abs(this.webcamVideo.currentTime - webcamTime) > 0.001) {
+            const seekPromise = new Promise<void>(resolve => {
+              this.webcamVideo!.addEventListener('seeked', () => resolve(), { once: true });
+            });
+            this.webcamVideo.currentTime = webcamTime;
+            await seekPromise;
+          }
+        }
+
         await this.renderer!.renderFrame(videoFrame, sourceTimestamp);
         
         videoFrame.close();
@@ -510,6 +568,11 @@ export class VideoExporter {
   }
 
   private cleanup(): void {
+    if (this.webcamVideo) {
+      this.webcamVideo.src = '';
+      this.webcamVideo = null;
+    }
+
     if (this.encoder) {
       try {
         if (this.encoder.state === 'configured') {

@@ -1,5 +1,16 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
-import type { ZoomRegion, ZoomDepth, CropRegion, AnnotationRegion, SubtitleRegion, KeystrokeRegion } from '@/components/video-editor/types';
+import type {
+  ZoomRegion,
+  ZoomDepth,
+  CropRegion,
+  AnnotationRegion,
+  SubtitleRegion,
+  KeystrokeRegion,
+  WebcamOverlaySettings,
+  WebcamRegion,
+  WebcamPositionPreset,
+  WebcamShape,
+} from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
@@ -28,6 +39,9 @@ interface FrameRenderConfig {
   keystrokeRegions?: KeystrokeRegion[];
   previewWidth?: number;
   previewHeight?: number;
+  webcamVideoElement?: HTMLVideoElement;
+  webcamSettings?: WebcamOverlaySettings;
+  webcamRegions?: WebcamRegion[];
 }
 
 interface AnimationState {
@@ -320,6 +334,11 @@ export class FrameRenderer {
     // Composite with shadows to final output canvas
     this.compositeWithShadows();
 
+    // Render webcam overlay (above video, below annotations)
+    if (this.config.webcamVideoElement && this.config.webcamSettings && this.compositeCtx) {
+      this.renderWebcam(this.compositeCtx, this.config.width, this.config.height, timeMs);
+    }
+
     // Render annotations on top if present
     if (this.config.annotationRegions && this.config.annotationRegions.length > 0 && this.compositeCtx) {
       // Calculate scale factor based on export vs preview dimensions
@@ -377,6 +396,116 @@ export class FrameRenderer {
         scaleFactor
       );
     }
+  }
+
+  private renderWebcam(
+    ctx: CanvasRenderingContext2D,
+    canvasWidth: number,
+    canvasHeight: number,
+    currentTimeMs: number
+  ): void {
+    const webcamVideo = this.config.webcamVideoElement;
+    const webcamSettings = this.config.webcamSettings;
+    const webcamRegions = this.config.webcamRegions;
+
+    if (!webcamVideo || !webcamSettings || !webcamRegions || webcamRegions.length === 0) {
+      return;
+    }
+
+    const isVisible = webcamRegions.some(
+      region => currentTimeMs >= region.startMs && currentTimeMs <= region.endMs
+    );
+
+    if (!isVisible || webcamVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+      return;
+    }
+
+    const webcamTime = currentTimeMs / 1000;
+    if (Math.abs(webcamVideo.currentTime - webcamTime) > 0.001) {
+      webcamVideo.currentTime = webcamTime;
+    }
+
+    if (webcamVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      return;
+    }
+
+    const webcamWidth = canvasWidth * 0.20;
+    const webcamHeight = webcamWidth / (16 / 9);
+    const padding = canvasWidth * 0.03;
+
+    let x = canvasWidth - webcamWidth - padding;
+    let y = canvasHeight - webcamHeight - padding;
+    const position: WebcamPositionPreset = webcamSettings.position;
+
+    if (position === 'custom' && webcamSettings.customPosition) {
+      x = webcamSettings.customPosition.x * canvasWidth;
+      y = webcamSettings.customPosition.y * canvasHeight;
+    } else {
+      switch (position) {
+        case 'bottom-left':
+          x = padding;
+          y = canvasHeight - webcamHeight - padding;
+          break;
+        case 'top-right':
+          x = canvasWidth - webcamWidth - padding;
+          y = padding;
+          break;
+        case 'top-left':
+          x = padding;
+          y = padding;
+          break;
+        case 'bottom-right':
+        default:
+          x = canvasWidth - webcamWidth - padding;
+          y = canvasHeight - webcamHeight - padding;
+          break;
+      }
+    }
+
+    ctx.save();
+
+    if (webcamSettings.shadowIntensity > 0) {
+      const intensity = webcamSettings.shadowIntensity / 100;
+      ctx.shadowColor = `rgba(0, 0, 0, ${0.5 * intensity})`;
+      ctx.shadowBlur = 20 * intensity;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 4 * intensity;
+    }
+
+    ctx.beginPath();
+    const shape: WebcamShape = webcamSettings.shape;
+    if (shape === 'circle') {
+      ctx.arc(
+        x + webcamWidth / 2,
+        y + webcamHeight / 2,
+        Math.min(webcamWidth, webcamHeight) / 2,
+        0,
+        Math.PI * 2
+      );
+    } else if (shape === 'square') {
+      ctx.rect(x, y, webcamWidth, webcamHeight);
+    } else {
+      const scaledRadius = 16 * (canvasWidth / 1920);
+      ctx.roundRect(x, y, webcamWidth, webcamHeight, scaledRadius);
+    }
+
+    ctx.clip();
+
+    // Fill first so shadow is applied to the shape, not video details
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Mirror horizontally (equivalent to CSS scaleX(-1))
+    ctx.translate(x + webcamWidth, y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(webcamVideo, 0, 0, webcamWidth, webcamHeight);
+
+    ctx.restore();
   }
 
   private updateLayout(): void {

@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { fixWebmDuration } from "@fix-webm-duration/fix";
+import { toast } from "sonner";
 
 type UseScreenRecorderOptions = {
   audioStream?: MediaStream | null;
   autoZoomEnabled?: boolean;
   keysEnabled?: boolean;
+  camEnabled?: boolean;
+  camStream?: MediaStream | null;
 };
 
 type UseScreenRecorderReturn = {
@@ -19,6 +22,13 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
   const videoStream = useRef<MediaStream | null>(null); // Store original video stream for cleanup
   const chunks = useRef<Blob[]>([]);
   const startTime = useRef<number>(0);
+
+  // Webcam dual-recording refs
+  const camRecorder = useRef<MediaRecorder | null>(null);
+  const camStreamRef = useRef<MediaStream | null>(null);
+  const camChunks = useRef<Blob[]>([]);
+  const sharedTimestamp = useRef<number>(0);
+  const camStoppedPromise = useRef<Promise<void> | null>(null);
 
   // Target visually lossless 4K @ 60fps; fall back gracefully when hardware cannot keep up
   const TARGET_FRAME_RATE = 60;
@@ -80,6 +90,15 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         videoStream.current.getTracks().forEach(track => track.stop());
         videoStream.current = null;
       }
+      // Stop webcam recorder if active
+      if (camRecorder.current?.state === "recording") {
+        camRecorder.current.stop();
+      }
+      // Stop webcam stream tracks
+      if (camStreamRef.current) {
+        camStreamRef.current.getTracks().forEach(track => track.stop());
+        camStreamRef.current = null;
+      }
       mediaRecorder.current.stop();
       setRecording(false);
 
@@ -117,6 +136,14 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       if (videoStream.current) {
         videoStream.current.getTracks().forEach(track => track.stop());
         videoStream.current = null;
+      }
+      // Clean up webcam resources
+      if (camRecorder.current?.state === "recording") {
+        camRecorder.current.stop();
+      }
+      if (camStreamRef.current) {
+        camStreamRef.current.getTracks().forEach(track => track.stop());
+        camStreamRef.current = null;
       }
       stream.current = null;
     };
@@ -209,6 +236,53 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         if (e.data && e.data.size > 0) chunks.current.push(e.data);
       };
 
+      // Generate shared timestamp ONCE for both screen and webcam filenames
+      sharedTimestamp.current = Date.now();
+
+      // Attempt webcam recording if enabled
+      if (options?.camEnabled) {
+        try {
+          const webcamStream = options.camStream ?? await navigator.mediaDevices.getUserMedia({
+            video: { width: 1280, height: 720, frameRate: 30 },
+            audio: false,
+          });
+          camStreamRef.current = webcamStream;
+          camChunks.current = [];
+
+          const webcamMimeType = selectMimeType();
+          const webcamRecorder = new MediaRecorder(webcamStream, {
+            mimeType: webcamMimeType,
+            videoBitsPerSecond: 2_000_000,
+          });
+          camRecorder.current = webcamRecorder;
+
+          webcamRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) camChunks.current.push(e.data);
+          };
+
+          camStoppedPromise.current = new Promise<void>((resolve) => {
+            webcamRecorder.onstop = () => resolve();
+          });
+
+          webcamRecorder.onerror = () => {
+            console.warn('Webcam recorder error, continuing with screen recording');
+          };
+
+          webcamRecorder.start(1000);
+          console.log('Recording screen + webcam');
+        } catch (camError) {
+          console.warn('Failed to initialize webcam, recording screen only:', camError);
+          toast.warning('Camera unavailable — recording screen only');
+          camRecorder.current = null;
+          camStreamRef.current = null;
+          camChunks.current = [];
+          camStoppedPromise.current = null;
+          console.log('Recording screen only');
+        }
+      } else {
+        console.log('Recording screen only');
+      }
+
       // Start auto zoom detection if enabled
       if (options?.autoZoomEnabled && window.electronAPI?.autoZoom) {
         const recordingId = `recording-${Date.now()}`;
@@ -248,7 +322,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         const buggyBlob = new Blob(recordedChunks, { type: mimeType });
         // Clear chunks early to free memory immediately after blob creation
         chunks.current = [];
-        const timestamp = Date.now();
+        const timestamp = sharedTimestamp.current;
         const videoFileName = `recording-${timestamp}.webm`;
         const eventsFileName = `recording-${timestamp}.events.json`;
 
@@ -259,6 +333,27 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           if (!videoResult.success) {
             console.error('Failed to store video:', videoResult.message);
             return;
+          }
+
+          // Process webcam recording if active
+          if (camStoppedPromise.current) {
+            try {
+              await camStoppedPromise.current;
+              if (camChunks.current.length > 0) {
+                const webcamBuggyBlob = new Blob(camChunks.current, { type: selectMimeType() });
+                camChunks.current = [];
+                const webcamBlob = await fixWebmDuration(webcamBuggyBlob, duration);
+                const webcamArrayBuffer = await webcamBlob.arrayBuffer();
+                const webcamFileName = `recording-${timestamp}.webcam.webm`;
+                const webcamResult = await window.electronAPI.storeRecordedVideo(webcamArrayBuffer, webcamFileName);
+                if (!webcamResult.success) {
+                  console.warn('Failed to store webcam recording:', webcamResult.message);
+                }
+              }
+            } catch (webcamError) {
+              console.warn('Failed to process webcam recording:', webcamError);
+            }
+            camStoppedPromise.current = null;
           }
 
           // Stop auto zoom detection and save events if enabled
@@ -312,6 +407,14 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         videoStream.current.getTracks().forEach(track => track.stop());
         videoStream.current = null;
       }
+      // Clean up webcam on failure
+      if (camStreamRef.current) {
+        camStreamRef.current.getTracks().forEach(track => track.stop());
+        camStreamRef.current = null;
+      }
+      camRecorder.current = null;
+      camChunks.current = [];
+      camStoppedPromise.current = null;
       stream.current = null;
     }
   };
