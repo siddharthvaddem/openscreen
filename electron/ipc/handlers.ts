@@ -25,7 +25,31 @@ import {
   isEncryptionAvailable 
 } from '../services/secureStorage'
 
-let selectedSource: any = null
+interface SelectedSource {
+  name: string
+}
+
+function sanitizeFileName(fileName: string): string {
+  const basename = path.basename(fileName)
+  if (!basename || basename === '.' || basename === '..') {
+    throw new Error('Invalid file name')
+  }
+  return basename
+}
+
+function validatePathWithinDir(filePath: string, allowedDir: string): boolean {
+  const resolved = path.resolve(filePath)
+  const resolvedDir = path.resolve(allowedDir)
+  return resolved === resolvedDir || resolved.startsWith(resolvedDir + path.sep)
+}
+
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && 'code' in error
+}
+
+let selectedSource: SelectedSource | null = null
+let currentVideoPath: string | null = null;
+const explicitlySelectedVideoPaths = new Set<string>()
 
 export function registerIpcHandlers(
   createEditorWindow: () => void,
@@ -46,7 +70,7 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle('select-source', (_, source) => {
-    selectedSource = source
+    selectedSource = source as SelectedSource
     const sourceSelectorWin = getSourceSelectorWindow()
     if (sourceSelectorWin) {
       sourceSelectorWin.close()
@@ -79,7 +103,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle('store-recorded-video', async (_, videoData: ArrayBuffer, fileName: string) => {
     try {
-      const videoPath = path.join(RECORDINGS_DIR, fileName)
+      const videoPath = path.join(RECORDINGS_DIR, sanitizeFileName(fileName))
       await fs.writeFile(videoPath, Buffer.from(videoData))
       currentVideoPath = videoPath;
       return {
@@ -119,9 +143,9 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle('set-recording-state', (_, recording: boolean) => {
-    const source = selectedSource || { name: 'Screen' }
+    const sourceName = selectedSource?.name ?? 'Screen'
     if (onRecordingStateChange) {
-      onRecordingStateChange(recording, source.name)
+      onRecordingStateChange(recording, sourceName)
     }
   })
 
@@ -206,9 +230,12 @@ export function registerIpcHandlers(
         return { success: false, cancelled: true };
       }
 
+      const selectedPath = path.resolve(result.filePaths[0])
+      explicitlySelectedVideoPaths.add(selectedPath)
+
       return {
         success: true,
-        path: result.filePaths[0]
+        path: selectedPath
       };
     } catch (error) {
       console.error('Failed to open file picker:', error);
@@ -219,8 +246,6 @@ export function registerIpcHandlers(
       };
     }
   });
-
-  let currentVideoPath: string | null = null;
 
   ipcMain.handle('set-current-video-path', (_, path: string) => {
     currentVideoPath = path;
@@ -331,7 +356,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle('auto-zoom:save-events', async (_, eventData: MouseEventData, fileName: string) => {
     try {
-      const eventsPath = path.join(RECORDINGS_DIR, fileName);
+      const eventsPath = path.join(RECORDINGS_DIR, sanitizeFileName(fileName));
       await fs.writeFile(eventsPath, JSON.stringify(eventData, null, 2));
       return { success: true, path: eventsPath };
     } catch (error) {
@@ -342,14 +367,22 @@ export function registerIpcHandlers(
 
   ipcMain.handle('auto-zoom:get-events', async (_, videoPath: string) => {
     try {
-      const eventsPath = videoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, '.events.json');
-      
+      const resolvedVideoPath = path.resolve(videoPath)
+      const isInRecordingsDir = validatePathWithinDir(resolvedVideoPath, RECORDINGS_DIR)
+      const isExplicitlySelected = explicitlySelectedVideoPaths.has(resolvedVideoPath)
+
+      if (!isInRecordingsDir && !isExplicitlySelected) {
+        return { success: false, error: 'Invalid video path' }
+      }
+
+      const eventsPath = resolvedVideoPath.replace(/\.(webm|mp4|mov|avi|mkv)$/i, '.events.json');
+
       try {
         const data = await fs.readFile(eventsPath, 'utf-8');
         const eventData = JSON.parse(data) as MouseEventData;
         return { success: true, data: eventData };
-      } catch (readError: any) {
-        if (readError.code === 'ENOENT') {
+      } catch (readError: unknown) {
+        if (isErrnoException(readError) && (readError as NodeJS.ErrnoException).code === 'ENOENT') {
           return { success: false, notFound: true };
         }
         throw readError;

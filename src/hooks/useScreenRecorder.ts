@@ -25,6 +25,27 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
   const TARGET_WIDTH = 3840;
   const TARGET_HEIGHT = 2160;
   const FOUR_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
+
+  type DesktopCaptureMandatoryConstraints = {
+    chromeMediaSource: 'desktop';
+    chromeMediaSourceId: string;
+    maxWidth: number;
+    maxHeight: number;
+    maxFrameRate: number;
+    minFrameRate: number;
+  };
+
+  type DesktopCaptureConstraints = Omit<MediaStreamConstraints, 'video'> & {
+    video: MediaTrackConstraints & { mandatory: DesktopCaptureMandatoryConstraints };
+  };
+
+  const getDesktopMediaStream = (constraints: DesktopCaptureConstraints): Promise<MediaStream> => {
+    const mediaDevices = navigator.mediaDevices as MediaDevices & {
+      getUserMedia: (constraints: DesktopCaptureConstraints) => Promise<MediaStream>;
+    };
+    return mediaDevices.getUserMedia(constraints);
+  };
+
   const selectMimeType = () => {
     const preferred = [
       "video/webm;codecs=av1",
@@ -102,6 +123,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
   }, []);
 
   const startRecording = async () => {
+    if (recording || mediaRecorder.current?.state === "recording") return;
     try {
       const selectedSource = await window.electronAPI.getSelectedSource();
       if (!selectedSource) {
@@ -109,7 +131,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         return;
       }
 
-      const mediaStream = await (navigator.mediaDevices as any).getUserMedia({
+      const mediaStream = await getDesktopMediaStream({
         audio: false,
         video: {
           mandatory: {
@@ -140,7 +162,8 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         console.warn("Unable to lock 4K/60fps constraints, using best available track settings.", error);
       }
 
-      let { width = 1920, height = 1080, frameRate = TARGET_FRAME_RATE } = videoTrack.getSettings();
+      let { width = 1920, height = 1080 } = videoTrack.getSettings();
+      const { frameRate = TARGET_FRAME_RATE } = videoTrack.getSettings();
       
       // Ensure dimensions are divisible by 2 for VP9/AV1 codec compatibility
       width = Math.floor(width / 2) * 2;

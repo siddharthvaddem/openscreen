@@ -45,6 +45,20 @@ export interface KeystrokeEditorSettingsStore {
 const KEYSTROKE_EDITOR_SETTINGS_FILE_NAME = 'keystroke-editor-settings.json';
 const CURRENT_VERSION = 1;
 
+function sanitizeFileName(fileName: string): string {
+  const basename = path.basename(fileName)
+  if (!basename || basename === '.' || basename === '..') {
+    throw new Error('Invalid file name')
+  }
+  return basename
+}
+
+function validatePathWithinDir(filePath: string, allowedDir: string): boolean {
+  const resolved = path.resolve(filePath)
+  const resolvedDir = path.resolve(allowedDir)
+  return resolved === resolvedDir || resolved.startsWith(resolvedDir + path.sep)
+}
+
 function getKeystrokeEditorSettingsFilePath(): string {
   return path.join(app.getPath('userData'), KEYSTROKE_EDITOR_SETTINGS_FILE_NAME);
 }
@@ -274,7 +288,8 @@ export function registerKeystrokeEditorIpcHandlers(recordingsDir: string): void 
     'keystroke-editor:save-events',
     async (_, eventData: KeystrokeEventData, fileName: string) => {
       try {
-        const filePath = path.join(recordingsDir, fileName);
+        const safeName = sanitizeFileName(fileName)
+        const filePath = path.join(recordingsDir, safeName);
         const result = await saveKeystrokeEvents(eventData, filePath);
         
         // Requirement 10.2: Log error but return gracefully
@@ -306,7 +321,12 @@ export function registerKeystrokeEditorIpcHandlers(recordingsDir: string): void 
    */
   ipcMain.handle('keystroke-editor:load-events', async (_, videoPath: string) => {
     try {
-      const keystrokeFilePath = getKeystrokeFilePathFromVideo(videoPath);
+      const resolvedVideoPath = path.resolve(videoPath)
+      if (!validatePathWithinDir(resolvedVideoPath, recordingsDir)) {
+        return { success: false, error: 'Invalid video path' }
+      }
+
+      const keystrokeFilePath = getKeystrokeFilePathFromVideo(resolvedVideoPath);
       const result = await loadKeystrokeEvents(keystrokeFilePath);
       
       // Requirement 10.3: Log error but return gracefully for corrupt files

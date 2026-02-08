@@ -311,7 +311,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
-      
+      // intentionally empty
     }
   };
 

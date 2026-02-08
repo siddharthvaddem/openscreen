@@ -46,20 +46,20 @@ export async function readPresetsStore(): Promise<PresetStore> {
     const filePath = getPresetsFilePath()
     const data = await fs.readFile(filePath, 'utf-8')
     const store = JSON.parse(data) as PresetStore
-    
+
     // Basic validation
     if (!store.presets || !Array.isArray(store.presets)) {
       console.warn('Invalid presets file, creating new store')
       return createEmptyStore()
     }
-    
+
     return store
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
       // File doesn't exist, return empty store
       return createEmptyStore()
     }
-    
+
     // Corrupt file - backup and start fresh
     console.error('Failed to read presets file:', error)
     try {

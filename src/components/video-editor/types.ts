@@ -175,7 +175,8 @@ export const DEFAULT_PRESET_SETTINGS: PresetSettings = {
   autoZoom: DEFAULT_AUTO_ZOOM_SETTINGS,
 };
 
-export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
+export function clampFocusToDepth(focus: ZoomFocus, depth: ZoomDepth): ZoomFocus {
+  void depth;
   return {
     cx: clamp(focus.cx, 0, 1),
     cy: clamp(focus.cy, 0, 1),

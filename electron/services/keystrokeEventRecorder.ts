@@ -112,6 +112,7 @@ class KeystrokeEventRecorder implements KeystrokeEventRecorderInterface {
 
     // Remove event handler from keystroke service
     keystrokeService.removeEventListener();
+    keystrokeService.stop();
     this.eventHandler = null;
 
     // Create the event data object

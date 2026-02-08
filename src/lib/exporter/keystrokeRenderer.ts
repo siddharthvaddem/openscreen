@@ -148,7 +148,7 @@ function getAnimationValues(
         scale: 1,
       };
     
-    case 'slide-up':
+    case 'slide-up': {
       // Slide from below (positive Y) to position (0)
       const slideUpOffset = isEntering 
         ? (1 - easedProgress) * 20 
@@ -158,8 +158,8 @@ function getAnimationValues(
         translateY: slideUpOffset,
         scale: 1,
       };
-    
-    case 'slide-down':
+    }
+    case 'slide-down': {
       // Slide from above (negative Y) to position (0)
       const slideDownOffset = isEntering 
         ? (1 - easedProgress) * -20 
@@ -169,8 +169,9 @@ function getAnimationValues(
         translateY: slideDownOffset,
         scale: 1,
       };
+    }
     
-    case 'scale':
+    case 'scale': {
       // Scale from small to full size
       const scaleValue = 0.8 + (easedProgress * 0.2);
       return {
@@ -178,6 +179,7 @@ function getAnimationValues(
         translateY: 0,
         scale: scaleValue,
       };
+    }
     
     case 'none':
     default:
@@ -217,8 +219,7 @@ function parseKeystrokeTextToKeys(text: string): ParsedKeyForRender[] {
 function measureKeycapWidth(
   ctx: CanvasRenderingContext2D,
   key: ParsedKeyForRender,
-  scaledFontSize: number,
-  _scaleFactor: number
+  scaledFontSize: number
 ): number {
   const minSize = scaledFontSize * KEYCAP_STYLE.minSizeRatio;
   const horizontalPadding = scaledFontSize * KEYCAP_STYLE.horizontalPaddingRatio;
@@ -250,8 +251,7 @@ function measureKeycapWidth(
 function measureKeycapGroupWidth(
   ctx: CanvasRenderingContext2D,
   keys: ParsedKeyForRender[],
-  scaledFontSize: number,
-  scaleFactor: number
+  scaledFontSize: number
 ): number {
   if (keys.length === 0) return 0;
   
@@ -259,7 +259,7 @@ function measureKeycapGroupWidth(
   let totalWidth = 0;
   
   for (let i = 0; i < keys.length; i++) {
-    totalWidth += measureKeycapWidth(ctx, keys[i], scaledFontSize, scaleFactor);
+    totalWidth += measureKeycapWidth(ctx, keys[i], scaledFontSize);
     if (i < keys.length - 1) {
       totalWidth += gap;
     }
@@ -485,7 +485,7 @@ export function renderKeystroke(
     const scaledFontSize = baseFontSize * style.textScale * scaleFactor;
     
     // Calculate keycap group dimensions
-    const groupWidth = measureKeycapGroupWidth(ctx, keys, scaledFontSize, scaleFactor);
+    const groupWidth = measureKeycapGroupWidth(ctx, keys, scaledFontSize);
     const groupHeight = scaledFontSize * KEYCAP_STYLE.outerHeightRatio;
 
     // Calculate stack offset for multiple overlays
@@ -504,8 +504,8 @@ export function renderKeystroke(
     );
 
     // Apply animation transforms
-    let x = position.x - groupWidth / 2;
-    let y = position.y - groupHeight / 2 + animationValues.translateY * scaleFactor;
+    const x = position.x - groupWidth / 2;
+    const y = position.y - groupHeight / 2 + animationValues.translateY * scaleFactor;
 
     ctx.save();
 

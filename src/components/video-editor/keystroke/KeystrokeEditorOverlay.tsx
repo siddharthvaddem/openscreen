@@ -287,7 +287,7 @@ function getAnimationStyles(
         opacity: easedProgress,
       };
     
-    case 'slide-up':
+    case 'slide-up': {
       // Slide from below (positive Y) to position (0)
       const slideUpOffset = isEntering 
         ? (1 - easedProgress) * 20 
@@ -296,8 +296,9 @@ function getAnimationStyles(
         opacity: easedProgress,
         transform: `translateY(${slideUpOffset}px)`,
       };
+    }
     
-    case 'slide-down':
+    case 'slide-down': {
       // Slide from above (negative Y) to position (0)
       const slideDownOffset = isEntering 
         ? (1 - easedProgress) * -20 
@@ -306,14 +307,16 @@ function getAnimationStyles(
         opacity: easedProgress,
         transform: `translateY(${slideDownOffset}px)`,
       };
+    }
     
-    case 'scale':
+    case 'scale': {
       // Scale from small to full size
       const scale = 0.8 + (easedProgress * 0.2);
       return {
         opacity: easedProgress,
         transform: `scale(${scale})`,
       };
+    }
     
     case 'none':
     default:
@@ -372,154 +375,147 @@ export function KeystrokeEditorOverlay({
   void onPositionChange;
   void stackCount;
 
-  // Requirement 10.4: Wrap rendering in try-catch to handle errors gracefully
-  try {
-    const { style, startMs, endMs } = keystroke;
-    const { fadeDurationMs, animationIn, animationOut } = style;
+  const { style, startMs, endMs } = keystroke;
+  const { fadeDurationMs, animationIn, animationOut } = style;
     
-    // Calculate animation phase and progress based on current time
-    const animationState = useMemo(() => {
-      try {
-        // If no currentTimeMs provided, show fully visible (for editor preview)
-        if (currentTimeMs === undefined) {
-          return { phase: 'visible' as AnimationPhase, progress: 1 };
-        }
-        
-        const phase = calculateAnimationPhase(currentTimeMs, startMs, endMs, fadeDurationMs);
-        const progress = calculateAnimationProgress(currentTimeMs, startMs, endMs, fadeDurationMs, phase);
-        
-        return { phase, progress };
-      } catch (error) {
-        // Requirement 10.4: Log error and return safe default
-        console.error('[KeystrokeEditorOverlay] Error calculating animation state:', error);
+  // Calculate animation phase and progress based on current time
+  const animationState = useMemo(() => {
+    try {
+      // If no currentTimeMs provided, show fully visible (for editor preview)
+      if (currentTimeMs === undefined) {
         return { phase: 'visible' as AnimationPhase, progress: 1 };
       }
-    }, [currentTimeMs, startMs, endMs, fadeDurationMs]);
+      
+      const phase = calculateAnimationPhase(currentTimeMs, startMs, endMs, fadeDurationMs);
+      const progress = calculateAnimationProgress(currentTimeMs, startMs, endMs, fadeDurationMs, phase);
+      
+      return { phase, progress };
+    } catch (error) {
+      // Requirement 10.4: Log error and return safe default
+      console.error('[KeystrokeEditorOverlay] Error calculating animation state:', error);
+      return { phase: 'visible' as AnimationPhase, progress: 1 };
+    }
+  }, [currentTimeMs, startMs, endMs, fadeDurationMs]);
     
-    // Get animation styles based on current phase
-    const animationStyles = useMemo(() => {
-      try {
-        const { phase, progress } = animationState;
-        
-        if (phase === 'hidden') {
-          return { opacity: 0, visibility: 'hidden' as const };
-        }
-        
-        if (phase === 'visible') {
-          return { opacity: 1 };
-        }
-        
-        const preset = phase === 'entering' ? animationIn : animationOut;
-        const isEntering = phase === 'entering';
-        
-        return getAnimationStyles(preset, progress, isEntering);
-      } catch (error) {
-        // Requirement 10.4: Log error and return safe default
-        console.error('[KeystrokeEditorOverlay] Error calculating animation styles:', error);
+  // Get animation styles based on current phase
+  const animationStyles = useMemo(() => {
+    try {
+      const { phase, progress } = animationState;
+      
+      if (phase === 'hidden') {
+        return { opacity: 0, visibility: 'hidden' as const };
+      }
+      
+      if (phase === 'visible') {
         return { opacity: 1 };
       }
-    }, [animationState, animationIn, animationOut]);
-    
-    // Base font size for keycap calculations (matches KeyCap.tsx)
-    const BASE_FONT_SIZE = 16;
-    const scaledFontSize = BASE_FONT_SIZE * style.textScale;
-    
-    // Estimate element width based on number of keys and keycap sizing
-    // Each keycap has minWidth = fontSize * 2.25, plus gap = fontSize * 0.5
-    const keycapMinWidth = scaledFontSize * 2.25;
-    const keycapGap = scaledFontSize * 0.5;
-    const numKeys = keystroke.text.split(/\s*\+\s*/).filter(p => p.trim().length > 0).length;
-    const estimatedElementWidth = Math.min(
-      containerWidth * 0.8, 
-      numKeys * keycapMinWidth + (numKeys - 1) * keycapGap + 16 // Add small padding
-    );
-    
-    // Calculate vertical stacking offset for multiple overlays at the same position
-    // Each overlay is offset by approximately the element height + gap
-    const elementHeight = 50; // Approximate height of keystroke element
-    const stackGap = 8; // Gap between stacked overlays
-    const stackOffset = stackIndex * (elementHeight + stackGap);
-    
-    const position = getPositionFromPreset(
-      keystroke.positionPreset,
-      containerWidth,
-      containerHeight,
-      estimatedElementWidth,
-      stackOffset
-    );
-
-    // Parse keystroke text into keys for keyviz-style display
-    const parsedKeys = useMemo(() => {
-      try {
-        return parseKeystrokeTextToKeys(keystroke.text);
-      } catch (error) {
-        console.error('[KeystrokeEditorOverlay] Error parsing keystroke text:', error);
-        // Fallback: return single key with the raw text
-        return [{ name: keystroke.text, icon: undefined, isModifier: false }];
-      }
-    }, [keystroke.text]);
-
-    const renderContent = () => {
-      return (
-        <div
-          ref={textRef}
-          className="inline-flex items-center"
-          style={{
-            // Apply animation styles to the content
-            ...animationStyles,
-            // Smooth transition for animation
-            transition: animationState.phase === 'visible' ? 'none' : undefined,
-          }}
-        >
-          <KeyCapGroup keys={parsedKeys} textScale={style.textScale} />
-        </div>
-      );
-    };
-
-    // Don't render if hidden
-    if (animationState.phase === 'hidden') {
-      return null;
+      
+      const preset = phase === 'entering' ? animationIn : animationOut;
+      const isEntering = phase === 'entering';
+      
+      return getAnimationStyles(preset, progress, isEntering);
+    } catch (error) {
+      // Requirement 10.4: Log error and return safe default
+      console.error('[KeystrokeEditorOverlay] Error calculating animation styles:', error);
+      return { opacity: 1 };
     }
+  }, [animationState, animationIn, animationOut]);
+    
+  // Base font size for keycap calculations (matches KeyCap.tsx)
+  const BASE_FONT_SIZE = 16;
+  const scaledFontSize = BASE_FONT_SIZE * style.textScale;
+  
+  // Estimate element width based on number of keys and keycap sizing
+  // Each keycap has minWidth = fontSize * 2.25, plus gap = fontSize * 0.5
+  const keycapMinWidth = scaledFontSize * 2.25;
+  const keycapGap = scaledFontSize * 0.5;
+  const numKeys = keystroke.text.split(/\s*\+\s*/).filter(p => p.trim().length > 0).length;
+  const estimatedElementWidth = Math.min(
+    containerWidth * 0.8, 
+    numKeys * keycapMinWidth + (numKeys - 1) * keycapGap + 16 // Add small padding
+  );
+  
+  // Calculate vertical stacking offset for multiple overlays at the same position
+  // Each overlay is offset by approximately the element height + gap
+  const elementHeight = 50; // Approximate height of keystroke element
+  const stackGap = 8; // Gap between stacked overlays
+  const stackOffset = stackIndex * (elementHeight + stackGap);
+  
+  const position = getPositionFromPreset(
+    keystroke.positionPreset,
+    containerWidth,
+    containerHeight,
+    estimatedElementWidth,
+    stackOffset
+  );
 
-    // Keystroke overlays are not draggable - position is controlled by preset
-    const enableDrag = false;
+  // Parse keystroke text into keys for keyviz-style display
+  const parsedKeys = useMemo(() => {
+    try {
+      return parseKeystrokeTextToKeys(keystroke.text);
+    } catch (error) {
+      console.error('[KeystrokeEditorOverlay] Error parsing keystroke text:', error);
+      // Fallback: return single key with the raw text
+      return [{ name: keystroke.text, icon: undefined, isModifier: false }];
+    }
+  }, [keystroke.text]);
 
+  const renderContent = () => {
     return (
-      <Rnd
-        position={{ x: position.x, y: position.y }}
-        size={{ width: 'auto', height: 'auto' }}
-        enableResizing={false}
-        disableDragging={!enableDrag}
-        onDragStart={() => {
-          isDraggingRef.current = true;
-        }}
-        onDragStop={() => {
-          setTimeout(() => {
-            isDraggingRef.current = false;
-          }, 100);
-        }}
-        onClick={() => {
-          if (isDraggingRef.current) return;
-          onClick(keystroke.id);
-        }}
-        bounds="parent"
-        className={cn(
-          "cursor-pointer transition-all",
-          isSelected && "ring-2 ring-[#34B27B] ring-offset-2 ring-offset-transparent"
-        )}
+      <div
+        ref={textRef}
+        className="inline-flex items-center"
         style={{
-          // Z-index: selected overlays get highest priority, then stack by index
-          // Base z-index is 100, each stack level adds 1, selected gets 1000
-          zIndex: isSelected ? 1000 : 100 + stackIndex,
-          pointerEvents: isSelected ? 'auto' : 'none',
+          // Apply animation styles to the content
+          ...animationStyles,
+          // Smooth transition for animation
+          transition: animationState.phase === 'visible' ? 'none' : undefined,
         }}
       >
-        {renderContent()}
-      </Rnd>
+        <KeyCapGroup keys={parsedKeys} textScale={style.textScale} />
+      </div>
     );
-  } catch (error) {
-    // Requirement 10.4: Log error and continue playback without overlay
-    console.error('[KeystrokeEditorOverlay] Rendering error, skipping overlay:', error);
+  };
+
+  // Don't render if hidden
+  if (animationState.phase === 'hidden') {
     return null;
   }
+
+  // Keystroke overlays are not draggable - position is controlled by preset
+  const enableDrag = false;
+
+  return (
+    <Rnd
+      position={{ x: position.x, y: position.y }}
+      size={{ width: 'auto', height: 'auto' }}
+      enableResizing={false}
+      disableDragging={!enableDrag}
+      onDragStart={() => {
+        isDraggingRef.current = true;
+      }}
+      onDragStop={() => {
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 100);
+      }}
+      onClick={() => {
+        if (isDraggingRef.current) return;
+        onClick(keystroke.id);
+      }}
+      bounds="parent"
+      className={cn(
+        "cursor-pointer transition-all",
+        isSelected && "ring-2 ring-[#34B27B] ring-offset-2 ring-offset-transparent"
+      )}
+      style={{
+        // Z-index: selected overlays get highest priority, then stack by index
+        // Base z-index is 100, each stack level adds 1, selected gets 1000
+        zIndex: isSelected ? 1000 : 100 + stackIndex,
+        pointerEvents: isSelected ? 'auto' : 'none',
+      }}
+    >
+      {renderContent()}
+    </Rnd>
+  );
 }

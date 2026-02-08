@@ -15,6 +15,13 @@ interface SecureStorageSchema {
   };
 }
 
+const ALLOWED_SERVICES = ['assemblyai'] as const
+type AllowedService = (typeof ALLOWED_SERVICES)[number]
+
+function isValidService(service: string): service is AllowedService {
+  return ALLOWED_SERVICES.includes(service as AllowedService)
+}
+
 const store = new Store<SecureStorageSchema>({
   name: 'secure-storage',
   schema: {
@@ -45,6 +52,10 @@ export function isEncryptionAvailable(): boolean {
  */
 export function setApiKey(service: string, apiKey: string): { success: boolean; error?: string } {
   try {
+    if (!isValidService(service)) {
+      return { success: false, error: `Unknown service: ${service}` }
+    }
+
     if (!safeStorage.isEncryptionAvailable()) {
       return {
         success: false,
@@ -63,7 +74,7 @@ export function setApiKey(service: string, apiKey: string): { success: boolean; 
     const encryptedBase64 = encrypted.toString('base64');
 
     const apiKeys = store.get('apiKeys', {});
-    apiKeys[service as keyof SecureStorageSchema['apiKeys']] = encryptedBase64;
+    apiKeys[service] = encryptedBase64;
     store.set('apiKeys', apiKeys);
 
     return { success: true };
@@ -81,13 +92,17 @@ export function setApiKey(service: string, apiKey: string): { success: boolean; 
  * @param service - The service name (e.g., 'assemblyai')
  * @returns Object with success status, apiKey (if found), and optional error message
  */
-export function getApiKey(service: string): { 
-  success: boolean; 
-  apiKey?: string; 
+export function getApiKey(service: string): {
+  success: boolean;
+  apiKey?: string;
   error?: string;
   notFound?: boolean;
 } {
   try {
+    if (!isValidService(service)) {
+      return { success: false, error: `Unknown service: ${service}` }
+    }
+
     if (!safeStorage.isEncryptionAvailable()) {
       return {
         success: false,
@@ -96,7 +111,7 @@ export function getApiKey(service: string): {
     }
 
     const apiKeys = store.get('apiKeys', {});
-    const encryptedBase64 = apiKeys[service as keyof SecureStorageSchema['apiKeys']];
+    const encryptedBase64 = apiKeys[service];
 
     if (!encryptedBase64) {
       return {
@@ -129,8 +144,12 @@ export function getApiKey(service: string): {
  */
 export function deleteApiKey(service: string): { success: boolean; error?: string } {
   try {
+    if (!isValidService(service)) {
+      return { success: false, error: `Unknown service: ${service}` }
+    }
+
     const apiKeys = store.get('apiKeys', {});
-    
+
     if (!(service in apiKeys)) {
       return {
         success: false,
@@ -138,7 +157,7 @@ export function deleteApiKey(service: string): { success: boolean; error?: strin
       };
     }
 
-    delete apiKeys[service as keyof SecureStorageSchema['apiKeys']];
+    delete apiKeys[service];
     store.set('apiKeys', apiKeys);
 
     return { success: true };
@@ -158,6 +177,10 @@ export function deleteApiKey(service: string): { success: boolean; error?: strin
  */
 export function hasApiKey(service: string): boolean {
   try {
+    if (!isValidService(service)) {
+      return false
+    }
+
     const apiKeys = store.get('apiKeys', {});
     return service in apiKeys;
   } catch (error) {

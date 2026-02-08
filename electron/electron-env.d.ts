@@ -28,13 +28,13 @@ interface Window {
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
     switchToEditor: () => Promise<void>
     openSourceSelector: () => Promise<void>
-    selectSource: (source: any) => Promise<any>
-    getSelectedSource: () => Promise<any>
+    selectSource: (source: ProcessedDesktopSource) => Promise<ProcessedDesktopSource | null>
+    getSelectedSource: () => Promise<ProcessedDesktopSource | null>
     storeRecordedVideo: (videoData: ArrayBuffer, fileName: string) => Promise<{ success: boolean; path?: string; message?: string }>
     getRecordedVideoPath: () => Promise<{ success: boolean; path?: string; message?: string }>
     setRecordingState: (recording: boolean) => Promise<void>
-    onStopRecordingFromTray: (callback: () => void) => () => void
-    onStartRecordingFromShortcut: (callback: () => void) => () => void
+    onStopRecordingFromTray: (callback: (event: unknown) => void) => () => void
+    onStartRecordingFromShortcut: (callback: (event: unknown, ...args: unknown[]) => void) => () => void
     openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>
     saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => Promise<{ success: boolean; path?: string; message?: string; cancelled?: boolean }>
     openVideoFilePicker: () => Promise<{ success: boolean; path?: string; cancelled?: boolean }>
@@ -75,9 +75,9 @@ interface Window {
     // Auto Zoom API
     autoZoom: {
       startDetection: (recordingId: string, screenBounds: { width: number; height: number }) => Promise<{ success: boolean; error?: string }>
-      stopDetection: () => Promise<{ success: boolean; data?: any; error?: string }>
-      saveEvents: (eventData: any, fileName: string) => Promise<{ success: boolean; path?: string; error?: string }>
-      getEvents: (videoPath: string) => Promise<{ success: boolean; data?: any; notFound?: boolean; error?: string }>
+      stopDetection: () => Promise<{ success: boolean; data?: MouseEventData; error?: string }>
+      saveEvents: (eventData: MouseEventData, fileName: string) => Promise<{ success: boolean; path?: string; error?: string }>
+      getEvents: (videoPath: string) => Promise<{ success: boolean; data?: MouseEventData; notFound?: boolean; error?: string }>
       isRunning: () => Promise<boolean>
     }
     // Keystroke Editor API
@@ -111,6 +111,34 @@ interface ProcessedDesktopSource {
   display_id: string
   thumbnail: string | null
   appIcon: string | null
+}
+
+interface MouseClickEvent {
+  type: 'click'
+  timestamp: number
+  x: number
+  y: number
+  button: 'left' | 'right' | 'middle'
+}
+
+interface MouseDragEvent {
+  type: 'drag'
+  startTimestamp: number
+  endTimestamp: number
+  startX: number
+  startY: number
+  endX: number
+  endY: number
+}
+
+type AutoZoomMouseEvent = MouseClickEvent | MouseDragEvent
+
+interface MouseEventData {
+  version: 1
+  recordingId: string
+  screenWidth: number
+  screenHeight: number
+  events: AutoZoomMouseEvent[]
 }
 
 // Preset types for electronAPI

@@ -35,6 +35,11 @@ const windowMock = {
   localStorage: localStorageMock,
 };
 
+const testGlobals = globalThis as typeof globalThis & {
+  window?: typeof windowMock;
+  localStorage?: typeof localStorageMock;
+};
+
 // Setup global window and localStorage mock before tests
 beforeEach(() => {
   vi.resetModules();
@@ -52,14 +57,14 @@ beforeEach(() => {
   });
 
   // Define window globally for node environment
-  (globalThis as any).window = windowMock;
-  (globalThis as any).localStorage = localStorageMock;
+  testGlobals.window = windowMock;
+  testGlobals.localStorage = localStorageMock;
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete (globalThis as any).window;
-  delete (globalThis as any).localStorage;
+  delete testGlobals.window;
+  delete testGlobals.localStorage;
 });
 
 // ============================================
@@ -238,8 +243,8 @@ describe('audioSettings Store', () => {
   describe('Edge Cases', () => {
     it('should handle localStorage unavailable gracefully', async () => {
       // Make localStorage throw
-      delete (globalThis as any).window;
-      (globalThis as any).window = {
+      delete testGlobals.window;
+      testGlobals.window = {
         get localStorage() {
           throw new Error('localStorage is not available');
         },

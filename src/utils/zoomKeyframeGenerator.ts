@@ -126,12 +126,13 @@ function mergeEventGroup(events: MouseEvent[]): MouseEvent {
   }
   
   // Return as click at average position
+  const button = firstEvent.type === 'click' ? firstEvent.button : 'left';
   return {
     type: 'click',
     timestamp: getEventTimestamp(firstEvent),
     x: avgX,
     y: avgY,
-    button: (firstEvent as any).button || 'left',
+    button,
   };
 }
 

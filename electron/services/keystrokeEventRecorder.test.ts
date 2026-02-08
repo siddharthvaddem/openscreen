@@ -40,6 +40,13 @@ vi.mock('./keystrokeService', () => {
 // Import the mocked keystrokeService
 import { keystrokeService } from './keystrokeService';
 
+type MockedKeystrokeService = typeof keystrokeService & {
+  __simulateEvent: (event: InputEvent) => void;
+  __setRunning: (value: boolean) => void;
+};
+
+const mockedKeystrokeService = keystrokeService as MockedKeystrokeService;
+
 describe('KeystrokeEventRecorder', () => {
   let recorder: KeystrokeEventRecorder;
 
@@ -172,7 +179,7 @@ describe('KeystrokeEventRecorder', () => {
       };
 
       // Simulate the event
-      (keystrokeService as any).__simulateEvent(keystrokeEvent);
+      mockedKeystrokeService.__simulateEvent(keystrokeEvent);
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(1);
@@ -195,7 +202,7 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: false, alt: false, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(mouseEvent);
+      mockedKeystrokeService.__simulateEvent(mouseEvent);
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(1);
@@ -217,14 +224,14 @@ describe('KeystrokeEventRecorder', () => {
           button,
           modifiers: { ctrl: false, alt: false, shift: false, meta: false },
         };
-        (keystrokeService as any).__simulateEvent(mouseEvent);
+        mockedKeystrokeService.__simulateEvent(mouseEvent);
       });
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(3);
-      expect((events[0] as any).button).toBe('left');
-      expect((events[1] as any).button).toBe('right');
-      expect((events[2] as any).button).toBe('middle');
+      expect((events[0] as RecordedMouseClickEvent).button).toBe('left');
+      expect((events[1] as RecordedMouseClickEvent).button).toBe('right');
+      expect((events[2] as RecordedMouseClickEvent).button).toBe('middle');
     });
 
     it('should record key code, key name, and modifiers for keystroke (Req 2.4)', () => {
@@ -241,12 +248,12 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: true, alt: false, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(keystrokeEvent);
+      mockedKeystrokeService.__simulateEvent(keystrokeEvent);
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(1);
 
-      const event = events[0] as any;
+      const event = events[0] as RecordedKeystrokeEvent;
       expect(event.type).toBe('keystroke');
       expect(event.keyCode).toBe(0x002E);
       expect(event.keyName).toBe('C'); // From keyNameMapping
@@ -271,12 +278,12 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: true, alt: true, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(mouseEvent);
+      mockedKeystrokeService.__simulateEvent(mouseEvent);
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(1);
 
-      const event = events[0] as any;
+      const event = events[0] as RecordedMouseClickEvent;
       expect(event.type).toBe('mouse');
       expect(event.button).toBe('right');
       expect(event.modifiers).toEqual({
@@ -302,7 +309,7 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: false, alt: false, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(keystrokeEvent);
+      mockedKeystrokeService.__simulateEvent(keystrokeEvent);
 
       const events = recorder.getEvents();
       expect(events).toHaveLength(1);
@@ -332,7 +339,7 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: false, alt: false, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(keystrokeEvent);
+      mockedKeystrokeService.__simulateEvent(keystrokeEvent);
 
       const result = recorder.stop();
 
@@ -356,7 +363,7 @@ describe('KeystrokeEventRecorder', () => {
         modifiers: { ctrl: false, alt: false, shift: false, meta: false },
       };
 
-      (keystrokeService as any).__simulateEvent(keystrokeEvent);
+      mockedKeystrokeService.__simulateEvent(keystrokeEvent);
 
       recorder.stop();
 
@@ -481,7 +488,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + delayOffset,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -512,7 +519,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + delayOffset,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -540,7 +547,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -572,7 +579,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -604,7 +611,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -639,7 +646,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -670,7 +677,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -705,7 +712,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -738,7 +745,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -773,7 +780,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime - negativeOffset - 1, // Always before start
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -806,7 +813,7 @@ describe('Property 3: Event Capture Validity', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           const events = recorder.getEvents();
@@ -861,7 +868,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -891,7 +898,7 @@ describe('Property 3: Event Capture Validity', () => {
             timestamp: baseTime + 100,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           const events = recorder.getEvents();
           expect(events).toHaveLength(1);
@@ -1492,7 +1499,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
 
           // Even if we try to simulate an event, it should not be captured
           // because the event handler is not registered when recorder is not started
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           // Verify no events were captured
           const events = recorder.getEvents();
@@ -1521,7 +1528,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
           };
 
           // Even if we try to simulate an event, it should not be captured
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           // Verify no events were captured
           const events = recorder.getEvents();
@@ -1553,7 +1560,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Verify no events were captured regardless of how many were simulated
@@ -1587,7 +1594,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Stop the recorder - now it's in disabled state
@@ -1606,7 +1613,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Verify no events were captured after stop
@@ -1638,7 +1645,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Call stop without ever starting
@@ -1675,7 +1682,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Verify isRunning is still false
@@ -1719,7 +1726,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               timestamp: eventTime,
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           });
 
           // Verify no events were captured regardless of event types
@@ -1755,7 +1762,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
             modifiers: { ctrl, alt, shift, meta },
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           // Verify no events were captured regardless of modifier state
           const events = recorder.getEvents();
@@ -1785,7 +1792,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
             modifiers,
           };
 
-          (keystrokeService as any).__simulateEvent(event);
+          mockedKeystrokeService.__simulateEvent(event);
 
           // Verify no events were captured regardless of button type
           const events = recorder.getEvents();
@@ -1819,7 +1826,7 @@ describe('Property 2: Disabled State Prevents Event Capture', () => {
               modifiers: { ctrl: false, alt: false, shift: false, meta: false },
             };
 
-            (keystrokeService as any).__simulateEvent(event);
+            mockedKeystrokeService.__simulateEvent(event);
           }
 
           // Verify no events were captured regardless of how many were simulated

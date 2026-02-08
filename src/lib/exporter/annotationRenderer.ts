@@ -148,7 +148,7 @@ function renderText(
   const containerPadding = 8 * scaleFactor;
   
   let textX = x;
-  let textY = y + height / 2;
+  const textY = y + height / 2;
   
   if (style.textAlign === 'center') {
     textX = x + width / 2;

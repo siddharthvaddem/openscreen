@@ -172,7 +172,7 @@ app.whenReady().then(async () => {
   registerKeystrokeEditorIpcHandlers(RECORDINGS_DIR)
 
   // Register global shortcut for toggle recording
-  globalShortcut.register('CommandOrControl+Shift+R', () => {
+  const registered = globalShortcut.register('CommandOrControl+Shift+R', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return
     if (isRecording) {
       mainWindow.webContents.send('stop-recording-from-tray')
@@ -180,6 +180,9 @@ app.whenReady().then(async () => {
       mainWindow.webContents.send('start-recording-from-shortcut')
     }
   })
+  if (!registered) {
+    console.warn('[Shortcut] Failed to register Ctrl+Shift+R shortcut — may already be in use by another application')
+  }
 
 
   createWindow()

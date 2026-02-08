@@ -9,6 +9,12 @@ const APP_ROOT = path.join(__dirname, '..')
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 const RENDERER_DIST = path.join(APP_ROOT, 'dist')
 
+function isPathWithinDir(filePath: string, allowedDir: string): boolean {
+  const resolved = path.resolve(filePath)
+  const resolvedDir = path.resolve(allowedDir)
+  return resolved === resolvedDir || resolved.startsWith(resolvedDir + path.sep)
+}
+
 let hudOverlayWindow: BrowserWindow | null = null;
 
 ipcMain.on('hud-overlay-hide', () => {
@@ -58,8 +64,21 @@ export function createHudOverlayWindow(): BrowserWindow {
 
   // Handle window.open() calls for child windows (e.g., mic settings)
   win.webContents.setWindowOpenHandler(({ url }) => {
-    // Allow mic-settings window
-    if (url.includes('windowType=mic-settings')) {
+    try {
+      const parsedUrl = new URL(url)
+      if (parsedUrl.searchParams.get('windowType') !== 'mic-settings') {
+        return { action: 'deny' }
+      }
+
+      const devOrigin = VITE_DEV_SERVER_URL ? new URL(VITE_DEV_SERVER_URL).origin : null
+      const isDevServer = devOrigin !== null && parsedUrl.origin === devOrigin
+      const isLocalFile = parsedUrl.protocol === 'file:' && isPathWithinDir(fileURLToPath(parsedUrl), APP_ROOT)
+
+      if (!isDevServer && !isLocalFile) {
+        console.warn('[Security] Blocked window.open from untrusted origin:', url)
+        return { action: 'deny' }
+      }
+
       return {
         action: 'allow',
         overrideBrowserWindowOptions: {
@@ -79,8 +98,9 @@ export function createHudOverlayWindow(): BrowserWindow {
           },
         }
       }
+    } catch {
+      return { action: 'deny' }
     }
-    return { action: 'deny' }
   })
 
   hudOverlayWindow = win;
@@ -125,7 +145,6 @@ export function createEditorWindow(): BrowserWindow {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
       backgroundThrottling: false,
     },
   })

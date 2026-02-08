@@ -136,7 +136,7 @@ export async function transcribeVideo(
 
     // Set language (undefined for auto-detection)
     if (request.language && request.language !== 'auto') {
-      transcriptConfig.language_code = request.language as any;
+      transcriptConfig.language_code = request.language as NonNullable<typeof transcriptConfig.language_code>;
     }
 
     const transcript = await client.transcripts.transcribe(transcriptConfig);

@@ -1219,7 +1219,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
   describe('Property 6.1: Style routing when applyToAll is true', () => {
     it('should call onApplyStyleToAll and NOT onStyleChange when applyToAll is true', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onStyleChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1236,7 +1236,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
 
     it('should call onApplyStyleToAll exactly once for each style update when applyToAll is true', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onApplyStyleToAllMock = vi.fn();
           const onStyleChangeMock = vi.fn();
 
@@ -1258,7 +1258,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
   describe('Property 6.2: Style routing when applyToAll is false', () => {
     it('should call onStyleChange and NOT onApplyStyleToAll when applyToAll is false', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onStyleChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1275,7 +1275,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
 
     it('should call onStyleChange exactly once for each style update when applyToAll is false', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onStyleChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1297,7 +1297,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
   describe('Property 6.3: Position routing when applyToAll is true', () => {
     it('should call onApplyStyleToAll and NOT onPositionChange when applyToAll is true', () => {
       fc.assert(
-        fc.property(positionPresetArb, (_position) => {
+        fc.property(positionPresetArb, () => {
           const onPositionChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1314,7 +1314,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
 
     it('should call onApplyStyleToAll exactly once for each position update when applyToAll is true', () => {
       fc.assert(
-        fc.property(positionPresetArb, (_position) => {
+        fc.property(positionPresetArb, () => {
           const onPositionChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1336,7 +1336,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
   describe('Property 6.4: Position routing when applyToAll is false', () => {
     it('should call onPositionChange and NOT onApplyStyleToAll when applyToAll is false', () => {
       fc.assert(
-        fc.property(positionPresetArb, (_position) => {
+        fc.property(positionPresetArb, () => {
           const onPositionChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1353,7 +1353,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
 
     it('should call onPositionChange exactly once for each position update when applyToAll is false', () => {
       fc.assert(
-        fc.property(positionPresetArb, (_position) => {
+        fc.property(positionPresetArb, () => {
           const onPositionChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1378,7 +1378,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
         fc.property(
           fc.boolean(),
           partialStyleArb,
-          (applyToAll, _style) => {
+          (applyToAll) => {
             const onStyleChangeMock = vi.fn();
             const onApplyStyleToAllMock = vi.fn();
 
@@ -1409,7 +1409,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
         fc.property(
           fc.boolean(),
           positionPresetArb,
-          (applyToAll, _position) => {
+          (applyToAll) => {
             const onPositionChangeMock = vi.fn();
             const onApplyStyleToAllMock = vi.fn();
 
@@ -1483,7 +1483,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
   describe('Property 6.8: Routing switches correctly when applyToAll state changes', () => {
     it('should route to onApplyStyleToAll when applyToAll changes from false to true', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onStyleChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1507,7 +1507,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
 
     it('should route to onStyleChange when applyToAll changes from true to false', () => {
       fc.assert(
-        fc.property(partialStyleArb, (_style) => {
+        fc.property(partialStyleArb, () => {
           const onStyleChangeMock = vi.fn();
           const onApplyStyleToAllMock = vi.fn();
 
@@ -1536,7 +1536,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
         fc.property(
           fc.boolean(),
           partialStyleArb,
-          (applyToAll, _style) => {
+          (applyToAll) => {
             const onStyleChangeMock = vi.fn();
             const onApplyStyleToAllMock = vi.fn();
 
@@ -1563,7 +1563,7 @@ describe('Property 6: Callback Routing Based on ApplyToAll State', () => {
         fc.property(
           fc.boolean(),
           positionPresetArb,
-          (applyToAll, _position) => {
+          (applyToAll) => {
             const onPositionChangeMock = vi.fn();
             const onApplyStyleToAllMock = vi.fn();
 
@@ -2417,7 +2417,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
           fc.boolean(),
           keystrokeRegionsArb,
           partialStyleArb,
-          (applyToAll, _regions, _style) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should only depend on applyToAll
@@ -2440,7 +2440,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           positionPresetArb,
-          (applyToAll, _position) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by position
@@ -2459,7 +2459,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
           fc.boolean(),
           animationPresetArb,
           animationPresetArb,
-          (applyToAll, _animationIn, _animationOut) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by animation settings
@@ -2478,7 +2478,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
           fc.boolean(),
           fc.integer({ min: 0, max: 1000 }),
           fc.integer({ min: 500, max: 5000 }),
-          (applyToAll, _fadeDuration, _lingerDuration) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by timing
@@ -2498,7 +2498,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
           hexColorArb,
           hexColorArb,
           hexColorArb,
-          (applyToAll, _textColor, _backgroundColor, _modifierColor) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by colors
@@ -2516,7 +2516,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           fc.double({ min: 0.5, max: 2.0, noNaN: true }),
-          (applyToAll, _textScale) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by text scale
@@ -2534,7 +2534,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           fc.integer({ min: 0, max: 16 }),
-          (applyToAll, _borderRadius) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by border radius
@@ -2552,7 +2552,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           fc.boolean(),
-          (applyToAll, _showOnlyHotkeys) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by hotkey filter
@@ -2593,7 +2593,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           fc.array(keystrokeRegionArb, { minLength: 0, maxLength: 100 }),
-          (applyToAll, _regions) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by region count
@@ -2611,7 +2611,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           keystrokeRegionArb,
-          (applyToAll, _region) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by region properties
@@ -2630,7 +2630,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
           fc.boolean(),
           fc.integer({ min: 0, max: 100000 }),
           fc.integer({ min: 0, max: 100000 }),
-          (applyToAll, _startMs, _endMs) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by region timing
@@ -2648,7 +2648,7 @@ describe('Property 7: Switch Visual State Consistency', () => {
         fc.property(
           fc.boolean(),
           fc.constantFrom('keystroke', 'mouse') as fc.Arbitrary<'keystroke' | 'mouse'>,
-          (applyToAll, _eventType) => {
+          (applyToAll) => {
             const switchChecked = getSwitchCheckedState(applyToAll);
             
             // Switch checked state should not be affected by event type

@@ -1,4 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { MouseEventData } from '../src/types/mouseEvents'
+import type { Preset, PresetSettings } from './ipc/presets'
+import type { TranscriptionProgress, TranscriptionRequest } from '../src/types/transcription'
+import type { KeystrokeEventData } from '../src/types/keystrokeEditorEvents'
+import type { KeystrokeEditorSettings } from '../src/types/keystrokeEditorSettings'
+
+interface ProcessedDesktopSource {
+  id: string
+  name: string
+  display_id: string
+  thumbnail: string | null
+  appIcon: string | null
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
     hudOverlayHide: () => {
@@ -20,7 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openSourceSelector: () => {
     return ipcRenderer.invoke('open-source-selector')
   },
-  selectSource: (source: any) => {
+  selectSource: (source: ProcessedDesktopSource) => {
     return ipcRenderer.invoke('select-source', source)
   },
   getSelectedSource: () => {
@@ -37,13 +50,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRecordingState: (recording: boolean) => {
     return ipcRenderer.invoke('set-recording-state', recording)
   },
-  onStopRecordingFromTray: (callback: () => void) => {
-    const listener = () => callback()
+  onStopRecordingFromTray: (callback: (_event: unknown) => void) => {
+    const listener = (event: Electron.IpcRendererEvent) => callback(event)
     ipcRenderer.on('stop-recording-from-tray', listener)
     return () => ipcRenderer.removeListener('stop-recording-from-tray', listener)
   },
-  onStartRecordingFromShortcut: (callback: () => void) => {
-    const listener = () => callback()
+  onStartRecordingFromShortcut: (callback: (_event: unknown, ...args: unknown[]) => void) => {
+    const listener = (event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(event, ...args)
     ipcRenderer.on('start-recording-from-shortcut', listener)
     return () => ipcRenderer.removeListener('start-recording-from-shortcut', listener)
   },
@@ -76,10 +89,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     get: () => {
       return ipcRenderer.invoke('presets:get')
     },
-    save: (preset: { name: string; isDefault: boolean; settings: any }) => {
+    save: (preset: { name: string; isDefault: boolean; settings: PresetSettings }) => {
       return ipcRenderer.invoke('presets:save', preset)
     },
-    update: (id: string, updates: any) => {
+    update: (id: string, updates: Partial<Omit<Preset, 'id' | 'createdAt'>>) => {
       return ipcRenderer.invoke('presets:update', id, updates)
     },
     delete: (id: string) => {
@@ -96,12 +109,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============================================
   // TRANSCRIPTION API
   // ============================================
-  transcribeVideo: (request: { videoPath: string; language: string; apiKey: string }) => {
+  transcribeVideo: (request: TranscriptionRequest) => {
     return ipcRenderer.invoke('transcribe-video', request)
   },
 
-  onTranscriptionProgress: (callback: (progress: { status: string; progress: number; message: string }) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, progress: { status: string; progress: number; message: string }) => callback(progress)
+  onTranscriptionProgress: (callback: (progress: TranscriptionProgress) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: TranscriptionProgress) => callback(progress)
     ipcRenderer.on('transcription-progress', listener)
     return () => ipcRenderer.removeListener('transcription-progress', listener)
   },
@@ -137,7 +150,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stopDetection: () => {
       return ipcRenderer.invoke('auto-zoom:stop-detection')
     },
-    saveEvents: (eventData: any, fileName: string) => {
+    saveEvents: (eventData: MouseEventData, fileName: string) => {
       return ipcRenderer.invoke('auto-zoom:save-events', eventData, fileName)
     },
     getEvents: (videoPath: string) => {
@@ -164,7 +177,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isCapturing: () => {
       return ipcRenderer.invoke('keystroke-editor:is-capturing')
     },
-    saveEvents: (eventData: any, fileName: string) => {
+    saveEvents: (eventData: KeystrokeEventData, fileName: string) => {
       return ipcRenderer.invoke('keystroke-editor:save-events', eventData, fileName)
     },
     loadEvents: (videoPath: string) => {
@@ -173,7 +186,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => {
       return ipcRenderer.invoke('keystroke-editor:get-settings')
     },
-    setSettings: (settings: any) => {
+    setSettings: (settings: Partial<KeystrokeEditorSettings>) => {
       return ipcRenderer.invoke('keystroke-editor:set-settings', settings)
     },
   },
