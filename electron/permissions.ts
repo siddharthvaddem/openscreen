@@ -28,8 +28,8 @@ export function setupPermissionHandlers(): void {
         callback(true)
         return
       }
-      // Deny audio-only or other media sub-types not needed for webcam overlay
-      callback(false)
+      // Allow audio-only media requests (needed for microphone recording)
+      callback(true)
       return
     }
 
@@ -45,7 +45,8 @@ export function setupPermissionHandlers(): void {
         }
         return true // Linux: no OS-level permission API, assume granted
       }
-      return false
+      // Allow audio media checks (needed for microphone)
+      return true
     }
     return ALLOWED_PERMISSIONS.has(permission)
   })

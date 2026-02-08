@@ -87,7 +87,8 @@ export function useKeystrokeSettings() {
 | Type definitions | `src/types/*.ts`                              |
 
 ### Webcam Overlay Feature
-- **Recording**: `src/hooks/useScreenRecorder.ts` — Dual recording (screen + webcam), `useCamSettings.ts` for toggle state
+- **Recording**: `src/hooks/useScreenRecorder.ts` — Dual recording (screen + webcam), `useCamera.ts` for stream management
+- **Camera Settings**: `src/stores/cameraSettings.ts` — Device/resolution persistence, `src/components/launch/CameraSelector.tsx` + `CameraSettingsPage.tsx` — Child window UI (mirrors mic pattern)
 - **Editor**: `src/components/video-editor/WebcamOverlay.tsx` — Draggable overlay with shape/position presets
 - **Timeline**: Webcam visibility row in `TimelineEditor.tsx` (`WEBCAM_ROW_ID`)
 - **Export**: `src/lib/exporter/frameRenderer.ts` — `renderWebcam()` composites webcam onto export frames

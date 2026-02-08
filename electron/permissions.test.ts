@@ -66,20 +66,20 @@ describe('setupPermissionHandlers', () => {
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
 
-    it('should deny media permission for audio-only requests', () => {
+    it('should grant media permission for audio-only requests (needed for microphone)', () => {
       const callback = vi.fn()
 
       requestHandler(null, 'media', callback, { mediaTypes: ['audio'] })
 
-      expect(callback).toHaveBeenCalledWith(false)
+      expect(callback).toHaveBeenCalledWith(true)
     })
 
-    it('should deny media permission when mediaTypes is empty', () => {
+    it('should grant media permission when mediaTypes is empty (audio fallback)', () => {
       const callback = vi.fn()
 
       requestHandler(null, 'media', callback, { mediaTypes: [] })
 
-      expect(callback).toHaveBeenCalledWith(false)
+      expect(callback).toHaveBeenCalledWith(true)
     })
 
     it('should grant fullscreen permission', () => {
@@ -176,10 +176,10 @@ describe('setupPermissionHandlers', () => {
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
 
-    it('should return false for audio media check', () => {
+    it('should return true for audio media check (needed for microphone)', () => {
       const result = checkHandler(null, 'media', '', { mediaType: 'audio' })
 
-      expect(result).toBe(false)
+      expect(result).toBe(true)
     })
 
     it('should return true for fullscreen check', () => {

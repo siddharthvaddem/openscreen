@@ -4,9 +4,9 @@ import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useMicrophone } from "../../hooks/useMicrophone";
 import { useAutoZoomSettings } from "../../hooks/useAutoZoomSettings";
 import { useKeystrokeEditorSettings } from "../../hooks/useKeystrokeEditorSettings";
-import { useCamSettings } from "../../hooks/useCamSettings";
+import { useCamera } from "../../hooks/useCamera";
 import { Button } from "../ui/button";
-import { BsRecordCircle, BsKeyboard, BsCameraVideo, BsCameraVideoOff } from "react-icons/bs";
+import { BsRecordCircle, BsKeyboard } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { MdMonitor } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
@@ -15,17 +15,26 @@ import { FiMinus, FiX } from "react-icons/fi";
 import { TbZoomScan } from "react-icons/tb";
 import { ContentClamp } from "../ui/content-clamp";
 import { MicrophoneSelector } from "./MicrophoneSelector";
-import { 
-  getAudioSettings, 
+import { CameraSelector } from "./CameraSelector";
+import {
+  getAudioSettings,
   STORAGE_KEY,
-  type AudioSettings 
+  type AudioSettings
 } from "../../stores/audioSettings";
+import {
+  getCameraSettings,
+  CAMERA_STORAGE_KEY,
+  type CameraSettings,
+} from "../../stores/cameraSettings";
 
 export function LaunchWindow() {
   // Track audio settings in state so we can react to changes
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(() => getAudioSettings());
-  
-  // Listen for localStorage changes from the settings window
+
+  // Track camera settings in state so we can react to changes
+  const [cameraSettings, setCameraSettings] = useState<CameraSettings>(() => getCameraSettings());
+
+  // Listen for localStorage changes from the settings window (audio)
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY) {
@@ -33,16 +42,30 @@ export function LaunchWindow() {
         console.log('[LaunchWindow] Storage event detected, new settings:', newSettings);
         setAudioSettings(newSettings);
       }
+      if (event.key === CAMERA_STORAGE_KEY) {
+        const newCamSettings = getCameraSettings();
+        console.log('[LaunchWindow] Camera storage event detected:', newCamSettings);
+        setCameraSettings(newCamSettings);
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
+
     const pollInterval = setInterval(() => {
       const currentSettings = getAudioSettings();
       setAudioSettings(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(currentSettings)) {
           console.log('[LaunchWindow] Polling detected settings change:', currentSettings);
           return currentSettings;
+        }
+        return prev;
+      });
+
+      const currentCamSettings = getCameraSettings();
+      setCameraSettings(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(currentCamSettings)) {
+          console.log('[LaunchWindow] Polling detected camera settings change:', currentCamSettings);
+          return currentCamSettings;
         }
         return prev;
       });
@@ -74,12 +97,11 @@ export function LaunchWindow() {
 
   // Sync microphone state with settings (bidirectional)
   useEffect(() => {
-    // Enable mic if settings say enabled but hook says disabled
     if (audioSettings.enabled && !isEnabled) {
-      console.log('[LaunchWindow] Syncing mic state: enabling mic', { 
+      console.log('[LaunchWindow] Syncing mic state: enabling mic', {
         deviceId: audioSettings.deviceId,
         audioSettingsEnabled: audioSettings.enabled,
-        hookIsEnabled: isEnabled 
+        hookIsEnabled: isEnabled
       });
       if (audioSettings.deviceId) {
         selectDevice(audioSettings.deviceId).catch((err) => {
@@ -94,7 +116,6 @@ export function LaunchWindow() {
         });
       }
     }
-    // Disable mic if settings say disabled but hook says enabled
     else if (!audioSettings.enabled && isEnabled) {
       console.log('[LaunchWindow] Syncing mic state: disabling mic');
       disable();
@@ -103,29 +124,52 @@ export function LaunchWindow() {
 
   // Auto zoom settings
   const { settings: autoZoomSettings, setEnabled: setAutoZoomEnabled } = useAutoZoomSettings();
-  
+
   // Keystroke editor settings (for capturing during recording)
-  const { 
-    captureEnabled: keystrokeCaptureEnabled, 
-    toggleCaptureEnabled: toggleKeystrokeCapture, 
+  const {
+    captureEnabled: keystrokeCaptureEnabled,
+    toggleCaptureEnabled: toggleKeystrokeCapture,
     loading: keystrokeLoading,
     serviceAvailable: keystrokeServiceAvailable,
     serviceError: keystrokeServiceError,
   } = useKeystrokeEditorSettings();
 
-  // Cam settings
+  // Camera hook — manages stream, devices, permissions
   const {
-    settings: camSettings,
-    setEnabled: setCamEnabled,
-    permissionStatus: camPermissionStatus
-  } = useCamSettings();
-  
-  // Pass audio stream and auto zoom setting to screen recorder
-  const { recording, toggleRecording } = useScreenRecorder({ 
+    stream: camStream,
+    devices: camDevices,
+    isEnabled: camIsEnabled,
+    selectDevice: camSelectDevice,
+    enable: camEnable,
+    disable: camDisable,
+    error: camError,
+    permissionState: camPermissionState,
+  } = useCamera({
+    resolution: cameraSettings.resolution,
+  });
+
+  // Sync camera state with settings (bidirectional, same pattern as mic)
+  useEffect(() => {
+    if (cameraSettings.enabled && !camIsEnabled) {
+      if (cameraSettings.deviceId) {
+        camSelectDevice(cameraSettings.deviceId).catch(() => {
+          camEnable().catch(console.error);
+        });
+      } else {
+        camEnable().catch(console.error);
+      }
+    } else if (!cameraSettings.enabled && camIsEnabled) {
+      camDisable();
+    }
+  }, [cameraSettings.enabled, cameraSettings.deviceId, camIsEnabled, camSelectDevice, camEnable, camDisable]);
+
+  // Pass audio stream, cam stream, and feature toggles to screen recorder
+  const { recording, toggleRecording } = useScreenRecorder({
     audioStream,
     autoZoomEnabled: autoZoomSettings.enabled,
     keysEnabled: keystrokeCaptureEnabled,
-    camEnabled: camSettings.enabled,
+    camEnabled: camIsEnabled,
+    camStream,
   });
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -172,7 +216,7 @@ export function LaunchWindow() {
     };
 
     checkSelectedSource();
-    
+
     const interval = setInterval(checkSelectedSource, 500);
     return () => clearInterval(interval);
   }, []);
@@ -185,11 +229,11 @@ export function LaunchWindow() {
 
   const openVideoFile = async () => {
     const result = await window.electronAPI.openVideoFilePicker();
-    
+
     if (result.cancelled) {
       return;
     }
-    
+
     if (result.success && result.path) {
       await window.electronAPI.setCurrentVideoPath(result.path);
       await window.electronAPI.switchToEditor();
@@ -289,7 +333,6 @@ export function LaunchWindow() {
         <div className="w-px h-5 bg-white/30" />
 
         {/* Keys toggle for keystroke capture during recording */}
-        {/* Requirement 10.1: Disable toggle if keystroke service fails to initialize */}
         <Button
           variant="link"
           size="sm"
@@ -297,28 +340,28 @@ export function LaunchWindow() {
           disabled={keystrokeLoading || recording || !keystrokeServiceAvailable}
           className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
           title={
-            !keystrokeServiceAvailable 
-              ? keystrokeServiceError || "Keystroke capture unavailable" 
-              : keystrokeCaptureEnabled 
-                ? "Keystroke capture: ON" 
+            !keystrokeServiceAvailable
+              ? keystrokeServiceError || "Keystroke capture unavailable"
+              : keystrokeCaptureEnabled
+                ? "Keystroke capture: ON"
                 : "Keystroke capture: OFF"
           }
         >
-          <BsKeyboard 
-            size={14} 
+          <BsKeyboard
+            size={14}
             className={
-              !keystrokeServiceAvailable 
-                ? "text-red-400/50" 
-                : keystrokeCaptureEnabled 
-                  ? "text-green-400" 
+              !keystrokeServiceAvailable
+                ? "text-red-400/50"
+                : keystrokeCaptureEnabled
+                  ? "text-green-400"
                   : "text-white/50"
-            } 
+            }
           />
           <span className={
-            !keystrokeServiceAvailable 
-              ? "text-zinc-500" 
-              : keystrokeCaptureEnabled 
-                ? "text-white" 
+            !keystrokeServiceAvailable
+              ? "text-zinc-500"
+              : keystrokeCaptureEnabled
+                ? "text-white"
                 : "text-zinc-400"
           }>
             Keys
@@ -327,42 +370,14 @@ export function LaunchWindow() {
 
         <div className="w-px h-5 bg-white/30" />
 
-        {/* Cam Toggle */}
-        <Button
-          variant="link"
-          size="sm"
-          onClick={() => setCamEnabled(!camSettings.enabled)}
-          disabled={recording || camPermissionStatus === 'denied'}
-          className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
-          title={
-            camPermissionStatus === 'denied'
-              ? "Camera access denied"
-              : camSettings.enabled 
-                ? "Camera: ON" 
-                : "Camera: OFF"
-          }
-        >
-          {camSettings.enabled ? (
-            <BsCameraVideo 
-              size={14} 
-              className="text-green-400"
-            />
-          ) : (
-            <BsCameraVideoOff 
-              size={14} 
-              className={camPermissionStatus === 'denied' ? "text-red-400/50" : "text-white/50"} 
-            />
-          )}
-          <span className={
-            camPermissionStatus === 'denied'
-              ? "text-zinc-500"
-              : camSettings.enabled 
-                ? "text-white" 
-                : "text-zinc-400"
-          }>
-            Cam
-          </span>
-        </Button>
+        {/* Cam */}
+        <CameraSelector
+          devices={camDevices}
+          isEnabled={camIsEnabled}
+          error={camError}
+          permissionState={camPermissionState}
+          disabled={recording}
+        />
 
         <div className="w-px h-5 bg-white/30" />
 
@@ -375,9 +390,9 @@ export function LaunchWindow() {
           className={`gap-1.5 bg-transparent hover:bg-transparent px-0 text-xs ${styles.electronNoDrag}`}
           title={autoZoomSettings.enabled ? "Auto Zoom: ON" : "Auto Zoom: OFF"}
         >
-          <TbZoomScan 
-            size={14} 
-            className={autoZoomSettings.enabled ? "text-green-400" : "text-white/50"} 
+          <TbZoomScan
+            size={14}
+            className={autoZoomSettings.enabled ? "text-green-400" : "text-white/50"}
           />
           <span className={autoZoomSettings.enabled ? "text-white" : "text-zinc-400"}>
             Zoom
