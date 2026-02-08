@@ -24,4 +24,6 @@ dist-ssr
 *.sw?
 release/**
 *.kiro/
+.opencode/
+nul
 # npx electron-builder --mac --win
