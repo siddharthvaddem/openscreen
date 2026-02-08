@@ -62,11 +62,12 @@ export function createHudOverlayWindow(): BrowserWindow {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
-  // Handle window.open() calls for child windows (e.g., mic settings)
+  // Handle window.open() calls for child windows (e.g., mic settings, cam settings)
   win.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const parsedUrl = new URL(url)
-      if (parsedUrl.searchParams.get('windowType') !== 'mic-settings') {
+      const windowType = parsedUrl.searchParams.get('windowType')
+      if (windowType !== 'mic-settings' && windowType !== 'cam-settings') {
         return { action: 'deny' }
       }
 
