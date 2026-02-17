@@ -1237,7 +1237,7 @@ export default function TimelineEditor({
       </div>
       <div
         ref={timelineContainerRef}
-        className="flex-1 overflow-hidden bg-[#09090b] relative"
+        className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#09090b] relative"
         onClick={() => setSelectedKeyframeId(null)}
       >
         <TimelineWrapper
