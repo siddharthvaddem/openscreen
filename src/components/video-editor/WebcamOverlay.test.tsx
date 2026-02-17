@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WebcamOverlay } from './WebcamOverlay';
 import { DEFAULT_WEBCAM_OVERLAY_SETTINGS, type WebcamOverlaySettings } from './types';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 describe('WebcamOverlay', () => {
@@ -15,6 +15,15 @@ describe('WebcamOverlay', () => {
     onSettingsChange: vi.fn(),
     onPositionChange: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('renders video element with correct src', () => {
     render(<WebcamOverlay {...defaultProps} />);
@@ -98,5 +107,24 @@ describe('WebcamOverlay', () => {
     fireEvent.mouseUp(document);
 
     expect(defaultProps.onPositionChange).toHaveBeenCalled();
+  });
+
+  it('applies sizePercent to webcam width', () => {
+    const settings: WebcamOverlaySettings = {
+      ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+      sizePercent: 30,
+    };
+
+    render(
+      <WebcamOverlay
+        {...defaultProps}
+        containerWidth={1920}
+        containerHeight={1080}
+        settings={settings}
+      />,
+    );
+
+    const overlay = screen.getByTestId('webcam-overlay');
+    expect(overlay).toHaveStyle({ width: '576px' });
   });
 });

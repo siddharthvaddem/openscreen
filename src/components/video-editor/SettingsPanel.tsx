@@ -9,12 +9,13 @@ import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star, Film, Image, Sparkles, Palette } from "lucide-react";
 import { toast } from "sonner";
-import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, FigureData, Preset, PresetSettings, SubtitleRegion, SubtitleStyle, SubtitlePositionPreset, KeystrokeRegion, KeystrokeStyle, KeystrokePositionPreset } from "./types";
+import type { ZoomDepth, CropRegion, AnnotationRegion, AnnotationType, FigureData, Preset, PresetSettings, SubtitleRegion, SubtitleStyle, SubtitlePositionPreset, KeystrokeRegion, KeystrokeStyle, KeystrokePositionPreset, WebcamOverlaySettings } from "./types";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { SubtitleSettingsPanel } from "./subtitle/SubtitleSettingsPanel";
 import { KeystrokeSettingsPanel } from "./keystroke/KeystrokeSettingsPanel";
+import { WebcamSettingsPanel } from "./webcam/WebcamSettingsPanel";
 import { PresetSelector } from "./PresetSelector";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@/lib/exporter";
@@ -111,6 +112,9 @@ interface SettingsPanelProps {
   onApplyStyleToAll?: (style: Partial<KeystrokeStyle>, position?: KeystrokePositionPreset) => void;
   onKeystrokeDelete?: (id: string) => void;
   onDeleteAllKeystrokes?: () => void;
+  selectedWebcamId?: string | null;
+  webcamSettings?: WebcamOverlaySettings;
+  onWebcamSettingsChange?: (next: WebcamOverlaySettings) => void;
   // Preset props
   presets?: Preset[];
   defaultPresetId?: string | null;
@@ -193,6 +197,9 @@ export function SettingsPanel({
   onApplyStyleToAll,
   onKeystrokeDelete,
   onDeleteAllKeystrokes,
+  selectedWebcamId,
+  webcamSettings,
+  onWebcamSettingsChange,
   // Preset props
   presets = [],
   defaultPresetId = null,
@@ -347,6 +354,10 @@ export function SettingsPanel({
       onDeleteAll={onDeleteAllKeystrokes}
     />
   );
+  }
+
+  if (selectedWebcamId && webcamSettings && onWebcamSettingsChange) {
+    return <WebcamSettingsPanel settings={webcamSettings} onChange={onWebcamSettingsChange} />;
   }
 
   return (

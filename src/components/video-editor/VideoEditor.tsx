@@ -328,6 +328,7 @@ export default function VideoEditor() {
   const handleSelectZoom = useCallback((id: string | null) => {
     setSelectedZoomId(id);
     if (id) {
+      setSelectedWebcamId(null);
       setSelectedTrimId(null);
       setSelectedSubtitleId(null);
       setSelectedKeystrokeId(null);
@@ -337,6 +338,7 @@ export default function VideoEditor() {
   const handleSelectTrim = useCallback((id: string | null) => {
     setSelectedTrimId(id);
     if (id) {
+      setSelectedWebcamId(null);
       setSelectedZoomId(null);
       setSelectedAnnotationId(null);
       setSelectedSubtitleId(null);
@@ -347,6 +349,7 @@ export default function VideoEditor() {
   const handleSelectAnnotation = useCallback((id: string | null) => {
     setSelectedAnnotationId(id);
     if (id) {
+      setSelectedWebcamId(null);
       setSelectedZoomId(null);
       setSelectedTrimId(null);
       setSelectedSubtitleId(null);
@@ -364,6 +367,7 @@ export default function VideoEditor() {
       focus: { cx: 0.5, cy: 0.5 },
     };
     setZoomRegions((prev) => [...prev, newRegion]);
+    setSelectedWebcamId(null);
     setSelectedZoomId(id);
     setSelectedTrimId(null);
     setSelectedAnnotationId(null);
@@ -379,6 +383,7 @@ export default function VideoEditor() {
       endMs: Math.round(span.end),
     };
     setTrimRegions((prev) => [...prev, newRegion]);
+    setSelectedWebcamId(null);
     setSelectedTrimId(id);
     setSelectedZoomId(null);
     setSelectedAnnotationId(null);
@@ -471,6 +476,7 @@ export default function VideoEditor() {
       zIndex,
     };
     setAnnotationRegions((prev) => [...prev, newRegion]);
+    setSelectedWebcamId(null);
     setSelectedAnnotationId(id);
     setSelectedZoomId(null);
     setSelectedTrimId(null);
@@ -589,6 +595,7 @@ export default function VideoEditor() {
   const handleSelectSubtitle = useCallback((id: string | null) => {
     setSelectedSubtitleId(id);
     if (id) {
+      setSelectedWebcamId(null);
       setSelectedZoomId(null);
       setSelectedTrimId(null);
       setSelectedAnnotationId(null);
@@ -609,6 +616,7 @@ export default function VideoEditor() {
       style: { ...DEFAULT_SUBTITLE_STYLE },
     };
     setSubtitleRegions((prev) => [...prev, newRegion]);
+    setSelectedWebcamId(null);
     setSelectedSubtitleId(id);
     setSelectedZoomId(null);
     setSelectedTrimId(null);
@@ -692,6 +700,7 @@ export default function VideoEditor() {
   const handleSelectKeystroke = useCallback((id: string | null) => {
     setSelectedKeystrokeId(id);
     if (id) {
+      setSelectedWebcamId(null);
       setSelectedZoomId(null);
       setSelectedTrimId(null);
       setSelectedAnnotationId(null);
@@ -711,6 +720,7 @@ export default function VideoEditor() {
       style: { ...DEFAULT_KEYSTROKE_STYLE },
     };
     setKeystrokeRegions((prev) => [...prev, newRegion]);
+    setSelectedWebcamId(null);
     setSelectedKeystrokeId(id);
     setSelectedZoomId(null);
     setSelectedTrimId(null);
@@ -1404,6 +1414,9 @@ export default function VideoEditor() {
           onApplyStyleToAll={handleApplyStyleToAll}
           onKeystrokeDelete={handleKeystrokeDelete}
           onDeleteAllKeystrokes={handleDeleteAllKeystrokes}
+          selectedWebcamId={selectedWebcamId}
+          webcamSettings={webcamSettings}
+          onWebcamSettingsChange={setWebcamSettings}
           // Preset props
           presets={presets}
           defaultPresetId={defaultPresetId}

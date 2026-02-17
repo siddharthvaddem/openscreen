@@ -8,10 +8,9 @@ import type {
   KeystrokeRegion,
   WebcamOverlaySettings,
   WebcamRegion,
-  WebcamPositionPreset,
-  WebcamShape,
 } from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
+import { getWebcamDimensions, getWebcamPosition } from '@/components/video-editor/webcam/webcamLayout';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
 import { DEFAULT_FOCUS, SMOOTHING_FACTOR, MIN_DELTA } from '@/components/video-editor/videoPlayback/constants';
@@ -429,38 +428,14 @@ export class FrameRenderer {
       return;
     }
 
-    const webcamWidth = canvasWidth * 0.20;
-    const webcamHeight = webcamWidth / (16 / 9);
-    const padding = canvasWidth * 0.03;
-
-    let x = canvasWidth - webcamWidth - padding;
-    let y = canvasHeight - webcamHeight - padding;
-    const position: WebcamPositionPreset = webcamSettings.position;
-
-    if (position === 'custom' && webcamSettings.customPosition) {
-      x = webcamSettings.customPosition.x * canvasWidth;
-      y = webcamSettings.customPosition.y * canvasHeight;
-    } else {
-      switch (position) {
-        case 'bottom-left':
-          x = padding;
-          y = canvasHeight - webcamHeight - padding;
-          break;
-        case 'top-right':
-          x = canvasWidth - webcamWidth - padding;
-          y = padding;
-          break;
-        case 'top-left':
-          x = padding;
-          y = padding;
-          break;
-        case 'bottom-right':
-        default:
-          x = canvasWidth - webcamWidth - padding;
-          y = canvasHeight - webcamHeight - padding;
-          break;
-      }
-    }
+    const { width: webcamWidth, height: webcamHeight } = getWebcamDimensions(canvasWidth, webcamSettings);
+    const { x, y } = getWebcamPosition(
+      canvasWidth,
+      canvasHeight,
+      webcamWidth,
+      webcamHeight,
+      webcamSettings,
+    );
 
     ctx.save();
 
@@ -473,8 +448,7 @@ export class FrameRenderer {
     }
 
     ctx.beginPath();
-    const shape: WebcamShape = webcamSettings.shape;
-    if (shape === 'circle') {
+    if (webcamSettings.shape === 'circle') {
       ctx.arc(
         x + webcamWidth / 2,
         y + webcamHeight / 2,
@@ -482,7 +456,7 @@ export class FrameRenderer {
         0,
         Math.PI * 2
       );
-    } else if (shape === 'square') {
+    } else if (webcamSettings.shape === 'square') {
       ctx.rect(x, y, webcamWidth, webcamHeight);
     } else {
       const scaledRadius = 16 * (canvasWidth / 1920);

@@ -6,6 +6,7 @@ import type {
   WebcamShape,
 } from '@/components/video-editor/types';
 import { DEFAULT_WEBCAM_OVERLAY_SETTINGS } from '@/components/video-editor/types';
+import { getWebcamDimensions, getWebcamPosition } from '@/components/video-editor/webcam/webcamLayout';
 
 // ---------------------------------------------------------------------------
 // Extracted logic mirrors — these replicate the logic in FrameRenderer.renderWebcam
@@ -19,7 +20,7 @@ function isWebcamVisible(currentTimeMs: number, regions: WebcamRegion[]): boolea
   );
 }
 
-/** Same position calculation used in FrameRenderer.renderWebcam (lines 432-463) */
+/** Same position calculation used in FrameRenderer.renderWebcam */
 function calculateWebcamPosition(
   position: WebcamPositionPreset,
   canvasWidth: number,
@@ -28,38 +29,11 @@ function calculateWebcamPosition(
   webcamHeight: number,
   customPosition?: { x: number; y: number },
 ): { x: number; y: number } {
-  const padding = canvasWidth * 0.03;
-
-  // Default is bottom-right
-  let x = canvasWidth - webcamWidth - padding;
-  let y = canvasHeight - webcamHeight - padding;
-
-  if (position === 'custom' && customPosition) {
-    x = customPosition.x * canvasWidth;
-    y = customPosition.y * canvasHeight;
-  } else {
-    switch (position) {
-      case 'bottom-left':
-        x = padding;
-        y = canvasHeight - webcamHeight - padding;
-        break;
-      case 'top-right':
-        x = canvasWidth - webcamWidth - padding;
-        y = padding;
-        break;
-      case 'top-left':
-        x = padding;
-        y = padding;
-        break;
-      case 'bottom-right':
-      default:
-        x = canvasWidth - webcamWidth - padding;
-        y = canvasHeight - webcamHeight - padding;
-        break;
-    }
-  }
-
-  return { x, y };
+  return getWebcamPosition(canvasWidth, canvasHeight, webcamWidth, webcamHeight, {
+    ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+    position,
+    customPosition,
+  });
 }
 
 /**
@@ -90,9 +64,9 @@ function calculateShadowParams(shadowIntensity: number) {
 // ---------------------------------------------------------------------------
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
-const WEBCAM_W = CANVAS_W * 0.20; // 384
-const WEBCAM_H = WEBCAM_W / (16 / 9); // 216
-const PADDING = CANVAS_W * 0.03; // 57.6
+const { width: WEBCAM_W, height: WEBCAM_H } = getWebcamDimensions(CANVAS_W, DEFAULT_WEBCAM_OVERLAY_SETTINGS);
+const PADDING_X = CANVAS_W * 0.03;
+const PADDING_Y = CANVAS_H * 0.05;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -149,32 +123,32 @@ describe('Webcam Export Logic', () => {
       const { x, y } = calculateWebcamPosition(
         'bottom-right', CANVAS_W, CANVAS_H, WEBCAM_W, WEBCAM_H,
       );
-      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING, 5);
-      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING, 5);
+      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING_X, 5);
+      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING_Y, 5);
     });
 
     it('bottom-left: webcam sits in lower-left with padding', () => {
       const { x, y } = calculateWebcamPosition(
         'bottom-left', CANVAS_W, CANVAS_H, WEBCAM_W, WEBCAM_H,
       );
-      expect(x).toBeCloseTo(PADDING, 5);
-      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING, 5);
+      expect(x).toBeCloseTo(PADDING_X, 5);
+      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING_Y, 5);
     });
 
     it('top-right: webcam sits in upper-right with padding', () => {
       const { x, y } = calculateWebcamPosition(
         'top-right', CANVAS_W, CANVAS_H, WEBCAM_W, WEBCAM_H,
       );
-      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING, 5);
-      expect(y).toBeCloseTo(PADDING, 5);
+      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING_X, 5);
+      expect(y).toBeCloseTo(PADDING_Y, 5);
     });
 
     it('top-left: webcam sits in upper-left with padding', () => {
       const { x, y } = calculateWebcamPosition(
         'top-left', CANVAS_W, CANVAS_H, WEBCAM_W, WEBCAM_H,
       );
-      expect(x).toBeCloseTo(PADDING, 5);
-      expect(y).toBeCloseTo(PADDING, 5);
+      expect(x).toBeCloseTo(PADDING_X, 5);
+      expect(y).toBeCloseTo(PADDING_Y, 5);
     });
 
     it('custom: uses normalized coordinates multiplied by canvas dimensions', () => {
@@ -191,8 +165,8 @@ describe('Webcam Export Logic', () => {
         'custom', CANVAS_W, CANVAS_H, WEBCAM_W, WEBCAM_H,
       );
       // Falls through to default (bottom-right) because customPosition is undefined
-      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING, 5);
-      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING, 5);
+      expect(x).toBeCloseTo(CANVAS_W - WEBCAM_W - PADDING_X, 5);
+      expect(y).toBeCloseTo(CANVAS_H - WEBCAM_H - PADDING_Y, 5);
     });
   });
 
@@ -273,6 +247,7 @@ describe('Webcam Export Logic', () => {
         position: 'bottom-right',
         shape: 'rounded',
         shadowIntensity: 50,
+        sizePercent: 20,
       });
     });
 
@@ -394,14 +369,24 @@ describe('Webcam Export Logic', () => {
       expect(WEBCAM_W).toBe(384);
     });
 
+    it('uses explicit sizePercent from settings', () => {
+      const dims = getWebcamDimensions(CANVAS_W, {
+        ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+        sizePercent: 30,
+      });
+      expect(dims.width).toBe(576);
+    });
+
     it('webcam maintains 16:9 aspect ratio', () => {
       const aspectRatio = WEBCAM_W / WEBCAM_H;
       expect(aspectRatio).toBeCloseTo(16 / 9, 5);
     });
 
-    it('padding is 3% of canvas width', () => {
-      expect(PADDING).toBe(CANVAS_W * 0.03);
-      expect(PADDING).toBeCloseTo(57.6, 5);
+    it('padding uses 3% x and 5% y', () => {
+      expect(PADDING_X).toBe(CANVAS_W * 0.03);
+      expect(PADDING_X).toBeCloseTo(57.6, 5);
+      expect(PADDING_Y).toBe(CANVAS_H * 0.05);
+      expect(PADDING_Y).toBeCloseTo(54, 5);
     });
 
     it('webcam fits within canvas boundaries for all presets', () => {

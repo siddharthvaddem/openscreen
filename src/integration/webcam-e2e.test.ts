@@ -172,6 +172,7 @@ describe('Webcam E2E Flow', () => {
         position: 'top-left',
         shape: 'circle',
         shadowIntensity: 0,
+        sizePercent: 20,
         customPosition: { x: 0.1, y: 0.1 },
       };
 

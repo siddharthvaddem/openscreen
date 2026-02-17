@@ -350,10 +350,12 @@ export interface WebcamOverlaySettings {
   customPosition?: { x: number; y: number }; // Normalized 0-1
   shape: WebcamShape;
   shadowIntensity: number; // 0-100
+  sizePercent: number; // 10-40
 }
 
 export const DEFAULT_WEBCAM_OVERLAY_SETTINGS: WebcamOverlaySettings = {
   position: 'bottom-right',
   shape: 'rounded',
   shadowIntensity: 50,
+  sizePercent: 20,
 };

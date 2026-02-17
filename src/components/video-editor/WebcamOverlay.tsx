@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { type WebcamOverlaySettings, type WebcamPositionPreset } from './types';
+import { getWebcamDimensions, getWebcamPosition } from './webcam/webcamLayout';
 
 interface WebcamOverlayProps {
   webcamPath: string;
@@ -25,58 +26,8 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const isDraggingRef = useRef(false);
 
-  // Constants for sizing
-  const VIDEO_WIDTH_PERCENT = 20; // 20% of container width
-  const ASPECT_RATIO = 16 / 9;
-
-  // Calculate dimensions
-  const width = (containerWidth * VIDEO_WIDTH_PERCENT) / 100;
-  const height = width / ASPECT_RATIO;
-
-  // Calculate position based on preset
-  const getPosition = () => {
-    // If custom position is set, use it
-    if (settings.position === 'custom' && settings.customPosition) {
-      return {
-        x: settings.customPosition.x * containerWidth,
-        y: settings.customPosition.y * containerHeight,
-      };
-    }
-
-    const paddingX = containerWidth * 0.03; // 3% padding
-    const paddingY = containerHeight * 0.05; // 5% padding
-
-    switch (settings.position) {
-      case 'bottom-right':
-        return {
-          x: containerWidth - width - paddingX,
-          y: containerHeight - height - paddingY,
-        };
-      case 'bottom-left':
-        return {
-          x: paddingX,
-          y: containerHeight - height - paddingY,
-        };
-      case 'top-right':
-        return {
-          x: containerWidth - width - paddingX,
-          y: paddingY,
-        };
-      case 'top-left':
-        return {
-          x: paddingX,
-          y: paddingY,
-        };
-      default:
-        // Default to bottom-right if unknown
-        return {
-          x: containerWidth - width - paddingX,
-          y: containerHeight - height - paddingY,
-        };
-    }
-  };
-
-  const position = getPosition();
+  const { width, height } = getWebcamDimensions(containerWidth, settings);
+  const position = getWebcamPosition(containerWidth, containerHeight, width, height, settings);
 
   // Sync video playback
   useEffect(() => {
@@ -129,13 +80,10 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
   const shadowOpacity = (settings.shadowIntensity / 100) * 0.8;
   const boxShadow = `0 4px 20px rgba(0, 0, 0, ${shadowOpacity})`;
 
-  // For circle shape, force aspect ratio 1:1
-  const effectiveHeight = settings.shape === 'circle' ? width : height;
-
   return (
     <Rnd
       data-testid="webcam-overlay"
-      size={{ width, height: effectiveHeight }}
+      size={{ width, height }}
       position={{ x: position.x, y: position.y }}
       onDragStart={() => {
         isDraggingRef.current = true;
