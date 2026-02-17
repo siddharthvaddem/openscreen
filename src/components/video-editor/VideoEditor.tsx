@@ -904,43 +904,6 @@ export default function VideoEditor() {
     }
   }, [selectedKeystrokeId, keystrokeRegions]);
 
-  const handleOpenExportDialog = useCallback(() => {
-    if (!videoPath) {
-      toast.error('No video loaded');
-      return;
-    }
-
-    const video = videoPlaybackRef.current?.video;
-    if (!video) {
-      toast.error('Video not ready');
-      return;
-    }
-
-    // Build export settings from current state
-    const sourceWidth = video.videoWidth || 1920;
-    const sourceHeight = video.videoHeight || 1080;
-    const gifDimensions = calculateOutputDimensions(sourceWidth, sourceHeight, gifSizePreset, GIF_SIZE_PRESETS);
-
-    const settings: ExportSettings = {
-      format: exportFormat,
-      quality: exportFormat === 'mp4' ? exportQuality : undefined,
-      gifConfig: exportFormat === 'gif' ? {
-        frameRate: gifFrameRate,
-        loop: gifLoop,
-        sizePreset: gifSizePreset,
-        width: gifDimensions.width,
-        height: gifDimensions.height,
-      } : undefined,
-    };
-
-    setShowExportDialog(true);
-    setExportError(null);
-    
-    // Start export immediately
-    handleExport(settings);
-  }, [videoPath, exportFormat, exportQuality, gifFrameRate, gifLoop, gifSizePreset]);
-
-
   const handleExport = useCallback(async (settings: ExportSettings) => {
     if (!videoPath) {
       toast.error('No video loaded');
@@ -1175,7 +1138,42 @@ export default function VideoEditor() {
       setExportProgress(null);
       
     }
-  }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
+  }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, subtitleRegions, keystrokeRegions, webcamPath, webcamSettings, webcamRegions, isPlaying, aspectRatio, exportQuality, audioBitrate]);
+
+  const handleOpenExportDialog = useCallback(() => {
+    if (!videoPath) {
+      toast.error('No video loaded');
+      return;
+    }
+
+    const video = videoPlaybackRef.current?.video;
+    if (!video) {
+      toast.error('Video not ready');
+      return;
+    }
+
+    const sourceWidth = video.videoWidth || 1920;
+    const sourceHeight = video.videoHeight || 1080;
+    const gifDimensions = calculateOutputDimensions(sourceWidth, sourceHeight, gifSizePreset, GIF_SIZE_PRESETS);
+
+    const settings: ExportSettings = {
+      format: exportFormat,
+      quality: exportFormat === 'mp4' ? exportQuality : undefined,
+      gifConfig: exportFormat === 'gif'
+        ? {
+            frameRate: gifFrameRate,
+            loop: gifLoop,
+            sizePreset: gifSizePreset,
+            width: gifDimensions.width,
+            height: gifDimensions.height,
+          }
+        : undefined,
+    };
+
+    setShowExportDialog(true);
+    setExportError(null);
+    handleExport(settings);
+  }, [videoPath, exportFormat, exportQuality, gifFrameRate, gifLoop, gifSizePreset, handleExport]);
 
   const handleCancelExport = useCallback(async () => {
     if (exporterRef.current) {
