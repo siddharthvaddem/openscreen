@@ -27,6 +27,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
   const camRecorder = useRef<MediaRecorder | null>(null);
   const camStreamRef = useRef<MediaStream | null>(null);
   const camChunks = useRef<Blob[]>([]);
+  const camMimeType = useRef<string>("video/webm");
   const sharedTimestamp = useRef<number>(0);
   const camStoppedPromise = useRef<Promise<void> | null>(null);
 
@@ -56,14 +57,22 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
     return mediaDevices.getUserMedia(constraints);
   };
 
-  const selectMimeType = () => {
-    const preferred = [
-      "video/webm;codecs=av1",
-      "video/webm;codecs=h264",
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm"
-    ];
+  const selectMimeType = (hasAudio: boolean) => {
+    const preferred = hasAudio
+      ? [
+          // Favor broadly compatible A/V combinations when audio is present.
+          "video/webm;codecs=vp8,opus",
+          "video/webm;codecs=vp9,opus",
+          "video/webm;codecs=vp8",
+          "video/webm;codecs=vp9",
+          "video/webm"
+        ]
+      : [
+          "video/webm;codecs=av1",
+          "video/webm;codecs=vp9",
+          "video/webm;codecs=vp8",
+          "video/webm"
+        ];
 
     return preferred.find(type => MediaRecorder.isTypeSupported(type)) ?? "video/webm";
   };
@@ -85,11 +94,10 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
 
   const stopRecording = useRef(() => {
     if (mediaRecorder.current?.state === "recording") {
-      // Only stop video tracks (we created them), not audio tracks (they're managed externally)
-      if (videoStream.current) {
-        videoStream.current.getTracks().forEach(track => track.stop());
-        videoStream.current = null;
-      }
+      // NOTE: We do NOT stop tracks here anymore. 
+      // We only stop the recorders. Tracks are stopped in the onstop handlers
+      // to ensure the recorders can flush their last buffers.
+      
       // Stop webcam recorder if active
       if (camRecorder.current) {
         if (camRecorder.current.state === "recording") {
@@ -100,11 +108,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           camStoppedPromise.current = Promise.resolve();
         }
       }
-      // Stop webcam stream tracks
-      if (camStreamRef.current) {
-        camStreamRef.current.getTracks().forEach(track => track.stop());
-        camStreamRef.current = null;
-      }
+      
       mediaRecorder.current.stop();
       setRecording(false);
 
@@ -203,7 +207,6 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       height = Math.floor(height / 2) * 2;
       
       const videoBitsPerSecond = computeBitrate(width, height);
-      const mimeType = selectMimeType();
 
       // Combine video and audio streams
       const combinedStream = new MediaStream();
@@ -226,6 +229,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       stream.current = combinedStream;
 
       const hasAudio = combinedStream.getAudioTracks().length > 0;
+      const mimeType = selectMimeType(hasAudio);
       console.log(
         `Recording at ${width}x${height} @ ${frameRate ?? TARGET_FRAME_RATE}fps using ${mimeType} / ${Math.round(
           videoBitsPerSecond / 1_000_000
@@ -255,7 +259,8 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           camStreamRef.current = webcamStream;
           camChunks.current = [];
 
-          const webcamMimeType = selectMimeType();
+          const webcamMimeType = selectMimeType(false);
+          camMimeType.current = webcamMimeType;
           const webcamRecorder = new MediaRecorder(webcamStream, {
             mimeType: webcamMimeType,
             videoBitsPerSecond: 2_000_000,
@@ -269,7 +274,14 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           let resolveCamStopped: (() => void) | null = null;
           camStoppedPromise.current = new Promise<void>((resolve) => {
             resolveCamStopped = resolve;
-            webcamRecorder.onstop = () => resolve();
+            webcamRecorder.onstop = () => {
+              // Clean up webcam tracks AFTER recorder stops
+              if (camStreamRef.current) {
+                camStreamRef.current.getTracks().forEach(track => track.stop());
+                camStreamRef.current = null;
+              }
+              resolve();
+            };
           });
 
           webcamRecorder.onerror = () => {
@@ -278,6 +290,11 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
             if (resolveCamStopped) {
               resolveCamStopped();
               resolveCamStopped = null;
+            }
+            // Attempt cleanup on error
+            if (camStreamRef.current) {
+               camStreamRef.current.getTracks().forEach(track => track.stop());
+               camStreamRef.current = null;
             }
           };
 
@@ -289,6 +306,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           camRecorder.current = null;
           camStreamRef.current = null;
           camChunks.current = [];
+          camMimeType.current = "video/webm";
           camStoppedPromise.current = null;
           console.log('Recording screen only');
         }
@@ -328,10 +346,22 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
       }
 
       recorder.onstop = async () => {
+        // Clean up screen recording tracks AFTER recorder stops
+        if (videoStream.current) {
+          videoStream.current.getTracks().forEach(track => track.stop());
+          videoStream.current = null;
+        }
+        // Do not stop stream.current tracks here - it may contain external audio
+        // tracks managed by useMicrophone.
         stream.current = null;
+
         if (chunks.current.length === 0) return;
         const duration = Date.now() - startTime.current;
         const recordedChunks = chunks.current;
+        
+        console.log(`[Recording] Stopping. Chunks: ${recordedChunks.length}, Duration: ${duration}ms, MIME: ${mimeType}`);
+        
+        // Ensure the blob is created with the same MIME type as the recorder
         const buggyBlob = new Blob(recordedChunks, { type: mimeType });
         // Clear chunks early to free memory immediately after blob creation
         chunks.current = [];
@@ -340,7 +370,23 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
         const eventsFileName = `recording-${timestamp}.events.json`;
 
         try {
-          const videoBlob = await fixWebmDuration(buggyBlob, duration);
+          let videoBlob = buggyBlob;
+          if (!hasAudio) {
+            try {
+              console.log('[Recording] Attempting to fix WebM duration (video-only)...');
+              videoBlob = await fixWebmDuration(buggyBlob, duration);
+              console.log('[Recording] Duration fixed successfully (video-only).');
+            } catch (fixError) {
+              console.warn('[Recording] Failed to fix WebM duration, using raw blob:', fixError);
+              // Fallback to raw blob if fix fails
+              videoBlob = buggyBlob;
+            }
+          } else {
+            // Known compatibility issue: duration-fix can corrupt multi-track (video+audio) WebM.
+            // Keep raw blob for AV streams.
+            console.log('[Recording] Skipping duration fix for audio+video recording.');
+          }
+          
           const arrayBuffer = await videoBlob.arrayBuffer();
           const videoResult = await window.electronAPI.storeRecordedVideo(arrayBuffer, videoFileName);
           if (!videoResult.success) {
@@ -357,7 +403,7 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
                 new Promise<void>((resolve) => setTimeout(resolve, 5000)),
               ]);
               if (camChunks.current.length > 0) {
-                const webcamBuggyBlob = new Blob(camChunks.current, { type: selectMimeType() });
+                const webcamBuggyBlob = new Blob(camChunks.current, { type: camMimeType.current });
                 camChunks.current = [];
                 const webcamBlob = await fixWebmDuration(webcamBuggyBlob, duration);
                 const webcamArrayBuffer = await webcamBlob.arrayBuffer();
@@ -411,7 +457,16 @@ export function useScreenRecorder(options?: UseScreenRecorderOptions): UseScreen
           console.error('Error saving recording:', error);
         }
       };
-      recorder.onerror = () => setRecording(false);
+      recorder.onerror = () => {
+         setRecording(false);
+         // Cleanup on error
+         if (videoStream.current) {
+           videoStream.current.getTracks().forEach(track => track.stop());
+           videoStream.current = null;
+         }
+         // Do not stop external audio tracks on recorder error.
+         stream.current = null;
+      };
       recorder.start(1000);
       startTime.current = Date.now();
       setRecording(true);

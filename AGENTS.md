@@ -87,3 +87,6 @@ Before submitting PR:
 2. `npm test` passes
 3. `npm run build` succeeds (includes tsc)
 4. Manual test of affected feature in dev mode
+
+# Agent Rules
+- DON'T RUN `npm run build` unless user request. Leave it to user

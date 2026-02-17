@@ -260,6 +260,23 @@ describe('useScreenRecorder — webcam dual recording', () => {
     );
   });
 
+  it('uses VP8+Opus mime for audio+video screen recording', async () => {
+    const audioStream = createMockMediaStream('audio');
+
+    const { result } = renderHook(() =>
+      useScreenRecorder({ audioStream })
+    );
+
+    await act(async () => {
+      result.current.toggleRecording();
+    });
+
+    const screenCall = mockRecorderConstructorCalls[0];
+    expect(screenCall[1]).toEqual(
+      expect.objectContaining({ mimeType: 'video/webm;codecs=vp8,opus' })
+    );
+  });
+
   it('webcam getUserMedia uses 720p/30fps video-only constraints', async () => {
     const getUserMediaSpy = vi.spyOn(navigator.mediaDevices, 'getUserMedia');
 
@@ -370,6 +387,51 @@ describe('useScreenRecorder — webcam dual recording', () => {
     expect(storeCalls.length).toBeGreaterThanOrEqual(2);
     const webcamFileName = storeCalls[1][1] as string;
     expect(webcamFileName).toMatch(/^recording-\d+\.webcam\.webm$/);
+  });
+
+  it('skips duration fix for audio+video screen recordings', async () => {
+    const { fixWebmDuration } = await import('@fix-webm-duration/fix');
+    const audioStream = createMockMediaStream('audio');
+    const startCalls = (fixWebmDuration as unknown as { mock: { calls: unknown[][] } }).mock.calls.length;
+
+    const { result } = renderHook(() =>
+      useScreenRecorder({ audioStream })
+    );
+
+    await act(async () => {
+      result.current.toggleRecording();
+    });
+
+    await act(async () => {
+      result.current.toggleRecording();
+      await vi.advanceTimersByTimeAsync(50);
+    });
+
+    const endCalls = (fixWebmDuration as unknown as { mock: { calls: unknown[][] } }).mock.calls.length;
+    expect(endCalls).toBe(startCalls);
+    expect(electronAPIMock.storeRecordedVideo).toHaveBeenCalled();
+  });
+
+  it('applies duration fix for video-only screen recordings', async () => {
+    const { fixWebmDuration } = await import('@fix-webm-duration/fix');
+    const startCalls = (fixWebmDuration as unknown as { mock: { calls: unknown[][] } }).mock.calls.length;
+
+    const { result } = renderHook(() =>
+      useScreenRecorder()
+    );
+
+    await act(async () => {
+      result.current.toggleRecording();
+    });
+
+    await act(async () => {
+      result.current.toggleRecording();
+      await vi.advanceTimersByTimeAsync(50);
+    });
+
+    const endCalls = (fixWebmDuration as unknown as { mock: { calls: unknown[][] } }).mock.calls.length;
+    expect(endCalls).toBeGreaterThan(startCalls);
+    expect(electronAPIMock.storeRecordedVideo).toHaveBeenCalled();
   });
 
   describe('graceful webcam fallback', () => {

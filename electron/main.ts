@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, protocol, net } from 'electron'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow } from './windows'
@@ -47,6 +47,20 @@ let sourceSelectorWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let selectedSourceName = ''
 let isRecording = false
+
+// Register app-file as a privileged streaming protocol BEFORE app ready.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app-file',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+])
 
 // Tray Icons
 const defaultTrayIcon = getTrayIcon('openscreen.png');
@@ -161,10 +175,17 @@ app.whenReady().then(async () => {
   // Register custom protocol to serve local recording files securely
   // This is needed because in dev mode, the renderer loads from http://localhost
   // and cannot access file:// URLs due to Chromium's same-origin policy.
-  protocol.handle('app-file', (request) => {
+  protocol.handle('app-file', async (request) => {
     const url = new URL(request.url)
     let filePath = decodeURIComponent(url.pathname)
-    if (process.platform === 'win32' && filePath.startsWith('/')) {
+
+    // On Windows, the drive letter is encoded as the URL hostname
+    // (e.g., app-file://c/Users/faiz/... → C:\Users\faiz\...)
+    // because Chromium's URL canonicalization strips drive letters
+    // from custom standard scheme paths.
+    if (process.platform === 'win32' && url.hostname && /^[a-z]$/i.test(url.hostname)) {
+      filePath = url.hostname.toUpperCase() + ':' + filePath
+    } else if (process.platform === 'win32' && filePath.startsWith('/')) {
       filePath = filePath.slice(1)
     }
 
@@ -179,8 +200,35 @@ app.whenReady().then(async () => {
       return new Response('Forbidden', { status: 403 })
     }
 
-    const fileUrl = `file://${process.platform === 'win32' ? '/' : ''}${normalizedPath.replace(/\\/g, '/')}`
-    return net.fetch(fileUrl)
+    try {
+      const stats = await fs.stat(normalizedPath)
+      console.log(`[app-file] Serving: ${normalizedPath} (${stats.size} bytes)`)
+      if (stats.size === 0) {
+        console.warn('[app-file] Warning: Serving empty file')
+      }
+    } catch (e) {
+      console.error('[app-file] File not found or inaccessible:', normalizedPath, e)
+      return new Response('Not Found', { status: 404 })
+    }
+
+    const fileUrl = pathToFileURL(normalizedPath).toString()
+    const rangeHeader = request.headers.get('range')
+    if (rangeHeader) {
+      console.log(`[app-file] Range request: ${rangeHeader}`)
+    }
+
+    const response = await net.fetch(fileUrl, {
+      method: request.method,
+      headers: request.headers,
+    })
+
+    if (rangeHeader) {
+      console.log(
+        `[app-file] Range response: status=${response.status} content-range=${response.headers.get('content-range') ?? 'none'}`
+      )
+    }
+
+    return response
   })
 
   registerIpcHandlers(

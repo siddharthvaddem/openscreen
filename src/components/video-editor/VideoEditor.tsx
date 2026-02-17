@@ -163,12 +163,17 @@ export default function VideoEditor() {
   }, [getDefaultPreset, applyPresetSettings]);
 
   // Helper to convert file path to app-file:// URL
+  // On Windows, the drive letter is stored as the URL hostname to prevent
+  // Chromium's URL canonicalization from stripping it (drive letter handling
+  // only applies to the file: scheme, not custom standard schemes).
   const toFileUrl = (filePath: string): string => {
     const normalized = filePath.replace(/\\/g, '/');
-    if (normalized.match(/^[a-zA-Z]:/)) {
-      return `app-file:///${normalized}`;
+    const driveMatch = normalized.match(/^([a-zA-Z]):(.*)/);
+    if (driveMatch) {
+      const [, drive, rest] = driveMatch;
+      return `app-file://${drive.toLowerCase()}${encodeURI(rest)}`;
     }
-    return `app-file://${normalized}`;
+    return `app-file://${encodeURI(normalized)}`;
   };
 
   useEffect(() => {
@@ -810,6 +815,19 @@ export default function VideoEditor() {
   // Helper to extract file path from app-file:// URL
   const getVideoFilePath = useCallback((): string | undefined => {
     if (!videoPath) return undefined;
+    try {
+      const url = new URL(videoPath);
+      if (url.protocol === 'app-file:') {
+        let filePath = decodeURIComponent(url.pathname);
+        // Reconstruct Windows drive letter from hostname
+        if (url.hostname && /^[a-z]$/i.test(url.hostname)) {
+          filePath = url.hostname.toUpperCase() + ':' + filePath;
+        }
+        return filePath;
+      }
+    } catch {
+      // Fall through to legacy parsing
+    }
     let path = videoPath;
     if (path.startsWith('app-file:///')) {
       path = path.slice(12); // Remove 'app-file:///'
