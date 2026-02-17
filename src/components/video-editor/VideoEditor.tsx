@@ -240,7 +240,6 @@ export default function VideoEditor() {
           }
 
           // Try to load keystroke events for this video
-          // Requirements: 4.1, 4.2, 4.3, 4.4
           try {
             if (window.electronAPI?.keystrokeEditor) {
               const keystrokeResult = await window.electronAPI.keystrokeEditor.loadEvents(result.path);
@@ -275,7 +274,7 @@ export default function VideoEditor() {
               }
             }
           } catch (keystrokeError) {
-            // Silently ignore - keystroke events may not exist (Requirement 4.4)
+            // Silently ignore - keystroke events may not exist
             console.debug('No keystroke events found for video:', keystrokeError);
           }
         } else {

@@ -1,9 +1,26 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { InputHTMLAttributes } from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 import { WebcamSettingsPanel } from './WebcamSettingsPanel';
 import { DEFAULT_WEBCAM_OVERLAY_SETTINGS } from '../types';
 import { SettingsPanel } from '../SettingsPanel';
+
+interface MockSliderProps extends InputHTMLAttributes<HTMLInputElement> {
+  onValueChange?: (value: number[]) => void;
+  value?: number[];
+}
+
+vi.mock('@/components/ui/slider', () => ({
+  Slider: ({ onValueChange, value = [0], ...props }: MockSliderProps) => (
+    <input
+      type="range"
+      value={value[0]}
+      onChange={(event) => onValueChange?.([Number(event.target.value)])}
+      {...props}
+    />
+  ),
+}));
 
 vi.mock('@/lib/assetPath', () => ({
   getAssetPath: vi.fn(async (path: string) => path),
