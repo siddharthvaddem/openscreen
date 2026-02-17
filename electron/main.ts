@@ -5,6 +5,7 @@ import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow } from './windows'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerKeystrokeEditorIpcHandlers } from './ipc/keystrokeEditor'
+import { isVideoPathAllowed } from './ipc/videoPathAccess'
 import { setupPermissionHandlers } from './permissions'
 
 
@@ -191,11 +192,7 @@ app.whenReady().then(async () => {
 
     const normalizedPath = path.resolve(filePath)
     const resolvedRecordingsDir = path.resolve(RECORDINGS_DIR)
-    const isInRecordingsDir =
-      normalizedPath.startsWith(resolvedRecordingsDir + path.sep) ||
-      normalizedPath === resolvedRecordingsDir
-
-    if (!isInRecordingsDir) {
+    if (!isVideoPathAllowed(normalizedPath, resolvedRecordingsDir)) {
       console.warn('[Security] Blocked app-file:// access to:', normalizedPath)
       return new Response('Forbidden', { status: 403 })
     }

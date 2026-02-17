@@ -25,6 +25,7 @@ import {
   isEncryptionAvailable 
 } from '../services/secureStorage'
 import { getCameraPermissionStatus, requestCameraAccess } from '../permissions'
+import { addExplicitlySelectedVideoPath, isVideoPathAllowed } from './videoPathAccess'
 
 interface SelectedSource {
   name: string
@@ -38,19 +39,12 @@ function sanitizeFileName(fileName: string): string {
   return basename
 }
 
-function validatePathWithinDir(filePath: string, allowedDir: string): boolean {
-  const resolved = path.resolve(filePath)
-  const resolvedDir = path.resolve(allowedDir)
-  return resolved === resolvedDir || resolved.startsWith(resolvedDir + path.sep)
-}
-
 function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && 'code' in error
 }
 
 let selectedSource: SelectedSource | null = null
 let currentVideoPath: string | null = null;
-const explicitlySelectedVideoPaths = new Set<string>()
 
 export function registerIpcHandlers(
   createEditorWindow: () => void,
@@ -232,7 +226,7 @@ export function registerIpcHandlers(
       }
 
       const selectedPath = path.resolve(result.filePaths[0])
-      explicitlySelectedVideoPaths.add(selectedPath)
+      addExplicitlySelectedVideoPath(selectedPath)
 
       return {
         success: true,
@@ -369,10 +363,7 @@ export function registerIpcHandlers(
   ipcMain.handle('auto-zoom:get-events', async (_, videoPath: string) => {
     try {
       const resolvedVideoPath = path.resolve(videoPath)
-      const isInRecordingsDir = validatePathWithinDir(resolvedVideoPath, RECORDINGS_DIR)
-      const isExplicitlySelected = explicitlySelectedVideoPaths.has(resolvedVideoPath)
-
-      if (!isInRecordingsDir && !isExplicitlySelected) {
+      if (!isVideoPathAllowed(resolvedVideoPath, RECORDINGS_DIR)) {
         return { success: false, error: 'Invalid video path' }
       }
 
@@ -429,10 +420,7 @@ export function registerIpcHandlers(
   ipcMain.handle('webcam:get-webcam-video-path', async (_, mainVideoPath: string) => {
     try {
       const resolvedVideoPath = path.resolve(mainVideoPath)
-      const isInRecordingsDir = validatePathWithinDir(resolvedVideoPath, RECORDINGS_DIR)
-      const isExplicitlySelected = explicitlySelectedVideoPaths.has(resolvedVideoPath)
-
-      if (!isInRecordingsDir && !isExplicitlySelected) {
+      if (!isVideoPathAllowed(resolvedVideoPath, RECORDINGS_DIR)) {
         return { success: false, error: 'Invalid video path' }
       }
 
