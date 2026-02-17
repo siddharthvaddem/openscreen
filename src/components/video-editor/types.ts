@@ -345,10 +345,13 @@ export type WebcamPositionPreset = 'bottom-right' | 'bottom-left' | 'top-right' 
 
 export type WebcamShape = 'circle' | 'square' | 'rounded';
 
+export type WebcamAspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
+
 export interface WebcamOverlaySettings {
   position: WebcamPositionPreset;
   customPosition?: { x: number; y: number }; // Normalized 0-1
   shape: WebcamShape;
+  aspectRatio: WebcamAspectRatio;
   shadowIntensity: number; // 0-100
   sizePercent: number; // 10-40
 }
@@ -356,6 +359,7 @@ export interface WebcamOverlaySettings {
 export const DEFAULT_WEBCAM_OVERLAY_SETTINGS: WebcamOverlaySettings = {
   position: 'bottom-right',
   shape: 'rounded',
+  aspectRatio: '16:9',
   shadowIntensity: 50,
   sizePercent: 20,
 };

@@ -171,6 +171,7 @@ describe('Webcam E2E Flow', () => {
       const customSettings: WebcamOverlaySettings = {
         position: 'top-left',
         shape: 'circle',
+        aspectRatio: '16:9',
         shadowIntensity: 0,
         sizePercent: 20,
         customPosition: { x: 0.1, y: 0.1 },

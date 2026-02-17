@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type {
+  WebcamAspectRatio,
   WebcamRegion,
   WebcamOverlaySettings,
   WebcamPositionPreset,
@@ -246,6 +247,7 @@ describe('Webcam Export Logic', () => {
       expect(DEFAULT_WEBCAM_OVERLAY_SETTINGS).toEqual({
         position: 'bottom-right',
         shape: 'rounded',
+        aspectRatio: '16:9',
         shadowIntensity: 50,
         sizePercent: 20,
       });
@@ -377,9 +379,35 @@ describe('Webcam Export Logic', () => {
       expect(dims.width).toBe(576);
     });
 
-    it('webcam maintains 16:9 aspect ratio', () => {
-      const aspectRatio = WEBCAM_W / WEBCAM_H;
+    it('webcam uses default 16:9 aspect ratio', () => {
+      const { width, height } = getWebcamDimensions(CANVAS_W, {
+        ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+        shape: 'rounded',
+      });
+      const aspectRatio = width / height;
       expect(aspectRatio).toBeCloseTo(16 / 9, 5);
+    });
+
+    it('uses selected aspect ratio for rounded webcam', () => {
+      const dims = getWebcamDimensions(CANVAS_W, {
+        ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+        shape: 'rounded',
+        aspectRatio: '9:16',
+      });
+
+      expect(dims.width).toBe(384);
+      expect(dims.height).toBeCloseTo(384 / (9 / 16), 5);
+    });
+
+    it('keeps circle webcam at 1:1 regardless of selected ratio', () => {
+      const dims = getWebcamDimensions(CANVAS_W, {
+        ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+        shape: 'circle',
+        aspectRatio: '3:4',
+      });
+
+      expect(dims.width).toBe(384);
+      expect(dims.height).toBe(384);
     });
 
     it('padding uses 3% x and 5% y', () => {
@@ -431,6 +459,17 @@ describe('Webcam Export Logic', () => {
           shape,
         };
         expect(settings.shape).toBe(shape);
+      }
+    });
+
+    it('accepts all valid webcam aspect ratios', () => {
+      const validRatios: WebcamAspectRatio[] = ['1:1', '16:9', '9:16', '4:3', '3:4'];
+      for (const aspectRatio of validRatios) {
+        const settings: WebcamOverlaySettings = {
+          ...DEFAULT_WEBCAM_OVERLAY_SETTINGS,
+          aspectRatio,
+        };
+        expect(settings.aspectRatio).toBe(aspectRatio);
       }
     });
 

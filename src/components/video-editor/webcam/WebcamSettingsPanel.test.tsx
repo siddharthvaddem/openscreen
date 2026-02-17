@@ -115,6 +115,36 @@ describe('WebcamSettingsPanel', () => {
     );
   });
 
+  it('updates aspectRatio when ratio button is clicked', () => {
+    const onChange = vi.fn();
+
+    render(
+      <WebcamSettingsPanel
+        settings={DEFAULT_WEBCAM_OVERLAY_SETTINGS}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '9:16' }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ aspectRatio: '9:16' }),
+    );
+  });
+
+  it('renders all supported aspect ratio options', () => {
+    render(
+      <WebcamSettingsPanel
+        settings={DEFAULT_WEBCAM_OVERLAY_SETTINGS}
+        onChange={vi.fn()}
+      />,
+    );
+
+    for (const ratio of ['1:1', '16:9', '9:16', '4:3', '3:4']) {
+      expect(screen.getByRole('button', { name: ratio })).toBeInTheDocument();
+    }
+  });
+
   it('shows webcam settings only when webcam region is selected', async () => {
     const onWebcamSettingsChange = vi.fn();
 

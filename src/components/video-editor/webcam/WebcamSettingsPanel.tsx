@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
-import type { WebcamOverlaySettings, WebcamPositionPreset, WebcamShape } from '../types';
+import type { WebcamAspectRatio, WebcamOverlaySettings, WebcamPositionPreset, WebcamShape } from '../types';
 
 interface WebcamSettingsPanelProps {
   settings: WebcamOverlaySettings;
@@ -16,6 +16,7 @@ const POSITION_PRESETS: Array<{ value: Exclude<WebcamPositionPreset, 'custom'>; 
 ];
 
 const SHAPES: WebcamShape[] = ['rounded', 'circle', 'square'];
+const ASPECT_RATIOS: WebcamAspectRatio[] = ['1:1', '16:9', '9:16', '4:3', '3:4'];
 
 export function WebcamSettingsPanel({ settings, onChange }: WebcamSettingsPanelProps) {
   const handlePositionChange = (position: Exclude<WebcamPositionPreset, 'custom'>) => {
@@ -30,6 +31,13 @@ export function WebcamSettingsPanel({ settings, onChange }: WebcamSettingsPanelP
     onChange({
       ...settings,
       shape,
+    });
+  };
+
+  const handleAspectRatioChange = (aspectRatio: WebcamAspectRatio) => {
+    onChange({
+      ...settings,
+      aspectRatio,
     });
   };
 
@@ -97,6 +105,28 @@ export function WebcamSettingsPanel({ settings, onChange }: WebcamSettingsPanelP
                   )}
                 >
                   {shape}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-200 mb-3 block">Aspect Ratio</label>
+            <div className="grid grid-cols-3 gap-2">
+              {ASPECT_RATIOS.map((ratio) => (
+                <Button
+                  key={ratio}
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleAspectRatioChange(ratio)}
+                  className={cn(
+                    'h-9 border text-xs font-medium transition-all duration-200',
+                    settings.aspectRatio === ratio
+                      ? 'bg-[#34B27B] border-[#34B27B] text-white shadow-lg shadow-[#34B27B]/20'
+                      : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200 hover:border-white/10',
+                  )}
+                >
+                  {ratio}
                 </Button>
               ))}
             </div>
