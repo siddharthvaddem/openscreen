@@ -1,11 +1,14 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, protocol, net } from 'electron'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, protocol } from 'electron'
+import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
+import { Readable } from 'node:stream'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow } from './windows'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerKeystrokeEditorIpcHandlers } from './ipc/keystrokeEditor'
 import { isVideoPathAllowed } from './ipc/videoPathAccess'
+import { getMimeTypeForPath, resolveByteRange } from './protocol/fileRange'
 import { setupPermissionHandlers } from './permissions'
 
 
@@ -197,35 +200,51 @@ app.whenReady().then(async () => {
       return new Response('Forbidden', { status: 403 })
     }
 
+    let stats: Awaited<ReturnType<typeof fs.stat>>
     try {
-      const stats = await fs.stat(normalizedPath)
-      console.log(`[app-file] Serving: ${normalizedPath} (${stats.size} bytes)`)
-      if (stats.size === 0) {
-        console.warn('[app-file] Warning: Serving empty file')
-      }
+      stats = await fs.stat(normalizedPath)
     } catch (e) {
       console.error('[app-file] File not found or inaccessible:', normalizedPath, e)
       return new Response('Not Found', { status: 404 })
     }
 
-    const fileUrl = pathToFileURL(normalizedPath).toString()
-    const rangeHeader = request.headers.get('range')
-    if (rangeHeader) {
-      console.log(`[app-file] Range request: ${rangeHeader}`)
+    if (!stats.isFile()) {
+      return new Response('Not Found', { status: 404 })
     }
 
-    const response = await net.fetch(fileUrl, {
-      method: request.method,
-      headers: request.headers,
+    if (stats.size === 0) {
+      console.warn('[app-file] Warning: Serving empty file')
+    }
+
+    const rangeHeader = request.headers.get('range')
+    const rangeResult = resolveByteRange(rangeHeader, stats.size)
+
+    if (!rangeResult.ok) {
+      return new Response(null, {
+        status: 416,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Range': `bytes */${stats.size}`,
+        },
+      })
+    }
+
+    const { start, end, status, isPartial } = rangeResult
+    const contentLength = end - start + 1
+    const headers = new Headers({
+      'Accept-Ranges': 'bytes',
+      'Content-Length': String(contentLength),
+      'Content-Type': getMimeTypeForPath(normalizedPath),
+      ...(isPartial ? { 'Content-Range': `bytes ${start}-${end}/${stats.size}` } : {}),
     })
 
-    if (rangeHeader) {
-      console.log(
-        `[app-file] Range response: status=${response.status} content-range=${response.headers.get('content-range') ?? 'none'}`
-      )
+    if (request.method.toUpperCase() === 'HEAD') {
+      return new Response(null, { status, headers })
     }
 
-    return response
+    const stream = createReadStream(normalizedPath, { start, end })
+    const body = Readable.toWeb(stream) as unknown as ReadableStream<Uint8Array>
+    return new Response(body, { status, headers })
   })
 
   registerIpcHandlers(
