@@ -23,21 +23,32 @@ interface VideoExporterConfig extends ExportConfig {
   onProgress?: (progress: ExportProgress) => void;
 }
 
+interface DecodedAudioTrack {
+  sampleRate: number;
+  numberOfChannels: number;
+  numberOfFrames: number;
+  channelData: Float32Array[];
+}
+
 export class VideoExporter {
   private config: VideoExporterConfig;
   private streamingDecoder: StreamingVideoDecoder | null = null;
   private renderer: FrameRenderer | null = null;
   private encoder: VideoEncoder | null = null;
+  private audioEncoder: AudioEncoder | null = null;
   private muxer: VideoMuxer | null = null;
   private cancelled = false;
   private encodeQueue = 0;
+  private audioEncodeQueue = 0;
   // Increased queue size for better throughput with hardware encoding
   private readonly MAX_ENCODE_QUEUE = 120;
+  private readonly MAX_AUDIO_ENCODE_QUEUE = 60;
   private videoDescription: Uint8Array | undefined;
   private videoColorSpace: VideoColorSpaceInit | undefined;
   // Track muxing promises for parallel processing
   private muxingPromises: Promise<void>[] = [];
-  private chunkCount = 0;
+  private videoChunkCount = 0;
+  private audioChunkCount = 0;
 
   constructor(config: VideoExporterConfig) {
     this.config = config;
@@ -51,6 +62,13 @@ export class VideoExporter {
       // Initialize streaming decoder and load video metadata
       this.streamingDecoder = new StreamingVideoDecoder();
       const videoInfo = await this.streamingDecoder.loadMetadata(this.config.videoUrl);
+      let audioTrack: DecodedAudioTrack | null = null;
+      try {
+        audioTrack = await this.extractAudioTrack(videoInfo);
+      } catch (audioError) {
+        console.warn('[VideoExporter] Audio extraction failed; continuing without audio', audioError);
+        audioTrack = null;
+      }
 
       // Initialize frame renderer
       this.renderer = new FrameRenderer({
@@ -77,7 +95,7 @@ export class VideoExporter {
       await this.initializeEncoder();
 
       // Initialize muxer
-      this.muxer = new VideoMuxer(this.config, false);
+      this.muxer = new VideoMuxer(this.config, Boolean(audioTrack));
       await this.muxer.initialize();
 
       // Calculate effective duration and frame count (excluding trim regions)
@@ -161,6 +179,14 @@ export class VideoExporter {
         await this.encoder.flush();
       }
 
+      if (audioTrack && !this.cancelled) {
+        try {
+          await this.encodeAudioTrack(audioTrack);
+        } catch (audioError) {
+          console.warn('[VideoExporter] Audio encoding failed; continuing without audio', audioError);
+        }
+      }
+
       // Wait for all muxing operations to complete
       await Promise.all(this.muxingPromises);
 
@@ -181,8 +207,10 @@ export class VideoExporter {
 
   private async initializeEncoder(): Promise<void> {
     this.encodeQueue = 0;
+    this.audioEncodeQueue = 0;
     this.muxingPromises = [];
-    this.chunkCount = 0;
+    this.videoChunkCount = 0;
+    this.audioChunkCount = 0;
     let videoDescription: Uint8Array | undefined;
 
     this.encoder = new VideoEncoder({
@@ -199,8 +227,8 @@ export class VideoExporter {
         }
 
         // Stream chunk to muxer immediately (parallel processing)
-        const isFirstChunk = this.chunkCount === 0;
-        this.chunkCount++;
+        const isFirstChunk = this.videoChunkCount === 0;
+        this.videoChunkCount++;
 
         const muxingPromise = (async () => {
           try {
@@ -314,11 +342,244 @@ export class VideoExporter {
       this.renderer = null;
     }
 
+    if (this.audioEncoder) {
+      try {
+        if (this.audioEncoder.state === 'configured') {
+          this.audioEncoder.close();
+        }
+      } catch (e) {
+        console.warn('Error closing audio encoder:', e);
+      }
+      this.audioEncoder = null;
+    }
+
     this.muxer = null;
     this.encodeQueue = 0;
+    this.audioEncodeQueue = 0;
     this.muxingPromises = [];
-    this.chunkCount = 0;
+    this.videoChunkCount = 0;
+    this.audioChunkCount = 0;
     this.videoDescription = undefined;
     this.videoColorSpace = undefined;
+  }
+
+  private computeKeptSegments(totalDurationSec: number): Array<{ startSec: number; endSec: number }> {
+    if (!this.config.trimRegions || this.config.trimRegions.length === 0) {
+      return [{ startSec: 0, endSec: totalDurationSec }];
+    }
+
+    const sorted = [...this.config.trimRegions].sort((a, b) => a.startMs - b.startMs);
+    const segments: Array<{ startSec: number; endSec: number }> = [];
+    let cursorSec = 0;
+
+    for (const trim of sorted) {
+      const trimStartSec = Math.max(0, trim.startMs / 1000);
+      const trimEndSec = Math.min(totalDurationSec, trim.endMs / 1000);
+
+      if (cursorSec < trimStartSec) {
+        segments.push({ startSec: cursorSec, endSec: trimStartSec });
+      }
+      cursorSec = Math.max(cursorSec, trimEndSec);
+    }
+
+    if (cursorSec < totalDurationSec) {
+      segments.push({ startSec: cursorSec, endSec: totalDurationSec });
+    }
+
+    return segments.filter(segment => segment.endSec - segment.startSec > 0);
+  }
+
+  private async extractAudioTrack(videoInfo: { hasAudio: boolean }): Promise<DecodedAudioTrack | null> {
+    if (!videoInfo.hasAudio) {
+      return null;
+    }
+
+    const response = await fetch(this.config.videoUrl);
+    const sourceBuffer = await response.arrayBuffer();
+
+    const AudioCtx = window.AudioContext
+      ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) {
+      console.warn('[VideoExporter] AudioContext not supported; exporting without audio');
+      return null;
+    }
+
+    const audioContext = new AudioCtx();
+    try {
+      const audioBuffer = await audioContext.decodeAudioData(sourceBuffer);
+      const segments = this.computeKeptSegments(audioBuffer.duration);
+      if (segments.length === 0) {
+        return null;
+      }
+
+      const sampleRate = audioBuffer.sampleRate;
+      const channelCount = audioBuffer.numberOfChannels;
+      const segmentFrameRanges = segments.map(segment => {
+        const startFrame = Math.max(0, Math.floor(segment.startSec * sampleRate));
+        const endFrame = Math.min(audioBuffer.length, Math.floor(segment.endSec * sampleRate));
+        return { startFrame, endFrame };
+      }).filter(range => range.endFrame > range.startFrame);
+
+      if (segmentFrameRanges.length === 0) {
+        return null;
+      }
+
+      const totalFrames = segmentFrameRanges.reduce((sum, range) => sum + (range.endFrame - range.startFrame), 0);
+      const channelData: Float32Array[] = [];
+
+      for (let channel = 0; channel < channelCount; channel++) {
+        const source = audioBuffer.getChannelData(channel);
+        const merged = new Float32Array(totalFrames);
+        let writeOffset = 0;
+
+        for (const range of segmentFrameRanges) {
+          const chunk = source.subarray(range.startFrame, range.endFrame);
+          merged.set(chunk, writeOffset);
+          writeOffset += chunk.length;
+        }
+
+        channelData.push(merged);
+      }
+
+      return {
+        sampleRate,
+        numberOfChannels: channelCount,
+        numberOfFrames: totalFrames,
+        channelData,
+      };
+    } finally {
+      await audioContext.close();
+    }
+  }
+
+  private async encodeAudioTrack(sourceTrack: DecodedAudioTrack): Promise<void> {
+    let track = sourceTrack;
+    let config: AudioEncoderConfig = {
+      codec: 'mp4a.40.2',
+      sampleRate: track.sampleRate,
+      numberOfChannels: track.numberOfChannels,
+      bitrate: Math.max(96_000, Math.min(256_000, 96_000 * track.numberOfChannels)),
+    };
+
+    let support = await AudioEncoder.isConfigSupported(config);
+    if (!support.supported && track.sampleRate !== 48_000) {
+      track = await this.resampleAudioTrack(track, 48_000);
+      config = {
+        ...config,
+        sampleRate: track.sampleRate,
+      };
+      support = await AudioEncoder.isConfigSupported(config);
+    }
+
+    if (!support.supported) {
+      console.warn('[VideoExporter] Audio encoding not supported; exporting without audio');
+      return;
+    }
+
+    this.audioEncodeQueue = 0;
+    this.audioChunkCount = 0;
+
+    this.audioEncoder = new AudioEncoder({
+      output: (chunk, meta) => {
+        const isFirstChunk = this.audioChunkCount === 0;
+        this.audioChunkCount++;
+
+        const muxingPromise = (async () => {
+          try {
+            const fallbackMeta: EncodedAudioChunkMetadata | undefined = isFirstChunk ? {
+              decoderConfig: {
+                codec: config.codec,
+                numberOfChannels: config.numberOfChannels,
+                sampleRate: config.sampleRate,
+              },
+            } : undefined;
+
+            await this.muxer!.addAudioChunk(chunk, meta ?? fallbackMeta);
+          } catch (error) {
+            console.error('Audio muxing error:', error);
+          }
+        })();
+
+        this.muxingPromises.push(muxingPromise);
+        this.audioEncodeQueue--;
+      },
+      error: (error) => {
+        console.error('[VideoExporter] Audio encoder error:', error);
+        this.cancelled = true;
+      },
+    });
+    this.audioEncoder.configure(config);
+
+    const frameSize = 1024;
+    const channels = track.numberOfChannels;
+
+    for (let offset = 0; offset < track.numberOfFrames && !this.cancelled; offset += frameSize) {
+      while (this.audioEncodeQueue >= this.MAX_AUDIO_ENCODE_QUEUE && !this.cancelled) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      const numberOfFrames = Math.min(frameSize, track.numberOfFrames - offset);
+      const interleaved = new Float32Array(numberOfFrames * channels);
+
+      for (let frame = 0; frame < numberOfFrames; frame++) {
+        for (let channel = 0; channel < channels; channel++) {
+          interleaved[frame * channels + channel] = track.channelData[channel][offset + frame];
+        }
+      }
+
+      const timestamp = Math.round((offset / track.sampleRate) * 1_000_000);
+      const audioData = new AudioData({
+        format: 'f32',
+        sampleRate: track.sampleRate,
+        numberOfFrames,
+        numberOfChannels: channels,
+        timestamp,
+        data: interleaved,
+      });
+
+      this.audioEncodeQueue++;
+      this.audioEncoder.encode(audioData);
+      audioData.close();
+    }
+
+    if (this.audioEncoder.state === 'configured') {
+      await this.audioEncoder.flush();
+      this.audioEncoder.close();
+      this.audioEncoder = null;
+    }
+  }
+
+  private async resampleAudioTrack(sourceTrack: DecodedAudioTrack, targetSampleRate: number): Promise<DecodedAudioTrack> {
+    const length = Math.ceil((sourceTrack.numberOfFrames * targetSampleRate) / sourceTrack.sampleRate);
+    const offlineContext = new OfflineAudioContext(sourceTrack.numberOfChannels, length, targetSampleRate);
+    const sourceBuffer = offlineContext.createBuffer(
+      sourceTrack.numberOfChannels,
+      sourceTrack.numberOfFrames,
+      sourceTrack.sampleRate
+    );
+
+    for (let channel = 0; channel < sourceTrack.numberOfChannels; channel++) {
+      const channelCopy = new Float32Array(sourceTrack.channelData[channel].length);
+      channelCopy.set(sourceTrack.channelData[channel]);
+      sourceBuffer.copyToChannel(channelCopy, channel);
+    }
+
+    const sourceNode = offlineContext.createBufferSource();
+    sourceNode.buffer = sourceBuffer;
+    sourceNode.connect(offlineContext.destination);
+    sourceNode.start();
+
+    const rendered = await offlineContext.startRendering();
+    const channelData: Float32Array[] = [];
+    for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
+      channelData.push(rendered.getChannelData(channel).slice());
+    }
+
+    return {
+      sampleRate: rendered.sampleRate,
+      numberOfChannels: rendered.numberOfChannels,
+      numberOfFrames: rendered.length,
+      channelData,
+    };
   }
 }
