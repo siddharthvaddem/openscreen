@@ -313,6 +313,29 @@ export function registerIpcHandlers(
     }
   });
 
+  ipcMain.handle('reveal-in-folder', async (_, filePath: string) => {
+    try {
+      // shell.showItemInFolder doesn't return a value, it throws on error
+      shell.showItemInFolder(filePath);
+      return { success: true };
+    } catch (error) {
+      console.error(`Error revealing item in folder: ${filePath}`, error);
+      // Fallback to open the directory if revealing the item fails
+      // This might happen if the file was moved or deleted after export,
+      // or if the path is somehow invalid for showItemInFolder
+      try {
+        shell.openPath(path.dirname(filePath));
+        return { success: true, message: 'Could not reveal item, but opened directory.' };
+      } catch (openError) {
+        console.error(`Error opening directory: ${path.dirname(filePath)}`, openError);
+        return { success: false, error: String(error) };
+      }
+    }
+  });
+
+  let currentVideoPath: string | null = null;
+
+
   ipcMain.handle('set-current-video-path', (_, path: string) => {
     currentVideoPath = path;
     return { success: true };

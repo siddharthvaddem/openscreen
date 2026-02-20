@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { X, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ExportProgress } from '@/lib/exporter';
+import { toast } from 'sonner'; // Add this import
+
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface ExportDialogProps {
   error: string | null;
   onCancel?: () => void;
   exportFormat?: 'mp4' | 'gif';
+  exportedFilePath?: string;
 }
 
 export function ExportDialog({
@@ -21,6 +24,7 @@ export function ExportDialog({
   error,
   onCancel,
   exportFormat = 'mp4',
+  exportedFilePath, // Add this line
 }: ExportDialogProps) {
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -77,6 +81,23 @@ export function ExportDialog({
     return `Exporting ${formatLabel}`;
   };
 
+  const handleClickShowInFolder = async () => {
+    if (exportedFilePath) {
+      try {
+        const result = await window.electronAPI.revealInFolder(exportedFilePath);
+        if (!result.success) {
+          const errorMessage = result.error || result.message || 'Failed to reveal item in folder.';
+          console.error('Failed to reveal in folder:', errorMessage);
+          toast.error(errorMessage);
+        }
+      } catch (err) {
+        const errorMessage = String(err);
+        console.error('Error calling revealInFolder IPC:', errorMessage);
+        toast.error(`Error revealing in folder: ${errorMessage}`);
+      }
+    }
+  };
+
   return (
     <>
       <div 
@@ -91,9 +112,21 @@ export function ExportDialog({
                 <div className="w-12 h-12 rounded-full bg-[#34B27B]/20 flex items-center justify-center ring-1 ring-[#34B27B]/50">
                   <Download className="w-6 h-6 text-[#34B27B]" />
                 </div>
-                <div>
+                <div className="w-12 h-12 rounded-full bg-[#34B27B]/20 flex items-center justify-center ring-1 ring-[#34B27B]/50">
+                  <Download className="w-6 h-6 text-[#34B27B]" />
+                </div>
+                <div className="flex flex-col gap-2"> {/* Added flex container */}
                   <span className="text-xl font-bold text-slate-200 block">Export Complete</span>
                   <span className="text-sm text-slate-400">Your {formatLabel.toLowerCase()} is ready</span>
+                  {exportedFilePath && ( // Only show button if path exists
+                    <Button
+                      variant="secondary"
+                      onClick={handleClickShowInFolder}
+                      className="mt-2 w-fit px-3 py-1 text-sm rounded-md bg-white/10 hover:bg-white/20 text-slate-200"
+                    >
+                      Show in Folder
+                    </Button>
+                  )}
                 </div>
               </>
             ) : (

@@ -72,4 +72,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveShortcuts: (shortcuts: unknown) => {
     return ipcRenderer.invoke('save-shortcuts', shortcuts)
   },
+  revealInFolder: (filePath: string) => {
+    return ipcRenderer.invoke('reveal-in-folder', filePath)
+  },
 })
