@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { fixWebmDuration } from "@fix-webm-duration/fix";
+import { toast } from "sonner";
 
 // Target visually lossless 4K @ 60fps; fall back gracefully when hardware cannot keep up
 const TARGET_FRAME_RATE = 60;
@@ -201,6 +202,18 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
     } catch (error) {
       console.error('Failed to start recording:', error);
       setRecording(false);
+
+      // Provide user-friendly error message
+      const errorMsg = error instanceof Error ? error.message : 'Failed to start recording';
+      if (errorMsg.includes('Permission denied') || (error as any).name === 'NotAllowedError') {
+        toast.error('Recording permission denied. Please allow screen recording.');
+      } else if (errorMsg.includes('microphone') || (error as any).message?.includes('microphone')) {
+        toast.error('Microphone access failed. Please check your microphone settings.');
+      } else {
+        toast.error(errorMsg);
+      }
+
+      // Clean up any partial streams
       if (stream.current) {
         stream.current.getTracks().forEach(track => track.stop());
         stream.current = null;
