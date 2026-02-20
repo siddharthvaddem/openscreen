@@ -80,20 +80,28 @@ export class VideoExporter {
       // Initialize video encoder
       await this.initializeEncoder();
 
-      // Check if we have audio and initialize audio processor
-      const hasAudio = videoInfo.hasAudio && !!videoInfo.audioCodec;
-      console.log('[VideoExporter] Audio detected:', hasAudio);
-
-      if (hasAudio && videoInfo.audioCodec && videoInfo.audioSampleRate && videoInfo.audioChannels) {
-        this.audioProcessor = new AudioProcessor({
+      // Check if we have audio and if the codec is supported
+      let hasAudio = false;
+      if (videoInfo.hasAudio && videoInfo.audioCodec && videoInfo.audioSampleRate && videoInfo.audioChannels) {
+        const tempAudioProcessor = new AudioProcessor({
           videoUrl: this.config.videoUrl,
-          bitrate: 128000, // 128 kbps audio
+          bitrate: 128000,
         });
-        await this.audioProcessor.initialize(
+        await tempAudioProcessor.initialize(
           videoInfo.audioCodec,
           videoInfo.audioSampleRate,
           videoInfo.audioChannels
         );
+
+        // Check if codec is supported
+        if (tempAudioProcessor.isCodecSupported()) {
+          console.log('[VideoExporter] Audio codec supported:', videoInfo.audioCodec);
+          this.audioProcessor = tempAudioProcessor;
+          hasAudio = true;
+        } else {
+          console.warn('[VideoExporter] Unsupported audio codec, skipping audio:', videoInfo.audioCodec);
+          tempAudioProcessor.cleanup();
+        }
       }
 
       // Initialize muxer with audio support if needed
@@ -116,7 +124,9 @@ export class VideoExporter {
       const audioPromise = this.audioProcessor && this.muxer
         ? this.audioProcessor.process(async (chunk, meta) => {
             if (!this.cancelled && this.muxer) {
-              await this.muxer.addAudioChunk(chunk, meta);
+              // Track audio muxing promises to prevent race conditions
+              const audioMuxingPromise = this.muxer.addAudioChunk(chunk, meta);
+              this.muxingPromises.push(audioMuxingPromise);
             }
           })
         : Promise.resolve();

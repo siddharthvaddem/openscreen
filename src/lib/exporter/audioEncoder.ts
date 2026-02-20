@@ -188,6 +188,14 @@ export class AudioProcessor {
   }
 
   /**
+   * Check if the source codec is supported for decoding
+   */
+  isCodecSupported(): boolean {
+    const codec = this.sourceCodec.toLowerCase();
+    return codec.includes('opus') || codec.includes('vorbis');
+  }
+
+  /**
    * Map source codec to WebCodecs decoder codec string
    */
   private getDecoderCodec(): string {
@@ -198,8 +206,8 @@ export class AudioProcessor {
     if (this.sourceCodec.toLowerCase().includes('vorbis')) {
       return 'vorbis';
     }
-    // Default to opus (most common in WebM)
-    return 'opus';
+    // Should not reach here if isCodecSupported() check is done
+    throw new Error(`Unsupported audio codec: ${this.sourceCodec}`);
   }
 
   /**
