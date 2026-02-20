@@ -112,13 +112,10 @@ export function ExportDialog({
                 <div className="w-12 h-12 rounded-full bg-[#34B27B]/20 flex items-center justify-center ring-1 ring-[#34B27B]/50">
                   <Download className="w-6 h-6 text-[#34B27B]" />
                 </div>
-                <div className="w-12 h-12 rounded-full bg-[#34B27B]/20 flex items-center justify-center ring-1 ring-[#34B27B]/50">
-                  <Download className="w-6 h-6 text-[#34B27B]" />
-                </div>
-                <div className="flex flex-col gap-2"> {/* Added flex container */}
+                <div className="flex flex-col gap-2">
                   <span className="text-xl font-bold text-slate-200 block">Export Complete</span>
                   <span className="text-sm text-slate-400">Your {formatLabel.toLowerCase()} is ready</span>
-                  {exportedFilePath && ( // Only show button if path exists
+                  {exportedFilePath && (
                     <Button
                       variant="secondary"
                       onClick={handleClickShowInFolder}
@@ -126,6 +123,11 @@ export function ExportDialog({
                     >
                       Show in Folder
                     </Button>
+                  )}
+                  {exportedFilePath && (
+                    <span className="text-xs text-slate-500 break-all max-w-xs mt-1">
+                      {exportedFilePath.split('/').pop()}
+                    </span>
                   )}
                 </div>
               </>

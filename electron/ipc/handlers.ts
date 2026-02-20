@@ -324,7 +324,11 @@ export function registerIpcHandlers(
       // This might happen if the file was moved or deleted after export,
       // or if the path is somehow invalid for showItemInFolder
       try {
-        shell.openPath(path.dirname(filePath));
+        const openPathResult = await shell.openPath(path.dirname(filePath));
+        if (openPathResult) {
+          // openPath returned an error message
+          return { success: false, error: openPathResult };
+        }
         return { success: true, message: 'Could not reveal item, but opened directory.' };
       } catch (openError) {
         console.error(`Error opening directory: ${path.dirname(filePath)}`, openError);

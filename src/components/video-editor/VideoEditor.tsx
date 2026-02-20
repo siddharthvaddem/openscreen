@@ -855,7 +855,7 @@ export default function VideoEditor() {
   }, []);
 
   const showExportSuccessToast = useCallback((filePath: string) => {
-    toast.success(`Video exported successfully to ${filePath}`, {
+    toast.success(`Exported successfully to ${filePath}`, {
       action: {
         label: 'Show in Folder',
         onClick: async () => {
