@@ -7,6 +7,10 @@ export interface DecodedVideoInfo {
   duration: number; // seconds
   frameRate: number;
   codec: string;
+  hasAudio: boolean;
+  audioCodec?: string;
+  audioSampleRate?: number;
+  audioChannels?: number;
 }
 
 /** Caller must close the VideoFrame after use. */
@@ -42,6 +46,7 @@ export class StreamingVideoDecoder {
 
     const mediaInfo = await this.demuxer.getMediaInfo();
     const videoStream = mediaInfo.streams.find(s => s.codec_type_string === 'video');
+    const audioStream = mediaInfo.streams.find(s => s.codec_type_string === 'audio');
 
     let frameRate = 60;
     if (videoStream?.avg_frame_rate) {
@@ -59,7 +64,13 @@ export class StreamingVideoDecoder {
       duration: mediaInfo.duration,
       frameRate,
       codec: videoStream?.codec_string || 'unknown',
+      hasAudio: !!audioStream,
+      audioCodec: audioStream?.codec_string,
+      audioSampleRate: audioStream?.sample_rate,
+      audioChannels: audioStream?.channels,
     };
+
+    console.log('[StreamingVideoDecoder] Video metadata:', this.metadata);
 
     return this.metadata;
   }

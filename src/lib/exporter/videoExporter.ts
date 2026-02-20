@@ -2,6 +2,7 @@ import type { ExportConfig, ExportProgress, ExportResult } from './types';
 import { StreamingVideoDecoder } from './streamingDecoder';
 import { FrameRenderer } from './frameRenderer';
 import { VideoMuxer } from './muxer';
+import { AudioProcessor } from './audioEncoder';
 import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SpeedRegion } from '@/components/video-editor/types';
 
 interface VideoExporterConfig extends ExportConfig {
@@ -30,6 +31,7 @@ export class VideoExporter {
   private renderer: FrameRenderer | null = null;
   private encoder: VideoEncoder | null = null;
   private muxer: VideoMuxer | null = null;
+  private audioProcessor: AudioProcessor | null = null;
   private cancelled = false;
   private encodeQueue = 0;
   // Increased queue size for better throughput with hardware encoding
@@ -78,8 +80,24 @@ export class VideoExporter {
       // Initialize video encoder
       await this.initializeEncoder();
 
-      // Initialize muxer
-      this.muxer = new VideoMuxer(this.config, false);
+      // Check if we have audio and initialize audio processor
+      const hasAudio = videoInfo.hasAudio && !!videoInfo.audioCodec;
+      console.log('[VideoExporter] Audio detected:', hasAudio);
+
+      if (hasAudio && videoInfo.audioCodec && videoInfo.audioSampleRate && videoInfo.audioChannels) {
+        this.audioProcessor = new AudioProcessor({
+          videoUrl: this.config.videoUrl,
+          bitrate: 128000, // 128 kbps audio
+        });
+        await this.audioProcessor.initialize(
+          videoInfo.audioCodec,
+          videoInfo.audioSampleRate,
+          videoInfo.audioChannels
+        );
+      }
+
+      // Initialize muxer with audio support if needed
+      this.muxer = new VideoMuxer(this.config, hasAudio);
       await this.muxer.initialize();
 
       // Calculate effective duration and frame count (excluding trim regions)
@@ -94,8 +112,17 @@ export class VideoExporter {
       const frameDuration = 1_000_000 / this.config.frameRate; // in microseconds
       let frameIndex = 0;
 
+      // Start audio processing in parallel with video processing
+      const audioPromise = this.audioProcessor && this.muxer
+        ? this.audioProcessor.process(async (chunk, meta) => {
+            if (!this.cancelled && this.muxer) {
+              await this.muxer.addAudioChunk(chunk, meta);
+            }
+          })
+        : Promise.resolve();
+
       // Stream decode and process frames — no seeking!
-      await this.streamingDecoder.decodeAll(
+      const videoPromise = this.streamingDecoder.decodeAll(
         this.config.frameRate,
         this.config.trimRegions,
         this.config.speedRegions,
@@ -154,6 +181,9 @@ export class VideoExporter {
           }
         }
       );
+
+      // Wait for both video and audio processing to complete
+      await Promise.all([videoPromise, audioPromise]);
 
       if (this.cancelled) {
         return { success: false, error: 'Export cancelled' };
@@ -284,6 +314,9 @@ export class VideoExporter {
     if (this.streamingDecoder) {
       this.streamingDecoder.cancel();
     }
+    if (this.audioProcessor) {
+      this.audioProcessor.cancel();
+    }
     this.cleanup();
   }
 
@@ -297,6 +330,15 @@ export class VideoExporter {
         console.warn('Error closing encoder:', e);
       }
       this.encoder = null;
+    }
+
+    if (this.audioProcessor) {
+      try {
+        this.audioProcessor.cleanup();
+      } catch (e) {
+        console.warn('Error cleaning up audio processor:', e);
+      }
+      this.audioProcessor = null;
     }
 
     if (this.streamingDecoder) {
