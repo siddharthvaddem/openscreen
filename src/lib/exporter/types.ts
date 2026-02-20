@@ -13,6 +13,7 @@ export interface ExportProgress {
   estimatedTimeRemaining: number; // in seconds
   phase?: 'extracting' | 'finalizing'; // Phase of export
   renderProgress?: number; // 0-100, progress of GIF rendering phase
+  outputPath?: string;
 }
 
 export interface ExportResult {

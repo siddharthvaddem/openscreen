@@ -26,10 +26,15 @@ Thank you for considering contributing to this project! By contributing, you hel
    - Test your changes thoroughly to ensure they work as expected and do not break existing functionality.
 
 6. **Commit Your Changes**
-   - Commit your changes with a clear and concise commit message:
+   - Commit your changes with a clear, concise, and descriptive commit message. We follow Conventional Commits guidelines to help maintain a consistent commit history.
      ```bash
      git add .
-     git commit -m "Add a brief description of your changes"
+     git commit -m "type(scope): Add a concise commit message subject" -m "
+     Provide a more detailed explanation of your changes here, if necessary.
+
+     - Use conventional commit types (e.g., feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert).
+     - Keep the subject line under 50 characters.
+     - Reference issues or pull requests if applicable (e.g., Closes #123)."
      ```
 
 7. **Push Your Changes**

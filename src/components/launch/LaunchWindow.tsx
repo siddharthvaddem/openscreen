@@ -5,13 +5,15 @@ import { Button } from "../ui/button";
 import { BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { MdMonitor } from "react-icons/md";
+import { MdMic, MdMicOff } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { FaFolderMinus } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
 import { ContentClamp } from "../ui/content-clamp";
+import { Switch } from "../ui/switch";
 
 export function LaunchWindow() {
-  const { recording, toggleRecording } = useScreenRecorder();
+  const { recording, toggleRecording, microphoneEnabled, setMicrophoneEnabled } = useScreenRecorder();
   const [recordingStart, setRecordingStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
@@ -140,7 +142,23 @@ export function LaunchWindow() {
             </>
           )}
         </Button>
-        
+
+        <div className="w-px h-6 bg-white/30" />
+
+        {/* Microphone toggle */}
+        <div className={`flex items-center gap-2 px-2 ${styles.electronNoDrag}`}>
+          {microphoneEnabled ? (
+            <MdMic size={14} className="text-white" />
+          ) : (
+            <MdMicOff size={14} className="text-white/50" />
+          )}
+          <Switch
+            checked={microphoneEnabled}
+            onCheckedChange={setMicrophoneEnabled}
+            disabled={recording}
+            className="data-[state=checked]:bg-[#34B27B]"
+          />
+        </div>
 
         <div className="w-px h-6 bg-white/30" />
 
