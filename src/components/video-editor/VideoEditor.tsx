@@ -423,9 +423,11 @@ export default function VideoEditor() {
     const video = videoPlaybackRef.current?.video;
     if (!video) return;
     let newTime = video.currentTime + seconds;
-    newTime = Math.max(0, Math.min(newTime, duration));
+
+    if (newTime < 0) newTime = 0;
+    if (newTime > duration) newTime = duration;
     video.currentTime = newTime;
-    setCurrentTime(newTime);
+    if (video.paused) setCurrentTime(newTime);
   }
 
   useEffect(() => {
