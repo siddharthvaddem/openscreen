@@ -1,6 +1,36 @@
 import { useState, useRef, useEffect } from "react";
 import { fixWebmDuration } from "@fix-webm-duration/fix";
 
+// Target visually lossless 4K @ 60fps; fall back gracefully when hardware cannot keep up
+const TARGET_FRAME_RATE = 60;
+const MIN_FRAME_RATE = 30;
+const TARGET_WIDTH = 3840;
+const TARGET_HEIGHT = 2160;
+const FOUR_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
+const QHD_WIDTH = 2560;
+const QHD_HEIGHT = 1440;
+const QHD_PIXELS = QHD_WIDTH * QHD_HEIGHT;
+
+// Bitrates (bits per second) per resolution tier
+const BITRATE_4K = 45_000_000;
+const BITRATE_QHD = 28_000_000;
+const BITRATE_BASE = 18_000_000;
+const HIGH_FRAME_RATE_THRESHOLD = 60;
+const HIGH_FRAME_RATE_BOOST = 1.7;
+
+// Fallback track settings when the driver reports nothing
+const DEFAULT_WIDTH = 1920;
+const DEFAULT_HEIGHT = 1080;
+
+// Codec alignment: VP9/AV1 require dimensions divisible by 2
+const CODEC_ALIGNMENT = 2;
+
+const RECORDER_TIMESLICE_MS = 1000;
+const BITS_PER_MEGABIT = 1_000_000;
+const CHROME_MEDIA_SOURCE = "desktop";
+const RECORDING_FILE_PREFIX = "recording-";
+const VIDEO_FILE_EXTENSION = ".webm";
+
 type UseScreenRecorderReturn = {
   recording: boolean;
   toggleRecording: () => void;
@@ -13,11 +43,6 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
   const chunks = useRef<Blob[]>([]);
   const startTime = useRef<number>(0);
 
-  // Target visually lossless 4K @ 60fps; fall back gracefully when hardware cannot keep up
-  const TARGET_FRAME_RATE = 60;
-  const TARGET_WIDTH = 3840;
-  const TARGET_HEIGHT = 2160;
-  const FOUR_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
   const selectMimeType = () => {
     const preferred = [
       "video/webm;codecs=av1",
@@ -32,17 +57,17 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
   const computeBitrate = (width: number, height: number) => {
     const pixels = width * height;
-    const highFrameRateBoost = TARGET_FRAME_RATE >= 60 ? 1.7 : 1;
+    const highFrameRateBoost = TARGET_FRAME_RATE >= HIGH_FRAME_RATE_THRESHOLD ? HIGH_FRAME_RATE_BOOST : 1;
 
     if (pixels >= FOUR_K_PIXELS) {
-      return Math.round(45_000_000 * highFrameRateBoost);
+      return Math.round(BITRATE_4K * highFrameRateBoost);
     }
 
-    if (pixels >= 2560 * 1440) {
-      return Math.round(28_000_000 * highFrameRateBoost);
+    if (pixels >= QHD_PIXELS) {
+      return Math.round(BITRATE_QHD * highFrameRateBoost);
     }
 
-    return Math.round(18_000_000 * highFrameRateBoost);
+    return Math.round(BITRATE_BASE * highFrameRateBoost);
   };
 
   const stopRecording = useRef(() => {
@@ -91,12 +116,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         audio: false,
         video: {
           mandatory: {
-            chromeMediaSource: "desktop",
+            chromeMediaSource: CHROME_MEDIA_SOURCE,
             chromeMediaSourceId: selectedSource.id,
             maxWidth: TARGET_WIDTH,
             maxHeight: TARGET_HEIGHT,
             maxFrameRate: TARGET_FRAME_RATE,
-            minFrameRate: 30,
+            minFrameRate: MIN_FRAME_RATE,
           },
         },
       });
@@ -115,18 +140,18 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         console.warn("Unable to lock 4K/60fps constraints, using best available track settings.", error);
       }
 
-      let { width = 1920, height = 1080, frameRate = TARGET_FRAME_RATE } = videoTrack.getSettings();
+      let { width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT, frameRate = TARGET_FRAME_RATE } = videoTrack.getSettings();
       
       // Ensure dimensions are divisible by 2 for VP9/AV1 codec compatibility
-      width = Math.floor(width / 2) * 2;
-      height = Math.floor(height / 2) * 2;
+      width = Math.floor(width / CODEC_ALIGNMENT) * CODEC_ALIGNMENT;
+      height = Math.floor(height / CODEC_ALIGNMENT) * CODEC_ALIGNMENT;
       
       const videoBitsPerSecond = computeBitrate(width, height);
       const mimeType = selectMimeType();
 
       console.log(
         `Recording at ${width}x${height} @ ${frameRate ?? TARGET_FRAME_RATE}fps using ${mimeType} / ${Math.round(
-          videoBitsPerSecond / 1_000_000
+          videoBitsPerSecond / BITS_PER_MEGABIT
         )} Mbps`
       );
       
@@ -148,7 +173,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         // Clear chunks early to free memory immediately after blob creation
         chunks.current = [];
         const timestamp = Date.now();
-        const videoFileName = `recording-${timestamp}.webm`;
+        const videoFileName = `${RECORDING_FILE_PREFIX}${timestamp}${VIDEO_FILE_EXTENSION}`;
 
         try {
           const videoBlob = await fixWebmDuration(buggyBlob, duration);
@@ -169,7 +194,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
         }
       };
       recorder.onerror = () => setRecording(false);
-      recorder.start(1000);
+      recorder.start(RECORDER_TIMESLICE_MS);
       startTime.current = Date.now();
       setRecording(true);
       window.electronAPI?.setRecordingState(true);
