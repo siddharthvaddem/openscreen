@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRecordingState: (recording: boolean) => {
     return ipcRenderer.invoke('set-recording-state', recording)
   },
+  getCursorTelemetry: (videoPath?: string) => {
+    return ipcRenderer.invoke('get-cursor-telemetry', videoPath)
+  },
   onStopRecordingFromTray: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('stop-recording-from-tray', listener)

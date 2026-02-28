@@ -13,6 +13,12 @@ export interface ZoomRegion {
   focus: ZoomFocus;
 }
 
+export interface CursorTelemetryPoint {
+  timeMs: number;
+  cx: number;
+  cy: number;
+}
+
 export interface TrimRegion {
   id: string;
   startMs: number;

@@ -23,6 +23,7 @@ import {
   type ZoomDepth,
   type ZoomFocus,
   type ZoomRegion,
+  type CursorTelemetryPoint,
   type TrimRegion,
   type AnnotationRegion,
   type CropRegion,
@@ -50,6 +51,7 @@ export default function VideoEditor() {
   const [padding, setPadding] = useState(50);
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
   const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([]);
+  const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
   const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
   const [trimRegions, setTrimRegions] = useState<TrimRegion[]>([]);
   const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
@@ -89,6 +91,19 @@ export default function VideoEditor() {
     return fileUrl;
   };
 
+  const fromFileUrl = (fileUrl: string): string => {
+    if (!fileUrl.startsWith('file://')) {
+      return fileUrl;
+    }
+
+    try {
+      const url = new URL(fileUrl);
+      return decodeURIComponent(url.pathname);
+    } catch {
+      return fileUrl.replace(/^file:\/\//, '');
+    }
+  };
+
   useEffect(() => {
     async function loadVideo() {
       try {
@@ -108,6 +123,37 @@ export default function VideoEditor() {
     }
     loadVideo();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCursorTelemetry() {
+      if (!videoPath) {
+        if (mounted) {
+          setCursorTelemetry([]);
+        }
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.getCursorTelemetry(fromFileUrl(videoPath));
+        if (mounted) {
+          setCursorTelemetry(result.success ? result.samples : []);
+        }
+      } catch (telemetryError) {
+        console.warn('Unable to load cursor telemetry:', telemetryError);
+        if (mounted) {
+          setCursorTelemetry([]);
+        }
+      }
+    }
+
+    loadCursorTelemetry();
+
+    return () => {
+      mounted = false;
+    };
+  }, [videoPath]);
 
   // Initialize default wallpaper with resolved asset path
   useEffect(() => {
@@ -173,6 +219,21 @@ export default function VideoEditor() {
       endMs: Math.round(span.end),
       depth: DEFAULT_ZOOM_DEPTH,
       focus: { cx: 0.5, cy: 0.5 },
+    };
+    setZoomRegions((prev) => [...prev, newRegion]);
+    setSelectedZoomId(id);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+  }, []);
+
+  const handleZoomSuggested = useCallback((span: Span, focus: ZoomFocus) => {
+    const id = `zoom-${nextZoomIdRef.current++}`;
+    const newRegion: ZoomRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      depth: DEFAULT_ZOOM_DEPTH,
+      focus: clampFocusToDepth(focus, DEFAULT_ZOOM_DEPTH),
     };
     setZoomRegions((prev) => [...prev, newRegion]);
     setSelectedZoomId(id);
@@ -814,8 +875,10 @@ export default function VideoEditor() {
               videoDuration={duration}
               currentTime={currentTime}
               onSeek={handleSeek}
+              cursorTelemetry={cursorTelemetry}
               zoomRegions={zoomRegions}
               onZoomAdded={handleZoomAdded}
+              onZoomSuggested={handleZoomSuggested}
               onZoomSpanChange={handleZoomSpanChange}
               onZoomDelete={handleZoomDelete}
               selectedZoomId={selectedZoomId}

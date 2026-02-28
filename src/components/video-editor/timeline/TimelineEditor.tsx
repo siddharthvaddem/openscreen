@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTimelineContext } from "dnd-timeline";
 import { Button } from "@/components/ui/button";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TimelineWrapper from "./TimelineWrapper";
@@ -9,7 +9,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, CursorTelemetryPoint, ZoomFocus } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
@@ -20,19 +20,23 @@ import {
 import { type AspectRatio, getAspectRatioLabel, ASPECT_RATIOS } from "@/utils/aspectRatioUtils";
 import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
+import { detectZoomDwellCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
+const SUGGESTION_SPACING_MS = 1800;
 
 interface TimelineEditorProps {
   videoDuration: number;
   currentTime: number;
   onSeek?: (time: number) => void;
+  cursorTelemetry?: CursorTelemetryPoint[];
   zoomRegions: ZoomRegion[];
   onZoomAdded: (span: Span) => void;
+  onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
   onZoomSpanChange: (id: string, span: Span) => void;
   onZoomDelete: (id: string) => void;
   selectedZoomId: string | null;
@@ -520,8 +524,10 @@ export default function TimelineEditor({
   videoDuration,
   currentTime,
   onSeek,
+  cursorTelemetry = [],
   zoomRegions,
   onZoomAdded,
+  onZoomSuggested,
   onZoomSpanChange,
   onZoomDelete,
   selectedZoomId,
@@ -715,6 +721,91 @@ export default function TimelineEditor({
     const actualDuration = Math.min(defaultRegionDurationMs, gapToNext);
     onZoomAdded({ start: startPos, end: startPos + actualDuration });
   }, [videoDuration, totalMs, currentTimeMs, zoomRegions, onZoomAdded, defaultRegionDurationMs]);
+
+  const handleSuggestZooms = useCallback(() => {
+    if (!videoDuration || videoDuration === 0 || totalMs === 0) {
+      return;
+    }
+
+    if (!onZoomSuggested) {
+      toast.error("Zoom suggestion handler unavailable");
+      return;
+    }
+
+    if (cursorTelemetry.length < 2) {
+      toast.info("No cursor telemetry available", {
+        description: "Record a screencast first to generate cursor-based suggestions.",
+      });
+      return;
+    }
+
+    const defaultDuration = Math.min(defaultRegionDurationMs, totalMs);
+    if (defaultDuration <= 0) {
+      return;
+    }
+
+    const reservedSpans = [...zoomRegions]
+      .map((region) => ({ start: region.startMs, end: region.endMs }))
+      .sort((a, b) => a.start - b.start);
+
+    const normalizedSamples = normalizeCursorTelemetry(cursorTelemetry, totalMs);
+
+    if (normalizedSamples.length < 2) {
+      toast.info("No usable cursor telemetry", {
+        description: "The recording does not include enough cursor movement data.",
+      });
+      return;
+    }
+
+    const dwellCandidates = detectZoomDwellCandidates(normalizedSamples);
+
+    if (dwellCandidates.length === 0) {
+      toast.info("No clear cursor dwell moments found", {
+        description: "Try a recording with slower cursor pauses on important actions.",
+      });
+      return;
+    }
+
+    const sortedCandidates = [...dwellCandidates].sort((a, b) => b.strength - a.strength);
+    const acceptedCenters: number[] = [];
+
+    let addedCount = 0;
+
+    sortedCandidates.forEach((candidate) => {
+      const tooCloseToAccepted = acceptedCenters.some(
+        (center) => Math.abs(center - candidate.centerTimeMs) < SUGGESTION_SPACING_MS,
+      );
+
+      if (tooCloseToAccepted) {
+        return;
+      }
+
+      const centeredStart = Math.round(candidate.centerTimeMs - defaultDuration / 2);
+      const candidateStart = Math.max(0, Math.min(centeredStart, totalMs - defaultDuration));
+      const candidateEnd = candidateStart + defaultDuration;
+      const hasOverlap = reservedSpans.some(
+        (span) => candidateEnd > span.start && candidateStart < span.end,
+      );
+
+      if (hasOverlap) {
+        return;
+      }
+
+      reservedSpans.push({ start: candidateStart, end: candidateEnd });
+      acceptedCenters.push(candidate.centerTimeMs);
+      onZoomSuggested({ start: candidateStart, end: candidateEnd }, candidate.focus);
+      addedCount += 1;
+    });
+
+    if (addedCount === 0) {
+      toast.info("No auto-zoom slots available", {
+        description: "Detected dwell points overlap existing zoom regions.",
+      });
+      return;
+    }
+
+    toast.success(`Added ${addedCount} cursor-based zoom suggestion${addedCount === 1 ? "" : "s"}`);
+  }, [videoDuration, totalMs, defaultRegionDurationMs, zoomRegions, onZoomSuggested, cursorTelemetry]);
 
   const handleAddTrim = useCallback(() => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onTrimAdded) {
@@ -919,6 +1010,15 @@ export default function TimelineEditor({
             title="Add Zoom (Z)"
           >
             <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={handleSuggestZooms}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
+            title="Suggest Zooms from Cursor"
+          >
+            <WandSparkles className="w-4 h-4" />
           </Button>
           <Button
             onClick={handleAddTrim}

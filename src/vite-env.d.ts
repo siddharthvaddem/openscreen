@@ -9,6 +9,12 @@ interface ProcessedDesktopSource {
   appIcon: string | null;
 }
 
+interface CursorTelemetryPoint {
+  timeMs: number;
+  cx: number;
+  cy: number;
+}
+
 interface Window {
   electronAPI: {
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
@@ -30,6 +36,12 @@ interface Window {
     }>
     getAssetBasePath: () => Promise<string | null>
     setRecordingState: (recording: boolean) => Promise<void>
+    getCursorTelemetry: (videoPath?: string) => Promise<{
+      success: boolean
+      samples: CursorTelemetryPoint[]
+      message?: string
+      error?: string
+    }>
     onStopRecordingFromTray: (callback: () => void) => () => void
     openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>
     saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => Promise<{
