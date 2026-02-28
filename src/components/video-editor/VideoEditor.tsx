@@ -484,9 +484,10 @@ export default function VideoEditor() {
     const video = videoPlaybackRef.current?.video;
     if (!video) return;
     let newTime = video.currentTime + seconds;
-
+    if (Number.isNaN(newTime) || !Number.isFinite(newTime)) return;
     if (newTime < 0) newTime = 0;
-    if (newTime > duration) newTime = duration;
+    if (duration > 0 && newTime > duration) newTime = duration;
+    if (Math.abs(newTime - video.currentTime) < 0.001) return;
     video.currentTime = newTime;
     if (video.paused) setCurrentTime(newTime);
   }

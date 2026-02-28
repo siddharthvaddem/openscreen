@@ -34,6 +34,9 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   setRecordingState: (recording) => {
     return electron.ipcRenderer.invoke("set-recording-state", recording);
   },
+  getCursorTelemetry: (videoPath) => {
+    return electron.ipcRenderer.invoke("get-cursor-telemetry", videoPath);
+  },
   onStopRecordingFromTray: (callback) => {
     const listener = () => callback();
     electron.ipcRenderer.on("stop-recording-from-tray", listener);
