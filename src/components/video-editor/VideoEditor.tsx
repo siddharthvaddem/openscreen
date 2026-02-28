@@ -390,35 +390,43 @@ export default function VideoEditor() {
   // Global Tab prevention
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Tab') {
-        // Allow tab only in inputs/textareas
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-          return;
-        }
         e.preventDefault();
+        return;
       }
-
       if (e.key === ' ' || e.code === 'Space') {
-        // Allow space only in inputs/textareas
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-          return;
-        }
         e.preventDefault();
-        
         const playback = videoPlaybackRef.current;
-        if (playback?.video) {
-          if (playback.video.paused) {
-            playback.play().catch(console.error);
-          } else {
-            playback.pause();
-          }
+        const video = playback?.video;
+        if (!playback || !video) return;
+        if (video.paused) {
+          playback.play().catch(() => {});
+        } else {
+          playback.pause();
         }
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        seekRelative(-1);
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        seekRelative(1);
       }
     };
-    
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, []);
+
+  function seekRelative(seconds: number) {
+    const video = videoPlaybackRef.current?.video;
+    if (!video) return;
+    let newTime = video.currentTime + seconds;
+    newTime = Math.max(0, Math.min(newTime, duration));
+    video.currentTime = newTime;
+    setCurrentTime(newTime);
+  }
 
   useEffect(() => {
     if (selectedZoomId && !zoomRegions.some((region) => region.id === selectedZoomId)) {
