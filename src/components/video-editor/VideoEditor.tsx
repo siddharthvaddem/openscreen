@@ -74,6 +74,7 @@ export default function VideoEditor() {
   const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
   const [gifLoop, setGifLoop] = useState(true);
   const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>('medium');
+  const [unsavedExport, setUnsavedExport] = useState<{ arrayBuffer: ArrayBuffer; fileName: string; format: string } | null>(null);
 
   const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
   const nextZoomIdRef = useRef(1);
@@ -89,13 +90,13 @@ export default function VideoEditor() {
   const toFileUrl = (filePath: string): string => {
     // Normalize path separators to forward slashes
     const normalized = filePath.replace(/\\/g, '/');
-    
+
     // Check if it's a Windows absolute path (e.g., C:/Users/...)
     if (normalized.match(/^[a-zA-Z]:/)) {
       const fileUrl = `file:///${normalized}`;
       return fileUrl;
     }
-    
+
     // Unix-style absolute path
     const fileUrl = `file://${normalized}`;
     return fileUrl;
@@ -118,7 +119,7 @@ export default function VideoEditor() {
     async function loadVideo() {
       try {
         const result = await window.electronAPI.getCurrentVideoPath();
-        
+
         if (result.success && result.path) {
           const videoUrl = toFileUrl(result.path);
           setVideoPath(videoUrl);
@@ -269,10 +270,10 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === id
           ? {
-              ...region,
-              startMs: Math.round(span.start),
-              endMs: Math.round(span.end),
-            }
+            ...region,
+            startMs: Math.round(span.start),
+            endMs: Math.round(span.end),
+          }
           : region,
       ),
     );
@@ -283,10 +284,10 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === id
           ? {
-              ...region,
-              startMs: Math.round(span.start),
-              endMs: Math.round(span.end),
-            }
+            ...region,
+            startMs: Math.round(span.start),
+            endMs: Math.round(span.end),
+          }
           : region,
       ),
     );
@@ -297,9 +298,9 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === id
           ? {
-              ...region,
-              focus: clampFocusToDepth(focus, region.depth),
-            }
+            ...region,
+            focus: clampFocusToDepth(focus, region.depth),
+          }
           : region,
       ),
     );
@@ -311,10 +312,10 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === selectedZoomId
           ? {
-              ...region,
-              depth,
-              focus: clampFocusToDepth(region.focus, depth),
-            }
+            ...region,
+            depth,
+            focus: clampFocusToDepth(region.focus, depth),
+          }
           : region,
       ),
     );
@@ -363,10 +364,10 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === id
           ? {
-              ...region,
-              startMs: Math.round(span.start),
-              endMs: Math.round(span.end),
-            }
+            ...region,
+            startMs: Math.round(span.start),
+            endMs: Math.round(span.end),
+          }
           : region,
       ),
     );
@@ -413,10 +414,10 @@ export default function VideoEditor() {
       prev.map((region) =>
         region.id === id
           ? {
-              ...region,
-              startMs: Math.round(span.start),
-              endMs: Math.round(span.end),
-            }
+            ...region,
+            startMs: Math.round(span.start),
+            endMs: Math.round(span.end),
+          }
           : region,
       ),
     );
@@ -433,7 +434,7 @@ export default function VideoEditor() {
     setAnnotationRegions((prev) => {
       const updated = prev.map((region) => {
         if (region.id !== id) return region;
-        
+
         // Store content in type-specific fields
         if (region.type === 'text') {
           return { ...region, content, textContent: content };
@@ -451,9 +452,9 @@ export default function VideoEditor() {
     setAnnotationRegions((prev) => {
       const updated = prev.map((region) => {
         if (region.id !== id) return region;
-        
+
         const updatedRegion = { ...region, type };
-        
+
         // Restore content from type-specific storage
         if (type === 'text') {
           updatedRegion.content = region.textContent || 'Enter text...';
@@ -465,7 +466,7 @@ export default function VideoEditor() {
             updatedRegion.figureData = { ...DEFAULT_FIGURE_DATA };
           }
         }
-        
+
         return updatedRegion;
       });
       return updated;
@@ -511,7 +512,7 @@ export default function VideoEditor() {
       ),
     );
   }, []);
-  
+
   // Global Tab prevention
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -529,7 +530,7 @@ export default function VideoEditor() {
           return;
         }
         e.preventDefault();
-        
+
         const playback = videoPlaybackRef.current;
         if (playback?.video) {
           if (playback.video.paused) {
@@ -540,7 +541,7 @@ export default function VideoEditor() {
         }
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [shortcuts, isMac]);
@@ -584,6 +585,7 @@ export default function VideoEditor() {
     setIsExporting(true);
     setExportProgress(null);
     setExportError(null);
+    setUnsavedExport(null);
 
     try {
       const wasPlaying = isPlaying;
@@ -641,8 +643,10 @@ export default function VideoEditor() {
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
 
           if (saveResult.cancelled) {
+            setUnsavedExport({ arrayBuffer, fileName, format: 'gif' });
             toast.info('Export cancelled');
           } else if (saveResult.success) {
+            setUnsavedExport(null);
             toast.success(`GIF exported successfully to ${saveResult.path}`);
           } else {
             setExportError(saveResult.message || 'Failed to save GIF');
@@ -767,8 +771,10 @@ export default function VideoEditor() {
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
 
           if (saveResult.cancelled) {
+            setUnsavedExport({ arrayBuffer, fileName, format: 'mp4' });
             toast.info('Export cancelled');
           } else if (saveResult.success) {
+            setUnsavedExport(null);
             toast.success(`Video exported successfully to ${saveResult.path}`);
           } else {
             setExportError(saveResult.message || 'Failed to save video');
@@ -797,6 +803,26 @@ export default function VideoEditor() {
       setExportProgress(null);
     }
   }, [videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
+
+  const handleSaveUnsavedExport = useCallback(async () => {
+    if (!unsavedExport) return;
+
+    try {
+      const saveResult = await window.electronAPI.saveExportedVideo(unsavedExport.arrayBuffer, unsavedExport.fileName);
+
+      if (saveResult.cancelled) {
+        toast.info('Export cancelled');
+      } else if (saveResult.success) {
+        setUnsavedExport(null);
+        toast.success(`Video exported successfully to ${saveResult.path}`);
+      } else {
+        toast.error(saveResult.message || 'Failed to save video');
+      }
+    } catch (error) {
+      console.error('Error saving unsaved export:', error);
+      toast.error('Failed to save exported video');
+    }
+  }, [unsavedExport]);
 
   const handleOpenExportDialog = useCallback(() => {
     if (!videoPath) {
@@ -863,7 +889,7 @@ export default function VideoEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-[#09090b] text-slate-200 overflow-hidden selection:bg-[#34B27B]/30">
-      <div 
+      <div
         className="h-10 flex-shrink-0 bg-[#09090b]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 z-50"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
@@ -935,45 +961,45 @@ export default function VideoEditor() {
             <Panel defaultSize={30} minSize={20}>
               <div className="h-full bg-[#09090b] rounded-2xl border border-white/5 shadow-lg overflow-hidden flex flex-col">
                 <TimelineEditor
-              videoDuration={duration}
-              currentTime={currentTime}
-              onSeek={handleSeek}
-              cursorTelemetry={cursorTelemetry}
-              zoomRegions={zoomRegions}
-              onZoomAdded={handleZoomAdded}
-              onZoomSuggested={handleZoomSuggested}
-              onZoomSpanChange={handleZoomSpanChange}
-              onZoomDelete={handleZoomDelete}
-              selectedZoomId={selectedZoomId}
-              onSelectZoom={handleSelectZoom}
-              trimRegions={trimRegions}
-              onTrimAdded={handleTrimAdded}
-              onTrimSpanChange={handleTrimSpanChange}
-              onTrimDelete={handleTrimDelete}
-              selectedTrimId={selectedTrimId}
-              onSelectTrim={handleSelectTrim}
-              speedRegions={speedRegions}
-              onSpeedAdded={handleSpeedAdded}
-              onSpeedSpanChange={handleSpeedSpanChange}
-              onSpeedDelete={handleSpeedDelete}
-              selectedSpeedId={selectedSpeedId}
-              onSelectSpeed={handleSelectSpeed}
-              annotationRegions={annotationRegions}
-              onAnnotationAdded={handleAnnotationAdded}
-              onAnnotationSpanChange={handleAnnotationSpanChange}
-              onAnnotationDelete={handleAnnotationDelete}
-              selectedAnnotationId={selectedAnnotationId}
-              onSelectAnnotation={handleSelectAnnotation}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={setAspectRatio}
-            />
+                  videoDuration={duration}
+                  currentTime={currentTime}
+                  onSeek={handleSeek}
+                  cursorTelemetry={cursorTelemetry}
+                  zoomRegions={zoomRegions}
+                  onZoomAdded={handleZoomAdded}
+                  onZoomSuggested={handleZoomSuggested}
+                  onZoomSpanChange={handleZoomSpanChange}
+                  onZoomDelete={handleZoomDelete}
+                  selectedZoomId={selectedZoomId}
+                  onSelectZoom={handleSelectZoom}
+                  trimRegions={trimRegions}
+                  onTrimAdded={handleTrimAdded}
+                  onTrimSpanChange={handleTrimSpanChange}
+                  onTrimDelete={handleTrimDelete}
+                  selectedTrimId={selectedTrimId}
+                  onSelectTrim={handleSelectTrim}
+                  speedRegions={speedRegions}
+                  onSpeedAdded={handleSpeedAdded}
+                  onSpeedSpanChange={handleSpeedSpanChange}
+                  onSpeedDelete={handleSpeedDelete}
+                  selectedSpeedId={selectedSpeedId}
+                  onSelectSpeed={handleSelectSpeed}
+                  annotationRegions={annotationRegions}
+                  onAnnotationAdded={handleAnnotationAdded}
+                  onAnnotationSpanChange={handleAnnotationSpanChange}
+                  onAnnotationDelete={handleAnnotationDelete}
+                  selectedAnnotationId={selectedAnnotationId}
+                  onSelectAnnotation={handleSelectAnnotation}
+                  aspectRatio={aspectRatio}
+                  onAspectRatioChange={setAspectRatio}
+                />
               </div>
             </Panel>
           </PanelGroup>
         </div>
 
-          {/* Right section: settings panel */}
-          <SettingsPanel
+        {/* Right section: settings panel */}
+        <SettingsPanel
           selected={wallpaper}
           onWallpaperChange={setWallpaper}
           selectedZoomDepth={selectedZoomId ? zoomRegions.find(z => z.id === selectedZoomId)?.depth : null}
@@ -1013,6 +1039,8 @@ export default function VideoEditor() {
             GIF_SIZE_PRESETS
           )}
           onExport={handleOpenExportDialog}
+          unsavedExport={unsavedExport}
+          onSaveUnsavedExport={handleSaveUnsavedExport}
           selectedAnnotationId={selectedAnnotationId}
           annotationRegions={annotationRegions}
           onAnnotationContentChange={handleAnnotationContentChange}
@@ -1028,7 +1056,7 @@ export default function VideoEditor() {
       </div>
 
       <Toaster theme="dark" className="pointer-events-auto" />
-      
+
       <ExportDialog
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}

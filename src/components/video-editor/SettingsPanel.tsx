@@ -1,11 +1,11 @@
+import * as React from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
 import { getAssetPath } from "@/lib/assetPath";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import Block from '@uiw/react-color-block';
 import { Trash2, Download, Crop, X, Bug, Upload, Star, Film, Image, Sparkles, Palette } from "lucide-react";
 import { toast } from "sonner";
@@ -84,6 +84,8 @@ interface SettingsPanelProps {
   onGifSizePresetChange?: (preset: GifSizePreset) => void;
   gifOutputDimensions?: { width: number; height: number };
   onExport?: () => void;
+  unsavedExport?: { arrayBuffer: ArrayBuffer; fileName: string; format: string } | null;
+  onSaveUnsavedExport?: () => void;
   selectedAnnotationId?: string | null;
   annotationRegions?: AnnotationRegion[];
   onAnnotationContentChange?: (id: string, content: string) => void;
@@ -108,29 +110,29 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
   { depth: 6, label: "5×" },
 ];
 
-export function SettingsPanel({ 
-  selected, 
-  onWallpaperChange, 
-  selectedZoomDepth, 
-  onZoomDepthChange, 
-  selectedZoomId, 
-  onZoomDelete, 
+export function SettingsPanel({
+  selected,
+  onWallpaperChange,
+  selectedZoomDepth,
+  onZoomDepthChange,
+  selectedZoomId,
+  onZoomDelete,
   selectedTrimId,
   onTrimDelete,
-  shadowIntensity = 0, 
-  onShadowChange, 
-  showBlur, 
-  onBlurChange, 
+  shadowIntensity = 0,
+  onShadowChange,
+  showBlur,
+  onBlurChange,
   motionBlurEnabled = false,
-  onMotionBlurChange, 
-  borderRadius = 0, 
-  onBorderRadiusChange, 
-  padding = 50, 
-  onPaddingChange, 
-  cropRegion, 
-  onCropChange, 
-  aspectRatio, 
-  videoElement, 
+  onMotionBlurChange,
+  borderRadius = 0,
+  onBorderRadiusChange,
+  padding = 50,
+  onPaddingChange,
+  cropRegion,
+  onCropChange,
+  aspectRatio,
+  videoElement,
   exportQuality = 'good',
   onExportQualityChange,
   exportFormat = 'mp4',
@@ -143,6 +145,8 @@ export function SettingsPanel({
   onGifSizePresetChange,
   gifOutputDimensions = { width: 1280, height: 720 },
   onExport,
+  unsavedExport,
+  onSaveUnsavedExport,
   selectedAnnotationId,
   annotationRegions = [],
   onAnnotationContentChange,
@@ -161,14 +165,14 @@ export function SettingsPanel({
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const resolved = await Promise.all(WALLPAPER_RELATIVE.map(p => getAssetPath(p)))
-        if (mounted) setWallpaperPaths(resolved)
-      } catch (err) {
-        if (mounted) setWallpaperPaths(WALLPAPER_RELATIVE.map(p => `/${p}`))
-      }
-    })()
+      ; (async () => {
+        try {
+          const resolved = await Promise.all(WALLPAPER_RELATIVE.map(p => getAssetPath(p)))
+          if (mounted) setWallpaperPaths(resolved)
+        } catch (err) {
+          if (mounted) setWallpaperPaths(WALLPAPER_RELATIVE.map(p => `/${p}`))
+        }
+      })()
     return () => { mounted = false }
   }, [])
   const colorPalette = [
@@ -176,14 +180,14 @@ export function SettingsPanel({
     '#9B59B6', '#E91E63', '#00BCD4', '#FF5722', '#8BC34A', '#FFC107',
     '#34B27B', '#000000', '#607D8B', '#795548',
   ];
-  
+
   const [selectedColor, setSelectedColor] = useState('#ADADAD');
   const [gradient, setGradient] = useState<string>(GRADIENTS[0]);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
 
   const zoomEnabled = Boolean(selectedZoomDepth);
   const trimEnabled = Boolean(selectedTrimId);
-  
+
   const handleDeleteClick = () => {
     if (selectedZoomId && onZoomDelete) {
       onZoomDelete(selectedZoomId);
@@ -201,7 +205,7 @@ export function SettingsPanel({
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    
+
     // Validate file type - only allow JPG/JPEG
     const validTypes = ['image/jpeg', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
@@ -244,7 +248,7 @@ export function SettingsPanel({
   };
 
   // Find selected annotation
-  const selectedAnnotation = selectedAnnotationId 
+  const selectedAnnotation = selectedAnnotationId
     ? annotationRegions.find(a => a.id === selectedAnnotationId)
     : null;
 
@@ -405,7 +409,7 @@ export function SettingsPanel({
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 rounded-lg bg-white/5 border border-white/5">
                   <div className="flex items-center justify-between mb-1">
@@ -476,7 +480,7 @@ export function SettingsPanel({
                   <TabsTrigger value="color" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all">Color</TabsTrigger>
                   <TabsTrigger value="gradient" className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all">Gradient</TabsTrigger>
                 </TabsList>
-                
+
                 <div className="max-h-[min(200px,25vh)] overflow-y-auto custom-scrollbar">
                   <TabsContent value="image" className="mt-0 space-y-2">
                     <input
@@ -529,7 +533,7 @@ export function SettingsPanel({
                             const clean = (s: string) => s.replace(/^file:\/\//, '').replace(/^\//, '')
                             if (clean(selected).endsWith(clean(path))) return true;
                             if (clean(path).endsWith(clean(selected))) return true;
-                          } catch {}
+                          } catch { }
                           return false;
                         })();
                         return (
@@ -549,7 +553,7 @@ export function SettingsPanel({
                       })}
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="color" className="mt-0">
                     <div className="p-1">
                       <Block
@@ -566,7 +570,7 @@ export function SettingsPanel({
                       />
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="gradient" className="mt-0">
                     <div className="grid grid-cols-7 gap-1.5">
                       {GRADIENTS.map((g, idx) => (
@@ -574,8 +578,8 @@ export function SettingsPanel({
                           key={g}
                           className={cn(
                             "aspect-square w-9 h-9 rounded-md border-2 overflow-hidden cursor-pointer transition-all duration-200 shadow-sm",
-                            gradient === g 
-                              ? "border-[#34B27B] ring-1 ring-[#34B27B]/30" 
+                            gradient === g
+                              ? "border-[#34B27B] ring-1 ring-[#34B27B]/30"
                               : "border-white/10 hover:border-[#34B27B]/40 opacity-80 hover:opacity-100 bg-white/5"
                           )}
                           style={{ background: g }}
@@ -595,7 +599,7 @@ export function SettingsPanel({
 
       {showCropDropdown && cropRegion && onCropChange && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 animate-in fade-in duration-200"
             onClick={() => setShowCropDropdown(false)}
           />
@@ -738,7 +742,19 @@ export function SettingsPanel({
             </div>
           </div>
         )}
-        
+
+        {unsavedExport && (
+          <Button
+            type="button"
+            size="lg"
+            onClick={onSaveUnsavedExport}
+            className="w-full mb-2 py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-500/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          >
+            <Download className="w-4 h-4" />
+            Choose Save Location
+          </Button>
+        )}
+
         <Button
           type="button"
           size="lg"
