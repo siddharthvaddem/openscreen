@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { TrimRegion } from '../types';
+import type { TrimRegion, SpeedRegion } from '../types';
 
 interface VideoEventHandlersParams {
   video: HTMLVideoElement;
@@ -11,6 +11,7 @@ interface VideoEventHandlersParams {
   onPlayStateChange: (playing: boolean) => void;
   onTimeUpdate: (time: number) => void;
   trimRegionsRef: React.MutableRefObject<TrimRegion[]>;
+  speedRegionsRef: React.MutableRefObject<SpeedRegion[]>;
 }
 
 export function createVideoEventHandlers(params: VideoEventHandlersParams) {
@@ -24,6 +25,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
     onPlayStateChange,
     onTimeUpdate,
     trimRegionsRef,
+    speedRegionsRef,
   } = params;
 
   const emitTime = (timeValue: number) => {
@@ -39,16 +41,23 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
     ) || null;
   };
 
+  // Helper function to find the active speed region at the current time
+  const findActiveSpeedRegion = (currentTimeMs: number): SpeedRegion | null => {
+    return speedRegionsRef.current.find(
+      (region) => currentTimeMs >= region.startMs && currentTimeMs < region.endMs
+    ) || null;
+  };
+
   function updateTime() {
     if (!video) return;
-    
+
     const currentTimeMs = video.currentTime * 1000;
     const activeTrimRegion = findActiveTrimRegion(currentTimeMs);
-    
+
     // If we're in a trim region during playback, skip to the end of it
     if (activeTrimRegion && !video.paused && !video.ended) {
       const skipToTime = activeTrimRegion.endMs / 1000;
-      
+
       // If the skip would take us past the video duration, pause instead
       if (skipToTime >= video.duration) {
         video.pause();
@@ -57,9 +66,12 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
         emitTime(skipToTime);
       }
     } else {
+      // Apply playback speed from active speed region
+      const activeSpeedRegion = findActiveSpeedRegion(currentTimeMs);
+      video.playbackRate = activeSpeedRegion ? activeSpeedRegion.speed : 1;
       emitTime(video.currentTime);
     }
-    
+
     if (!video.paused && !video.ended) {
       timeUpdateAnimationRef.current = requestAnimationFrame(updateTime);
     }

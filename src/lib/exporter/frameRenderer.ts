@@ -1,5 +1,5 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
-import type { ZoomRegion, CropRegion, AnnotationRegion } from '@/components/video-editor/types';
+import type { ZoomRegion, CropRegion, AnnotationRegion, SpeedRegion } from '@/components/video-editor/types';
 import { ZOOM_DEPTH_SCALES } from '@/components/video-editor/types';
 import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoomRegionUtils';
 import { applyZoomTransform } from '@/components/video-editor/videoPlayback/zoomTransform';
@@ -22,6 +22,7 @@ interface FrameRenderConfig {
   videoWidth: number;
   videoHeight: number;
   annotationRegions?: AnnotationRegion[];
+  speedRegions?: SpeedRegion[];
   previewWidth?: number;
   previewHeight?: number;
 }
@@ -385,7 +386,7 @@ export class FrameRenderer {
 
   private clampFocusToStage(focus: { cx: number; cy: number }, depth: number): { cx: number; cy: number } {
     if (!this.layoutCache) return focus;
-    return clampFocusToStageUtil(focus, depth as any, this.layoutCache);
+    return clampFocusToStageUtil(focus, depth as any, this.layoutCache.stageSize);
   }
 
   private updateAnimationState(timeMs: number): number {

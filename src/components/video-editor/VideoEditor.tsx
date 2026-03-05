@@ -1,6 +1,6 @@
 
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -10,6 +10,15 @@ import PlaybackControls from "./PlaybackControls";
 import TimelineEditor from "./timeline/TimelineEditor";
 import { SettingsPanel } from "./SettingsPanel";
 import { ExportDialog } from "./ExportDialog";
+import {
+  WALLPAPER_PATHS,
+  createProjectData,
+  deriveNextId,
+  fromFileUrl,
+  normalizeProjectEditor,
+  toFileUrl,
+  validateProjectData,
+} from "./projectPersistence";
 
 import type { Span } from "dnd-timeline";
 import {
@@ -20,23 +29,28 @@ import {
   DEFAULT_ANNOTATION_SIZE,
   DEFAULT_ANNOTATION_STYLE,
   DEFAULT_FIGURE_DATA,
+  DEFAULT_PLAYBACK_SPEED,
   type ZoomDepth,
   type ZoomFocus,
   type ZoomRegion,
+  type CursorTelemetryPoint,
   type TrimRegion,
   type AnnotationRegion,
   type CropRegion,
   type FigureData,
+  type SpeedRegion,
+  type PlaybackSpeed,
 } from "./types";
 import { VideoExporter, GifExporter, type ExportProgress, type ExportQuality, type ExportSettings, type ExportFormat, type GifFrameRate, type GifSizePreset, GIF_SIZE_PRESETS, calculateOutputDimensions } from "@/lib/exporter";
 import { type AspectRatio, getAspectRatioValue } from "@/utils/aspectRatioUtils";
 import { getAssetPath } from "@/lib/assetPath";
-
-const WALLPAPER_COUNT = 18;
-const WALLPAPER_PATHS = Array.from({ length: WALLPAPER_COUNT }, (_, i) => `/wallpapers/wallpaper${i + 1}.jpg`);
+import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { matchesShortcut } from "@/lib/shortcuts";
 
 export default function VideoEditor() {
   const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [videoSourcePath, setVideoSourcePath] = useState<string | null>(null);
+  const [currentProjectPath, setCurrentProjectPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,9 +64,12 @@ export default function VideoEditor() {
   const [padding, setPadding] = useState(50);
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
   const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([]);
+  const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
   const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
   const [trimRegions, setTrimRegions] = useState<TrimRegion[]>([]);
   const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
+  const [speedRegions, setSpeedRegions] = useState<SpeedRegion[]>([]);
+  const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
   const [annotationRegions, setAnnotationRegions] = useState<AnnotationRegion[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -66,49 +83,330 @@ export default function VideoEditor() {
   const [gifLoop, setGifLoop] = useState(true);
   const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>('medium');
   const [exportedFilePath, setExportedFilePath] = useState<string | undefined>(undefined);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
 
   const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
   const nextZoomIdRef = useRef(1);
   const nextTrimIdRef = useRef(1);
+  const nextSpeedIdRef = useRef(1);
+
+  const { shortcuts, isMac } = useShortcuts();
   const nextAnnotationIdRef = useRef(1);
   const nextAnnotationZIndexRef = useRef(1); // Track z-index for stacking order
   const exporterRef = useRef<VideoExporter | null>(null);
 
-  // Helper to convert file path to proper file:// URL
-  const toFileUrl = (filePath: string): string => {
-    // Normalize path separators to forward slashes
-    const normalized = filePath.replace(/\\/g, '/');
-    
-    // Check if it's a Windows absolute path (e.g., C:/Users/...)
-    if (normalized.match(/^[a-zA-Z]:/)) {
-      const fileUrl = `file:///${normalized}`;
-      return fileUrl;
+  const applyLoadedProject = useCallback(async (candidate: unknown, path?: string | null) => {
+    if (!validateProjectData(candidate)) {
+      return false;
     }
-    
-    // Unix-style absolute path
-    const fileUrl = `file://${normalized}`;
-    return fileUrl;
-  };
+
+    const project = candidate;
+    const sourcePath = project.videoPath;
+    const normalizedEditor = normalizeProjectEditor(project.editor);
+
+    try {
+      videoPlaybackRef.current?.pause();
+    } catch {
+      // no-op
+    }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+
+    setError(null);
+    setVideoSourcePath(sourcePath);
+    setVideoPath(toFileUrl(sourcePath));
+    setCurrentProjectPath(path ?? null);
+
+    setWallpaper(normalizedEditor.wallpaper);
+    setShadowIntensity(normalizedEditor.shadowIntensity);
+    setShowBlur(normalizedEditor.showBlur);
+    setMotionBlurEnabled(normalizedEditor.motionBlurEnabled);
+    setBorderRadius(normalizedEditor.borderRadius);
+    setPadding(normalizedEditor.padding);
+    setCropRegion(normalizedEditor.cropRegion);
+    setZoomRegions(normalizedEditor.zoomRegions);
+    setTrimRegions(normalizedEditor.trimRegions);
+    setSpeedRegions(normalizedEditor.speedRegions);
+    setAnnotationRegions(normalizedEditor.annotationRegions);
+    setAspectRatio(normalizedEditor.aspectRatio);
+    setExportQuality(normalizedEditor.exportQuality);
+    setExportFormat(normalizedEditor.exportFormat);
+    setGifFrameRate(normalizedEditor.gifFrameRate);
+    setGifLoop(normalizedEditor.gifLoop);
+    setGifSizePreset(normalizedEditor.gifSizePreset);
+
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedSpeedId(null);
+    setSelectedAnnotationId(null);
+
+    nextZoomIdRef.current = deriveNextId("zoom", normalizedEditor.zoomRegions.map((region) => region.id));
+    nextTrimIdRef.current = deriveNextId("trim", normalizedEditor.trimRegions.map((region) => region.id));
+    nextSpeedIdRef.current = deriveNextId("speed", normalizedEditor.speedRegions.map((region) => region.id));
+    nextAnnotationIdRef.current = deriveNextId(
+      "annotation",
+      normalizedEditor.annotationRegions.map((region) => region.id),
+    );
+    nextAnnotationZIndexRef.current =
+      normalizedEditor.annotationRegions.reduce((max, region) => Math.max(max, region.zIndex), 0) + 1;
+
+    setLastSavedSnapshot(JSON.stringify(createProjectData(sourcePath, normalizedEditor)));
+    return true;
+  }, []);
+
+  const currentProjectSnapshot = useMemo(() => {
+    const sourcePath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
+    if (!sourcePath) {
+      return null;
+    }
+    return JSON.stringify(
+      createProjectData(sourcePath, {
+        wallpaper,
+        shadowIntensity,
+        showBlur,
+        motionBlurEnabled,
+        borderRadius,
+        padding,
+        cropRegion,
+        zoomRegions,
+        trimRegions,
+        speedRegions,
+        annotationRegions,
+        aspectRatio,
+        exportQuality,
+        exportFormat,
+        gifFrameRate,
+        gifLoop,
+        gifSizePreset,
+      }),
+    );
+  }, [
+    videoPath,
+    videoSourcePath,
+    wallpaper,
+    shadowIntensity,
+    showBlur,
+    motionBlurEnabled,
+    borderRadius,
+    padding,
+    cropRegion,
+    zoomRegions,
+    trimRegions,
+    speedRegions,
+    annotationRegions,
+    aspectRatio,
+    exportQuality,
+    exportFormat,
+    gifFrameRate,
+    gifLoop,
+    gifSizePreset,
+  ]);
+
+  const hasUnsavedChanges = Boolean(
+    currentProjectPath &&
+      currentProjectSnapshot &&
+      lastSavedSnapshot &&
+      currentProjectSnapshot !== lastSavedSnapshot,
+  );
 
   useEffect(() => {
-    async function loadVideo() {
+    async function loadInitialData() {
       try {
+        const currentProjectResult = await window.electronAPI.loadCurrentProjectFile();
+        if (currentProjectResult.success && currentProjectResult.project) {
+          const restored = await applyLoadedProject(
+            currentProjectResult.project,
+            currentProjectResult.path ?? null,
+          );
+          if (restored) {
+            return;
+          }
+        }
+
         const result = await window.electronAPI.getCurrentVideoPath();
-        
         if (result.success && result.path) {
-          const videoUrl = toFileUrl(result.path);
-          setVideoPath(videoUrl);
+          setVideoSourcePath(result.path);
+          setVideoPath(toFileUrl(result.path));
+          setCurrentProjectPath(null);
+          setLastSavedSnapshot(null);
         } else {
-          setError('No video to load. Please record or select a video.');
+          setError("No video to load. Please record or select a video.");
         }
       } catch (err) {
-        setError('Error loading video: ' + String(err));
+        setError("Error loading video: " + String(err));
       } finally {
         setLoading(false);
       }
     }
-    loadVideo();
-  }, []);
+
+    loadInitialData();
+  }, [applyLoadedProject]);
+
+  const saveProject = useCallback(async (forceSaveAs: boolean) => {
+    if (!videoPath) {
+      toast.error('No video loaded');
+      return;
+    }
+
+    const sourcePath = videoSourcePath ?? fromFileUrl(videoPath);
+    if (!sourcePath) {
+      toast.error('Unable to determine source video path');
+      return;
+    }
+
+    const projectData = createProjectData(sourcePath, {
+      wallpaper,
+      shadowIntensity,
+      showBlur,
+      motionBlurEnabled,
+      borderRadius,
+      padding,
+      cropRegion,
+      zoomRegions,
+      trimRegions,
+      speedRegions,
+      annotationRegions,
+      aspectRatio,
+      exportQuality,
+      exportFormat,
+      gifFrameRate,
+      gifLoop,
+      gifSizePreset,
+    });
+
+    const fileNameBase = sourcePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || `project-${Date.now()}`;
+    const projectSnapshot = JSON.stringify(projectData);
+    const result = await window.electronAPI.saveProjectFile(
+      projectData,
+      fileNameBase,
+      forceSaveAs ? undefined : currentProjectPath ?? undefined,
+    );
+
+    if (result.canceled) {
+      toast.info("Project save canceled");
+      return;
+    }
+
+    if (!result.success) {
+      toast.error(result.message || 'Failed to save project');
+      return;
+    }
+
+    if (result.path) {
+      setCurrentProjectPath(result.path);
+    }
+    setLastSavedSnapshot(projectSnapshot);
+
+    toast.success(`Project saved to ${result.path}`);
+  }, [
+    videoPath,
+    videoSourcePath,
+    currentProjectPath,
+    wallpaper,
+    shadowIntensity,
+    showBlur,
+    motionBlurEnabled,
+    borderRadius,
+    padding,
+    cropRegion,
+    zoomRegions,
+    trimRegions,
+    speedRegions,
+    annotationRegions,
+    aspectRatio,
+    exportQuality,
+    exportFormat,
+    gifFrameRate,
+    gifLoop,
+    gifSizePreset,
+  ]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const handleSaveProject = useCallback(async () => {
+    await saveProject(false);
+  }, [saveProject]);
+
+  const handleSaveProjectAs = useCallback(async () => {
+    await saveProject(true);
+  }, [saveProject]);
+
+  const handleLoadProject = useCallback(async () => {
+    const result = await window.electronAPI.loadProjectFile();
+
+    if (result.canceled) {
+      return;
+    }
+
+    if (!result.success) {
+      toast.error(result.message || 'Failed to load project');
+      return;
+    }
+
+    const restored = await applyLoadedProject(result.project, result.path ?? null);
+    if (!restored) {
+      toast.error('Invalid project file format');
+      return;
+    }
+
+    toast.success(`Project loaded from ${result.path}`);
+  }, [applyLoadedProject]);
+
+  useEffect(() => {
+    const removeLoadListener = window.electronAPI.onMenuLoadProject(handleLoadProject);
+    const removeSaveListener = window.electronAPI.onMenuSaveProject(handleSaveProject);
+    const removeSaveAsListener = window.electronAPI.onMenuSaveProjectAs(handleSaveProjectAs);
+
+    return () => {
+      removeLoadListener?.();
+      removeSaveListener?.();
+      removeSaveAsListener?.();
+    };
+  }, [handleLoadProject, handleSaveProject, handleSaveProjectAs]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCursorTelemetry() {
+      if (!videoPath) {
+        if (mounted) {
+          setCursorTelemetry([]);
+        }
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.getCursorTelemetry(fromFileUrl(videoPath));
+        if (mounted) {
+          setCursorTelemetry(result.success ? result.samples : []);
+        }
+      } catch (telemetryError) {
+        console.warn('Unable to load cursor telemetry:', telemetryError);
+        if (mounted) {
+          setCursorTelemetry([]);
+        }
+      }
+    }
+
+    loadCursorTelemetry();
+
+    return () => {
+      mounted = false;
+    };
+  }, [videoPath]);
 
   // Initialize default wallpaper with resolved asset path
   useEffect(() => {
@@ -174,6 +472,21 @@ export default function VideoEditor() {
       endMs: Math.round(span.end),
       depth: DEFAULT_ZOOM_DEPTH,
       focus: { cx: 0.5, cy: 0.5 },
+    };
+    setZoomRegions((prev) => [...prev, newRegion]);
+    setSelectedZoomId(id);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+  }, []);
+
+  const handleZoomSuggested = useCallback((span: Span, focus: ZoomFocus) => {
+    const id = `zoom-${nextZoomIdRef.current++}`;
+    const newRegion: ZoomRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      depth: DEFAULT_ZOOM_DEPTH,
+      focus: clampFocusToDepth(focus, DEFAULT_ZOOM_DEPTH),
     };
     setZoomRegions((prev) => [...prev, newRegion]);
     setSelectedZoomId(id);
@@ -263,6 +576,60 @@ export default function VideoEditor() {
       setSelectedTrimId(null);
     }
   }, [selectedTrimId]);
+
+  const handleSelectSpeed = useCallback((id: string | null) => {
+    setSelectedSpeedId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedAnnotationId(null);
+    }
+  }, []);
+
+  const handleSpeedAdded = useCallback((span: Span) => {
+    const id = `speed-${nextSpeedIdRef.current++}`;
+    const newRegion: SpeedRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      speed: DEFAULT_PLAYBACK_SPEED,
+    };
+    setSpeedRegions((prev) => [...prev, newRegion]);
+    setSelectedSpeedId(id);
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedAnnotationId(null);
+  }, []);
+
+  const handleSpeedSpanChange = useCallback((id: string, span: Span) => {
+    setSpeedRegions((prev) =>
+      prev.map((region) =>
+        region.id === id
+          ? {
+              ...region,
+              startMs: Math.round(span.start),
+              endMs: Math.round(span.end),
+            }
+          : region,
+      ),
+    );
+  }, []);
+
+  const handleSpeedDelete = useCallback((id: string) => {
+    setSpeedRegions((prev) => prev.filter((region) => region.id !== id));
+    if (selectedSpeedId === id) {
+      setSelectedSpeedId(null);
+    }
+  }, [selectedSpeedId]);
+
+  const handleSpeedChange = useCallback((speed: PlaybackSpeed) => {
+    if (!selectedSpeedId) return;
+    setSpeedRegions((prev) =>
+      prev.map((region) =>
+        region.id === selectedSpeedId ? { ...region, speed } : region,
+      ),
+    );
+  }, [selectedSpeedId]);
 
   const handleAnnotationAdded = useCallback((span: Span) => {
     const id = `annotation-${nextAnnotationIdRef.current++}`;
@@ -399,7 +766,7 @@ export default function VideoEditor() {
         e.preventDefault();
       }
 
-      if (e.key === ' ' || e.code === 'Space') {
+      if (matchesShortcut(e, shortcuts.playPause, isMac)) {
         // Allow space only in inputs/textareas
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           return;
@@ -419,7 +786,7 @@ export default function VideoEditor() {
     
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, []);
+  }, [shortcuts, isMac]);
 
   useEffect(() => {
     if (selectedZoomId && !zoomRegions.some((region) => region.id === selectedZoomId)) {
@@ -438,6 +805,12 @@ export default function VideoEditor() {
       setSelectedAnnotationId(null);
     }
   }, [selectedAnnotationId, annotationRegions]);
+
+  useEffect(() => {
+    if (selectedSpeedId && !speedRegions.some((region) => region.id === selectedSpeedId)) {
+      setSelectedSpeedId(null);
+    }
+  }, [selectedSpeedId, speedRegions]);
 
   const handleExport = useCallback(async (settings: ExportSettings) => {
     if (!videoPath) {
@@ -483,6 +856,7 @@ export default function VideoEditor() {
           wallpaper,
           zoomRegions,
           trimRegions,
+          speedRegions,
           showShadow: shadowIntensity > 0,
           shadowIntensity,
           showBlur,
@@ -514,6 +888,10 @@ export default function VideoEditor() {
           } else if (saveResult.success && saveResult.path) {
             showExportSuccessToast(saveResult.path);
             setExportedFilePath(saveResult.path);
+          if (saveResult.canceled) {
+            toast.info('Export canceled');
+          } else if (saveResult.success) {
+            toast.success(`GIF exported successfully to ${saveResult.path}`);
           } else {
             setExportError(saveResult.message || 'Failed to save GIF');
             toast.error(saveResult.message || 'Failed to save GIF');
@@ -610,6 +988,7 @@ export default function VideoEditor() {
           wallpaper,
           zoomRegions,
           trimRegions,
+          speedRegions,
           showShadow: shadowIntensity > 0,
           shadowIntensity,
           showBlur,
@@ -640,6 +1019,10 @@ export default function VideoEditor() {
           } else if (saveResult.success && saveResult.path) {
             showExportSuccessToast(saveResult.path);
             setExportedFilePath(saveResult.path);
+          if (saveResult.canceled) {
+            toast.info('Export canceled');
+          } else if (saveResult.success) {
+            toast.success(`Video exported successfully to ${saveResult.path}`);
           } else {
             setExportError(saveResult.message || 'Failed to save video');
             toast.error(saveResult.message || 'Failed to save video');
@@ -666,7 +1049,7 @@ export default function VideoEditor() {
       setShowExportDialog(false);
       setExportProgress(null);
     }
-  }, [videoPath, wallpaper, zoomRegions, trimRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
+  }, [videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, showBlur, motionBlurEnabled, borderRadius, padding, cropRegion, annotationRegions, isPlaying, aspectRatio, exportQuality]);
 
   const handleOpenExportDialog = useCallback(() => {
     if (!videoPath) {
@@ -707,7 +1090,7 @@ export default function VideoEditor() {
   const handleCancelExport = useCallback(() => {
     if (exporterRef.current) {
       exporterRef.current.cancel();
-      toast.info('Export cancelled');
+      toast.info('Export canceled');
       setShowExportDialog(false);
       setIsExporting(false);
       setExportProgress(null);
@@ -750,7 +1133,16 @@ export default function VideoEditor() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
-        <div className="text-destructive">{error}</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-destructive">{error}</div>
+          <button
+            type="button"
+            onClick={handleLoadProject}
+            className="px-3 py-1.5 rounded-md bg-[#34B27B] text-white text-sm hover:bg-[#34B27B]/90"
+          >
+            Load Project File
+          </button>
+        </div>
       </div>
     );
   }
@@ -776,6 +1168,7 @@ export default function VideoEditor() {
                 <div className="w-full flex justify-center items-center" style={{ flex: '1 1 auto', margin: '6px 0 0' }}>
                   <div className="relative" style={{ width: 'auto', height: '100%', aspectRatio: getAspectRatioValue(aspectRatio), maxWidth: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
                     <VideoPlayback
+                      key={videoPath || 'no-video'}
                       aspectRatio={aspectRatio}
                       ref={videoPlaybackRef}
                       videoPath={videoPath || ''}
@@ -798,6 +1191,7 @@ export default function VideoEditor() {
                       padding={padding}
                       cropRegion={cropRegion}
                       trimRegions={trimRegions}
+                      speedRegions={speedRegions}
                       annotationRegions={annotationRegions}
                       selectedAnnotationId={selectedAnnotationId}
                       onSelectAnnotation={handleSelectAnnotation}
@@ -832,8 +1226,10 @@ export default function VideoEditor() {
               videoDuration={duration}
               currentTime={currentTime}
               onSeek={handleSeek}
+              cursorTelemetry={cursorTelemetry}
               zoomRegions={zoomRegions}
               onZoomAdded={handleZoomAdded}
+              onZoomSuggested={handleZoomSuggested}
               onZoomSpanChange={handleZoomSpanChange}
               onZoomDelete={handleZoomDelete}
               selectedZoomId={selectedZoomId}
@@ -844,6 +1240,12 @@ export default function VideoEditor() {
               onTrimDelete={handleTrimDelete}
               selectedTrimId={selectedTrimId}
               onSelectTrim={handleSelectTrim}
+              speedRegions={speedRegions}
+              onSpeedAdded={handleSpeedAdded}
+              onSpeedSpanChange={handleSpeedSpanChange}
+              onSpeedDelete={handleSpeedDelete}
+              selectedSpeedId={selectedSpeedId}
+              onSelectSpeed={handleSelectSpeed}
               annotationRegions={annotationRegions}
               onAnnotationAdded={handleAnnotationAdded}
               onAnnotationSpanChange={handleAnnotationSpanChange}
@@ -906,6 +1308,12 @@ export default function VideoEditor() {
           onAnnotationStyleChange={handleAnnotationStyleChange}
           onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
           onAnnotationDelete={handleAnnotationDelete}
+          onSaveProject={handleSaveProject}
+          onLoadProject={handleLoadProject}
+          selectedSpeedId={selectedSpeedId}
+          selectedSpeedValue={selectedSpeedId ? speedRegions.find(r => r.id === selectedSpeedId)?.speed ?? null : null}
+          onSpeedChange={handleSpeedChange}
+          onSpeedDelete={handleSpeedDelete}
         />
       </div>
 

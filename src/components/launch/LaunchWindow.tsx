@@ -104,7 +104,7 @@ export function LaunchWindow() {
   const openVideoFile = async () => {
     const result = await window.electronAPI.openVideoFilePicker();
     
-    if (result.cancelled) {
+    if (result.canceled) {
       return;
     }
     

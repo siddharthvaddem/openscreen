@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRecordingState: (recording: boolean) => {
     return ipcRenderer.invoke('set-recording-state', recording)
   },
+  getCursorTelemetry: (videoPath?: string) => {
+    return ipcRenderer.invoke('get-cursor-telemetry', videoPath)
+  },
   onStopRecordingFromTray: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('stop-recording-from-tray', listener)
@@ -60,6 +63,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearCurrentVideoPath: () => {
     return ipcRenderer.invoke('clear-current-video-path')
   },
+  saveProjectFile: (projectData: unknown, suggestedName?: string, existingProjectPath?: string) => {
+    return ipcRenderer.invoke('save-project-file', projectData, suggestedName, existingProjectPath)
+  },
+  loadProjectFile: () => {
+    return ipcRenderer.invoke('load-project-file')
+  },
+  loadCurrentProjectFile: () => {
+    return ipcRenderer.invoke('load-current-project-file')
+  },
+  onMenuLoadProject: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('menu-load-project', listener)
+    return () => ipcRenderer.removeListener('menu-load-project', listener)
+  },
+  onMenuSaveProject: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('menu-save-project', listener)
+    return () => ipcRenderer.removeListener('menu-save-project', listener)
+  },
+  onMenuSaveProjectAs: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('menu-save-project-as', listener)
+    return () => ipcRenderer.removeListener('menu-save-project-as', listener)
+  },
   getPlatform: () => {
     return ipcRenderer.invoke('get-platform')
   },
@@ -68,5 +95,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   setMicrophoneExpanded: (micEnabled: boolean) => {
     return ipcRenderer.invoke('hud:setMicrophoneExpanded', micEnabled)
+  },
+})
+})
+  getShortcuts: () => {
+    return ipcRenderer.invoke('get-shortcuts')
+  },
+  saveShortcuts: (shortcuts: unknown) => {
+    return ipcRenderer.invoke('save-shortcuts', shortcuts)
   },
 })

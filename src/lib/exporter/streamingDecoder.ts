@@ -1,5 +1,5 @@
 import { WebDemuxer } from 'web-demuxer';
-import type { TrimRegion } from '@/components/video-editor/types';
+import type { TrimRegion, SpeedRegion } from '@/components/video-editor/types';
 
 export interface DecodedVideoInfo {
   width: number;
@@ -78,6 +78,7 @@ export class StreamingVideoDecoder {
   async decodeAll(
     targetFrameRate: number,
     trimRegions: TrimRegion[] | undefined,
+    speedRegions: SpeedRegion[] | undefined,
     onFrame: OnFrameCallback
   ): Promise<void> {
     if (!this.demuxer || !this.metadata) {
@@ -85,7 +86,10 @@ export class StreamingVideoDecoder {
     }
 
     const decoderConfig = await this.demuxer.getDecoderConfig('video');
-    const segments = this.computeSegments(this.metadata.duration, trimRegions);
+    const segments = this.splitBySpeed(
+      this.computeSegments(this.metadata.duration, trimRegions),
+      speedRegions
+    );
     const frameDurationUs = 1_000_000 / targetFrameRate;
 
     // Async frame queue — decoder pushes, consumer pulls
@@ -229,7 +233,7 @@ export class StreamingVideoDecoder {
    */
   private async deliverSegment(
     frames: VideoFrame[],
-    segment: { startSec: number; endSec: number },
+    segment: { startSec: number; endSec: number; speed: number },
     targetFrameRate: number,
     frameDurationUs: number,
     startExportFrameIndex: number,
@@ -237,7 +241,9 @@ export class StreamingVideoDecoder {
   ): Promise<number> {
     if (frames.length === 0) return startExportFrameIndex;
 
-    const segmentFrameCount = Math.ceil((segment.endSec - segment.startSec) * targetFrameRate);
+    const segmentFrameCount = Math.ceil(
+      (segment.endSec - segment.startSec) / segment.speed * targetFrameRate
+    );
     let exportFrameIndex = startExportFrameIndex;
 
     for (let i = 0; i < segmentFrameCount && !this.cancelled; i++) {
@@ -282,12 +288,39 @@ export class StreamingVideoDecoder {
     return segments;
   }
 
-  getEffectiveDuration(trimRegions?: TrimRegion[]): number {
+  getEffectiveDuration(trimRegions?: TrimRegion[], speedRegions?: SpeedRegion[]): number {
     if (!this.metadata) throw new Error('Must call loadMetadata() first');
-    const trimmed = (trimRegions || []).reduce(
-      (sum, r) => sum + (r.endMs - r.startMs) / 1000, 0
-    );
-    return this.metadata.duration - trimmed;
+    const trimSegments = this.computeSegments(this.metadata.duration, trimRegions);
+    const speedSegments = this.splitBySpeed(trimSegments, speedRegions);
+    return speedSegments.reduce((sum, seg) => sum + (seg.endSec - seg.startSec) / seg.speed, 0);
+  }
+
+  private splitBySpeed(
+    segments: Array<{ startSec: number; endSec: number }>,
+    speedRegions?: SpeedRegion[]
+  ): Array<{ startSec: number; endSec: number; speed: number }> {
+    if (!speedRegions || speedRegions.length === 0)
+      return segments.map(s => ({ ...s, speed: 1 }));
+
+    const result: Array<{ startSec: number; endSec: number; speed: number }> = [];
+    for (const segment of segments) {
+      const overlapping = speedRegions
+        .filter(sr => (sr.startMs / 1000) < segment.endSec && (sr.endMs / 1000) > segment.startSec)
+        .sort((a, b) => a.startMs - b.startMs);
+
+      if (overlapping.length === 0) { result.push({ ...segment, speed: 1 }); continue; }
+
+      let cursor = segment.startSec;
+      for (const sr of overlapping) {
+        const srStart = Math.max(sr.startMs / 1000, segment.startSec);
+        const srEnd = Math.min(sr.endMs / 1000, segment.endSec);
+        if (cursor < srStart) result.push({ startSec: cursor, endSec: srStart, speed: 1 });
+        result.push({ startSec: srStart, endSec: srEnd, speed: sr.speed });
+        cursor = srEnd;
+      }
+      if (cursor < segment.endSec) result.push({ startSec: cursor, endSec: segment.endSec, speed: 1 });
+    }
+    return result.filter(s => s.endSec - s.startSec > 0.0001);
   }
 
   cancel(): void {

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useItem } from "dnd-timeline";
 import type { Span } from "dnd-timeline";
 import { cn } from "@/lib/utils";
-import { ZoomIn, Scissors, MessageSquare } from "lucide-react";
+import { ZoomIn, Scissors, MessageSquare, Gauge } from "lucide-react";
 import glassStyles from "./ItemGlass.module.css";
 
 interface ItemProps {
@@ -13,7 +13,8 @@ interface ItemProps {
   isSelected?: boolean;
   onSelect?: () => void;
   zoomDepth?: number;
-  variant?: 'zoom' | 'trim' | 'annotation';
+  speedValue?: number;
+  variant?: 'zoom' | 'trim' | 'annotation' | 'speed';
 }
 
 // Map zoom depth to multiplier labels
@@ -36,13 +37,14 @@ function formatMs(ms: number): string {
   return `${seconds.toFixed(1)}s`;
 }
 
-export default function Item({ 
-  id, 
-  span, 
-  rowId, 
-  isSelected = false, 
-  onSelect, 
+export default function Item({
+  id,
+  span,
+  rowId,
+  isSelected = false,
+  onSelect,
   zoomDepth = 1,
+  speedValue,
   variant = 'zoom',
   children
 }: ItemProps) {
@@ -54,17 +56,22 @@ export default function Item({
 
   const isZoom = variant === 'zoom';
   const isTrim = variant === 'trim';
+  const isSpeed = variant === 'speed';
 
   const glassClass = isZoom
     ? glassStyles.glassGreen
     : isTrim
     ? glassStyles.glassRed
+    : isSpeed
+    ? glassStyles.glassAmber
     : glassStyles.glassYellow;
 
   const endCapColor = isZoom
     ? '#21916A'
     : isTrim
     ? '#ef4444'
+    : isSpeed
+    ? '#d97706'
     : '#B4A046';
 
   const timeLabel = useMemo(
@@ -119,6 +126,13 @@ export default function Item({
                   <Scissors className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
                     Trim
+                  </span>
+                </>
+              ) : isSpeed ? (
+                <>
+                  <Gauge className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+                    {speedValue !== undefined ? `${speedValue}×` : 'Speed'}
                   </span>
                 </>
               ) : (

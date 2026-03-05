@@ -13,6 +13,12 @@ export interface ZoomRegion {
   focus: ZoomFocus;
 }
 
+export interface CursorTelemetryPoint {
+  timeMs: number;
+  cx: number;
+  cy: number;
+}
+
 export interface TrimRegion {
   id: string;
   startMs: number;
@@ -107,6 +113,27 @@ export const DEFAULT_CROP_REGION: CropRegion = {
   width: 1,
   height: 1,
 };
+
+export type PlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.25 | 1.5 | 1.75 | 2;
+
+export interface SpeedRegion {
+  id: string;
+  startMs: number;
+  endMs: number;
+  speed: PlaybackSpeed;
+}
+
+export const SPEED_OPTIONS: Array<{ speed: PlaybackSpeed; label: string }> = [
+  { speed: 0.25, label: "0.25×" },
+  { speed: 0.5, label: "0.5×" },
+  { speed: 0.75, label: "0.75×" },
+  { speed: 1.25, label: "1.25×" },
+  { speed: 1.5, label: "1.5×" },
+  { speed: 1.75, label: "1.75×" },
+  { speed: 2, label: "2×" },
+];
+
+export const DEFAULT_PLAYBACK_SPEED: PlaybackSpeed = 1.5;
 
 export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
   1: 1.25,

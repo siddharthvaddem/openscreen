@@ -3,6 +3,8 @@ import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import VideoEditor from "./components/video-editor/VideoEditor";
 import { loadAllCustomFonts } from "./lib/customFonts";
+import { ShortcutsProvider } from "./contexts/ShortcutsContext";
+import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
 
 export default function App() {
   const [windowType, setWindowType] = useState('');
@@ -29,7 +31,12 @@ export default function App() {
     case 'source-selector':
       return <SourceSelector />;
     case 'editor':
-      return <VideoEditor />;
+      return (
+        <ShortcutsProvider>
+          <VideoEditor />
+          <ShortcutsConfigDialog />
+        </ShortcutsProvider>
+      );
       default:
       return (
         <div className="w-full h-full bg-background text-foreground">

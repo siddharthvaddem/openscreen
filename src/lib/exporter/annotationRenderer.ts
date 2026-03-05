@@ -138,7 +138,12 @@ function renderText(
   const style = annotation.style;
   
   ctx.save();
-  
+
+  // Clip text to annotation box bounds (matches editor's overflow: hidden)
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.clip();
+
   const fontWeight = style.fontWeight === 'bold' ? 'bold' : 'normal';
   const fontStyle = style.fontStyle === 'italic' ? 'italic' : 'normal';
   const scaledFontSize = style.fontSize * scaleFactor;
@@ -161,7 +166,27 @@ function renderText(
     ctx.textAlign = 'left';
   }
   
-  const lines = annotation.content.split('\n');
+  const availableWidth = width - containerPadding * 2;
+  const rawLines = annotation.content.split('\n');
+  const lines: string[] = [];
+  for (const rawLine of rawLines) {
+    if (!rawLine) {
+      lines.push('');
+      continue;
+    }
+    const words = rawLine.split(/(\s+)/);
+    let current = '';
+    for (const word of words) {
+      const test = current + word;
+      if (current && ctx.measureText(test).width > availableWidth) {
+        lines.push(current);
+        current = word.trimStart();
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+  }
   const lineHeight = scaledFontSize * 1.4;
 
   const startY = textY - ((lines.length - 1) * lineHeight) / 2;
