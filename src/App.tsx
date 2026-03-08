@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+
+const thisWillFail = "CI should catch me";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
