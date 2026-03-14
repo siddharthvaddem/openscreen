@@ -73,7 +73,14 @@ export function fromFileUrl(fileUrl: string): string {
 
 	try {
 		const url = new URL(fileUrl);
-		return decodeURIComponent(url.pathname);
+		let path = decodeURIComponent(url.pathname);
+
+		// Only fix Windows drive-letter paths
+		if (/^\/[A-Za-z]:/.test(path)) {
+			path = path.slice(1);
+		}
+
+		return path;
 	} catch {
 		return fileUrl.replace(/^file:\/\//, "");
 	}
