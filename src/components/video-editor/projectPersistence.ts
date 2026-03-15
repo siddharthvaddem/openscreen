@@ -1,5 +1,5 @@
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
-import { ASPECT_RATIOS, type AspectRatio } from "@/utils/aspectRatioUtils";
+import { ASPECT_RATIOS, type AspectRatio, isCustomAspectRatio } from "@/utils/aspectRatioUtils";
 import {
 	type AnnotationRegion,
 	type CropRegion,
@@ -317,7 +317,11 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		speedRegions: normalizedSpeedRegions,
 		annotationRegions: normalizedAnnotationRegions,
 		aspectRatio:
-			editor.aspectRatio && validAspectRatios.has(editor.aspectRatio) ? editor.aspectRatio : "16:9",
+			typeof editor.aspectRatio === "string" &&
+			(validAspectRatios.has(editor.aspectRatio as AspectRatio) ||
+				isCustomAspectRatio(editor.aspectRatio))
+				? (editor.aspectRatio as AspectRatio)
+				: "16:9",
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality
