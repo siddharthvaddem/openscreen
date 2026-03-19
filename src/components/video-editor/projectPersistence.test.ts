@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	createProjectData,
+	normalizeProjectEditor,
 	PROJECT_VERSION,
 	resolveProjectMedia,
 	validateProjectData,
@@ -39,6 +40,12 @@ describe("projectPersistence media compatibility", () => {
 				speedRegions: [],
 				annotationRegions: [],
 				aspectRatio: "16:9",
+				showCursorHighlight: false,
+				cursorStyle: "glow",
+				cursorColor: "#ffcc00",
+				cursorSize: 53,
+				cursorOpacity: 0.6,
+				cursorStrokeWidth: 2,
 				exportQuality: "good",
 				exportFormat: "mp4",
 				gifFrameRate: 15,
@@ -53,5 +60,52 @@ describe("projectPersistence media compatibility", () => {
 			webcamVideoPath: "/tmp/webcam.webm",
 		});
 		expect(validateProjectData(project)).toBe(true);
+	});
+});
+
+describe("normalizeProjectEditor cursor fields", () => {
+	it("provides defaults for missing cursor fields", () => {
+		const result = normalizeProjectEditor({});
+		expect(result.showCursorHighlight).toBe(false);
+		expect(result.cursorStyle).toBe("glow");
+		expect(result.cursorColor).toBe("#ffcc00");
+		expect(result.cursorSize).toBe(53);
+		expect(result.cursorOpacity).toBe(0.6);
+		expect(result.cursorStrokeWidth).toBe(2);
+	});
+
+	it("passes through valid cursor fields", () => {
+		const result = normalizeProjectEditor({
+			showCursorHighlight: true,
+			cursorStyle: "dot",
+			cursorColor: "#ff0000",
+			cursorSize: 48,
+		});
+		expect(result.showCursorHighlight).toBe(true);
+		expect(result.cursorStyle).toBe("dot");
+		expect(result.cursorColor).toBe("#ff0000");
+		expect(result.cursorSize).toBe(48);
+	});
+
+	it("falls back on invalid cursor color", () => {
+		const result = normalizeProjectEditor({
+			cursorColor: "not-a-color",
+		});
+		expect(result.cursorColor).toBe("#ffcc00");
+	});
+
+	it("clamps out-of-range cursor size", () => {
+		expect(normalizeProjectEditor({ cursorSize: 5 }).cursorSize).toBe(16);
+		expect(normalizeProjectEditor({ cursorSize: 100 }).cursorSize).toBe(64);
+	});
+
+	it("falls back on invalid cursor style", () => {
+		const result = normalizeProjectEditor({ cursorStyle: "invalid" as never });
+		expect(result.cursorStyle).toBe("glow");
+	});
+
+	it("accepts glow as valid cursor style", () => {
+		const result = normalizeProjectEditor({ cursorStyle: "glow" });
+		expect(result.cursorStyle).toBe("glow");
 	});
 });

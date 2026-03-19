@@ -11,6 +11,8 @@ import { MotionBlurFilter } from "pixi-filters/motion-blur";
 import type {
 	AnnotationRegion,
 	CropRegion,
+	CursorStyle,
+	CursorTelemetryPoint,
 	SpeedRegion,
 	ZoomDepth,
 	ZoomRegion,
@@ -53,6 +55,24 @@ interface FrameRenderConfig {
 	speedRegions?: SpeedRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
+	// Cursor overlay
+	cursorTelemetry?: CursorTelemetryPoint[];
+	showCursorHighlight?: boolean;
+	cursorStyle?: CursorStyle;
+	cursorColor?: string;
+	cursorSize?: number;
+	cursorOpacity?: number;
+	cursorStrokeWidth?: number;
+	cursorDisplayInfo?: {
+		boundsX: number;
+		boundsY: number;
+		boundsWidth: number;
+		boundsHeight: number;
+		workAreaX: number;
+		workAreaY: number;
+		workAreaWidth: number;
+		workAreaHeight: number;
+	} | null;
 }
 
 interface AnimationState {
@@ -391,6 +411,11 @@ export class FrameRenderer {
 				scaleFactor,
 			);
 		}
+
+		// Render cursor overlay on top of everything
+		if (this.config.showCursorHighlight && this.compositeCtx) {
+			this.renderCursor(this.compositeCtx, timeMs);
+		}
 	}
 
 	private updateLayout(): void {
@@ -659,6 +684,112 @@ export class FrameRenderer {
 		}
 	}
 
+	// ── Cursor overlay ──────────────────────────────────────────────────
+
+	private interpolateCursorPosition(timeMs: number): { cx: number; cy: number } | null {
+		return interpolateCursorPosition(this.config.cursorTelemetry, timeMs);
+	}
+
+	private renderCursor(ctx: CanvasRenderingContext2D, timeMs: number): void {
+		if (!this.layoutCache) return;
+
+		const pos = this.interpolateCursorPosition(timeMs);
+		if (!pos) return;
+
+		// Remap bounds-normalized coords to video-space coords if display info is available
+		let { cx, cy } = pos;
+		const di = this.config.cursorDisplayInfo;
+		if (di && di.boundsWidth > 0 && di.boundsHeight > 0) {
+			// Convert from bounds-normalized to absolute logical coords, then to workArea-normalized
+			const absX = cx * di.boundsWidth + di.boundsX;
+			const absY = cy * di.boundsHeight + di.boundsY;
+			const waW = Math.max(1, di.workAreaWidth);
+			const waH = Math.max(1, di.workAreaHeight);
+			cx = (absX - di.workAreaX) / waW;
+			cy = (absY - di.workAreaY) / waH;
+		}
+		const { cropRegion } = this.config;
+
+		// Check if cursor is inside the visible crop region
+		if (
+			cx < cropRegion.x ||
+			cx > cropRegion.x + cropRegion.width ||
+			cy < cropRegion.y ||
+			cy > cropRegion.y + cropRegion.height
+		) {
+			return;
+		}
+
+		// Map normalized video coords → base layout coords
+		const relCropX = (cx - cropRegion.x) / cropRegion.width;
+		const relCropY = (cy - cropRegion.y) / cropRegion.height;
+		const baseX = this.layoutCache.baseOffset.x + relCropX * this.layoutCache.maskRect.width;
+		const baseY = this.layoutCache.baseOffset.y + relCropY * this.layoutCache.maskRect.height;
+
+		// Apply zoom transform
+		const finalX = baseX * this.animationState.appliedScale + this.animationState.x;
+		const finalY = baseY * this.animationState.appliedScale + this.animationState.y;
+
+		// Bounds check — skip if cursor center is outside the canvas
+		if (finalX < 0 || finalX > this.config.width || finalY < 0 || finalY > this.config.height) {
+			return;
+		}
+
+		// Scale cursor/highlight sizes proportionally to export resolution
+		// Use average of X and Y scales to match annotation scaling (frameRenderer.ts:395)
+		const previewWidth = this.config.previewWidth || 1920;
+		const previewHeight = this.config.previewHeight || 1080;
+		const scaleX = this.config.width / previewWidth;
+		const scaleY = this.config.height / previewHeight;
+		const canvasScaleFactor = (scaleX + scaleY) / 2;
+
+		// Clip to the rounded video mask so cursor doesn't bleed outside the video area
+		const mask = this.layoutCache.maskRect;
+		const zoomScale = this.animationState.appliedScale;
+		const zoomX = this.animationState.x;
+		const zoomY = this.animationState.y;
+		const clipX = this.layoutCache.baseOffset.x * zoomScale + zoomX;
+		const clipY = this.layoutCache.baseOffset.y * zoomScale + zoomY;
+		const clipW = mask.width * zoomScale;
+		const clipH = mask.height * zoomScale;
+
+		const previewW = this.config.previewWidth || 1920;
+		const previewH = this.config.previewHeight || 1080;
+		const canvasScale = Math.min(this.config.width / previewW, this.config.height / previewH);
+		const scaledBorderRadius = (this.config.borderRadius ?? 0) * canvasScale * zoomScale;
+
+		ctx.save();
+		ctx.beginPath();
+		ctx.roundRect(clipX, clipY, clipW, clipH, scaledBorderRadius);
+		ctx.clip();
+
+		// Draw cursor shape
+		const size = (this.config.cursorSize ?? 32) * canvasScaleFactor;
+		const color = this.config.cursorColor ?? "#ffffff";
+		const opacity = this.config.cursorOpacity ?? 1;
+		const strokeWidth = (this.config.cursorStrokeWidth ?? 2) * canvasScaleFactor;
+		ctx.globalAlpha = opacity;
+		switch (this.config.cursorStyle) {
+			case "dot":
+				drawDotCursor(ctx, finalX, finalY, size, color);
+				break;
+			case "circle":
+				drawCircleCursor(ctx, finalX, finalY, size, color, strokeWidth);
+				break;
+			case "ring":
+				drawRingCursor(ctx, finalX, finalY, size, color, strokeWidth);
+				break;
+			case "glow":
+				drawGlowCursor(ctx, finalX, finalY, size, color, opacity);
+				break;
+			default:
+				drawDotCursor(ctx, finalX, finalY, size, color);
+		}
+		ctx.globalAlpha = 1;
+
+		ctx.restore();
+	}
+
 	getCanvas(): HTMLCanvasElement {
 		if (!this.compositeCanvas) {
 			throw new Error("Renderer not initialized");
@@ -686,4 +817,141 @@ export class FrameRenderer {
 		this.compositeCanvas = null;
 		this.compositeCtx = null;
 	}
+}
+
+// ── Cursor utilities (exported for testing) ───────────────────────────
+
+export function interpolateCursorPosition(
+	samples: CursorTelemetryPoint[] | undefined,
+	timeMs: number,
+): { cx: number; cy: number } | null {
+	if (!samples || samples.length === 0) return null;
+
+	// Single sample
+	if (samples.length === 1) {
+		return { cx: samples[0].cx, cy: samples[0].cy };
+	}
+
+	// Clamp to first/last sample if out of range
+	if (timeMs <= samples[0].timeMs) {
+		return { cx: samples[0].cx, cy: samples[0].cy };
+	}
+	if (timeMs >= samples[samples.length - 1].timeMs) {
+		const last = samples[samples.length - 1];
+		return { cx: last.cx, cy: last.cy };
+	}
+
+	// Binary search for bracketing samples
+	let lo = 0;
+	let hi = samples.length - 1;
+	while (lo < hi - 1) {
+		const mid = Math.floor((lo + hi) / 2);
+		if (samples[mid].timeMs <= timeMs) lo = mid;
+		else hi = mid;
+	}
+
+	const a = samples[lo];
+	const b = samples[hi];
+	const dt = b.timeMs - a.timeMs;
+
+	// Guard against duplicate timestamps
+	if (dt === 0) return { cx: a.cx, cy: a.cy };
+
+	const t = Math.max(0, Math.min(1, (timeMs - a.timeMs) / dt));
+	return {
+		cx: a.cx + (b.cx - a.cx) * t,
+		cy: a.cy + (b.cy - a.cy) * t,
+	};
+}
+
+export function hexToRgba(hex: string, alpha: number): string {
+	if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) {
+		return `rgba(255,255,255,${alpha})`;
+	}
+	const r = parseInt(hex.slice(1, 3), 16);
+	const g = parseInt(hex.slice(3, 5), 16);
+	const b = parseInt(hex.slice(5, 7), 16);
+	return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function drawDotCursor(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	size: number,
+	color: string,
+): void {
+	ctx.save();
+	ctx.shadowColor = "rgba(0,0,0,0.5)";
+	ctx.shadowBlur = 6;
+	ctx.fillStyle = color;
+	ctx.beginPath();
+	ctx.arc(x, y, size / 4, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}
+
+function drawCircleCursor(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	size: number,
+	color: string,
+	strokeWidth = 2,
+): void {
+	ctx.save();
+	ctx.strokeStyle = color;
+	ctx.lineWidth = strokeWidth;
+	ctx.shadowColor = "rgba(0,0,0,0.4)";
+	ctx.shadowBlur = 4;
+	ctx.beginPath();
+	ctx.arc(x, y, size / 3, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawRingCursor(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	size: number,
+	color: string,
+	strokeWidth = 2,
+): void {
+	// Center dot radius scales with strokeWidth (radius = strokeWidth * 1.5)
+	const dotRadius = strokeWidth * 1.5;
+	ctx.save();
+	ctx.shadowColor = "rgba(0,0,0,0.5)";
+	ctx.shadowBlur = 6;
+	ctx.fillStyle = color;
+	ctx.beginPath();
+	ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+	drawCircleCursor(ctx, x, y, size, color, strokeWidth);
+}
+
+function drawGlowCursor(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	size: number,
+	color: string,
+	opacity: number,
+): void {
+	// Glow renders 1.5x bigger than size for softer spread
+	const radius = (size * 1.5) / 2;
+	ctx.save();
+	ctx.globalAlpha = 1; // alpha is baked into the gradient stops
+	const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+	// Softer center — peak alpha is 70% of opacity
+	gradient.addColorStop(0, hexToRgba(color, opacity * 0.7));
+	gradient.addColorStop(0.3, hexToRgba(color, opacity * 0.4));
+	gradient.addColorStop(0.7, hexToRgba(color, opacity * 0.12));
+	gradient.addColorStop(1, hexToRgba(color, 0));
+	ctx.fillStyle = gradient;
+	ctx.beginPath();
+	ctx.arc(x, y, radius, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
 }

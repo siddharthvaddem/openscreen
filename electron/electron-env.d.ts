@@ -65,6 +65,16 @@ interface Window {
 		getCursorTelemetry: (videoPath?: string) => Promise<{
 			success: boolean;
 			samples: CursorTelemetryPoint[];
+			display?: {
+				boundsX: number;
+				boundsY: number;
+				boundsWidth: number;
+				boundsHeight: number;
+				workAreaX: number;
+				workAreaY: number;
+				workAreaWidth: number;
+				workAreaHeight: number;
+			};
 			message?: string;
 			error?: string;
 		}>;

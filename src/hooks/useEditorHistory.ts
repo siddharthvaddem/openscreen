@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type {
 	AnnotationRegion,
 	CropRegion,
+	CursorStyle,
 	SpeedRegion,
 	TrimRegion,
 	ZoomRegion,
@@ -24,6 +25,13 @@ export interface EditorState {
 	borderRadius: number;
 	padding: number;
 	aspectRatio: AspectRatio;
+	// Cursor highlight
+	showCursorHighlight: boolean;
+	cursorStyle: CursorStyle;
+	cursorColor: string;
+	cursorSize: number;
+	cursorOpacity: number;
+	cursorStrokeWidth: number;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -39,6 +47,13 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	borderRadius: 0,
 	padding: 50,
 	aspectRatio: "16:9",
+	// Cursor highlight
+	showCursorHighlight: false,
+	cursorStyle: "glow",
+	cursorColor: "#ffcc00",
+	cursorSize: 53,
+	cursorOpacity: 0.6,
+	cursorStrokeWidth: 2,
 };
 
 type StateUpdate = Partial<EditorState> | ((prev: EditorState) => Partial<EditorState>);

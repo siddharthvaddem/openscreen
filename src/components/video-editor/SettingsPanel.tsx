@@ -1,16 +1,20 @@
 import Block from "@uiw/react-color-block";
 import {
 	Bug,
+	Circle,
 	Crop,
+	Crosshair,
 	Download,
 	Film,
 	FolderOpen,
 	Image,
 	Lock,
+	Mouse,
 	Palette,
 	Save,
 	Sparkles,
 	Star,
+	Target,
 	Trash2,
 	Unlock,
 	Upload,
@@ -41,6 +45,7 @@ import type {
 	AnnotationRegion,
 	AnnotationType,
 	CropRegion,
+	CursorStyle,
 	FigureData,
 	PlaybackSpeed,
 	ZoomDepth,
@@ -132,6 +137,23 @@ interface SettingsPanelProps {
 	selectedSpeedValue?: PlaybackSpeed | null;
 	onSpeedChange?: (speed: PlaybackSpeed) => void;
 	onSpeedDelete?: (id: string) => void;
+	// Cursor settings
+	hasCursorTelemetry?: boolean;
+	showCursorHighlight?: boolean;
+	onShowCursorHighlightChange?: (show: boolean) => void;
+	cursorStyle?: CursorStyle;
+	onCursorStyleChange?: (style: CursorStyle) => void;
+	cursorColor?: string;
+	onCursorColorChange?: (color: string) => void;
+	cursorSize?: number;
+	onCursorSizeChange?: (size: number) => void;
+	onCursorSizeCommit?: () => void;
+	cursorOpacity?: number;
+	onCursorOpacityChange?: (opacity: number) => void;
+	onCursorOpacityCommit?: () => void;
+	cursorStrokeWidth?: number;
+	onCursorStrokeWidthChange?: (width: number) => void;
+	onCursorStrokeWidthCommit?: () => void;
 }
 
 export default SettingsPanel;
@@ -197,6 +219,23 @@ export function SettingsPanel({
 	selectedSpeedValue,
 	onSpeedChange,
 	onSpeedDelete,
+	// Cursor settings
+	hasCursorTelemetry = false,
+	showCursorHighlight = false,
+	onShowCursorHighlightChange,
+	cursorStyle = "dot",
+	onCursorStyleChange,
+	cursorColor = "#ffcc00",
+	onCursorColorChange,
+	cursorSize = 32,
+	onCursorSizeChange,
+	onCursorSizeCommit,
+	cursorOpacity = 0.6,
+	onCursorOpacityChange,
+	onCursorOpacityCommit,
+	cursorStrokeWidth = 2,
+	onCursorStrokeWidthChange,
+	onCursorStrokeWidthCommit,
 }: SettingsPanelProps) {
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
 	const [customImages, setCustomImages] = useState<string[]>([]);
@@ -662,6 +701,135 @@ export function SettingsPanel({
 								<Crop className="w-3 h-3" />
 								Crop Video
 							</Button>
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="cursor" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<Mouse className="w-4 h-4 text-[#34B27B]" />
+								<span className="text-xs font-medium">Cursor Highlight</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3">
+							{!hasCursorTelemetry && (
+								<div className="text-[10px] text-slate-500 mb-2 p-2 rounded-lg bg-white/5 border border-white/5">
+									No cursor data — re-record to enable cursor effects.
+								</div>
+							)}
+
+							<div className={cn(!hasCursorTelemetry && "opacity-40 pointer-events-none")}>
+								<div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 mb-2">
+									<div className="text-[10px] font-medium text-slate-300">
+										Show Cursor Highlight
+									</div>
+									<Switch
+										checked={showCursorHighlight}
+										onCheckedChange={onShowCursorHighlightChange}
+										className="data-[state=checked]:bg-[#34B27B] scale-90"
+									/>
+								</div>
+
+								<div className={cn(!showCursorHighlight && "opacity-40 pointer-events-none")}>
+									<div className="text-[10px] font-medium text-slate-400 mb-1.5 px-0.5">Style</div>
+									<div className="grid grid-cols-4 gap-1 mb-2">
+										{(["dot", "circle", "ring", "glow"] as const).map((style) => (
+											<button
+												key={style}
+												type="button"
+												onClick={() => onCursorStyleChange?.(style)}
+												className={cn(
+													"flex items-center justify-center gap-1 p-1.5 rounded-md text-[10px] font-medium border transition-all",
+													cursorStyle === style
+														? "bg-[#34B27B]/20 border-[#34B27B] text-[#34B27B]"
+														: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10",
+												)}
+											>
+												{style === "dot" && <Circle className="w-3 h-3" />}
+												{style === "circle" && <Crosshair className="w-3 h-3" />}
+												{style === "ring" && <Target className="w-3 h-3" />}
+												{style === "glow" && <Sparkles className="w-3 h-3" />}
+												<span className="capitalize">{style}</span>
+											</button>
+										))}
+									</div>
+
+									<div className="text-[10px] font-medium text-slate-400 mb-1.5 px-0.5">Color</div>
+									<div className="mb-2">
+										<Block
+											color={cursorColor}
+											colors={[
+												"#ffcc00",
+												"#ffffff",
+												"#000000",
+												"#ff0000",
+												"#ff6600",
+												"#00ff00",
+												"#0088ff",
+												"#ff66cc",
+												"#34B27B",
+												"#8b5cf6",
+											]}
+											onChange={(color) => onCursorColorChange?.(color.hex)}
+											className="!bg-transparent !shadow-none !border-0 !p-0"
+										/>
+									</div>
+
+									<div className="grid grid-cols-2 gap-2">
+										<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+											<div className="flex items-center justify-between mb-1">
+												<div className="text-[10px] font-medium text-slate-300">Size</div>
+												<span className="text-[10px] text-slate-500 font-mono">{cursorSize}px</span>
+											</div>
+											<Slider
+												value={[cursorSize]}
+												onValueChange={(values) => onCursorSizeChange?.(values[0])}
+												onValueCommit={() => onCursorSizeCommit?.()}
+												min={16}
+												max={64}
+												step={1}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+										<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+											<div className="flex items-center justify-between mb-1">
+												<div className="text-[10px] font-medium text-slate-300">Opacity</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{Math.round(cursorOpacity * 100)}%
+												</span>
+											</div>
+											<Slider
+												value={[cursorOpacity]}
+												onValueChange={(values) => onCursorOpacityChange?.(values[0])}
+												onValueCommit={() => onCursorOpacityCommit?.()}
+												min={0}
+												max={1}
+												step={0.01}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+									</div>
+									{(cursorStyle === "circle" || cursorStyle === "ring") && (
+										<div className="p-2 rounded-lg bg-white/5 border border-white/5 mt-2">
+											<div className="flex items-center justify-between mb-1">
+												<div className="text-[10px] font-medium text-slate-300">Stroke</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{cursorStrokeWidth}px
+												</span>
+											</div>
+											<Slider
+												value={[cursorStrokeWidth]}
+												onValueChange={(values) => onCursorStrokeWidthChange?.(values[0])}
+												onValueCommit={() => onCursorStrokeWidthCommit?.()}
+												min={1}
+												max={6}
+												step={0.5}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+									)}
+								</div>
+							</div>
 						</AccordionContent>
 					</AccordionItem>
 

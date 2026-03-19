@@ -5,6 +5,7 @@ import { ASPECT_RATIOS, type AspectRatio } from "@/utils/aspectRatioUtils";
 import {
 	type AnnotationRegion,
 	type CropRegion,
+	type CursorStyle,
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
@@ -39,6 +40,14 @@ export interface ProjectEditorState {
 	speedRegions: SpeedRegion[];
 	annotationRegions: AnnotationRegion[];
 	aspectRatio: AspectRatio;
+	// Cursor highlight
+	showCursorHighlight: boolean;
+	cursorStyle: CursorStyle;
+	cursorColor: string;
+	cursorSize: number;
+	cursorOpacity: number;
+	cursorStrokeWidth: number;
+	// Export settings
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
 	gifFrameRate: GifFrameRate;
@@ -316,6 +325,9 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 	const cropWidth = clamp(rawCropWidth, 0.01, 1 - cropX);
 	const cropHeight = clamp(rawCropHeight, 0.01, 1 - cropY);
 
+	const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+	const VALID_CURSOR_STYLES = new Set<CursorStyle>(["dot", "circle", "ring", "glow"]);
+
 	return {
 		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
 		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
@@ -341,6 +353,26 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		annotationRegions: normalizedAnnotationRegions,
 		aspectRatio:
 			editor.aspectRatio && validAspectRatios.has(editor.aspectRatio) ? editor.aspectRatio : "16:9",
+		// Cursor highlight
+		showCursorHighlight:
+			typeof editor.showCursorHighlight === "boolean"
+				? editor.showCursorHighlight
+				: typeof (editor as { showCursor?: unknown }).showCursor === "boolean"
+					? (editor as { showCursor?: boolean }).showCursor!
+					: false,
+		cursorStyle: VALID_CURSOR_STYLES.has(editor.cursorStyle as CursorStyle)
+			? (editor.cursorStyle as CursorStyle)
+			: "glow",
+		cursorColor:
+			typeof editor.cursorColor === "string" && HEX_COLOR_RE.test(editor.cursorColor)
+				? editor.cursorColor
+				: "#ffcc00",
+		cursorSize: isFiniteNumber(editor.cursorSize) ? clamp(editor.cursorSize, 16, 64) : 53,
+		cursorOpacity: isFiniteNumber(editor.cursorOpacity) ? clamp(editor.cursorOpacity, 0, 1) : 0.6,
+		cursorStrokeWidth: isFiniteNumber(editor.cursorStrokeWidth)
+			? clamp(editor.cursorStrokeWidth, 1, 6)
+			: 2,
+		// Export settings
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality

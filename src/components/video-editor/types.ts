@@ -19,6 +19,8 @@ export interface CursorTelemetryPoint {
 	cy: number;
 }
 
+export type CursorStyle = "dot" | "circle" | "ring" | "glow";
+
 export interface TrimRegion {
 	id: string;
 	startMs: number;

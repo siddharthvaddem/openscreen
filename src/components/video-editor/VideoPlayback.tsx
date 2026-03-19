@@ -28,6 +28,8 @@ import {
 import { AnnotationOverlay } from "./AnnotationOverlay";
 import {
 	type AnnotationRegion,
+	type CursorStyle,
+	type CursorTelemetryPoint,
 	type SpeedRegion,
 	type TrimRegion,
 	ZOOM_DEPTH_SCALES,
@@ -84,6 +86,24 @@ interface VideoPlaybackProps {
 	onSelectAnnotation?: (id: string | null) => void;
 	onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
 	onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
+	// Cursor overlay
+	cursorTelemetry?: CursorTelemetryPoint[];
+	showCursorHighlight?: boolean;
+	cursorStyle?: CursorStyle;
+	cursorColor?: string;
+	cursorSize?: number;
+	cursorOpacity?: number;
+	cursorStrokeWidth?: number;
+	cursorDisplayInfo?: {
+		boundsX: number;
+		boundsY: number;
+		boundsWidth: number;
+		boundsHeight: number;
+		workAreaX: number;
+		workAreaY: number;
+		workAreaWidth: number;
+		workAreaHeight: number;
+	} | null;
 }
 
 export interface VideoPlaybackRef {
@@ -128,6 +148,15 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onSelectAnnotation,
 			onAnnotationPositionChange,
 			onAnnotationSizeChange,
+			// Cursor overlay
+			cursorTelemetry = [],
+			showCursorHighlight = false,
+			cursorStyle = "dot",
+			cursorColor = "#ffcc00",
+			cursorSize = 32,
+			cursorOpacity = 0.6,
+			cursorStrokeWidth = 2,
+			cursorDisplayInfo = null,
 		},
 		ref,
 	) => {
@@ -171,6 +200,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const baseMaskRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 		const cropBoundsRef = useRef({ startX: 0, endX: 0, startY: 0, endY: 0 });
 		const maskGraphicsRef = useRef<Graphics | null>(null);
+		const cursorGraphicsRef = useRef<Graphics | null>(null);
+		const cursorGlowSpriteRef = useRef<Sprite | null>(null);
+		const cursorGlowCacheRef = useRef<{ color: string; size: number; opacity: number } | null>(
+			null,
+		);
 		const isPlayingRef = useRef(isPlaying);
 		const isSeekingRef = useRef(false);
 		const allowPlaybackRef = useRef(false);
@@ -575,6 +609,18 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				const videoContainer = new Container();
 				videoContainerRef.current = videoContainer;
 				cameraContainer.addChild(videoContainer);
+
+				// Cursor graphics - rendered on top of video inside cameraContainer
+				const cursorGfx = new Graphics();
+				cursorGraphicsRef.current = cursorGfx;
+				cameraContainer.addChild(cursorGfx);
+
+				// Glow sprite - uses offscreen canvas for smooth radial gradient
+				const glowSprite = new Sprite();
+				glowSprite.anchor.set(0.5, 0.5);
+				glowSprite.visible = false;
+				cursorGlowSpriteRef.current = glowSprite;
+				cameraContainer.addChild(glowSprite);
 
 				setPixiReady(true);
 			})();
@@ -1062,6 +1108,164 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			};
 		}, []);
 
+		// ── Cursor overlay (rendered in PixiJS for guaranteed coordinate alignment) ──
+		const updateCursorGraphics = useCallback(() => {
+			const gfx = cursorGraphicsRef.current;
+			const glowSprite = cursorGlowSpriteRef.current;
+			if (!gfx) return;
+
+			gfx.clear();
+			if (glowSprite) glowSprite.visible = false;
+
+			if (!showCursorHighlight || cursorTelemetry.length === 0) return;
+
+			const baseOffset = baseOffsetRef.current;
+			const scale = baseScaleRef.current;
+			if (scale === 0) return;
+
+			const samples = cursorTelemetry;
+			const timeMs = currentTime * 1000;
+
+			// Interpolate position
+			let cx: number;
+			let cy: number;
+			if (samples.length === 1) {
+				cx = samples[0].cx;
+				cy = samples[0].cy;
+			} else if (timeMs <= samples[0].timeMs) {
+				cx = samples[0].cx;
+				cy = samples[0].cy;
+			} else if (timeMs >= samples[samples.length - 1].timeMs) {
+				cx = samples[samples.length - 1].cx;
+				cy = samples[samples.length - 1].cy;
+			} else {
+				let lo = 0;
+				let hi = samples.length - 1;
+				while (lo < hi - 1) {
+					const mid = Math.floor((lo + hi) / 2);
+					if (samples[mid].timeMs <= timeMs) lo = mid;
+					else hi = mid;
+				}
+				const a = samples[lo];
+				const b = samples[hi];
+				const dt = b.timeMs - a.timeMs;
+				if (dt === 0) {
+					cx = a.cx;
+					cy = a.cy;
+				} else {
+					const t = Math.max(0, Math.min(1, (timeMs - a.timeMs) / dt));
+					cx = a.cx + (b.cx - a.cx) * t;
+					cy = a.cy + (b.cy - a.cy) * t;
+				}
+			}
+
+			// Remap bounds-normalized coords to video-space if display info available
+			if (
+				cursorDisplayInfo &&
+				cursorDisplayInfo.boundsWidth > 0 &&
+				cursorDisplayInfo.boundsHeight > 0
+			) {
+				const absX = cx * cursorDisplayInfo.boundsWidth + cursorDisplayInfo.boundsX;
+				const absY = cy * cursorDisplayInfo.boundsHeight + cursorDisplayInfo.boundsY;
+				const waW = Math.max(1, cursorDisplayInfo.workAreaWidth);
+				const waH = Math.max(1, cursorDisplayInfo.workAreaHeight);
+				cx = (absX - cursorDisplayInfo.workAreaX) / waW;
+				cy = (absY - cursorDisplayInfo.workAreaY) / waH;
+			}
+
+			// Check if inside crop region
+			const crop = cropRegion || { x: 0, y: 0, width: 1, height: 1 };
+			if (cx < crop.x || cx > crop.x + crop.width || cy < crop.y || cy > crop.y + crop.height) {
+				return;
+			}
+
+			// Position in the same coordinate space as the video sprite:
+			// videoSprite is at (baseOffset.x, baseOffset.y) with scale (baseScale)
+			// A pixel at normalized (cx, cy) in the video is at:
+			const videoSprite = videoSpriteRef.current;
+			if (!videoSprite) return;
+			const videoW = videoSprite.texture.width;
+			const videoH = videoSprite.texture.height;
+			const px = baseOffset.x + cx * videoW * scale;
+			const py = baseOffset.y + cy * videoH * scale;
+
+			// Draw cursor shape
+			const sz = cursorSize;
+			if (cursorStyle === "dot") {
+				gfx.circle(px, py, sz / 4);
+				gfx.fill({ color: cursorColor, alpha: cursorOpacity });
+			} else if (cursorStyle === "circle") {
+				gfx.circle(px, py, sz / 3);
+				gfx.stroke({ color: cursorColor, alpha: cursorOpacity, width: cursorStrokeWidth });
+			} else if (cursorStyle === "ring") {
+				gfx.circle(px, py, cursorStrokeWidth * 1.5);
+				gfx.fill({ color: cursorColor, alpha: cursorOpacity });
+				gfx.circle(px, py, sz / 3);
+				gfx.stroke({ color: cursorColor, alpha: cursorOpacity, width: cursorStrokeWidth });
+			} else if (cursorStyle === "glow" && glowSprite) {
+				// Use offscreen canvas with real radial gradient for perfectly smooth glow
+				// Glow renders 1.5x bigger than the size setting for a softer spread
+				const texSize = Math.max(Math.round(sz * 1.5), 4);
+				const cache = cursorGlowCacheRef.current;
+				if (
+					!cache ||
+					cache.color !== cursorColor ||
+					cache.size !== texSize ||
+					cache.opacity !== cursorOpacity
+				) {
+					const canvas = document.createElement("canvas");
+					canvas.width = texSize;
+					canvas.height = texSize;
+					const ctx = canvas.getContext("2d");
+					if (ctx) {
+						const cx = texSize / 2;
+						const cy = texSize / 2;
+						const r = texSize / 2;
+						const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+						// Use hexToRgba-style parsing (handle 0 values correctly)
+						const m = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(cursorColor);
+						const hr = m ? parseInt(m[1], 16) : 255;
+						const hg = m ? parseInt(m[2], 16) : 204;
+						const hb = m ? parseInt(m[3], 16) : 0;
+						// Softer center — peak alpha is 70% of opacity, fades gently
+						gradient.addColorStop(0, `rgba(${hr},${hg},${hb},${cursorOpacity * 0.7})`);
+						gradient.addColorStop(0.3, `rgba(${hr},${hg},${hb},${cursorOpacity * 0.4})`);
+						gradient.addColorStop(0.7, `rgba(${hr},${hg},${hb},${cursorOpacity * 0.12})`);
+						gradient.addColorStop(1, `rgba(${hr},${hg},${hb},0)`);
+						ctx.fillStyle = gradient;
+						ctx.fillRect(0, 0, texSize, texSize);
+					}
+					const oldTexture = glowSprite.texture;
+					glowSprite.texture = Texture.from(canvas);
+					if (oldTexture && oldTexture !== Texture.EMPTY) oldTexture.destroy(true);
+					cursorGlowCacheRef.current = {
+						color: cursorColor,
+						size: texSize,
+						opacity: cursorOpacity,
+					};
+				}
+				glowSprite.position.set(px, py);
+				glowSprite.width = texSize;
+				glowSprite.height = texSize;
+				glowSprite.visible = true;
+			}
+		}, [
+			showCursorHighlight,
+			cursorTelemetry,
+			currentTime,
+			cropRegion,
+			cursorStyle,
+			cursorColor,
+			cursorSize,
+			cursorOpacity,
+			cursorStrokeWidth,
+			cursorDisplayInfo,
+		]);
+
+		useEffect(() => {
+			updateCursorGraphics();
+		}, [updateCursorGraphics]);
+
 		const isImageUrl = Boolean(
 			resolvedWallpaper &&
 				(resolvedWallpaper.startsWith("file://") ||
@@ -1191,6 +1395,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								/>
 							));
 						})()}
+						{/* Cursor is rendered via PixiJS cursorGraphics in cameraContainer */}
 					</div>
 				)}
 				<video

@@ -2,6 +2,8 @@ import GIF from "gif.js";
 import type {
 	AnnotationRegion,
 	CropRegion,
+	CursorStyle,
+	CursorTelemetryPoint,
 	SpeedRegion,
 	TrimRegion,
 	ZoomRegion,
@@ -42,6 +44,24 @@ interface GifExporterConfig {
 	annotationRegions?: AnnotationRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
+	// Cursor overlay
+	cursorTelemetry?: CursorTelemetryPoint[];
+	showCursorHighlight?: boolean;
+	cursorStyle?: CursorStyle;
+	cursorColor?: string;
+	cursorSize?: number;
+	cursorOpacity?: number;
+	cursorStrokeWidth?: number;
+	cursorDisplayInfo?: {
+		boundsX: number;
+		boundsY: number;
+		boundsWidth: number;
+		boundsHeight: number;
+		workAreaX: number;
+		workAreaY: number;
+		workAreaWidth: number;
+		workAreaHeight: number;
+	} | null;
 	onProgress?: (progress: ExportProgress) => void;
 }
 
@@ -142,6 +162,14 @@ export class GifExporter {
 				speedRegions: this.config.speedRegions,
 				previewWidth: this.config.previewWidth,
 				previewHeight: this.config.previewHeight,
+				cursorTelemetry: this.config.cursorTelemetry,
+				showCursorHighlight: this.config.showCursorHighlight,
+				cursorStyle: this.config.cursorStyle,
+				cursorColor: this.config.cursorColor,
+				cursorSize: this.config.cursorSize,
+				cursorOpacity: this.config.cursorOpacity,
+				cursorStrokeWidth: this.config.cursorStrokeWidth,
+				cursorDisplayInfo: this.config.cursorDisplayInfo,
 			});
 			await this.renderer.initialize();
 

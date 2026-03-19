@@ -139,11 +139,20 @@ async function storeRecordedSessionFiles(payload: StoreRecordedSessionInput) {
 	if (pendingCursorSamples.length > 0) {
 		await fs.writeFile(
 			telemetryPath,
-			JSON.stringify({ version: CURSOR_TELEMETRY_VERSION, samples: pendingCursorSamples }, null, 2),
+			JSON.stringify(
+				{
+					version: CURSOR_TELEMETRY_VERSION,
+					samples: pendingCursorSamples,
+					display: captureDisplayInfo ?? undefined,
+				},
+				null,
+				2,
+			),
 			"utf-8",
 		);
 	}
 	pendingCursorSamples = [];
+	captureDisplayInfo = null;
 
 	const sessionManifestPath = path.join(
 		RECORDINGS_DIR,
@@ -185,6 +194,19 @@ function stopCursorCapture() {
 	}
 }
 
+// Store the capture display info so we can save it to cursor.json for correct mapping
+let captureDisplayInfo: {
+	boundsX: number;
+	boundsY: number;
+	boundsWidth: number;
+	boundsHeight: number;
+	workAreaX: number;
+	workAreaY: number;
+	workAreaWidth: number;
+	workAreaHeight: number;
+	scaleFactor: number;
+} | null = null;
+
 function sampleCursorPoint() {
 	const cursor = screen.getCursorScreenPoint();
 	const sourceDisplayId = Number(selectedSource?.display_id);
@@ -195,6 +217,21 @@ function sampleCursorPoint() {
 	const bounds = display.bounds;
 	const width = Math.max(1, bounds.width);
 	const height = Math.max(1, bounds.height);
+
+	// Save display info on first sample
+	if (!captureDisplayInfo) {
+		captureDisplayInfo = {
+			boundsX: bounds.x,
+			boundsY: bounds.y,
+			boundsWidth: bounds.width,
+			boundsHeight: bounds.height,
+			workAreaX: display.workArea.x,
+			workAreaY: display.workArea.y,
+			workAreaWidth: display.workArea.width,
+			workAreaHeight: display.workArea.height,
+			scaleFactor: display.scaleFactor,
+		};
+	}
 
 	const cx = clamp((cursor.x - bounds.x) / width, 0, 1);
 	const cy = clamp((cursor.y - bounds.y) / height, 0, 1);
@@ -369,6 +406,7 @@ export function registerIpcHandlers(
 
 	ipcMain.handle("set-recording-state", (_, recording: boolean) => {
 		if (recording) {
+			captureDisplayInfo = null;
 			stopCursorCapture();
 			activeCursorSamples = [];
 			pendingCursorSamples = [];
@@ -426,7 +464,8 @@ export function registerIpcHandlers(
 				})
 				.sort((a: CursorTelemetryPoint, b: CursorTelemetryPoint) => a.timeMs - b.timeMs);
 
-			return { success: true, samples };
+			const display = parsed?.display ?? undefined;
+			return { success: true, samples, display };
 		} catch (error) {
 			const nodeError = error as NodeJS.ErrnoException;
 			if (nodeError.code === "ENOENT") {

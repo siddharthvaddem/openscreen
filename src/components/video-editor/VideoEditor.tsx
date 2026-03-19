@@ -76,6 +76,12 @@ export default function VideoEditor() {
 		borderRadius,
 		padding,
 		aspectRatio,
+		showCursorHighlight,
+		cursorStyle,
+		cursorColor,
+		cursorSize,
+		cursorOpacity,
+		cursorStrokeWidth,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -90,6 +96,16 @@ export default function VideoEditor() {
 	const [currentTime, setCurrentTime] = useState(0);
 	const [duration, setDuration] = useState(0);
 	const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
+	const [cursorDisplayInfo, setCursorDisplayInfo] = useState<{
+		boundsX: number;
+		boundsY: number;
+		boundsWidth: number;
+		boundsHeight: number;
+		workAreaX: number;
+		workAreaY: number;
+		workAreaWidth: number;
+		workAreaHeight: number;
+	} | null>(null);
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
 	const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
@@ -173,6 +189,12 @@ export default function VideoEditor() {
 				speedRegions: normalizedEditor.speedRegions,
 				annotationRegions: normalizedEditor.annotationRegions,
 				aspectRatio: normalizedEditor.aspectRatio,
+				showCursorHighlight: normalizedEditor.showCursorHighlight,
+				cursorStyle: normalizedEditor.cursorStyle,
+				cursorColor: normalizedEditor.cursorColor,
+				cursorSize: normalizedEditor.cursorSize,
+				cursorOpacity: normalizedEditor.cursorOpacity,
+				cursorStrokeWidth: normalizedEditor.cursorStrokeWidth,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -240,6 +262,12 @@ export default function VideoEditor() {
 				speedRegions,
 				annotationRegions,
 				aspectRatio,
+				showCursorHighlight,
+				cursorStyle,
+				cursorColor,
+				cursorSize,
+				cursorOpacity,
+				cursorStrokeWidth,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -261,6 +289,12 @@ export default function VideoEditor() {
 		speedRegions,
 		annotationRegions,
 		aspectRatio,
+		showCursorHighlight,
+		cursorStyle,
+		cursorColor,
+		cursorSize,
+		cursorOpacity,
+		cursorStrokeWidth,
 		exportQuality,
 		exportFormat,
 		gifFrameRate,
@@ -352,6 +386,12 @@ export default function VideoEditor() {
 				speedRegions,
 				annotationRegions,
 				aspectRatio,
+				showCursorHighlight,
+				cursorStyle,
+				cursorColor,
+				cursorSize,
+				cursorOpacity,
+				cursorStrokeWidth,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -404,6 +444,12 @@ export default function VideoEditor() {
 			speedRegions,
 			annotationRegions,
 			aspectRatio,
+			showCursorHighlight,
+			cursorStyle,
+			cursorColor,
+			cursorSize,
+			cursorOpacity,
+			cursorStrokeWidth,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
@@ -482,6 +528,7 @@ export default function VideoEditor() {
 				const result = await window.electronAPI.getCursorTelemetry(sourcePath);
 				if (mounted) {
 					setCursorTelemetry(result.success ? result.samples : []);
+					setCursorDisplayInfo(result.display ?? null);
 				}
 			} catch (telemetryError) {
 				console.warn("Unable to load cursor telemetry:", telemetryError);
@@ -1023,6 +1070,14 @@ export default function VideoEditor() {
 						annotationRegions,
 						previewWidth,
 						previewHeight,
+						cursorTelemetry,
+						showCursorHighlight,
+						cursorStyle,
+						cursorColor,
+						cursorSize,
+						cursorOpacity,
+						cursorStrokeWidth,
+						cursorDisplayInfo,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1150,6 +1205,14 @@ export default function VideoEditor() {
 						annotationRegions,
 						previewWidth,
 						previewHeight,
+						cursorTelemetry,
+						showCursorHighlight,
+						cursorStyle,
+						cursorColor,
+						cursorSize,
+						cursorOpacity,
+						cursorStrokeWidth,
+						cursorDisplayInfo,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1212,6 +1275,14 @@ export default function VideoEditor() {
 			annotationRegions,
 			isPlaying,
 			aspectRatio,
+			cursorTelemetry,
+			showCursorHighlight,
+			cursorStyle,
+			cursorColor,
+			cursorSize,
+			cursorOpacity,
+			cursorStrokeWidth,
+			cursorDisplayInfo,
 			exportQuality,
 			handleExportSaved,
 		],
@@ -1377,6 +1448,14 @@ export default function VideoEditor() {
 												onSelectAnnotation={handleSelectAnnotation}
 												onAnnotationPositionChange={handleAnnotationPositionChange}
 												onAnnotationSizeChange={handleAnnotationSizeChange}
+												cursorTelemetry={cursorTelemetry}
+												showCursorHighlight={showCursorHighlight}
+												cursorStyle={cursorStyle}
+												cursorColor={cursorColor}
+												cursorSize={cursorSize}
+												cursorOpacity={cursorOpacity}
+												cursorStrokeWidth={cursorStrokeWidth}
+												cursorDisplayInfo={cursorDisplayInfo}
 											/>
 										</div>
 									</div>
@@ -1516,6 +1595,22 @@ export default function VideoEditor() {
 							}
 							onSpeedChange={handleSpeedChange}
 							onSpeedDelete={handleSpeedDelete}
+							hasCursorTelemetry={cursorTelemetry.length > 0}
+							showCursorHighlight={showCursorHighlight}
+							onShowCursorHighlightChange={(v) => pushState({ showCursorHighlight: v })}
+							cursorStyle={cursorStyle}
+							onCursorStyleChange={(v) => pushState({ cursorStyle: v })}
+							cursorColor={cursorColor}
+							onCursorColorChange={(v) => pushState({ cursorColor: v })}
+							cursorSize={cursorSize}
+							onCursorSizeChange={(v) => updateState({ cursorSize: v })}
+							onCursorSizeCommit={commitState}
+							cursorOpacity={cursorOpacity}
+							onCursorOpacityChange={(v) => updateState({ cursorOpacity: v })}
+							onCursorOpacityCommit={commitState}
+							cursorStrokeWidth={cursorStrokeWidth}
+							onCursorStrokeWidthChange={(v) => updateState({ cursorStrokeWidth: v })}
+							onCursorStrokeWidthCommit={commitState}
 						/>
 					</Panel>
 				</PanelGroup>
