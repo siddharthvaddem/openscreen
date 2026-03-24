@@ -49,6 +49,7 @@ interface VideoExporterConfig extends ExportConfig {
 		workAreaY: number;
 		workAreaWidth: number;
 		workAreaHeight: number;
+		isWindowCapture?: boolean;
 	} | null;
 	onProgress?: (progress: ExportProgress) => void;
 }

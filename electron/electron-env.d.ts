@@ -74,6 +74,7 @@ interface Window {
 				workAreaY: number;
 				workAreaWidth: number;
 				workAreaHeight: number;
+				isWindowCapture?: boolean;
 			};
 			message?: string;
 			error?: string;

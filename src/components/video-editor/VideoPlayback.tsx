@@ -103,6 +103,7 @@ interface VideoPlaybackProps {
 		workAreaY: number;
 		workAreaWidth: number;
 		workAreaHeight: number;
+		isWindowCapture?: boolean;
 	} | null;
 }
 
@@ -1159,9 +1160,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				}
 			}
 
-			// Remap bounds-normalized coords to video-space if display info available
+			// For window captures, remap from display-normalized to work-area-normalized coords
+			// (the video shows the window, which approximately matches the work area).
+			// For screen captures, coords are already correct — video shows the full display.
 			if (
 				cursorDisplayInfo &&
+				cursorDisplayInfo.isWindowCapture &&
 				cursorDisplayInfo.boundsWidth > 0 &&
 				cursorDisplayInfo.boundsHeight > 0
 			) {

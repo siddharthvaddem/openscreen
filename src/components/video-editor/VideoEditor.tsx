@@ -105,6 +105,7 @@ export default function VideoEditor() {
 		workAreaY: number;
 		workAreaWidth: number;
 		workAreaHeight: number;
+		isWindowCapture?: boolean;
 	} | null>(null);
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);

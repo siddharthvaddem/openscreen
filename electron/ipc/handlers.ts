@@ -205,6 +205,7 @@ let captureDisplayInfo: {
 	workAreaWidth: number;
 	workAreaHeight: number;
 	scaleFactor: number;
+	isWindowCapture?: boolean;
 } | null = null;
 
 function sampleCursorPoint() {
@@ -230,6 +231,7 @@ function sampleCursorPoint() {
 			workAreaWidth: display.workArea.width,
 			workAreaHeight: display.workArea.height,
 			scaleFactor: display.scaleFactor,
+			isWindowCapture: String(selectedSource?.id ?? "").startsWith("window:"),
 		};
 	}
 

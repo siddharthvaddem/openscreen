@@ -72,6 +72,7 @@ interface FrameRenderConfig {
 		workAreaY: number;
 		workAreaWidth: number;
 		workAreaHeight: number;
+		isWindowCapture?: boolean;
 	} | null;
 }
 
@@ -696,11 +697,11 @@ export class FrameRenderer {
 		const pos = this.interpolateCursorPosition(timeMs);
 		if (!pos) return;
 
-		// Remap bounds-normalized coords to video-space coords if display info is available
+		// For window captures, remap from display-normalized to work-area-normalized coords.
+		// For screen captures, coords are already correct — video shows the full display.
 		let { cx, cy } = pos;
 		const di = this.config.cursorDisplayInfo;
-		if (di && di.boundsWidth > 0 && di.boundsHeight > 0) {
-			// Convert from bounds-normalized to absolute logical coords, then to workArea-normalized
+		if (di && di.isWindowCapture && di.boundsWidth > 0 && di.boundsHeight > 0) {
 			const absX = cx * di.boundsWidth + di.boundsX;
 			const absY = cy * di.boundsHeight + di.boundsY;
 			const waW = Math.max(1, di.workAreaWidth);
