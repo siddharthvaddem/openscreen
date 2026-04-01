@@ -94,10 +94,6 @@ _I'm new to open source, idk what I'm doing lol. If something is wrong please ra
 
 Contributions are welcome! If you’d like to help out or see what’s currently being worked on, take a look at the open issues and the [project roadmap](https://github.com/users/siddharthvaddem/projects/3) to understand the current direction of the project and find ways to contribute.
 
-## Acknowledgements
-
-The zoom animation system (zoom region transitions, motion blur, and easing) was ported from [Recordly](https://github.com/webadderall/Recordly), which itself started as a fork of this project and went on to develop a more advanced animation pipeline.
-
 ## License
 
 This project is licensed under the [MIT License](./LICENSE). By using this software, you agree that the authors are not liable for any issues, damages, or claims arising from its use.
