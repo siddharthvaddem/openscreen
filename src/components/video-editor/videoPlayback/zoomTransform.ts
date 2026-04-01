@@ -1,3 +1,5 @@
+// Zoom transform and motion blur logic ported from Recordly (https://github.com/webadderall/Recordly)
+
 import { BlurFilter, Container } from "pixi.js";
 import { MotionBlurFilter } from "pixi-filters/motion-blur";
 

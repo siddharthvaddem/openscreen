@@ -1,3 +1,5 @@
+// Zoom region animation logic ported from Recordly (https://github.com/webadderall/Recordly)
+
 import type { ZoomFocus, ZoomRegion } from "../types";
 import { ZOOM_DEPTH_SCALES } from "../types";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./constants";
