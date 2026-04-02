@@ -1,3 +1,6 @@
+// Ported from Recordly (https://github.com/Recordly-dev/Recordly).
+// See ATTRIBUTION.md for details.
+
 export function clamp01(value: number) {
 	return Math.max(0, Math.min(1, value));
 }

@@ -1,3 +1,6 @@
+// Ported from Recordly (https://github.com/Recordly-dev/Recordly).
+// See ATTRIBUTION.md for details.
+
 import type { ZoomFocus, ZoomRegion } from "../types";
 import { ZOOM_DEPTH_SCALES } from "../types";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./constants";
