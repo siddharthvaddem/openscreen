@@ -1576,7 +1576,7 @@ export default function VideoEditor() {
 				</div>
 
 				{/* Right section: settings panel */}
-				<div className="flex-[3] min-w-[280px] max-w-[420px] h-full">
+				<div className="flex-[3] min-w-[280px] max-w-[420px] h-full overflow-y-auto custom-scrollbar pr-1">
 					<SettingsPanel
 						selected={wallpaper}
 						onWallpaperChange={(w) => pushState({ wallpaper: w })}
