@@ -47,7 +47,7 @@ export interface TrimRegion {
 	endMs: number;
 }
 
-export type AnnotationType = "text" | "image" | "figure";
+export type AnnotationType = "text" | "image" | "figure" | "caption";
 
 export type ArrowDirection =
 	| "up"
@@ -63,6 +63,22 @@ export interface FigureData {
 	arrowDirection: ArrowDirection;
 	color: string;
 	strokeWidth: number;
+}
+
+export type CaptionGradientDirection = "bottom" | "top" | "left" | "right" | "none";
+
+export interface CaptionData {
+	primaryText: string;
+	secondaryText: string;
+	primaryColor: string;
+	secondaryColor: string;
+	primaryFontSize: number;
+	secondaryFontSize: number;
+	fontFamily: string;
+	gradientDirection: CaptionGradientDirection;
+	wordDelay: number; // ms between each word appearing
+	animationDuration: number; // ms per word fade-in
+	imageUrl?: string;
 }
 
 export interface AnnotationPosition {
@@ -99,6 +115,7 @@ export interface AnnotationRegion {
 	style: AnnotationTextStyle;
 	zIndex: number;
 	figureData?: FigureData;
+	captionData?: CaptionData;
 }
 
 export const DEFAULT_ANNOTATION_POSITION: AnnotationPosition = {
@@ -126,6 +143,19 @@ export const DEFAULT_FIGURE_DATA: FigureData = {
 	arrowDirection: "right",
 	color: "#34B27B",
 	strokeWidth: 4,
+};
+
+export const DEFAULT_CAPTION_DATA: CaptionData = {
+	primaryText: "YOUR TEXT HERE",
+	secondaryText: "SUBTITLE TEXT",
+	primaryColor: "#FFE000",
+	secondaryColor: "#FFFFFF",
+	primaryFontSize: 64,
+	secondaryFontSize: 48,
+	fontFamily: "Impact, Arial Black, sans-serif",
+	gradientDirection: "bottom",
+	wordDelay: 150,
+	animationDuration: 250,
 };
 
 export interface CropRegion {

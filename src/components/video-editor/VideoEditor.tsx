@@ -47,9 +47,11 @@ import {
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
+	DEFAULT_CAPTION_DATA,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
+	type CaptionData,
 	type FigureData,
 	type PlaybackSpeed,
 	type SpeedRegion,
@@ -939,6 +941,14 @@ export default function VideoEditor() {
 						if (!region.figureData) {
 							updatedRegion.figureData = { ...DEFAULT_FIGURE_DATA };
 						}
+					} else if (type === "caption") {
+						updatedRegion.content = "";
+						if (!region.captionData) {
+							updatedRegion.captionData = { ...DEFAULT_CAPTION_DATA };
+						}
+						// Auto-expand to full frame so gradient covers edge to edge
+						updatedRegion.position = { x: 0, y: 0 };
+						updatedRegion.size = { width: 100, height: 100 };
 					}
 					return updatedRegion;
 				}),
@@ -952,6 +962,17 @@ export default function VideoEditor() {
 			pushState((prev) => ({
 				annotationRegions: prev.annotationRegions.map((region) =>
 					region.id === id ? { ...region, style: { ...region.style, ...style } } : region,
+				),
+			}));
+		},
+		[pushState],
+	);
+
+	const handleAnnotationCaptionDataChange = useCallback(
+		(id: string, captionData: CaptionData) => {
+			pushState((prev) => ({
+				annotationRegions: prev.annotationRegions.map((region) =>
+					region.id === id ? { ...region, captionData } : region,
 				),
 			}));
 		},
@@ -1767,6 +1788,7 @@ export default function VideoEditor() {
 						onAnnotationTypeChange={handleAnnotationTypeChange}
 						onAnnotationStyleChange={handleAnnotationStyleChange}
 						onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
+						onAnnotationCaptionDataChange={handleAnnotationCaptionDataChange}
 						onAnnotationDelete={handleAnnotationDelete}
 						selectedSpeedId={selectedSpeedId}
 						selectedSpeedValue={

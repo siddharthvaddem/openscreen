@@ -258,6 +258,177 @@ async function renderImage(
 	});
 }
 
+async function renderCaption(
+	ctx: CanvasRenderingContext2D,
+	annotation: AnnotationRegion,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	scaleFactor: number,
+	currentTimeMs: number,
+): Promise<void> {
+	const data = annotation.captionData;
+	if (!data) return;
+
+	const timeIntoAnnotation = currentTimeMs - annotation.startMs;
+	const totalDuration = annotation.endMs - annotation.startMs;
+	const fadeOutStart = Math.max(0, totalDuration - 500);
+	const globalOpacity =
+		timeIntoAnnotation >= fadeOutStart
+			? Math.max(0, 1 - (timeIntoAnnotation - fadeOutStart) / 500)
+			: 1;
+	const fadeInOpacity = Math.min(1, Math.max(0, timeIntoAnnotation / 400));
+	const backgroundOpacity = fadeInOpacity * globalOpacity;
+
+	ctx.save();
+
+	// Gradient background
+	if (data.gradientDirection !== "none" && backgroundOpacity > 0) {
+		let x0 = x,
+			y0 = y,
+			x1 = x,
+			y1 = y;
+		switch (data.gradientDirection) {
+			case "bottom":
+				y0 = y + height;
+				y1 = y;
+				x1 = x;
+				break;
+			case "top":
+				y0 = y;
+				y1 = y + height;
+				break;
+			case "left":
+				x0 = x;
+				x1 = x + width;
+				break;
+			case "right":
+				x0 = x + width;
+				x1 = x;
+				break;
+		}
+		const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+		grad.addColorStop(0, `rgba(0,0,0,${0.88 * backgroundOpacity})`);
+		grad.addColorStop(0.6, `rgba(0,0,0,${0.4 * backgroundOpacity})`);
+		grad.addColorStop(1, "rgba(0,0,0,0)");
+		ctx.fillStyle = grad;
+		ctx.fillRect(x, y, width, height + 4); // +4 covers bottom edge
+	}
+
+	const padding = 20 * scaleFactor;
+	const lineGap = 4 * scaleFactor;
+	const primaryFontSize = data.primaryFontSize * scaleFactor;
+	const secondaryFontSize = data.secondaryFontSize * scaleFactor;
+
+	const isLeft = data.gradientDirection === "left";
+	const isRight = data.gradientDirection === "right";
+	const isTop = data.gradientDirection === "top";
+
+	// Content block height (without image, which we'll prepend after load)
+	let contentHeight = 0;
+	if (data.primaryText) contentHeight += primaryFontSize * 1.1;
+	if (data.primaryText && data.secondaryText) contentHeight += lineGap;
+	if (data.secondaryText) contentHeight += secondaryFontSize * 1.1;
+
+	let textStartY: number;
+	if (isTop) {
+		textStartY = y + padding;
+	} else {
+		// bottom / left / right / none — anchor text to the dark end
+		textStartY = y + height - padding - contentHeight;
+	}
+
+	// Render words for one line
+	const renderWords = (text: string, startWordIndex: number, color: string, fontSize: number, lineY: number) => {
+		const uppercased = text.toUpperCase();
+		const words = uppercased.split(" ").filter((w) => w.length > 0);
+		ctx.font = `bold ${fontSize}px ${data.fontFamily}`;
+		ctx.textBaseline = "top";
+
+		const spaceWidth = ctx.measureText(" ").width;
+		const wordWidths = words.map((w) => ctx.measureText(w).width);
+		const totalLineWidth = wordWidths.reduce((a, b) => a + b, 0) + spaceWidth * (words.length - 1);
+
+		let curX: number;
+		if (isRight) curX = x + width - padding - totalLineWidth;
+		else if (isLeft) curX = x + padding;
+		else curX = x + (width - totalLineWidth) / 2;
+
+		words.forEach((word, i) => {
+			const wordIdx = startWordIndex + i;
+			const progress = Math.min(1, Math.max(0, (timeIntoAnnotation - wordIdx * data.wordDelay) / data.animationDuration));
+			const wordOpacity = progress * globalOpacity;
+			const offsetY = (1 - progress) * 14 * scaleFactor;
+
+			if (wordOpacity > 0) {
+				ctx.save();
+				ctx.globalAlpha = wordOpacity;
+				const isWhite = color.toLowerCase() === "#ffffff";
+				if (isWhite) {
+					ctx.shadowColor = "rgba(0,0,0,0.9)";
+					ctx.shadowBlur = 4 * scaleFactor;
+					ctx.shadowOffsetX = 2 * scaleFactor;
+					ctx.shadowOffsetY = 2 * scaleFactor;
+				} else {
+					ctx.shadowColor = color;
+					ctx.shadowBlur = 20 * scaleFactor;
+					ctx.shadowOffsetX = 0;
+					ctx.shadowOffsetY = 0;
+				}
+				ctx.fillStyle = color;
+				ctx.fillText(word, curX, lineY + offsetY);
+				ctx.restore();
+			}
+			curX += wordWidths[i] + spaceWidth;
+		});
+	};
+
+	// Optional image above the text block
+	if (data.imageUrl) {
+		await new Promise<void>((resolve) => {
+			const img = new Image();
+			img.onload = () => {
+				const maxH = height * 0.35;
+				const maxW = width * 0.6;
+				const aspect = img.width / img.height;
+				let iw = Math.min(maxW, maxH * aspect);
+				let ih = iw / aspect;
+				if (ih > maxH) { ih = maxH; iw = ih * aspect; }
+
+				let ix: number;
+				if (isRight) ix = x + width - padding - iw;
+				else if (isLeft) ix = x + padding;
+				else ix = x + (width - iw) / 2;
+
+				const iy = textStartY - ih - 6 * scaleFactor;
+				ctx.save();
+				ctx.globalAlpha = globalOpacity;
+				ctx.drawImage(img, ix, iy, iw, ih);
+				ctx.restore();
+				resolve();
+			};
+			img.onerror = () => resolve();
+			img.src = data.imageUrl!;
+		});
+	}
+
+	// Primary text line
+	let currentY = textStartY;
+	const primaryWords = data.primaryText ? data.primaryText.split(" ").filter((w) => w.length > 0) : [];
+	if (data.primaryText) {
+		renderWords(data.primaryText, 0, data.primaryColor, primaryFontSize, currentY);
+		currentY += primaryFontSize * 1.1 + lineGap;
+	}
+
+	// Secondary text line
+	if (data.secondaryText) {
+		renderWords(data.secondaryText, primaryWords.length, data.secondaryColor, secondaryFontSize, currentY);
+	}
+
+	ctx.restore();
+}
+
 export async function renderAnnotations(
 	ctx: CanvasRenderingContext2D,
 	annotations: AnnotationRegion[],
@@ -302,6 +473,12 @@ export async function renderAnnotations(
 						height,
 						scaleFactor,
 					);
+				}
+				break;
+
+			case "caption":
+				if (annotation.captionData) {
+					await renderCaption(ctx, annotation, x, y, width, height, scaleFactor, currentTimeMs);
 				}
 				break;
 		}

@@ -8,6 +8,7 @@ import {
 	Image as ImageIcon,
 	Info,
 	Italic,
+	Subtitles,
 	Trash2,
 	Type,
 	Underline,
@@ -32,7 +33,14 @@ import { type CustomFont, getCustomFonts } from "@/lib/customFonts";
 import { cn } from "@/lib/utils";
 import { AddCustomFontDialog } from "./AddCustomFontDialog";
 import { getArrowComponent } from "./ArrowSvgs";
-import type { AnnotationRegion, AnnotationType, ArrowDirection, FigureData } from "./types";
+import type {
+	AnnotationRegion,
+	AnnotationType,
+	ArrowDirection,
+	CaptionData,
+	CaptionGradientDirection,
+	FigureData,
+} from "./types";
 
 interface AnnotationSettingsPanelProps {
 	annotation: AnnotationRegion;
@@ -40,6 +48,7 @@ interface AnnotationSettingsPanelProps {
 	onTypeChange: (type: AnnotationType) => void;
 	onStyleChange: (style: Partial<AnnotationRegion["style"]>) => void;
 	onFigureDataChange?: (figureData: FigureData) => void;
+	onCaptionDataChange?: (captionData: CaptionData) => void;
 	onDelete: () => void;
 }
 
@@ -62,6 +71,7 @@ export function AnnotationSettingsPanel({
 	onTypeChange,
 	onStyleChange,
 	onFigureDataChange,
+	onCaptionDataChange,
 	onDelete,
 }: AnnotationSettingsPanelProps) {
 	const t = useScopedT("settings");
@@ -155,27 +165,27 @@ export function AnnotationSettingsPanel({
 					onValueChange={(value) => onTypeChange(value as AnnotationType)}
 					className="mb-6"
 				>
-					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-3 h-auto rounded-xl">
+					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-4 h-auto rounded-xl">
 						<TabsTrigger
 							value="text"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
 						>
-							<Type className="w-4 h-4" />
+							<Type className="w-3.5 h-3.5" />
 							{t("annotation.typeText")}
 						</TabsTrigger>
 						<TabsTrigger
 							value="image"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
 						>
-							<ImageIcon className="w-4 h-4" />
+							<ImageIcon className="w-3.5 h-3.5" />
 							{t("annotation.typeImage")}
 						</TabsTrigger>
 						<TabsTrigger
 							value="figure"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
 						>
 							<svg
-								className="w-4 h-4"
+								className="w-3.5 h-3.5"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -184,6 +194,13 @@ export function AnnotationSettingsPanel({
 								<path d="M4 12h16m0 0l-6-6m6 6l-6 6" strokeLinecap="round" strokeLinejoin="round" />
 							</svg>
 							{t("annotation.typeArrow")}
+						</TabsTrigger>
+						<TabsTrigger
+							value="caption"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
+						>
+							<Subtitles className="w-3.5 h-3.5" />
+							Caption
 						</TabsTrigger>
 					</TabsList>
 
@@ -594,6 +611,244 @@ export function AnnotationSettingsPanel({
 								</PopoverContent>
 							</Popover>
 						</div>
+					</TabsContent>
+
+					{/* Caption / Lower-Third */}
+					<TabsContent value="caption" className="mt-0 space-y-4">
+						{(() => {
+							const data = annotation.captionData;
+							if (!data || !onCaptionDataChange) return null;
+							const update = (patch: Partial<CaptionData>) =>
+								onCaptionDataChange({ ...data, ...patch });
+							return (
+								<>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Primary text (top line)
+										</label>
+										<input
+											value={data.primaryText}
+											onChange={(e) => update({ primaryText: e.target.value })}
+											className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#34B27B]"
+										/>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Secondary text (bottom line)
+										</label>
+										<input
+											value={data.secondaryText}
+											onChange={(e) => update({ secondaryText: e.target.value })}
+											className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#34B27B]"
+										/>
+									</div>
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Primary color
+											</label>
+											<Popover>
+												<PopoverTrigger asChild>
+													<Button
+														variant="outline"
+														className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
+													>
+														<div
+															className="w-4 h-4 rounded-full border border-white/20"
+															style={{ backgroundColor: data.primaryColor }}
+														/>
+														<span className="text-xs text-slate-300 truncate flex-1 text-left">
+															{data.primaryColor}
+														</span>
+														<ChevronDown className="h-3 w-3 opacity-50" />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
+													<Block
+														color={data.primaryColor}
+														colors={colorPalette}
+														onChange={(c) => update({ primaryColor: c.hex })}
+														style={{ borderRadius: "8px" }}
+													/>
+												</PopoverContent>
+											</Popover>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Secondary color
+											</label>
+											<Popover>
+												<PopoverTrigger asChild>
+													<Button
+														variant="outline"
+														className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
+													>
+														<div
+															className="w-4 h-4 rounded-full border border-white/20"
+															style={{ backgroundColor: data.secondaryColor }}
+														/>
+														<span className="text-xs text-slate-300 truncate flex-1 text-left">
+															{data.secondaryColor}
+														</span>
+														<ChevronDown className="h-3 w-3 opacity-50" />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
+													<Block
+														color={data.secondaryColor}
+														colors={colorPalette}
+														onChange={(c) => update({ secondaryColor: c.hex })}
+														style={{ borderRadius: "8px" }}
+													/>
+												</PopoverContent>
+											</Popover>
+										</div>
+									</div>
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Primary size
+											</label>
+											<Select
+												value={data.primaryFontSize.toString()}
+												onValueChange={(v) => update({ primaryFontSize: parseInt(v) })}
+											>
+												<SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent className="bg-[#1a1a1c] border-white/10 text-slate-200 max-h-[200px]">
+													{[24, 32, 40, 48, 56, 64, 72, 80, 96].map((s) => (
+														<SelectItem key={s} value={s.toString()}>
+															{s}px
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Secondary size
+											</label>
+											<Select
+												value={data.secondaryFontSize.toString()}
+												onValueChange={(v) => update({ secondaryFontSize: parseInt(v) })}
+											>
+												<SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent className="bg-[#1a1a1c] border-white/10 text-slate-200 max-h-[200px]">
+													{[20, 24, 32, 40, 48, 56, 64, 72, 80].map((s) => (
+														<SelectItem key={s} value={s.toString()}>
+															{s}px
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Gradient direction
+										</label>
+										<div className="grid grid-cols-5 gap-1.5">
+											{(
+												[
+													"bottom",
+													"top",
+													"left",
+													"right",
+													"none",
+												] as CaptionGradientDirection[]
+											).map((dir) => (
+												<button
+													key={dir}
+													onClick={() => update({ gradientDirection: dir })}
+													className={cn(
+														"py-1.5 rounded-lg border text-[10px] font-medium capitalize transition-all",
+														data.gradientDirection === dir
+															? "bg-[#34B27B] border-[#34B27B] text-white"
+															: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10",
+													)}
+												>
+													{dir}
+												</button>
+											))}
+										</div>
+									</div>
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Word delay: {data.wordDelay}ms
+											</label>
+											<Slider
+												value={[data.wordDelay]}
+												onValueChange={([v]) => update({ wordDelay: v })}
+												min={50}
+												max={500}
+												step={25}
+												className="w-full"
+											/>
+										</div>
+										<div>
+											<label className="text-xs font-medium text-slate-200 mb-2 block">
+												Fade-in: {data.animationDuration}ms
+											</label>
+											<Slider
+												value={[data.animationDuration]}
+												onValueChange={([v]) => update({ animationDuration: v })}
+												min={50}
+												max={600}
+												step={25}
+												className="w-full"
+											/>
+										</div>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Image (optional)
+										</label>
+										{data.imageUrl ? (
+											<div className="flex flex-col gap-2">
+												<img
+													src={data.imageUrl}
+													alt="Caption image"
+													className="w-full max-h-24 object-contain rounded-lg border border-white/10 bg-white/5 p-2"
+												/>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="w-full text-xs h-7 hover:bg-white/5 text-slate-400"
+													onClick={() => update({ imageUrl: undefined })}
+												>
+													Remove image
+												</Button>
+											</div>
+										) : (
+											<label className="w-full flex items-center justify-center gap-2 py-5 border border-dashed border-white/15 rounded-lg text-slate-400 text-xs cursor-pointer hover:bg-white/5 transition-all">
+												<Upload className="w-4 h-4" />
+												Upload image
+												<input
+													type="file"
+													accept="image/*"
+													className="hidden"
+													onChange={(e) => {
+														const file = e.target.files?.[0];
+														if (!file) return;
+														const reader = new FileReader();
+														reader.onload = (ev) => {
+															const url = ev.target?.result as string;
+															if (url) update({ imageUrl: url });
+														};
+														reader.readAsDataURL(file);
+														e.target.value = "";
+													}}
+												/>
+											</label>
+										)}
+									</div>
+								</>
+							);
+						})()}
 					</TabsContent>
 				</Tabs>
 
