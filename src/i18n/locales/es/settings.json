@@ -23,7 +23,8 @@
 		"preset": "Predefinido",
 		"selectPreset": "Seleccionar predefinido",
 		"pictureInPicture": "Imagen en imagen",
-		"verticalStack": "Apilado vertical"
+		"verticalStack": "Apilado vertical",
+		"webcamShape": "Forma de cámara"
 	},
 	"effects": {
 		"title": "Efectos de video",

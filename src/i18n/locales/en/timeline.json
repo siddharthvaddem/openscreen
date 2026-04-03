@@ -4,13 +4,15 @@
 		"suggestZooms": "Suggest Zooms from Cursor",
 		"addTrim": "Add Trim (T)",
 		"addAnnotation": "Add Annotation (A)",
-		"addSpeed": "Add Speed (S)"
+		"addSpeed": "Add Speed (S)",
+		"addWebcamFocus": "Add Webcam Focus"
 	},
 	"hints": {
 		"pressZoom": "Press Z to add zoom",
 		"pressTrim": "Press T to add trim",
 		"pressAnnotation": "Press A to add annotation",
-		"pressSpeed": "Press S to add speed"
+		"pressSpeed": "Press S to add speed",
+		"pressWebcamFocus": "Click to add webcam focus"
 	},
 	"labels": {
 		"pan": "Pan",
@@ -20,7 +22,8 @@
 		"speedItem": "Speed {{index}}",
 		"annotationItem": "Annotation",
 		"imageItem": "Image",
-		"emptyText": "Empty text"
+		"emptyText": "Empty text",
+		"webcamFocusItem": "Cam Focus {{index}}"
 	},
 	"emptyState": {
 		"noVideo": "No Video Loaded",
@@ -41,7 +44,9 @@
 		"cannotPlaceTrim": "Cannot place trim here",
 		"trimExistsAtLocation": "Trim already exists at this location or not enough space available.",
 		"cannotPlaceSpeed": "Cannot place speed here",
-		"speedExistsAtLocation": "Speed region already exists at this location or not enough space available."
+		"speedExistsAtLocation": "Speed region already exists at this location or not enough space available.",
+		"cannotPlaceWebcamFocus": "Cannot place webcam focus here",
+		"webcamFocusExistsAtLocation": "Webcam focus already exists at this location or not enough space available."
 	},
 	"success": {
 		"addedZoomSuggestions": "Added {{count}} cursor-based zoom suggestion",

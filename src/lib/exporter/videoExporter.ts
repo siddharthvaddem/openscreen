@@ -3,7 +3,9 @@ import type {
 	CropRegion,
 	SpeedRegion,
 	TrimRegion,
+	WebcamFocusRegion,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	ZoomRegion,
 } from "@/components/video-editor/types";
 import { AsyncVideoFrameQueue } from "./asyncVideoFrameQueue";
@@ -32,8 +34,10 @@ interface VideoExporterConfig extends ExportConfig {
 	videoPadding?: number;
 	cropRegion: CropRegion;
 	webcamLayoutPreset?: WebcamLayoutPreset;
+	webcamMaskShape?: WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
 	annotationRegions?: AnnotationRegion[];
+	webcamFocusRegions?: WebcamFocusRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
@@ -135,9 +139,11 @@ export class VideoExporter {
 				videoHeight: videoInfo.height,
 				webcamSize: webcamInfo ? { width: webcamInfo.width, height: webcamInfo.height } : null,
 				webcamLayoutPreset: this.config.webcamLayoutPreset,
+				webcamMaskShape: this.config.webcamMaskShape,
 				webcamPosition: this.config.webcamPosition,
 				annotationRegions: this.config.annotationRegions,
 				speedRegions: this.config.speedRegions,
+				webcamFocusRegions: this.config.webcamFocusRegions,
 				previewWidth: this.config.previewWidth,
 				previewHeight: this.config.previewHeight,
 				cursorTelemetry: this.config.cursorTelemetry,

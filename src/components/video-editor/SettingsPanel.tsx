@@ -51,6 +51,7 @@ import type {
 	FigureData,
 	PlaybackSpeed,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	ZoomDepth,
 	ZoomFocusMode,
 } from "./types";
@@ -147,6 +148,8 @@ interface SettingsPanelProps {
 	hasWebcam?: boolean;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
+	webcamMaskShape?: WebcamMaskShape;
+	onWebcamMaskShapeChange?: (shape: WebcamMaskShape) => void;
 }
 
 export default SettingsPanel;
@@ -218,6 +221,8 @@ export function SettingsPanel({
 	hasWebcam = false,
 	webcamLayoutPreset = "picture-in-picture",
 	onWebcamLayoutPresetChange,
+	webcamMaskShape = "rectangle",
+	onWebcamMaskShapeChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -665,6 +670,87 @@ export function SettingsPanel({
 										</SelectContent>
 									</Select>
 								</div>
+								{webcamLayoutPreset === "picture-in-picture" && (
+									<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
+										<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+											{t("layout.webcamShape")}
+										</div>
+										<div className="grid grid-cols-4 gap-1.5">
+											{(
+												[
+													{ value: "rectangle", label: "Rect" },
+													{ value: "circle", label: "Circle" },
+													{ value: "square", label: "Square" },
+													{ value: "rounded", label: "Rounded" },
+												] as Array<{ value: WebcamMaskShape; label: string }>
+											).map((shape) => (
+												<button
+													key={shape.value}
+													type="button"
+													onClick={() => onWebcamMaskShapeChange?.(shape.value)}
+													className={cn(
+														"h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all",
+														webcamMaskShape === shape.value
+															? "bg-[#34B27B] border-[#34B27B] text-white"
+															: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+													)}
+												>
+													<svg
+														width="16"
+														height="16"
+														viewBox="0 0 16 16"
+														fill="none"
+														xmlns="http://www.w3.org/2000/svg"
+													>
+														{shape.value === "rectangle" && (
+															<rect
+																x="1"
+																y="3"
+																width="14"
+																height="10"
+																rx="2"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "circle" && (
+															<circle
+																cx="8"
+																cy="8"
+																r="6.5"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "square" && (
+															<rect
+																x="2"
+																y="2"
+																width="12"
+																height="12"
+																rx="1"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "rounded" && (
+															<rect
+																x="1"
+																y="3"
+																width="14"
+																height="10"
+																rx="5"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+													</svg>
+													<span className="text-[8px] leading-none">{shape.label}</span>
+												</button>
+											))}
+										</div>
+									</div>
+								)}
 							</AccordionContent>
 						</AccordionItem>
 					)}

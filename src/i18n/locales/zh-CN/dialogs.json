@@ -43,6 +43,21 @@
 		"step2Title": "2. 调整",
 		"step2Description": "拖动红色区域的边缘，精确覆盖您要剪掉的部分。"
 	},
+	"webcamFocusTutorial": {
+		"triggerLabel": "摄像头聚焦说明",
+		"title": "摄像头聚焦功能说明",
+		"description": "在录制的关键时刻将注意力引向您的脸部。",
+		"explanation": "摄像头聚焦功能允许您在时间轴上标记特定时间段，让摄像头成为主角。在这些片段中，屏幕录制会模糊变暗，同时摄像头画面扩大填满大部分画面。离开该区域后，一切恢复正常布局。两个方向的过渡都是流畅的。",
+		"visualExample": "示例演示",
+		"focusRegion": "摄像头聚焦",
+		"normal": "正常",
+		"outsideRegion": "区域外 — 正常布局",
+		"insideRegion": "区域内 — 摄像头填满画面",
+		"step1Title": "1. 添加区域",
+		"step1Description": "点击时间轴工具栏中的摄像头图标，在播放头处放置摄像头聚焦区域。拖动边缘以调整持续时间。",
+		"step2Title": "2. 预览",
+		"step2Description": "播放并经过该区域，查看摄像头扩大和背景模糊的效果。该效果将随视频一起导出。"
+	},
 	"unsavedChanges": {
 		"title": "未保存的更改",
 		"message": "您有未保存的更改。",

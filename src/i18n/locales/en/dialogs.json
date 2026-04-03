@@ -43,6 +43,21 @@
 		"step2Title": "2. Adjust",
 		"step2Description": "Drag the edges of the red region to cover exactly what you want to cut out."
 	},
+	"webcamFocusTutorial": {
+		"triggerLabel": "How webcam focus works",
+		"title": "How Webcam Focus Works",
+		"description": "Draw attention to your face at key moments in your recording.",
+		"explanation": "Webcam Focus lets you mark specific time ranges on the timeline where your webcam should take center stage. During those segments the screen recording blurs and dims while your webcam expands to fill most of the frame. Outside the region everything returns to your normal layout. The transition is smooth in both directions.",
+		"visualExample": "Visual Example",
+		"focusRegion": "CAM FOCUS",
+		"normal": "Normal",
+		"outsideRegion": "Outside region — normal layout",
+		"insideRegion": "Inside region — cam fills frame",
+		"step1Title": "1. Add Region",
+		"step1Description": "Click the camera icon in the timeline toolbar to place a webcam focus region at the playhead. Drag its edges to adjust the duration.",
+		"step2Title": "2. Preview",
+		"step2Description": "Play through the region to see the webcam expand and the background blur. The effect exports with your video."
+	},
 	"unsavedChanges": {
 		"title": "Unsaved Changes",
 		"message": "You have unsaved changes.",

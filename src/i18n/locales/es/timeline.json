@@ -4,13 +4,15 @@
 		"suggestZooms": "Sugerir zooms desde el cursor",
 		"addTrim": "Agregar recorte (T)",
 		"addAnnotation": "Agregar anotación (A)",
-		"addSpeed": "Agregar velocidad (S)"
+		"addSpeed": "Agregar velocidad (S)",
+		"addWebcamFocus": "Agregar enfoque de cámara"
 	},
 	"hints": {
 		"pressZoom": "Presiona Z para agregar zoom",
 		"pressTrim": "Presiona T para agregar recorte",
 		"pressAnnotation": "Presiona A para agregar anotación",
-		"pressSpeed": "Presiona S para agregar velocidad"
+		"pressSpeed": "Presiona S para agregar velocidad",
+		"pressWebcamFocus": "Clic para agregar enfoque de cámara"
 	},
 	"labels": {
 		"pan": "Desplazar",
@@ -20,7 +22,8 @@
 		"speedItem": "Velocidad {{index}}",
 		"annotationItem": "Anotación",
 		"imageItem": "Imagen",
-		"emptyText": "Texto vacío"
+		"emptyText": "Texto vacío",
+		"webcamFocusItem": "Enfoque cam {{index}}"
 	},
 	"emptyState": {
 		"noVideo": "No hay video cargado",
@@ -41,7 +44,9 @@
 		"cannotPlaceTrim": "No se puede colocar el recorte aquí",
 		"trimExistsAtLocation": "Ya existe un recorte en esta ubicación o no hay suficiente espacio disponible.",
 		"cannotPlaceSpeed": "No se puede colocar la velocidad aquí",
-		"speedExistsAtLocation": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio disponible."
+		"speedExistsAtLocation": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio disponible.",
+		"cannotPlaceWebcamFocus": "No se puede colocar el enfoque de cámara aquí",
+		"webcamFocusExistsAtLocation": "Ya existe un enfoque de cámara en esta ubicación o no hay suficiente espacio disponible."
 	},
 	"success": {
 		"addedZoomSuggestions": "Se agregó {{count}} sugerencia de zoom basada en el cursor",

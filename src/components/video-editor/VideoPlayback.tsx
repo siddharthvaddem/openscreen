@@ -25,6 +25,7 @@ import {
 	type StyledRenderRect,
 	type WebcamLayoutPreset,
 } from "@/lib/compositeLayout";
+import { getCssClipPath } from "@/lib/webcamMaskShapes";
 import {
 	type AspectRatio,
 	formatAspectRatioForCSS,
@@ -66,7 +67,9 @@ interface VideoPlaybackProps {
 	videoPath: string;
 	webcamVideoPath?: string;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape?: import("./types").WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamFocusRegions?: import("./types").WebcamFocusRegion[];
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
 	onWebcamPositionDragEnd?: () => void;
 	onDurationChange: (duration: number) => void;
@@ -115,7 +118,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoPath,
 			webcamVideoPath,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
+			webcamFocusRegions = [],
 			onWebcamPositionChange,
 			onWebcamPositionDragEnd,
 			onDurationChange,
@@ -279,6 +284,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				padding,
 				webcamDimensions,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 			});
 
@@ -309,6 +315,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			padding,
 			webcamDimensions,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 		]);
 
@@ -1032,6 +1039,33 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			[webcamLayoutPreset],
 		);
 
+		const isInFocusRegion = useMemo(() => {
+			if (!webcamFocusRegions.length) return false;
+			const currentMs = currentTime * 1000;
+			return webcamFocusRegions.some((r) => currentMs >= r.startMs && currentMs < r.endMs);
+		}, [webcamFocusRegions, currentTime]);
+
+		const focusedWebcamRect = useMemo(() => {
+			if (!webcamDimensions || !webcamLayout) return null;
+			const { width: stageW, height: stageH } = stageSizeRef.current;
+			if (!stageW || !stageH) return null;
+			const scale = Math.min(
+				(stageH * 0.9) / webcamDimensions.height,
+				(stageW * 0.8) / webcamDimensions.width,
+			);
+			const w = Math.round(webcamDimensions.width * scale);
+			const h = Math.round(webcamDimensions.height * scale);
+			return {
+				x: Math.round((stageW - w) / 2),
+				y: Math.round((stageH - h) / 2),
+				width: w,
+				height: h,
+				borderRadius: webcamLayout.borderRadius,
+				maskShape: webcamLayout.maskShape,
+			};
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [webcamDimensions, webcamLayout, isInFocusRegion]);
+
 		useEffect(() => {
 			const webcamVideo = webcamVideoRef.current;
 			if (!webcamVideo || !webcamVideoPath) {
@@ -1195,37 +1229,63 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					ref={containerRef}
 					className="absolute inset-0"
 					style={{
-						filter:
-							showShadow && shadowIntensity > 0
-								? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
-								: "none",
+						filter: (() => {
+							const shadow =
+								showShadow && shadowIntensity > 0
+									? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
+									: "";
+							const blur = isInFocusRegion ? "blur(14px) brightness(0.5)" : "";
+							return [blur, shadow].filter(Boolean).join(" ") || "none";
+						})(),
+						transition: "filter 0.35s ease-in-out",
 					}}
 				/>
-				{webcamVideoPath && (
-					<video
-						ref={webcamVideoRef}
-						src={webcamVideoPath}
-						className={`absolute object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
-						style={{
-							left: webcamLayout?.x ?? 0,
-							top: webcamLayout?.y ?? 0,
-							width: webcamLayout?.width ?? 0,
-							height: webcamLayout?.height ?? 0,
-							borderRadius: webcamLayout?.borderRadius ?? 0,
-							boxShadow: webcamCssBoxShadow,
-							zIndex: 20,
-							opacity: webcamLayout ? 1 : 0,
-							backgroundColor: "#000",
-						}}
-						onPointerDown={handleWebcamPointerDown}
-						onPointerMove={handleWebcamPointerMove}
-						onPointerUp={handleWebcamPointerUp}
-						onPointerLeave={handleWebcamPointerUp}
-						muted
-						preload="metadata"
-						playsInline
-					/>
-				)}
+				{webcamVideoPath &&
+					(() => {
+						const activeRect =
+							isInFocusRegion && focusedWebcamRect ? focusedWebcamRect : webcamLayout;
+						const clipPath = getCssClipPath(activeRect?.maskShape ?? "rectangle");
+						const useClipPath = !!clipPath;
+						return (
+							<div
+								className="absolute"
+								style={{
+									left: activeRect?.x ?? 0,
+									top: activeRect?.y ?? 0,
+									width: activeRect?.width ?? 0,
+									height: activeRect?.height ?? 0,
+									zIndex: 20,
+									opacity: activeRect ? 1 : 0,
+									transition:
+										"left 0.35s ease-in-out, top 0.35s ease-in-out, width 0.35s ease-in-out, height 0.35s ease-in-out",
+									filter:
+										useClipPath && webcamCssBoxShadow !== "none"
+											? `drop-shadow(${webcamCssBoxShadow})`
+											: undefined,
+								}}
+							>
+								<video
+									ref={webcamVideoRef}
+									src={webcamVideoPath}
+									className={`w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" && !isInFocusRegion ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+									style={{
+										borderRadius: useClipPath ? 0 : (activeRect?.borderRadius ?? 0),
+										clipPath: clipPath ?? undefined,
+										boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
+										backgroundColor: "#000",
+										transition: "border-radius 0.35s ease-in-out",
+									}}
+									onPointerDown={handleWebcamPointerDown}
+									onPointerMove={handleWebcamPointerMove}
+									onPointerUp={handleWebcamPointerUp}
+									onPointerLeave={handleWebcamPointerUp}
+									muted
+									preload="metadata"
+									playsInline
+								/>
+							</div>
+						);
+					})()}
 				{/* Only render overlay after PIXI and video are fully initialized */}
 				{pixiReady && videoReady && (
 					<div

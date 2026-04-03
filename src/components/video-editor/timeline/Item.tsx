@@ -1,6 +1,6 @@
 import type { Span } from "dnd-timeline";
 import { useItem } from "dnd-timeline";
-import { Gauge, MessageSquare, Scissors, ZoomIn } from "lucide-react";
+import { Gauge, MessageSquare, Scissors, Video, ZoomIn } from "lucide-react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import glassStyles from "./ItemGlass.module.css";
@@ -14,7 +14,7 @@ interface ItemProps {
 	onSelect?: () => void;
 	zoomDepth?: number;
 	speedValue?: number;
-	variant?: "zoom" | "trim" | "annotation" | "speed";
+	variant?: "zoom" | "trim" | "annotation" | "speed" | "webcam-focus";
 }
 
 // Map zoom depth to multiplier labels
@@ -57,6 +57,7 @@ export default function Item({
 	const isZoom = variant === "zoom";
 	const isTrim = variant === "trim";
 	const isSpeed = variant === "speed";
+	const isWebcamFocus = variant === "webcam-focus";
 
 	const glassClass = isZoom
 		? glassStyles.glassGreen
@@ -64,9 +65,19 @@ export default function Item({
 			? glassStyles.glassRed
 			: isSpeed
 				? glassStyles.glassAmber
-				: glassStyles.glassYellow;
+				: isWebcamFocus
+					? glassStyles.glassBlue
+					: glassStyles.glassYellow;
 
-	const endCapColor = isZoom ? "#21916A" : isTrim ? "#ef4444" : isSpeed ? "#d97706" : "#B4A046";
+	const endCapColor = isZoom
+		? "#21916A"
+		: isTrim
+			? "#ef4444"
+			: isSpeed
+				? "#d97706"
+				: isWebcamFocus
+					? "#4f46e5"
+					: "#B4A046";
 
 	const timeLabel = useMemo(
 		() => `${formatMs(span.start)} – ${formatMs(span.end)}`,
@@ -145,6 +156,13 @@ export default function Item({
 									<Gauge className="w-3.5 h-3.5 shrink-0" />
 									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
 										{speedValue !== undefined ? `${speedValue}×` : "Speed"}
+									</span>
+								</>
+							) : isWebcamFocus ? (
+								<>
+									<Video className="w-3.5 h-3.5 shrink-0" />
+									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+										Cam
 									</span>
 								</>
 							) : (

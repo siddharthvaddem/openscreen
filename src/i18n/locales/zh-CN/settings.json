@@ -23,7 +23,8 @@
 		"preset": "预设",
 		"selectPreset": "选择预设",
 		"pictureInPicture": "画中画",
-		"verticalStack": "垂直堆叠"
+		"verticalStack": "垂直堆叠",
+		"webcamShape": "摄像头形状"
 	},
 	"effects": {
 		"title": "视频效果",

@@ -43,6 +43,21 @@
 		"step2Title": "2. Ajustar",
 		"step2Description": "Arrastra los bordes de la región roja para cubrir exactamente lo que deseas eliminar."
 	},
+	"webcamFocusTutorial": {
+		"triggerLabel": "Cómo funciona el enfoque de cámara",
+		"title": "Cómo funciona el enfoque de cámara",
+		"description": "Atrae la atención a tu cara en momentos clave de tu grabación.",
+		"explanation": "El enfoque de cámara te permite marcar rangos de tiempo en la línea de tiempo donde tu cámara debe ser el centro de atención. Durante esos segmentos, la grabación de pantalla se desenfoca y oscurece mientras tu cámara se expande para llenar la mayor parte del encuadre. Fuera de la región, todo vuelve a tu diseño normal. La transición es suave en ambas direcciones.",
+		"visualExample": "Ejemplo visual",
+		"focusRegion": "ENFOQUE CAM",
+		"normal": "Normal",
+		"outsideRegion": "Fuera de la región — diseño normal",
+		"insideRegion": "Dentro de la región — cam llena el encuadre",
+		"step1Title": "1. Agregar región",
+		"step1Description": "Haz clic en el ícono de cámara en la barra de herramientas de la línea de tiempo para colocar una región de enfoque en el cursor de reproducción. Arrastra sus bordes para ajustar la duración.",
+		"step2Title": "2. Previsualizar",
+		"step2Description": "Reproduce a través de la región para ver la cámara expandirse y el fondo desenfocarse. El efecto se exporta con tu video."
+	},
 	"unsavedChanges": {
 		"title": "Cambios sin guardar",
 		"message": "Tienes cambios sin guardar.",

@@ -12,6 +12,7 @@ import type {
 	AnnotationRegion,
 	CropRegion,
 	SpeedRegion,
+	WebcamFocusRegion,
 	WebcamLayoutPreset,
 	ZoomDepth,
 	ZoomRegion,
@@ -40,6 +41,7 @@ import {
 	type Size,
 	type StyledRenderRect,
 } from "@/lib/compositeLayout";
+import { drawCanvasClipPath } from "@/lib/webcamMaskShapes";
 import { renderAnnotations } from "./annotationRenderer";
 import {
 	getLinearGradientPoints,
@@ -67,6 +69,8 @@ interface FrameRenderConfig {
 	webcamPosition?: { cx: number; cy: number } | null;
 	annotationRegions?: AnnotationRegion[];
 	speedRegions?: SpeedRegion[];
+	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
+	webcamFocusRegions?: WebcamFocusRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
@@ -447,6 +451,7 @@ export class FrameRenderer {
 			screenSize: { width: croppedVideoWidth, height: croppedVideoHeight },
 			webcamSize: webcamFrame ? this.config.webcamSize : null,
 			layoutPreset: this.config.webcamLayoutPreset,
+			webcamMaskShape: this.config.webcamMaskShape,
 			webcamPosition: this.config.webcamPosition,
 		});
 		if (!compositeLayout) return;
@@ -502,6 +507,30 @@ export class FrameRenderer {
 			maskRect: compositeLayout.screenRect,
 			webcamRect: compositeLayout.webcamRect,
 		};
+	}
+
+	private computeFocusStrength(timeMs: number): number {
+		const regions = this.config.webcamFocusRegions;
+		if (!regions?.length) return 0;
+		const TRANSITION_MS = 350;
+		const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+		for (const region of regions) {
+			if (timeMs >= region.startMs && timeMs < region.endMs) {
+				const fadeIn = Math.min((timeMs - region.startMs) / TRANSITION_MS, 1);
+				const fadeOut = Math.min((region.endMs - timeMs) / TRANSITION_MS, 1);
+				return easeInOut(Math.min(fadeIn, fadeOut));
+			}
+		}
+		return 0;
+	}
+
+	private computeFocusWebcamRect(): { x: number; y: number; width: number; height: number } | null {
+		const { width, height, webcamSize } = this.config;
+		if (!webcamSize) return null;
+		const scale = Math.min((height * 0.9) / webcamSize.height, (width * 0.8) / webcamSize.width);
+		const w = Math.round(webcamSize.width * scale);
+		const h = Math.round(webcamSize.height * scale);
+		return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), width: w, height: h };
 	}
 
 	private clampFocusToStage(
@@ -654,6 +683,44 @@ export class FrameRenderer {
 		);
 	}
 
+	/** Draw a video frame into a canvas rect using cover semantics (crops to fill, no squish). */
+	private drawWebcamCover(
+		ctx: CanvasRenderingContext2D,
+		frame: VideoFrame,
+		destX: number,
+		destY: number,
+		destW: number,
+		destH: number,
+	): void {
+		const srcW = frame.displayWidth;
+		const srcH = frame.displayHeight;
+		const destAspect = destW / destH;
+		const srcAspect = srcW / srcH;
+		let sx: number, sy: number, sw: number, sh: number;
+		if (srcAspect > destAspect) {
+			sh = srcH;
+			sw = srcH * destAspect;
+			sx = (srcW - sw) / 2;
+			sy = 0;
+		} else {
+			sw = srcW;
+			sh = srcW / destAspect;
+			sx = 0;
+			sy = (srcH - sh) / 2;
+		}
+		ctx.drawImage(
+			frame as unknown as CanvasImageSource,
+			sx,
+			sy,
+			sw,
+			sh,
+			destX,
+			destY,
+			destW,
+			destH,
+		);
+	}
+
 	private compositeWithShadows(webcamFrame?: VideoFrame | null): void {
 		if (!this.compositeCanvas || !this.compositeCtx || !this.app) return;
 
@@ -681,7 +748,18 @@ export class FrameRenderer {
 			console.warn("[FrameRenderer] No background sprite found during compositing!");
 		}
 
+		// Compute webcam focus strength for smooth blur/dim transition
+		const focusStrength = this.computeFocusStrength(this.currentVideoTime * 1000);
+		const applyFocusBlur = focusStrength > 0;
+
 		// Draw video layer with shadows on top of background
+		if (applyFocusBlur) {
+			ctx.save();
+			const blurPx = Math.round(14 * focusStrength);
+			const brightness = 1 - 0.5 * focusStrength;
+			ctx.filter = `blur(${blurPx}px) brightness(${brightness})`;
+		}
+
 		if (
 			this.config.showShadow &&
 			this.config.shadowIntensity > 0 &&
@@ -710,20 +788,41 @@ export class FrameRenderer {
 			ctx.drawImage(videoCanvas, 0, 0, w, h);
 		}
 
+		if (applyFocusBlur) {
+			ctx.restore();
+		}
+
 		const webcamRect = this.layoutCache?.webcamRect ?? null;
 		if (webcamFrame && webcamRect) {
+			// Interpolate webcam rect toward focus rect when in a focus region
+			let activeRect = webcamRect;
+			if (focusStrength > 0) {
+				const focusRect = this.computeFocusWebcamRect();
+				if (focusRect) {
+					const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+					activeRect = {
+						...webcamRect,
+						x: lerp(webcamRect.x, focusRect.x, focusStrength),
+						y: lerp(webcamRect.y, focusRect.y, focusStrength),
+						width: lerp(webcamRect.width, focusRect.width, focusStrength),
+						height: lerp(webcamRect.height, focusRect.height, focusStrength),
+					};
+				}
+			}
+
 			const preset = getWebcamLayoutPresetDefinition(this.config.webcamLayoutPreset);
+			const shape = activeRect.maskShape ?? this.config.webcamMaskShape ?? "rectangle";
 			ctx.save();
-			ctx.beginPath();
-			ctx.roundRect(
-				webcamRect.x,
-				webcamRect.y,
-				webcamRect.width,
-				webcamRect.height,
-				webcamRect.borderRadius,
+			drawCanvasClipPath(
+				ctx,
+				activeRect.x,
+				activeRect.y,
+				activeRect.width,
+				activeRect.height,
+				shape,
+				activeRect.borderRadius,
 			);
-			ctx.closePath();
-			if (preset.shadow) {
+			if (preset.shadow && focusStrength === 0) {
 				ctx.shadowColor = preset.shadow.color;
 				ctx.shadowBlur = preset.shadow.blur;
 				ctx.shadowOffsetX = preset.shadow.offsetX;
@@ -732,12 +831,13 @@ export class FrameRenderer {
 			ctx.fillStyle = "#000000";
 			ctx.fill();
 			ctx.clip();
-			ctx.drawImage(
-				webcamFrame as unknown as CanvasImageSource,
-				webcamRect.x,
-				webcamRect.y,
-				webcamRect.width,
-				webcamRect.height,
+			this.drawWebcamCover(
+				ctx,
+				webcamFrame,
+				activeRect.x,
+				activeRect.y,
+				activeRect.width,
+				activeRect.height,
 			);
 			ctx.restore();
 		}
