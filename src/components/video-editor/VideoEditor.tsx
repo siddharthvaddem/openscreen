@@ -60,6 +60,21 @@ import {
 } from "./types";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 
+export function hasUnsavedProjectChanges(
+	currentProjectSnapshot: string | null,
+	lastSavedSnapshot: string | null,
+): boolean {
+	if (!currentProjectSnapshot) {
+		return false;
+	}
+
+	if (lastSavedSnapshot === null) {
+		return true;
+	}
+
+	return currentProjectSnapshot !== lastSavedSnapshot;
+}
+
 export default function VideoEditor() {
 	const {
 		state: editorState,
@@ -295,12 +310,7 @@ export default function VideoEditor() {
 		gifSizePreset,
 	]);
 
-	const hasUnsavedChanges = Boolean(
-		currentProjectPath &&
-			currentProjectSnapshot &&
-			lastSavedSnapshot &&
-			currentProjectSnapshot !== lastSavedSnapshot,
-	);
+	const hasUnsavedChanges = hasUnsavedProjectChanges(currentProjectSnapshot, lastSavedSnapshot);
 
 	useEffect(() => {
 		async function loadInitialData() {
