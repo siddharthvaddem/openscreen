@@ -51,9 +51,10 @@ import type {
 	FigureData,
 	PlaybackSpeed,
 	WebcamLayoutPreset,
+	WebcamSizePreset,
 	ZoomDepth,
 } from "./types";
-import { SPEED_OPTIONS } from "./types";
+import { SPEED_OPTIONS, DEFAULT_WEBCAM_SIZE_PRESET } from "./types";
 
 const WALLPAPER_COUNT = 18;
 const WALLPAPER_RELATIVE = Array.from(
@@ -143,6 +144,8 @@ interface SettingsPanelProps {
 	hasWebcam?: boolean;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
+	webcamSizePreset?: WebcamSizePreset;
+	onWebcamSizePresetChange?: (preset: WebcamSizePreset) => void;
 }
 
 export default SettingsPanel;
@@ -211,6 +214,8 @@ export function SettingsPanel({
 	hasWebcam = false,
 	webcamLayoutPreset = "picture-in-picture",
 	onWebcamLayoutPresetChange,
+	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
+	onWebcamSizePresetChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
