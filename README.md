@@ -36,7 +36,21 @@ OpenScreen is 100% free for personal and commercial use. Use it, modify it, dist
 - Add annotations (text, arrows, images).
 - Trim sections of the clip.
 - Customize speed at different segments.
+- **Webcam Focus** — draw attention to your face at key moments.
 - Export in different aspect ratios and resolutions.
+
+### Webcam Focus
+
+When you record with a webcam, you can mark specific time ranges on the timeline where the webcam should take center stage. During those segments the screen recording blurs and dims while the webcam expands to fill most of the frame. Outside the region everything returns to the normal layout. Both transitions animate smoothly.
+
+**How to use it:**
+1. Make sure your recording includes a webcam feed.
+2. In the editor, click the **camera icon** (🎥) in the timeline toolbar to place a Webcam Focus region at the current playhead position.
+3. Drag the edges of the indigo region to set the start and end times.
+4. Press **Play** to preview — the webcam enlarges to portrait near-full-screen and the screen recording fades behind it.
+5. Delete a region by selecting it and pressing `Delete` / `Backspace`.
+
+The effect is saved with your project and included in the exported video.
 
 ## Installation
 

@@ -1,9 +1,14 @@
 import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
 
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
+export type ZoomFocusMode = "manual" | "auto";
 export type { WebcamLayoutPreset };
 
 export const DEFAULT_WEBCAM_LAYOUT_PRESET: WebcamLayoutPreset = "picture-in-picture";
+
+export type WebcamMaskShape = "rectangle" | "circle" | "square" | "rounded";
+
+export const DEFAULT_WEBCAM_MASK_SHAPE: WebcamMaskShape = "rectangle";
 
 export interface WebcamPosition {
 	cx: number; // normalized horizontal center (0-1)
@@ -23,6 +28,7 @@ export interface ZoomRegion {
 	endMs: number;
 	depth: ZoomDepth;
 	focus: ZoomFocus;
+	focusMode?: ZoomFocusMode;
 }
 
 export interface CursorTelemetryPoint {
@@ -139,6 +145,12 @@ export interface SpeedRegion {
 	startMs: number;
 	endMs: number;
 	speed: PlaybackSpeed;
+}
+
+export interface WebcamFocusRegion {
+	id: string;
+	startMs: number;
+	endMs: number;
 }
 
 export const SPEED_OPTIONS: Array<{ speed: PlaybackSpeed; label: string }> = [

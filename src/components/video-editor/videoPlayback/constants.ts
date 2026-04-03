@@ -8,3 +8,5 @@ export const VIEWPORT_SCALE = 0.8;
 export const SMOOTHING_FACTOR = 0.12;
 export const ZOOM_TRANSLATION_DEADZONE_PX = 1.25;
 export const ZOOM_SCALE_DEADZONE = 0.002;
+export const AUTO_FOLLOW_SMOOTHING_FACTOR = 0.05;
+export const AUTO_FOLLOW_DEADZONE = 0.06;

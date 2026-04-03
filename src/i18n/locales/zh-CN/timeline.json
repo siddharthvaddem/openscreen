@@ -4,13 +4,15 @@
 		"suggestZooms": "根据光标建议缩放",
 		"addTrim": "添加剪辑 (T)",
 		"addAnnotation": "添加标注 (A)",
-		"addSpeed": "添加速度 (S)"
+		"addSpeed": "添加速度 (S)",
+		"addWebcamFocus": "添加摄像头聚焦"
 	},
 	"hints": {
 		"pressZoom": "按 Z 添加缩放",
 		"pressTrim": "按 T 添加剪辑",
 		"pressAnnotation": "按 A 添加标注",
-		"pressSpeed": "按 S 添加速度"
+		"pressSpeed": "按 S 添加速度",
+		"pressWebcamFocus": "点击添加摄像头聚焦"
 	},
 	"labels": {
 		"pan": "平移",
@@ -20,7 +22,8 @@
 		"speedItem": "速度 {{index}}",
 		"annotationItem": "标注",
 		"imageItem": "图片",
-		"emptyText": "空文本"
+		"emptyText": "空文本",
+		"webcamFocusItem": "摄像头聚焦 {{index}}"
 	},
 	"emptyState": {
 		"noVideo": "未加载视频",
@@ -41,7 +44,9 @@
 		"cannotPlaceTrim": "无法在此处放置剪辑",
 		"trimExistsAtLocation": "此位置已存在剪辑或没有足够的空间。",
 		"cannotPlaceSpeed": "无法在此处放置速度",
-		"speedExistsAtLocation": "此位置已存在速度区域或没有足够的空间。"
+		"speedExistsAtLocation": "此位置已存在速度区域或没有足够的空间。",
+		"cannotPlaceWebcamFocus": "无法在此处放置摄像头聚焦",
+		"webcamFocusExistsAtLocation": "此位置已存在摄像头聚焦区域或没有足够的空间。"
 	},
 	"success": {
 		"addedZoomSuggestions": "已添加 {{count}} 个基于光标的缩放建议",

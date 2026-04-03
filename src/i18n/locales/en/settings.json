@@ -2,7 +2,13 @@
 	"zoom": {
 		"level": "Zoom Level",
 		"selectRegion": "Select a zoom region to adjust",
-		"deleteZoom": "Delete Zoom"
+		"deleteZoom": "Delete Zoom",
+		"focusMode": {
+			"title": "Focus Mode",
+			"manual": "Manual",
+			"auto": "Auto",
+			"autoDescription": "Camera follows the recorded cursor position"
+		}
 	},
 	"speed": {
 		"playbackSpeed": "Playback Speed",
@@ -17,7 +23,8 @@
 		"preset": "Preset",
 		"selectPreset": "Select preset",
 		"pictureInPicture": "Picture in Picture",
-		"verticalStack": "Vertical Stack"
+		"verticalStack": "Vertical Stack",
+		"webcamShape": "Camera Shape"
 	},
 	"effects": {
 		"title": "Video Effects",

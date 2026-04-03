@@ -12,11 +12,14 @@ import {
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
+	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_ZOOM_DEPTH,
 	type SpeedRegion,
 	type TrimRegion,
+	type WebcamFocusRegion,
 	type WebcamLayoutPreset,
+	type WebcamMaskShape,
 	type WebcamPosition,
 	type ZoomRegion,
 } from "./types";
@@ -41,9 +44,11 @@ export interface ProjectEditorState {
 	zoomRegions: ZoomRegion[];
 	trimRegions: TrimRegion[];
 	speedRegions: SpeedRegion[];
+	webcamFocusRegions: WebcamFocusRegion[];
 	annotationRegions: AnnotationRegion[];
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape: WebcamMaskShape;
 	webcamPosition: WebcamPosition | null;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
@@ -189,6 +194,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							cx: clamp(isFiniteNumber(region.focus?.cx) ? region.focus.cx : 0.5, 0, 1),
 							cy: clamp(isFiniteNumber(region.focus?.cy) ? region.focus.cy : 0.5, 0, 1),
 						},
+						focusMode: region.focusMode === "auto" ? "auto" : "manual",
 					};
 				})
 		: [];
@@ -344,6 +350,21 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		zoomRegions: normalizedZoomRegions,
 		trimRegions: normalizedTrimRegions,
 		speedRegions: normalizedSpeedRegions,
+		webcamFocusRegions: Array.isArray(editor.webcamFocusRegions)
+			? editor.webcamFocusRegions
+					.filter((region): region is WebcamFocusRegion =>
+						Boolean(region && typeof region.id === "string"),
+					)
+					.map((region) => {
+						const rawStart = isFiniteNumber(region.startMs) ? Math.round(region.startMs) : 0;
+						const rawEnd = isFiniteNumber(region.endMs)
+							? Math.round(region.endMs)
+							: rawStart + 1000;
+						const startMs = Math.max(0, Math.min(rawStart, rawEnd));
+						const endMs = Math.max(startMs + 1, rawEnd);
+						return { id: region.id, startMs, endMs };
+					})
+			: [],
 		annotationRegions: normalizedAnnotationRegions,
 		aspectRatio:
 			editor.aspectRatio && validAspectRatios.has(editor.aspectRatio) ? editor.aspectRatio : "16:9",
@@ -352,6 +373,13 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamLayoutPreset === "picture-in-picture"
 				? editor.webcamLayoutPreset
 				: DEFAULT_WEBCAM_LAYOUT_PRESET,
+		webcamMaskShape:
+			editor.webcamMaskShape === "rectangle" ||
+			editor.webcamMaskShape === "circle" ||
+			editor.webcamMaskShape === "square" ||
+			editor.webcamMaskShape === "rounded"
+				? editor.webcamMaskShape
+				: DEFAULT_WEBCAM_MASK_SHAPE,
 		webcamPosition:
 			editor.webcamPosition &&
 			typeof editor.webcamPosition === "object" &&

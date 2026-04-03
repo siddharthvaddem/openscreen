@@ -56,6 +56,7 @@ import {
 	type TrimRegion,
 	type ZoomDepth,
 	type ZoomFocus,
+	type ZoomFocusMode,
 	type ZoomRegion,
 } from "./types";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
@@ -74,6 +75,7 @@ export default function VideoEditor() {
 		zoomRegions,
 		trimRegions,
 		speedRegions,
+		webcamFocusRegions,
 		annotationRegions,
 		cropRegion,
 		wallpaper,
@@ -84,6 +86,7 @@ export default function VideoEditor() {
 		padding,
 		aspectRatio,
 		webcamLayoutPreset,
+		webcamMaskShape,
 		webcamPosition,
 	} = editorState;
 
@@ -103,6 +106,7 @@ export default function VideoEditor() {
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
 	const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
 	const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+	const [selectedWebcamFocusId, setSelectedWebcamFocusId] = useState<string | null>(null);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 	const [exportError, setExportError] = useState<string | null>(null);
@@ -127,6 +131,7 @@ export default function VideoEditor() {
 	const nextZoomIdRef = useRef(1);
 	const nextTrimIdRef = useRef(1);
 	const nextSpeedIdRef = useRef(1);
+	const nextWebcamFocusIdRef = useRef(1);
 
 	const { shortcuts, isMac } = useShortcuts();
 	const t = useScopedT("editor");
@@ -192,9 +197,11 @@ export default function VideoEditor() {
 				zoomRegions: normalizedEditor.zoomRegions,
 				trimRegions: normalizedEditor.trimRegions,
 				speedRegions: normalizedEditor.speedRegions,
+				webcamFocusRegions: normalizedEditor.webcamFocusRegions,
 				annotationRegions: normalizedEditor.annotationRegions,
 				aspectRatio: normalizedEditor.aspectRatio,
 				webcamLayoutPreset: normalizedEditor.webcamLayoutPreset,
+				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamPosition: normalizedEditor.webcamPosition,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
@@ -207,6 +214,7 @@ export default function VideoEditor() {
 			setSelectedTrimId(null);
 			setSelectedSpeedId(null);
 			setSelectedAnnotationId(null);
+			setSelectedWebcamFocusId(null);
 
 			nextZoomIdRef.current = deriveNextId(
 				"zoom",
@@ -261,9 +269,11 @@ export default function VideoEditor() {
 				zoomRegions,
 				trimRegions,
 				speedRegions,
+				webcamFocusRegions,
 				annotationRegions,
 				aspectRatio,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -284,9 +294,11 @@ export default function VideoEditor() {
 		zoomRegions,
 		trimRegions,
 		speedRegions,
+		webcamFocusRegions,
 		annotationRegions,
 		aspectRatio,
 		webcamLayoutPreset,
+		webcamMaskShape,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -377,9 +389,11 @@ export default function VideoEditor() {
 				zoomRegions,
 				trimRegions,
 				speedRegions,
+				webcamFocusRegions,
 				annotationRegions,
 				aspectRatio,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -431,9 +445,11 @@ export default function VideoEditor() {
 			zoomRegions,
 			trimRegions,
 			speedRegions,
+			webcamFocusRegions,
 			annotationRegions,
 			aspectRatio,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -688,6 +704,18 @@ export default function VideoEditor() {
 		[selectedZoomId, pushState],
 	);
 
+	const handleZoomFocusModeChange = useCallback(
+		(focusMode: ZoomFocusMode) => {
+			if (!selectedZoomId) return;
+			pushState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((region) =>
+					region.id === selectedZoomId ? { ...region, focusMode } : region,
+				),
+			}));
+		},
+		[selectedZoomId, pushState],
+	);
+
 	const handleZoomDelete = useCallback(
 		(id: string) => {
 			pushState((prev) => ({ zoomRegions: prev.zoomRegions.filter((r) => r.id !== id) }));
@@ -775,6 +803,55 @@ export default function VideoEditor() {
 		},
 		[selectedSpeedId, pushState],
 	);
+
+	const handleWebcamFocusAdded = useCallback(
+		(span: Span) => {
+			const id = `webcam-focus-${nextWebcamFocusIdRef.current++}`;
+			pushState((prev) => ({
+				webcamFocusRegions: [
+					...prev.webcamFocusRegions,
+					{ id, startMs: Math.round(span.start), endMs: Math.round(span.end) },
+				],
+			}));
+			setSelectedWebcamFocusId(id);
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedAnnotationId(null);
+			setSelectedSpeedId(null);
+		},
+		[pushState],
+	);
+
+	const handleWebcamFocusSpanChange = useCallback(
+		(id: string, span: Span) => {
+			pushState((prev) => ({
+				webcamFocusRegions: prev.webcamFocusRegions.map((r) =>
+					r.id === id ? { ...r, startMs: Math.round(span.start), endMs: Math.round(span.end) } : r,
+				),
+			}));
+		},
+		[pushState],
+	);
+
+	const handleWebcamFocusDelete = useCallback(
+		(id: string) => {
+			pushState((prev) => ({
+				webcamFocusRegions: prev.webcamFocusRegions.filter((r) => r.id !== id),
+			}));
+			if (selectedWebcamFocusId === id) setSelectedWebcamFocusId(null);
+		},
+		[selectedWebcamFocusId, pushState],
+	);
+
+	const handleSelectWebcamFocus = useCallback((id: string | null) => {
+		setSelectedWebcamFocusId(id);
+		if (id) {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedAnnotationId(null);
+			setSelectedSpeedId(null);
+		}
+	}, []);
 
 	const handleAnnotationAdded = useCallback(
 		(span: Span) => {
@@ -977,6 +1054,12 @@ export default function VideoEditor() {
 		}
 	}, [selectedSpeedId, speedRegions]);
 
+	useEffect(() => {
+		if (selectedWebcamFocusId && !webcamFocusRegions.some((r) => r.id === selectedWebcamFocusId)) {
+			setSelectedWebcamFocusId(null);
+		}
+	}, [selectedWebcamFocusId, webcamFocusRegions]);
+
 	const handleShowExportedFile = useCallback(async (filePath: string) => {
 		try {
 			const result = await window.electronAPI.revealInFolder(filePath);
@@ -1090,9 +1173,12 @@ export default function VideoEditor() {
 						cropRegion,
 						annotationRegions,
 						webcamLayoutPreset,
+						webcamMaskShape,
 						webcamPosition,
+						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
 						previewHeight,
+						cursorTelemetry,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1221,9 +1307,12 @@ export default function VideoEditor() {
 						cropRegion,
 						annotationRegions,
 						webcamLayoutPreset,
+						webcamMaskShape,
 						webcamPosition,
+						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
 						previewHeight,
+						cursorTelemetry,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1289,9 +1378,12 @@ export default function VideoEditor() {
 			isPlaying,
 			aspectRatio,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
+			webcamFocusRegions,
 			exportQuality,
 			handleExportSaved,
+			cursorTelemetry,
 		],
 	);
 
@@ -1473,7 +1565,9 @@ export default function VideoEditor() {
 											videoPath={videoPath || ""}
 											webcamVideoPath={webcamVideoPath || undefined}
 											webcamLayoutPreset={webcamLayoutPreset}
+											webcamMaskShape={webcamMaskShape}
 											webcamPosition={webcamPosition}
+											webcamFocusRegions={webcamVideoPath ? webcamFocusRegions : undefined}
 											onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos })}
 											onWebcamPositionDragEnd={commitState}
 											onDurationChange={setDuration}
@@ -1502,6 +1596,7 @@ export default function VideoEditor() {
 											onSelectAnnotation={handleSelectAnnotation}
 											onAnnotationPositionChange={handleAnnotationPositionChange}
 											onAnnotationSizeChange={handleAnnotationSizeChange}
+											cursorTelemetry={cursorTelemetry}
 										/>
 									</div>
 								</div>
@@ -1553,6 +1648,13 @@ export default function VideoEditor() {
 									onSpeedDelete={handleSpeedDelete}
 									selectedSpeedId={selectedSpeedId}
 									onSelectSpeed={handleSelectSpeed}
+									webcamFocusRegions={webcamFocusRegions}
+									onWebcamFocusAdded={handleWebcamFocusAdded}
+									onWebcamFocusSpanChange={handleWebcamFocusSpanChange}
+									onWebcamFocusDelete={handleWebcamFocusDelete}
+									selectedWebcamFocusId={selectedWebcamFocusId}
+									onSelectWebcamFocus={handleSelectWebcamFocus}
+									hasWebcam={Boolean(webcamVideoPath)}
 									annotationRegions={annotationRegions}
 									onAnnotationAdded={handleAnnotationAdded}
 									onAnnotationSpanChange={handleAnnotationSpanChange}
@@ -1584,6 +1686,13 @@ export default function VideoEditor() {
 							selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
 						}
 						onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
+						selectedZoomFocusMode={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.focusMode ?? "manual")
+								: null
+						}
+						onZoomFocusModeChange={(mode) => selectedZoomId && handleZoomFocusModeChange(mode)}
+						hasCursorTelemetry={cursorTelemetry.length > 0}
 						selectedZoomId={selectedZoomId}
 						onZoomDelete={handleZoomDelete}
 						selectedTrimId={selectedTrimId}
@@ -1613,6 +1722,8 @@ export default function VideoEditor() {
 								webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
 							})
 						}
+						webcamMaskShape={webcamMaskShape}
+						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}

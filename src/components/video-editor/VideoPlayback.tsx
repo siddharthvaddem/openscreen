@@ -25,6 +25,7 @@ import {
 	type StyledRenderRect,
 	type WebcamLayoutPreset,
 } from "@/lib/compositeLayout";
+import { getCssClipPath } from "@/lib/webcamMaskShapes";
 import {
 	type AspectRatio,
 	formatAspectRatioForCSS,
@@ -41,10 +42,13 @@ import {
 	type ZoomRegion,
 } from "./types";
 import {
+	AUTO_FOLLOW_DEADZONE,
+	AUTO_FOLLOW_SMOOTHING_FACTOR,
 	DEFAULT_FOCUS,
 	ZOOM_SCALE_DEADZONE,
 	ZOOM_TRANSLATION_DEADZONE_PX,
 } from "./videoPlayback/constants";
+import { smoothCursorFocus } from "./videoPlayback/cursorFollowUtils";
 import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { clamp01 } from "./videoPlayback/mathUtils";
@@ -63,7 +67,9 @@ interface VideoPlaybackProps {
 	videoPath: string;
 	webcamVideoPath?: string;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape?: import("./types").WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamFocusRegions?: import("./types").WebcamFocusRegion[];
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
 	onWebcamPositionDragEnd?: () => void;
 	onDurationChange: (duration: number) => void;
@@ -93,6 +99,7 @@ interface VideoPlaybackProps {
 	onSelectAnnotation?: (id: string | null) => void;
 	onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
 	onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
+	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
 }
 
 export interface VideoPlaybackRef {
@@ -111,7 +118,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoPath,
 			webcamVideoPath,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
+			webcamFocusRegions = [],
 			onWebcamPositionChange,
 			onWebcamPositionDragEnd,
 			onDurationChange,
@@ -141,6 +150,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onSelectAnnotation,
 			onAnnotationPositionChange,
 			onAnnotationSizeChange,
+			cursorTelemetry = [],
 		},
 		ref,
 	) => {
@@ -160,6 +170,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const [webcamDimensions, setWebcamDimensions] = useState<Size | null>(null);
 		const currentTimeRef = useRef(0);
 		const zoomRegionsRef = useRef<ZoomRegion[]>([]);
+		const cursorTelemetryRef = useRef<import("./types").CursorTelemetryPoint[]>([]);
 		const selectedZoomIdRef = useRef<string | null>(null);
 		const animationStateRef = useRef({
 			scale: 1,
@@ -194,6 +205,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const onTimeUpdateRef = useRef(onTimeUpdate);
 		const onPlayStateChangeRef = useRef(onPlayStateChange);
 		const videoReadyRafRef = useRef<number | null>(null);
+		const smoothedAutoFocusRef = useRef<ZoomFocus | null>(null);
+		const prevTargetProgressRef = useRef(0);
 
 		const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
 			return clampFocusToStageUtil(focus, depth, stageSizeRef.current);
@@ -271,6 +284,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				padding,
 				webcamDimensions,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 			});
 
@@ -301,6 +315,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			padding,
 			webcamDimensions,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 		]);
 
@@ -379,6 +394,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			if (!regionId) return;
 			const region = zoomRegionsRef.current.find((r) => r.id === regionId);
 			if (!region) return;
+			if (region.focusMode === "auto") return;
 			onSelectZoom(region.id);
 			event.preventDefault();
 			isDraggingFocusRef.current = true;
@@ -461,6 +477,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		useEffect(() => {
 			zoomRegionsRef.current = zoomRegions;
 		}, [zoomRegions]);
+
+		useEffect(() => {
+			cursorTelemetryRef.current = cursorTelemetry;
+		}, [cursorTelemetry]);
 
 		useEffect(() => {
 			selectedZoomIdRef.current = selectedZoomId;
@@ -833,7 +853,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				const { region, strength, blendedScale, transition } = findDominantRegion(
 					zoomRegionsRef.current,
 					currentTimeRef.current,
-					{ connectZooms: true },
+					{ connectZooms: true, cursorTelemetry: cursorTelemetryRef.current },
 				);
 
 				const defaultFocus = DEFAULT_FOCUS;
@@ -853,6 +873,40 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					targetScaleFactor = zoomScale;
 					targetFocus = regionFocus;
 					targetProgress = strength;
+
+					// Apply deadzone + smoothing for auto-follow mode
+					if (region.focusMode === "auto" && !transition) {
+						const raw = targetFocus;
+						const isZoomingIn =
+							targetProgress < 0.999 && targetProgress >= prevTargetProgressRef.current;
+						if (targetProgress >= 0.999) {
+							// Full zoom: apply deadzone + smoothing for stable follow
+							const prev = smoothedAutoFocusRef.current ?? raw;
+							const dx = Math.abs(raw.cx - prev.cx);
+							const dy = Math.abs(raw.cy - prev.cy);
+							if (dx > AUTO_FOLLOW_DEADZONE || dy > AUTO_FOLLOW_DEADZONE) {
+								const smoothed = smoothCursorFocus(raw, prev, AUTO_FOLLOW_SMOOTHING_FACTOR);
+								smoothedAutoFocusRef.current = smoothed;
+								targetFocus = smoothed;
+							} else {
+								smoothedAutoFocusRef.current = prev;
+								targetFocus = prev;
+							}
+						} else if (isZoomingIn) {
+							// Zoom-in: track cursor directly so zoom always aims at current cursor
+							// position; keep ref in sync to avoid snap when full-zoom begins
+							smoothedAutoFocusRef.current = raw;
+						} else {
+							// Zoom-out: keep smoothing for continuity — avoids snap at zoom-out start
+							const prev = smoothedAutoFocusRef.current ?? raw;
+							const smoothed = smoothCursorFocus(raw, prev, AUTO_FOLLOW_SMOOTHING_FACTOR);
+							smoothedAutoFocusRef.current = smoothed;
+							targetFocus = smoothed;
+						}
+					} else if (region.focusMode !== "auto") {
+						smoothedAutoFocusRef.current = null;
+					}
+					prevTargetProgressRef.current = targetProgress;
 
 					// Handle connected zoom transitions (pan between adjacent zoom regions)
 					if (transition) {
@@ -984,6 +1038,33 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			() => getWebcamLayoutCssBoxShadow(webcamLayoutPreset),
 			[webcamLayoutPreset],
 		);
+
+		const isInFocusRegion = useMemo(() => {
+			if (!webcamFocusRegions.length) return false;
+			const currentMs = currentTime * 1000;
+			return webcamFocusRegions.some((r) => currentMs >= r.startMs && currentMs < r.endMs);
+		}, [webcamFocusRegions, currentTime]);
+
+		const focusedWebcamRect = useMemo(() => {
+			if (!webcamDimensions || !webcamLayout) return null;
+			const { width: stageW, height: stageH } = stageSizeRef.current;
+			if (!stageW || !stageH) return null;
+			const scale = Math.min(
+				(stageH * 0.9) / webcamDimensions.height,
+				(stageW * 0.8) / webcamDimensions.width,
+			);
+			const w = Math.round(webcamDimensions.width * scale);
+			const h = Math.round(webcamDimensions.height * scale);
+			return {
+				x: Math.round((stageW - w) / 2),
+				y: Math.round((stageH - h) / 2),
+				width: w,
+				height: h,
+				borderRadius: webcamLayout.borderRadius,
+				maskShape: webcamLayout.maskShape,
+			};
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [webcamDimensions, webcamLayout, isInFocusRegion]);
 
 		useEffect(() => {
 			const webcamVideo = webcamVideoRef.current;
@@ -1148,37 +1229,63 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					ref={containerRef}
 					className="absolute inset-0"
 					style={{
-						filter:
-							showShadow && shadowIntensity > 0
-								? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
-								: "none",
+						filter: (() => {
+							const shadow =
+								showShadow && shadowIntensity > 0
+									? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
+									: "";
+							const blur = isInFocusRegion ? "blur(14px) brightness(0.5)" : "";
+							return [blur, shadow].filter(Boolean).join(" ") || "none";
+						})(),
+						transition: "filter 0.35s ease-in-out",
 					}}
 				/>
-				{webcamVideoPath && (
-					<video
-						ref={webcamVideoRef}
-						src={webcamVideoPath}
-						className={`absolute object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
-						style={{
-							left: webcamLayout?.x ?? 0,
-							top: webcamLayout?.y ?? 0,
-							width: webcamLayout?.width ?? 0,
-							height: webcamLayout?.height ?? 0,
-							borderRadius: webcamLayout?.borderRadius ?? 0,
-							boxShadow: webcamCssBoxShadow,
-							zIndex: 20,
-							opacity: webcamLayout ? 1 : 0,
-							backgroundColor: "#000",
-						}}
-						onPointerDown={handleWebcamPointerDown}
-						onPointerMove={handleWebcamPointerMove}
-						onPointerUp={handleWebcamPointerUp}
-						onPointerLeave={handleWebcamPointerUp}
-						muted
-						preload="metadata"
-						playsInline
-					/>
-				)}
+				{webcamVideoPath &&
+					(() => {
+						const activeRect =
+							isInFocusRegion && focusedWebcamRect ? focusedWebcamRect : webcamLayout;
+						const clipPath = getCssClipPath(activeRect?.maskShape ?? "rectangle");
+						const useClipPath = !!clipPath;
+						return (
+							<div
+								className="absolute"
+								style={{
+									left: activeRect?.x ?? 0,
+									top: activeRect?.y ?? 0,
+									width: activeRect?.width ?? 0,
+									height: activeRect?.height ?? 0,
+									zIndex: 20,
+									opacity: activeRect ? 1 : 0,
+									transition:
+										"left 0.35s ease-in-out, top 0.35s ease-in-out, width 0.35s ease-in-out, height 0.35s ease-in-out",
+									filter:
+										useClipPath && webcamCssBoxShadow !== "none"
+											? `drop-shadow(${webcamCssBoxShadow})`
+											: undefined,
+								}}
+							>
+								<video
+									ref={webcamVideoRef}
+									src={webcamVideoPath}
+									className={`w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" && !isInFocusRegion ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+									style={{
+										borderRadius: useClipPath ? 0 : (activeRect?.borderRadius ?? 0),
+										clipPath: clipPath ?? undefined,
+										boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
+										backgroundColor: "#000",
+										transition: "border-radius 0.35s ease-in-out",
+									}}
+									onPointerDown={handleWebcamPointerDown}
+									onPointerMove={handleWebcamPointerMove}
+									onPointerUp={handleWebcamPointerUp}
+									onPointerLeave={handleWebcamPointerUp}
+									muted
+									preload="metadata"
+									playsInline
+								/>
+							</div>
+						);
+					})()}
 				{/* Only render overlay after PIXI and video are fully initialized */}
 				{pixiReady && videoReady && (
 					<div

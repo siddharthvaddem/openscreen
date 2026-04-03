@@ -7,6 +7,7 @@ import {
 	MessageSquare,
 	Plus,
 	Scissors,
+	Video,
 	WandSparkles,
 	ZoomIn,
 } from "lucide-react";
@@ -27,11 +28,13 @@ import { cn } from "@/lib/utils";
 import { ASPECT_RATIOS, type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
 import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
+import { WebcamFocusHelp } from "../WebcamFocusHelp";
 import type {
 	AnnotationRegion,
 	CursorTelemetryPoint,
 	SpeedRegion,
 	TrimRegion,
+	WebcamFocusRegion,
 	ZoomFocus,
 	ZoomRegion,
 } from "../types";
@@ -45,6 +48,7 @@ const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const SPEED_ROW_ID = "row-speed";
+const WEBCAM_FOCUS_ROW_ID = "row-webcam-focus";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 const SUGGESTION_SPACING_MS = 1800;
@@ -79,6 +83,13 @@ interface TimelineEditorProps {
 	onSpeedDelete?: (id: string) => void;
 	selectedSpeedId?: string | null;
 	onSelectSpeed?: (id: string | null) => void;
+	webcamFocusRegions?: WebcamFocusRegion[];
+	onWebcamFocusAdded?: (span: Span) => void;
+	onWebcamFocusSpanChange?: (id: string, span: Span) => void;
+	onWebcamFocusDelete?: (id: string) => void;
+	selectedWebcamFocusId?: string | null;
+	onSelectWebcamFocus?: (id: string | null) => void;
+	hasWebcam?: boolean;
 	aspectRatio: AspectRatio;
 	onAspectRatioChange: (aspectRatio: AspectRatio) => void;
 }
@@ -96,7 +107,7 @@ interface TimelineRenderItem {
 	label: string;
 	zoomDepth?: number;
 	speedValue?: number;
-	variant: "zoom" | "trim" | "annotation" | "speed";
+	variant: "zoom" | "trim" | "annotation" | "speed" | "webcam-focus";
 }
 
 const SCALE_CANDIDATES = [
@@ -526,10 +537,12 @@ function Timeline({
 	onSelectTrim,
 	onSelectAnnotation,
 	onSelectSpeed,
+	onSelectWebcamFocus,
 	selectedZoomId,
 	selectedTrimId,
 	selectedAnnotationId,
 	selectedSpeedId,
+	selectedWebcamFocusId,
 	keyframes = [],
 }: {
 	items: TimelineRenderItem[];
@@ -541,10 +554,12 @@ function Timeline({
 	onSelectTrim?: (id: string | null) => void;
 	onSelectAnnotation?: (id: string | null) => void;
 	onSelectSpeed?: (id: string | null) => void;
+	onSelectWebcamFocus?: (id: string | null) => void;
 	selectedZoomId: string | null;
 	selectedTrimId?: string | null;
 	selectedAnnotationId?: string | null;
 	selectedSpeedId?: string | null;
+	selectedWebcamFocusId?: string | null;
 	keyframes?: { id: string; time: number }[];
 }) {
 	const t = useScopedT("timeline");
@@ -569,6 +584,7 @@ function Timeline({
 			onSelectTrim?.(null);
 			onSelectAnnotation?.(null);
 			onSelectSpeed?.(null);
+			onSelectWebcamFocus?.(null);
 
 			const rect = e.currentTarget.getBoundingClientRect();
 			const clickX = e.clientX - rect.left - sidebarWidth;
@@ -587,6 +603,7 @@ function Timeline({
 			onSelectTrim,
 			onSelectAnnotation,
 			onSelectSpeed,
+			onSelectWebcamFocus,
 			videoDurationMs,
 			sidebarWidth,
 			range.start,
@@ -638,6 +655,7 @@ function Timeline({
 	const trimItems = items.filter((item) => item.rowId === TRIM_ROW_ID);
 	const annotationItems = items.filter((item) => item.rowId === ANNOTATION_ROW_ID);
 	const speedItems = items.filter((item) => item.rowId === SPEED_ROW_ID);
+	const webcamFocusItems = items.filter((item) => item.rowId === WEBCAM_FOCUS_ROW_ID);
 
 	return (
 		<div
@@ -727,6 +745,26 @@ function Timeline({
 					</Item>
 				))}
 			</Row>
+
+			<Row
+				id={WEBCAM_FOCUS_ROW_ID}
+				isEmpty={webcamFocusItems.length === 0}
+				hint={t("hints.pressWebcamFocus")}
+			>
+				{webcamFocusItems.map((item) => (
+					<Item
+						id={item.id}
+						key={item.id}
+						rowId={item.rowId}
+						span={item.span}
+						isSelected={item.id === selectedWebcamFocusId}
+						onSelect={() => onSelectWebcamFocus?.(item.id)}
+						variant="webcam-focus"
+					>
+						{item.label}
+					</Item>
+				))}
+			</Row>
 		</div>
 	);
 }
@@ -761,6 +799,13 @@ export default function TimelineEditor({
 	onSpeedDelete,
 	selectedSpeedId,
 	onSelectSpeed,
+	webcamFocusRegions = [],
+	onWebcamFocusAdded,
+	onWebcamFocusSpanChange,
+	onWebcamFocusDelete,
+	selectedWebcamFocusId,
+	onSelectWebcamFocus,
+	hasWebcam = false,
 	aspectRatio,
 	onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -855,9 +900,11 @@ export default function TimelineEditor({
 	const zoomRegionsRef = useRef(zoomRegions);
 	const trimRegionsRef = useRef(trimRegions);
 	const speedRegionsRef = useRef(speedRegions);
+	const webcamFocusRegionsRef = useRef(webcamFocusRegions);
 	zoomRegionsRef.current = zoomRegions;
 	trimRegionsRef.current = trimRegions;
 	speedRegionsRef.current = speedRegions;
+	webcamFocusRegionsRef.current = webcamFocusRegions;
 
 	useEffect(() => {
 		if (totalMs === 0 || safeMinDurationMs <= 0) {
@@ -899,8 +946,20 @@ export default function TimelineEditor({
 				onSpeedSpanChange?.(region.id, { start: normalizedStart, end: normalizedEnd });
 			}
 		});
+
+		webcamFocusRegionsRef.current.forEach((region) => {
+			const clampedStart = Math.max(0, Math.min(region.startMs, totalMs));
+			const minEnd = clampedStart + safeMinDurationMs;
+			const clampedEnd = Math.min(totalMs, Math.max(minEnd, region.endMs));
+			const normalizedStart = Math.max(0, Math.min(clampedStart, totalMs - safeMinDurationMs));
+			const normalizedEnd = Math.max(minEnd, Math.min(clampedEnd, totalMs));
+
+			if (normalizedStart !== region.startMs || normalizedEnd !== region.endMs) {
+				onWebcamFocusSpanChange?.(region.id, { start: normalizedStart, end: normalizedEnd });
+			}
+		});
 		// Only re-run when the timeline scale changes, not on every region edit
-	}, [totalMs, safeMinDurationMs, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange]);
+	}, [totalMs, safeMinDurationMs, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onWebcamFocusSpanChange]);
 
 	const hasOverlap = useCallback(
 		(newSpan: Span, excludeId?: string): boolean => {
@@ -909,6 +968,7 @@ export default function TimelineEditor({
 			const isTrimItem = trimRegions.some((r) => r.id === excludeId);
 			const isAnnotationItem = annotationRegions.some((r) => r.id === excludeId);
 			const isSpeedItem = speedRegions.some((r) => r.id === excludeId);
+			const isWebcamFocusItem = webcamFocusRegions.some((r) => r.id === excludeId);
 
 			if (isAnnotationItem) {
 				return false;
@@ -935,9 +995,13 @@ export default function TimelineEditor({
 				return checkOverlap(speedRegions);
 			}
 
+			if (isWebcamFocusItem) {
+				return checkOverlap(webcamFocusRegions);
+			}
+
 			return false;
 		},
-		[zoomRegions, trimRegions, annotationRegions, speedRegions],
+		[zoomRegions, trimRegions, annotationRegions, speedRegions, webcamFocusRegions],
 	);
 
 	// At least 5% of the timeline or 1000ms, whichever is larger, so the region
@@ -1165,6 +1229,36 @@ export default function TimelineEditor({
 		onAnnotationAdded({ start: startPos, end: endPos });
 	}, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded, defaultRegionDurationMs]);
 
+	const handleAddWebcamFocus = useCallback(() => {
+		if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onWebcamFocusAdded) {
+			return;
+		}
+
+		const defaultDuration = Math.min(defaultRegionDurationMs, totalMs);
+		if (defaultDuration <= 0) return;
+
+		const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+		const sorted = [...webcamFocusRegions].sort((a, b) => a.startMs - b.startMs);
+		const nextRegion = sorted.find((r) => r.startMs > startPos);
+		const gapToNext = nextRegion ? nextRegion.startMs - startPos : totalMs - startPos;
+		const isOverlapping = sorted.some((r) => startPos >= r.startMs && startPos < r.endMs);
+
+		if (isOverlapping || gapToNext <= 0) {
+			toast.error(t("errors.cannotPlaceWebcamFocus"), {
+				description: t("errors.webcamFocusExistsAtLocation"),
+			});
+			return;
+		}
+
+		onWebcamFocusAdded({ start: startPos, end: startPos + Math.min(defaultRegionDurationMs, gapToNext) });
+	}, [videoDuration, totalMs, currentTimeMs, webcamFocusRegions, onWebcamFocusAdded, defaultRegionDurationMs, t]);
+
+	const deleteSelectedWebcamFocus = useCallback(() => {
+		if (!selectedWebcamFocusId || !onWebcamFocusDelete || !onSelectWebcamFocus) return;
+		onWebcamFocusDelete(selectedWebcamFocusId);
+		onSelectWebcamFocus(null);
+	}, [selectedWebcamFocusId, onWebcamFocusDelete, onSelectWebcamFocus]);
+
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -1225,6 +1319,8 @@ export default function TimelineEditor({
 					deleteSelectedAnnotation();
 				} else if (selectedSpeedId) {
 					deleteSelectedSpeed();
+				} else if (selectedWebcamFocusId) {
+					deleteSelectedWebcamFocus();
 				}
 			}
 		};
@@ -1236,16 +1332,19 @@ export default function TimelineEditor({
 		handleAddTrim,
 		handleAddAnnotation,
 		handleAddSpeed,
+		handleAddWebcamFocus,
 		deleteSelectedKeyframe,
 		deleteSelectedZoom,
 		deleteSelectedTrim,
 		deleteSelectedAnnotation,
 		deleteSelectedSpeed,
+		deleteSelectedWebcamFocus,
 		selectedKeyframeId,
 		selectedZoomId,
 		selectedTrimId,
 		selectedAnnotationId,
 		selectedSpeedId,
+		selectedWebcamFocusId,
 		annotationRegions,
 		currentTime,
 		onSelectAnnotation,
@@ -1313,16 +1412,25 @@ export default function TimelineEditor({
 			variant: "speed",
 		}));
 
-		return [...zooms, ...trims, ...annotations, ...speeds];
-	}, [zoomRegions, trimRegions, annotationRegions, speedRegions, t]);
+		const webcamFocuses: TimelineRenderItem[] = webcamFocusRegions.map((region, index) => ({
+			id: region.id,
+			rowId: WEBCAM_FOCUS_ROW_ID,
+			span: { start: region.startMs, end: region.endMs },
+			label: t("labels.webcamFocusItem", { index: String(index + 1) }),
+			variant: "webcam-focus",
+		}));
+
+		return [...zooms, ...trims, ...annotations, ...speeds, ...webcamFocuses];
+	}, [zoomRegions, trimRegions, annotationRegions, speedRegions, webcamFocusRegions, t]);
 
 	// Flat list of all non-annotation region spans for neighbour-clamping during drag/resize
 	const allRegionSpans = useMemo(() => {
 		const zooms = zoomRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
 		const trims = trimRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
 		const speeds = speedRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
-		return [...zooms, ...trims, ...speeds];
-	}, [zoomRegions, trimRegions, speedRegions]);
+		const webcamFocuses = webcamFocusRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
+		return [...zooms, ...trims, ...speeds, ...webcamFocuses];
+	}, [zoomRegions, trimRegions, speedRegions, webcamFocusRegions]);
 
 	const handleItemSpanChange = useCallback(
 		(id: string, span: Span) => {
@@ -1333,6 +1441,8 @@ export default function TimelineEditor({
 				onTrimSpanChange?.(id, span);
 			} else if (speedRegions.some((r) => r.id === id)) {
 				onSpeedSpanChange?.(id, span);
+			} else if (webcamFocusRegions.some((r) => r.id === id)) {
+				onWebcamFocusSpanChange?.(id, span);
 			} else if (annotationRegions.some((r) => r.id === id)) {
 				onAnnotationSpanChange?.(id, span);
 			}
@@ -1341,10 +1451,12 @@ export default function TimelineEditor({
 			zoomRegions,
 			trimRegions,
 			speedRegions,
+			webcamFocusRegions,
 			annotationRegions,
 			onZoomSpanChange,
 			onTrimSpanChange,
 			onSpeedSpanChange,
+			onWebcamFocusSpanChange,
 			onAnnotationSpanChange,
 		],
 	);
@@ -1412,6 +1524,17 @@ export default function TimelineEditor({
 					>
 						<Gauge className="w-4 h-4" />
 					</Button>
+					{hasWebcam && (
+						<Button
+							onClick={handleAddWebcamFocus}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#6366f1] hover:bg-[#6366f1]/10 transition-all"
+							title={t("buttons.addWebcamFocus")}
+						>
+							<Video className="w-4 h-4" />
+						</Button>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					<DropdownMenu>
@@ -1440,6 +1563,7 @@ export default function TimelineEditor({
 					</DropdownMenu>
 					<div className="w-[1px] h-4 bg-white/10" />
 					<TutorialHelp />
+					{hasWebcam && <WebcamFocusHelp />}
 				</div>
 				<div className="flex-1" />
 				<div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
@@ -1490,10 +1614,12 @@ export default function TimelineEditor({
 						onSelectTrim={onSelectTrim}
 						onSelectAnnotation={onSelectAnnotation}
 						onSelectSpeed={onSelectSpeed}
+						onSelectWebcamFocus={onSelectWebcamFocus}
 						selectedZoomId={selectedZoomId}
 						selectedTrimId={selectedTrimId}
 						selectedAnnotationId={selectedAnnotationId}
 						selectedSpeedId={selectedSpeedId}
+						selectedWebcamFocusId={selectedWebcamFocusId}
 						keyframes={keyframes}
 					/>
 				</TimelineWrapper>
