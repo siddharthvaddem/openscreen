@@ -9,7 +9,9 @@ import {
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
 	DEFAULT_CROP_REGION,
+	DEFAULT_CAPTION_DATA,
 	DEFAULT_FIGURE_DATA,
+	DEFAULT_MARKER_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
@@ -262,7 +264,13 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						id: region.id,
 						startMs,
 						endMs,
-						type: region.type === "image" || region.type === "figure" ? region.type : "text",
+						type:
+							region.type === "image" ||
+							region.type === "figure" ||
+							region.type === "caption" ||
+							region.type === "marker"
+								? region.type
+								: "text",
 						content: typeof region.content === "string" ? region.content : "",
 						textContent: typeof region.textContent === "string" ? region.textContent : undefined,
 						imageContent: typeof region.imageContent === "string" ? region.imageContent : undefined,
@@ -307,6 +315,18 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							? {
 									...DEFAULT_FIGURE_DATA,
 									...region.figureData,
+								}
+							: undefined,
+						captionData: region.captionData
+							? {
+									...DEFAULT_CAPTION_DATA,
+									...region.captionData,
+								}
+							: undefined,
+						markerData: region.markerData
+							? {
+									...DEFAULT_MARKER_DATA,
+									...region.markerData,
 								}
 							: undefined,
 					};

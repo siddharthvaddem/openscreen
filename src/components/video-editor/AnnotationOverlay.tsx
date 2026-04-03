@@ -14,6 +14,7 @@ interface AnnotationOverlayProps {
 	onClick: (id: string) => void;
 	zIndex: number;
 	isSelectedBoost: boolean; // Boost z-index when selected for easy editing
+	currentTimeMs?: number;
 }
 
 export function AnnotationOverlay({
@@ -26,6 +27,7 @@ export function AnnotationOverlay({
 	onClick,
 	zIndex,
 	isSelectedBoost,
+	currentTimeMs = 0,
 }: AnnotationOverlayProps) {
 	const x = (annotation.position.x / 100) * containerWidth;
 	const y = (annotation.position.y / 100) * containerHeight;
@@ -43,8 +45,193 @@ export function AnnotationOverlay({
 		return <ArrowComponent color={color} strokeWidth={strokeWidth} />;
 	};
 
+	const renderCaption = () => {
+		const data = annotation.captionData;
+		if (!data) return null;
+
+		const timeIntoAnnotation = currentTimeMs - annotation.startMs;
+		const totalDuration = annotation.endMs - annotation.startMs;
+		const fadeOutStart = Math.max(0, totalDuration - 500);
+		const globalOpacity =
+			timeIntoAnnotation >= fadeOutStart
+				? Math.max(0, 1 - (timeIntoAnnotation - fadeOutStart) / 500)
+				: 1;
+
+		const renderWords = (text: string, startWordIndex: number, color: string) => {
+			const words = text.split(" ").filter((w) => w.length > 0);
+			return words.map((word, i) => {
+				const wordIndex = startWordIndex + i;
+				const wordStartMs = wordIndex * data.wordDelay;
+				const progress = Math.min(
+					1,
+					Math.max(0, (timeIntoAnnotation - wordStartMs) / data.animationDuration),
+				);
+				return (
+					<span
+						key={`${word}-${i}`}
+						style={{
+							display: "inline-block",
+							opacity: progress,
+							transform: `translateY(${(1 - progress) * 14}px)`,
+							color,
+							marginRight: "0.25em",
+							transition: "none",
+							textShadow:
+								color === "#FFFFFF" || color === "#ffffff"
+									? "2px 2px 4px rgba(0,0,0,0.9), -1px -1px 0 rgba(0,0,0,0.5)"
+									: `0 0 30px ${color}88, 2px 2px 4px rgba(0,0,0,0.9)`,
+						}}
+					>
+						{word}
+					</span>
+				);
+			});
+		};
+
+		const gradientMap: Record<string, string> = {
+			bottom: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+			top: "linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+			left: "linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+			right: "linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+			none: "none",
+		};
+
+		const alignMap: Record<string, string> = {
+			bottom: "center",
+			top: "center",
+			left: "flex-start",
+			right: "flex-end",
+			none: "center",
+		};
+
+		const justifyMap: Record<string, string> = {
+			bottom: "flex-end",
+			top: "flex-start",
+			left: "center",
+			right: "center",
+			none: "center",
+		};
+
+		const primaryWords = data.primaryText.split(" ").filter((w) => w.length > 0);
+		const fadeInOpacity = Math.min(1, Math.max(0, timeIntoAnnotation / 400));
+		const backgroundOpacity = fadeInOpacity * globalOpacity;
+
+		return (
+			<div className="w-full h-full relative">
+				{/* Gradient layer — fades in independently over 400 ms, extends 4 px below to cover edge */}
+				<div
+					style={{
+						position: "absolute",
+						top: 0,
+						left: 0,
+						right: 0,
+						bottom: -4,
+						background: gradientMap[data.gradientDirection],
+						opacity: backgroundOpacity,
+						pointerEvents: "none",
+					}}
+				/>
+
+				{/* Content */}
+				<div
+					className="absolute inset-0 flex flex-col"
+					style={{
+						justifyContent: justifyMap[data.gradientDirection],
+						alignItems: alignMap[data.gradientDirection],
+						padding: "20px 24px",
+						gap: "4px",
+						opacity: globalOpacity,
+					}}
+				>
+					{data.imageUrl && (
+						<img
+							src={data.imageUrl}
+							alt=""
+							draggable={false}
+							style={{
+								maxHeight: "35%",
+								maxWidth: "60%",
+								objectFit: "contain",
+								marginBottom: "6px",
+								alignSelf:
+									data.gradientDirection === "left"
+										? "flex-start"
+										: data.gradientDirection === "right"
+											? "flex-end"
+											: "center",
+							}}
+						/>
+					)}
+					{data.primaryText && (
+						<div
+							style={{
+								fontFamily: data.fontFamily,
+								fontSize: `${data.primaryFontSize}px`,
+								fontWeight: "bold",
+								lineHeight: 1.1,
+								letterSpacing: "0.02em",
+								textTransform: "uppercase",
+							}}
+						>
+							{renderWords(data.primaryText, 0, data.primaryColor)}
+						</div>
+					)}
+					{data.secondaryText && (
+						<div
+							style={{
+								fontFamily: data.fontFamily,
+								fontSize: `${data.secondaryFontSize}px`,
+								fontWeight: "bold",
+								lineHeight: 1.1,
+								letterSpacing: "0.02em",
+								textTransform: "uppercase",
+							}}
+						>
+							{renderWords(data.secondaryText, primaryWords.length, data.secondaryColor)}
+						</div>
+					)}
+				</div>
+			</div>
+		);
+	};
+
+	const renderMarker = () => {
+		const data = annotation.markerData;
+		if (!data) return null;
+
+		const timeIntoAnnotation = currentTimeMs - annotation.startMs;
+		const totalDuration = annotation.endMs - annotation.startMs;
+		const fadeOutStart = Math.max(0, totalDuration - 500);
+		const globalOpacity =
+			timeIntoAnnotation >= fadeOutStart
+				? Math.max(0, 1 - (timeIntoAnnotation - fadeOutStart) / 500)
+				: 1;
+
+		const sweepProgress = Math.min(1, Math.max(0, timeIntoAnnotation / data.animationDuration));
+
+		const clipRight = data.direction === "left" ? `${(1 - sweepProgress) * 100}%` : "0%";
+		const clipLeft = data.direction === "right" ? `${(1 - sweepProgress) * 100}%` : "0%";
+
+		return (
+			<div
+				className="w-full h-full rounded-sm"
+				style={{
+					backgroundColor: data.color,
+					opacity: data.opacity * globalOpacity,
+					clipPath: `inset(0 ${clipRight} 0 ${clipLeft})`,
+				}}
+			/>
+		);
+	};
+
 	const renderContent = () => {
 		switch (annotation.type) {
+			case "marker":
+				return renderMarker();
+
+			case "caption":
+				return renderCaption();
+
 			case "text":
 				return (
 					<div

@@ -1348,6 +1348,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 									onClick={handleAnnotationClick}
 									zIndex={annotation.zIndex}
 									isSelectedBoost={annotation.id === selectedAnnotationId}
+									currentTimeMs={Math.round(currentTime * 1000)}
 								/>
 							));
 						})()}

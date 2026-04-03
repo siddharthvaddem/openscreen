@@ -47,8 +47,10 @@ import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
 	AnnotationRegion,
 	AnnotationType,
+	CaptionData,
 	CropRegion,
 	FigureData,
+	MarkerData,
 	PlaybackSpeed,
 	WebcamLayoutPreset,
 	WebcamMaskShape,
@@ -141,6 +143,8 @@ interface SettingsPanelProps {
 	onAnnotationTypeChange?: (id: string, type: AnnotationType) => void;
 	onAnnotationStyleChange?: (id: string, style: Partial<AnnotationRegion["style"]>) => void;
 	onAnnotationFigureDataChange?: (id: string, figureData: FigureData) => void;
+	onAnnotationCaptionDataChange?: (id: string, captionData: CaptionData) => void;
+	onAnnotationMarkerDataChange?: (id: string, markerData: MarkerData) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedSpeedId?: string | null;
 	selectedSpeedValue?: PlaybackSpeed | null;
@@ -216,6 +220,8 @@ export function SettingsPanel({
 	onAnnotationTypeChange,
 	onAnnotationStyleChange,
 	onAnnotationFigureDataChange,
+	onAnnotationCaptionDataChange,
+	onAnnotationMarkerDataChange,
 	onAnnotationDelete,
 	selectedSpeedId,
 	selectedSpeedValue,
@@ -469,6 +475,16 @@ export function SettingsPanel({
 				onFigureDataChange={
 					onAnnotationFigureDataChange
 						? (figureData) => onAnnotationFigureDataChange(selectedAnnotation.id, figureData)
+						: undefined
+				}
+				onCaptionDataChange={
+					onAnnotationCaptionDataChange
+						? (captionData) => onAnnotationCaptionDataChange(selectedAnnotation.id, captionData)
+						: undefined
+				}
+				onMarkerDataChange={
+					onAnnotationMarkerDataChange
+						? (markerData) => onAnnotationMarkerDataChange(selectedAnnotation.id, markerData)
 						: undefined
 				}
 				onDelete={() => onAnnotationDelete(selectedAnnotation.id)}
