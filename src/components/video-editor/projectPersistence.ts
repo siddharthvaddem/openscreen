@@ -12,11 +12,13 @@ import {
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
+	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_ZOOM_DEPTH,
 	type SpeedRegion,
 	type TrimRegion,
 	type WebcamLayoutPreset,
+	type WebcamMaskShape,
 	type WebcamPosition,
 	type ZoomRegion,
 } from "./types";
@@ -28,7 +30,7 @@ export const WALLPAPER_PATHS = Array.from(
 	(_, i) => `/wallpapers/wallpaper${i + 1}.jpg`,
 );
 
-export const PROJECT_VERSION = 2;
+export const PROJECT_VERSION = 3;
 
 export interface ProjectEditorState {
 	wallpaper: string;
@@ -44,6 +46,7 @@ export interface ProjectEditorState {
 	annotationRegions: AnnotationRegion[];
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape: WebcamMaskShape;
 	webcamPosition: WebcamPosition | null;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
@@ -352,6 +355,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamLayoutPreset === "picture-in-picture"
 				? editor.webcamLayoutPreset
 				: DEFAULT_WEBCAM_LAYOUT_PRESET,
+		webcamMaskShape:
+			editor.webcamMaskShape === "circle" || editor.webcamMaskShape === "rounded-rectangle"
+				? editor.webcamMaskShape
+				: DEFAULT_WEBCAM_MASK_SHAPE,
 		webcamPosition:
 			editor.webcamPosition &&
 			typeof editor.webcamPosition === "object" &&

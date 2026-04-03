@@ -24,6 +24,7 @@ import {
 	type Size,
 	type StyledRenderRect,
 	type WebcamLayoutPreset,
+	type WebcamMaskShape,
 } from "@/lib/compositeLayout";
 import {
 	type AspectRatio,
@@ -63,6 +64,7 @@ interface VideoPlaybackProps {
 	videoPath: string;
 	webcamVideoPath?: string;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape?: WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
 	onWebcamPositionDragEnd?: () => void;
@@ -111,6 +113,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoPath,
 			webcamVideoPath,
 			webcamLayoutPreset,
+			webcamMaskShape = "rounded-rectangle",
 			webcamPosition,
 			onWebcamPositionChange,
 			onWebcamPositionDragEnd,
@@ -271,6 +274,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				padding,
 				webcamDimensions,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 			});
 
@@ -301,6 +305,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			padding,
 			webcamDimensions,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 		]);
 
@@ -1164,7 +1169,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							top: webcamLayout?.y ?? 0,
 							width: webcamLayout?.width ?? 0,
 							height: webcamLayout?.height ?? 0,
-							borderRadius: webcamLayout?.borderRadius ?? 0,
+							borderRadius:
+								webcamLayout?.shape === "circle" ? "50%" : (webcamLayout?.borderRadius ?? 0),
 							boxShadow: webcamCssBoxShadow,
 							zIndex: 20,
 							opacity: webcamLayout ? 1 : 0,

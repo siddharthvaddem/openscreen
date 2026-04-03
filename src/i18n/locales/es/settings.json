@@ -16,8 +16,12 @@
 		"title": "Diseño",
 		"preset": "Predefinido",
 		"selectPreset": "Seleccionar predefinido",
+		"shape": "Forma",
+		"selectShape": "Seleccionar forma",
 		"pictureInPicture": "Imagen en imagen",
-		"verticalStack": "Apilado vertical"
+		"verticalStack": "Apilado vertical",
+		"roundedRectangle": "Rectángulo redondeado",
+		"circle": "Círculo"
 	},
 	"effects": {
 		"title": "Efectos de video",

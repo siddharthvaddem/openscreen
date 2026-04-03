@@ -1,9 +1,10 @@
-import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
+import type { WebcamLayoutPreset, WebcamMaskShape } from "@/lib/compositeLayout";
 
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
-export type { WebcamLayoutPreset };
+export type { WebcamLayoutPreset, WebcamMaskShape };
 
 export const DEFAULT_WEBCAM_LAYOUT_PRESET: WebcamLayoutPreset = "picture-in-picture";
+export const DEFAULT_WEBCAM_MASK_SHAPE: WebcamMaskShape = "rounded-rectangle";
 
 export interface WebcamPosition {
 	cx: number; // normalized horizontal center (0-1)

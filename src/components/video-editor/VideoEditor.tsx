@@ -84,6 +84,7 @@ export default function VideoEditor() {
 		padding,
 		aspectRatio,
 		webcamLayoutPreset,
+		webcamMaskShape,
 		webcamPosition,
 	} = editorState;
 
@@ -195,6 +196,7 @@ export default function VideoEditor() {
 				annotationRegions: normalizedEditor.annotationRegions,
 				aspectRatio: normalizedEditor.aspectRatio,
 				webcamLayoutPreset: normalizedEditor.webcamLayoutPreset,
+				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamPosition: normalizedEditor.webcamPosition,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
@@ -264,6 +266,7 @@ export default function VideoEditor() {
 				annotationRegions,
 				aspectRatio,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -287,6 +290,7 @@ export default function VideoEditor() {
 		annotationRegions,
 		aspectRatio,
 		webcamLayoutPreset,
+		webcamMaskShape,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -380,6 +384,7 @@ export default function VideoEditor() {
 				annotationRegions,
 				aspectRatio,
 				webcamLayoutPreset,
+				webcamMaskShape,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -434,6 +439,7 @@ export default function VideoEditor() {
 			annotationRegions,
 			aspectRatio,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -1090,6 +1096,7 @@ export default function VideoEditor() {
 						cropRegion,
 						annotationRegions,
 						webcamLayoutPreset,
+						webcamMaskShape,
 						webcamPosition,
 						previewWidth,
 						previewHeight,
@@ -1221,6 +1228,7 @@ export default function VideoEditor() {
 						cropRegion,
 						annotationRegions,
 						webcamLayoutPreset,
+						webcamMaskShape,
 						webcamPosition,
 						previewWidth,
 						previewHeight,
@@ -1289,6 +1297,7 @@ export default function VideoEditor() {
 			isPlaying,
 			aspectRatio,
 			webcamLayoutPreset,
+			webcamMaskShape,
 			webcamPosition,
 			exportQuality,
 			handleExportSaved,
@@ -1473,6 +1482,7 @@ export default function VideoEditor() {
 											videoPath={videoPath || ""}
 											webcamVideoPath={webcamVideoPath || undefined}
 											webcamLayoutPreset={webcamLayoutPreset}
+											webcamMaskShape={webcamMaskShape}
 											webcamPosition={webcamPosition}
 											onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos })}
 											onWebcamPositionDragEnd={commitState}
@@ -1607,12 +1617,14 @@ export default function VideoEditor() {
 						aspectRatio={aspectRatio}
 						hasWebcam={Boolean(webcamVideoPath)}
 						webcamLayoutPreset={webcamLayoutPreset}
+						webcamMaskShape={webcamMaskShape}
 						onWebcamLayoutPresetChange={(preset) =>
 							pushState({
 								webcamLayoutPreset: preset,
 								webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
 							})
 						}
+						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}

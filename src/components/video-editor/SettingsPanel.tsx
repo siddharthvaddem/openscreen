@@ -35,7 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { getAssetPath } from "@/lib/assetPath";
-import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
+import { WEBCAM_LAYOUT_PRESETS, WEBCAM_MASK_SHAPES } from "@/lib/compositeLayout";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ import type {
 	FigureData,
 	PlaybackSpeed,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	ZoomDepth,
 } from "./types";
 import { SPEED_OPTIONS } from "./types";
@@ -142,7 +143,9 @@ interface SettingsPanelProps {
 	onSpeedDelete?: (id: string) => void;
 	hasWebcam?: boolean;
 	webcamLayoutPreset?: WebcamLayoutPreset;
+	webcamMaskShape?: WebcamMaskShape;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
+	onWebcamMaskShapeChange?: (shape: WebcamMaskShape) => void;
 }
 
 export default SettingsPanel;
@@ -210,7 +213,9 @@ export function SettingsPanel({
 	onSpeedDelete,
 	hasWebcam = false,
 	webcamLayoutPreset = "picture-in-picture",
+	webcamMaskShape = "rounded-rectangle",
 	onWebcamLayoutPresetChange,
+	onWebcamMaskShapeChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -618,6 +623,33 @@ export function SettingsPanel({
 													{preset.value === "picture-in-picture"
 														? t("layout.pictureInPicture")
 														: t("layout.verticalStack")}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div
+									className={`mt-2 p-2 rounded-lg bg-white/5 border border-white/5 ${webcamLayoutPreset === "vertical-stack" ? "opacity-40 pointer-events-none" : ""}`}
+								>
+									<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+										{t("layout.shape")}
+									</div>
+									<Select
+										value={
+											webcamLayoutPreset === "vertical-stack"
+												? "rounded-rectangle"
+												: webcamMaskShape
+										}
+										onValueChange={(value: WebcamMaskShape) => onWebcamMaskShapeChange?.(value)}
+										disabled={webcamLayoutPreset === "vertical-stack"}
+									>
+										<SelectTrigger className="h-8 bg-black/20 border-white/10 text-xs">
+											<SelectValue placeholder={t("layout.selectShape")} />
+										</SelectTrigger>
+										<SelectContent>
+											{WEBCAM_MASK_SHAPES.map((shape) => (
+												<SelectItem key={shape} value={shape} className="text-xs">
+													{shape === "circle" ? t("layout.circle") : t("layout.roundedRectangle")}
 												</SelectItem>
 											))}
 										</SelectContent>

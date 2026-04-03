@@ -13,6 +13,7 @@ import type {
 	CropRegion,
 	SpeedRegion,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	ZoomDepth,
 	ZoomRegion,
 } from "@/components/video-editor/types";
@@ -61,6 +62,7 @@ interface FrameRenderConfig {
 	videoHeight: number;
 	webcamSize?: Size | null;
 	webcamLayoutPreset?: WebcamLayoutPreset;
+	webcamMaskShape?: WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
 	annotationRegions?: AnnotationRegion[];
 	speedRegions?: SpeedRegion[];
@@ -440,6 +442,7 @@ export class FrameRenderer {
 			screenSize: { width: croppedVideoWidth, height: croppedVideoHeight },
 			webcamSize: webcamFrame ? this.config.webcamSize : null,
 			layoutPreset: this.config.webcamLayoutPreset,
+			webcamMaskShape: this.config.webcamMaskShape,
 			webcamPosition: this.config.webcamPosition,
 		});
 		if (!compositeLayout) return;

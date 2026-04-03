@@ -7,6 +7,7 @@ export interface RenderRect {
 
 export interface StyledRenderRect extends RenderRect {
 	borderRadius: number;
+	shape: WebcamMaskShape;
 }
 
 export interface Size {
@@ -15,6 +16,7 @@ export interface Size {
 }
 
 export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack";
+export type WebcamMaskShape = "rounded-rectangle" | "circle";
 
 export interface WebcamLayoutShadow {
 	color: string;
@@ -103,6 +105,19 @@ export const WEBCAM_LAYOUT_PRESETS = Object.entries(WEBCAM_LAYOUT_PRESET_MAP).ma
 	}),
 );
 
+export const WEBCAM_MASK_SHAPES: WebcamMaskShape[] = ["rounded-rectangle", "circle"];
+
+export function resolveWebcamMaskShape(
+	shape: WebcamMaskShape = "rounded-rectangle",
+	layoutPreset: WebcamLayoutPreset = "picture-in-picture",
+): WebcamMaskShape {
+	if (layoutPreset === "vertical-stack") {
+		return "rounded-rectangle";
+	}
+
+	return shape === "circle" ? "circle" : "rounded-rectangle";
+}
+
 export function getWebcamLayoutPresetDefinition(
 	preset: WebcamLayoutPreset = "picture-in-picture",
 ): WebcamLayoutPresetDefinition {
@@ -124,6 +139,7 @@ export function computeCompositeLayout(params: {
 	screenSize: Size;
 	webcamSize?: Size | null;
 	layoutPreset?: WebcamLayoutPreset;
+	webcamMaskShape?: WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
 }): WebcamCompositeLayout | null {
 	const {
@@ -132,6 +148,7 @@ export function computeCompositeLayout(params: {
 		screenSize,
 		webcamSize,
 		layoutPreset = "picture-in-picture",
+		webcamMaskShape = "rounded-rectangle",
 		webcamPosition,
 	} = params;
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;
@@ -139,6 +156,7 @@ export function computeCompositeLayout(params: {
 	const webcamWidth = webcamSize?.width;
 	const webcamHeight = webcamSize?.height;
 	const preset = getWebcamLayoutPresetDefinition(layoutPreset);
+	const resolvedMaskShape = resolveWebcamMaskShape(webcamMaskShape, layoutPreset);
 
 	if (canvasWidth <= 0 || canvasHeight <= 0 || screenWidth <= 0 || screenHeight <= 0) {
 		return null;
@@ -175,6 +193,7 @@ export function computeCompositeLayout(params: {
 				width: resolvedWebcamWidth,
 				height: resolvedWebcamHeight,
 				borderRadius: 0,
+				shape: "rounded-rectangle",
 			},
 			screenCover: true,
 		};
@@ -198,8 +217,11 @@ export function computeCompositeLayout(params: {
 	const maxWidth = Math.max(transform.minSize, canvasWidth * transform.maxStageFraction);
 	const maxHeight = Math.max(transform.minSize, canvasHeight * transform.maxStageFraction);
 	const scale = Math.min(maxWidth / webcamWidth, maxHeight / webcamHeight);
-	const width = Math.round(webcamWidth * scale);
-	const height = Math.round(webcamHeight * scale);
+	const scaledWidth = Math.round(webcamWidth * scale);
+	const scaledHeight = Math.round(webcamHeight * scale);
+	const size = Math.min(scaledWidth, scaledHeight);
+	const width = resolvedMaskShape === "circle" ? size : scaledWidth;
+	const height = resolvedMaskShape === "circle" ? size : scaledHeight;
 
 	let webcamX: number;
 	let webcamY: number;
@@ -224,13 +246,17 @@ export function computeCompositeLayout(params: {
 			y: webcamY,
 			width,
 			height,
-			borderRadius: Math.min(
-				preset.borderRadius.max,
-				Math.max(
-					preset.borderRadius.min,
-					Math.round(Math.min(width, height) * preset.borderRadius.fraction),
-				),
-			),
+			borderRadius:
+				resolvedMaskShape === "circle"
+					? Math.round(size / 2)
+					: Math.min(
+							preset.borderRadius.max,
+							Math.max(
+								preset.borderRadius.min,
+								Math.round(Math.min(width, height) * preset.borderRadius.fraction),
+							),
+						),
+			shape: resolvedMaskShape,
 		},
 	};
 }

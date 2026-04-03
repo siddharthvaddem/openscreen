@@ -16,8 +16,12 @@
 		"title": "布局",
 		"preset": "预设",
 		"selectPreset": "选择预设",
+		"shape": "形状",
+		"selectShape": "选择形状",
 		"pictureInPicture": "画中画",
-		"verticalStack": "垂直堆叠"
+		"verticalStack": "垂直堆叠",
+		"roundedRectangle": "圆角矩形",
+		"circle": "圆形"
 	},
 	"effects": {
 		"title": "视频效果",

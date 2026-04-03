@@ -20,7 +20,7 @@ describe("projectPersistence media compatibility", () => {
 		});
 	});
 
-	it("creates version 2 projects with explicit media", () => {
+	it("creates version 3 projects with explicit media", () => {
 		const project = createProjectData(
 			{
 				screenVideoPath: "/tmp/screen.webm",
@@ -40,6 +40,8 @@ describe("projectPersistence media compatibility", () => {
 				annotationRegions: [],
 				aspectRatio: "16:9",
 				webcamLayoutPreset: "picture-in-picture",
+				webcamMaskShape: "rounded-rectangle",
+				webcamPosition: null,
 				exportQuality: "good",
 				exportFormat: "mp4",
 				gifFrameRate: 15,

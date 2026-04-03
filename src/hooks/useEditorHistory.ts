@@ -5,12 +5,14 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	WebcamPosition,
 	ZoomRegion,
 } from "@/components/video-editor/types";
 import {
 	DEFAULT_CROP_REGION,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
+	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 } from "@/components/video-editor/types";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
@@ -31,6 +33,7 @@ export interface EditorState {
 	padding: number;
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape: WebcamMaskShape;
 	webcamPosition: WebcamPosition | null;
 }
 
@@ -48,6 +51,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	padding: 50,
 	aspectRatio: "16:9",
 	webcamLayoutPreset: DEFAULT_WEBCAM_LAYOUT_PRESET,
+	webcamMaskShape: DEFAULT_WEBCAM_MASK_SHAPE,
 	webcamPosition: DEFAULT_WEBCAM_POSITION,
 };
 

@@ -16,8 +16,12 @@
 		"title": "Layout",
 		"preset": "Preset",
 		"selectPreset": "Select preset",
+		"shape": "Shape",
+		"selectShape": "Select shape",
 		"pictureInPicture": "Picture in Picture",
-		"verticalStack": "Vertical Stack"
+		"verticalStack": "Vertical Stack",
+		"roundedRectangle": "Rounded Rectangle",
+		"circle": "Circle"
 	},
 	"effects": {
 		"title": "Video Effects",

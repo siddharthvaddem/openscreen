@@ -33,7 +33,7 @@ describe("computeCompositeLayout", () => {
 		).toBeLessThanOrEqual(1920);
 	});
 
-	it("centers the combined screen and webcam stack in vertical stack mode", () => {
+	it("fills the canvas with the combined screen and webcam stack in vertical stack mode", () => {
 		const layout = computeCompositeLayout({
 			canvasSize: { width: 1920, height: 1080 },
 			maxContentSize: { width: 1536, height: 864 },
@@ -44,21 +44,22 @@ describe("computeCompositeLayout", () => {
 
 		expect(layout).not.toBeNull();
 		expect(layout?.screenRect).toEqual({
-			x: 576,
-			y: 108,
-			width: 768,
-			height: 432,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 0,
 		});
 		expect(layout?.webcamRect).toEqual({
-			x: 576,
-			y: 540,
-			width: 768,
-			height: 432,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 1080,
 			borderRadius: 0,
+			shape: "rounded-rectangle",
 		});
 	});
 
-	it("keeps the screen centered and omits the webcam when dimensions are unavailable", () => {
+	it("fills the canvas and omits the webcam when vertical stack dimensions are unavailable", () => {
 		const layout = computeCompositeLayout({
 			canvasSize: { width: 1920, height: 1080 },
 			maxContentSize: { width: 1536, height: 864 },
@@ -68,11 +69,26 @@ describe("computeCompositeLayout", () => {
 
 		expect(layout).not.toBeNull();
 		expect(layout?.screenRect).toEqual({
-			x: 192,
-			y: 108,
-			width: 1536,
-			height: 864,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 1080,
 		});
 		expect(layout?.webcamRect).toBeNull();
+	});
+
+	it("uses a square webcam rect for circle masks", () => {
+		const layout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 1280, height: 720 },
+			webcamMaskShape: "circle",
+		});
+
+		expect(layout).not.toBeNull();
+		expect(layout?.webcamRect).not.toBeNull();
+		expect(layout?.webcamRect?.width).toBe(layout?.webcamRect?.height);
+		expect(layout?.webcamRect?.shape).toBe("circle");
+		expect(layout?.webcamRect?.borderRadius).toBe((layout?.webcamRect?.width ?? 0) / 2);
 	});
 });
