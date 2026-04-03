@@ -123,9 +123,9 @@ const WEBCAM_SIZE_MULTIPLIERS: Record<
 	import("@/components/video-editor/types").WebcamSizePreset,
 	number
 > = {
-	small: 0.6,
-	medium: 1.0,
-	large: 1.7,
+	small: 1.0,
+	medium: 1.7,
+	large: 3.0
 };
 
 export function computeCompositeLayout(params: {
