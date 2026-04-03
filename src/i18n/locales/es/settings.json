@@ -24,7 +24,11 @@
 		"selectPreset": "Seleccionar predefinido",
 		"pictureInPicture": "Imagen en imagen",
 		"verticalStack": "Apilado vertical",
-		"webcamShape": "Forma de cámara"
+		"webcamShape": "Forma de cámara",
+		"webcamSize": "Tamaño de cámara",
+		"webcamSizeSmall": "S",
+		"webcamSizeMedium": "M",
+		"webcamSizeLarge": "L"
 	},
 	"effects": {
 		"title": "Efectos de video",

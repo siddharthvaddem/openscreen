@@ -52,6 +52,7 @@ import type {
 	PlaybackSpeed,
 	WebcamLayoutPreset,
 	WebcamMaskShape,
+	WebcamSizePreset,
 	ZoomDepth,
 	ZoomFocusMode,
 } from "./types";
@@ -150,6 +151,8 @@ interface SettingsPanelProps {
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
 	webcamMaskShape?: WebcamMaskShape;
 	onWebcamMaskShapeChange?: (shape: WebcamMaskShape) => void;
+	webcamSizePreset?: WebcamSizePreset;
+	onWebcamSizePresetChange?: (preset: WebcamSizePreset) => void;
 }
 
 export default SettingsPanel;
@@ -223,6 +226,8 @@ export function SettingsPanel({
 	onWebcamLayoutPresetChange,
 	webcamMaskShape = "rectangle",
 	onWebcamMaskShapeChange,
+	webcamSizePreset = "medium",
+	onWebcamSizePresetChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -675,13 +680,14 @@ export function SettingsPanel({
 										<div className="text-[10px] font-medium text-slate-300 mb-1.5">
 											{t("layout.webcamShape")}
 										</div>
-										<div className="grid grid-cols-4 gap-1.5">
+										<div className="grid grid-cols-5 gap-1.5">
 											{(
 												[
 													{ value: "rectangle", label: "Rect" },
 													{ value: "circle", label: "Circle" },
 													{ value: "square", label: "Square" },
 													{ value: "rounded", label: "Rounded" },
+													{ value: "portrait", label: "Portrait" },
 												] as Array<{ value: WebcamMaskShape; label: string }>
 											).map((shape) => (
 												<button
@@ -744,10 +750,49 @@ export function SettingsPanel({
 																strokeWidth="1.5"
 															/>
 														)}
+														{shape.value === "portrait" && (
+															<rect
+																x="4.5"
+																y="1"
+																width="7"
+																height="14"
+																rx="2"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
 													</svg>
 													<span className="text-[8px] leading-none">{shape.label}</span>
 												</button>
 											))}
+										</div>
+										<div className="mt-2">
+											<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+												{t("layout.webcamSize")}
+											</div>
+											<div className="grid grid-cols-3 gap-1.5">
+												{(
+													[
+														{ value: "small", label: t("layout.webcamSizeSmall") },
+														{ value: "medium", label: t("layout.webcamSizeMedium") },
+														{ value: "large", label: t("layout.webcamSizeLarge") },
+													] as Array<{ value: WebcamSizePreset; label: string }>
+												).map((size) => (
+													<button
+														key={size.value}
+														type="button"
+														onClick={() => onWebcamSizePresetChange?.(size.value)}
+														className={cn(
+															"h-8 rounded-lg border text-[10px] font-medium transition-all",
+															webcamSizePreset === size.value
+																? "bg-[#34B27B] border-[#34B27B] text-white"
+																: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+														)}
+													>
+														{size.label}
+													</button>
+												))}
+											</div>
 										</div>
 									</div>
 								)}

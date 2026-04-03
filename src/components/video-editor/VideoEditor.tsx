@@ -87,6 +87,7 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
+		webcamSizePreset,
 		webcamPosition,
 	} = editorState;
 
@@ -202,6 +203,7 @@ export default function VideoEditor() {
 				aspectRatio: normalizedEditor.aspectRatio,
 				webcamLayoutPreset: normalizedEditor.webcamLayoutPreset,
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
+				webcamSizePreset: normalizedEditor.webcamSizePreset,
 				webcamPosition: normalizedEditor.webcamPosition,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
@@ -274,6 +276,7 @@ export default function VideoEditor() {
 				aspectRatio,
 				webcamLayoutPreset,
 				webcamMaskShape,
+				webcamSizePreset,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -299,6 +302,7 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
+		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -394,6 +398,7 @@ export default function VideoEditor() {
 				aspectRatio,
 				webcamLayoutPreset,
 				webcamMaskShape,
+				webcamSizePreset,
 				webcamPosition,
 				exportQuality,
 				exportFormat,
@@ -450,6 +455,7 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -1174,6 +1180,7 @@ export default function VideoEditor() {
 						annotationRegions,
 						webcamLayoutPreset,
 						webcamMaskShape,
+						webcamSizePreset,
 						webcamPosition,
 						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
@@ -1308,6 +1315,7 @@ export default function VideoEditor() {
 						annotationRegions,
 						webcamLayoutPreset,
 						webcamMaskShape,
+						webcamSizePreset,
 						webcamPosition,
 						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
@@ -1379,6 +1387,7 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			webcamFocusRegions,
 			exportQuality,
@@ -1566,6 +1575,7 @@ export default function VideoEditor() {
 											webcamVideoPath={webcamVideoPath || undefined}
 											webcamLayoutPreset={webcamLayoutPreset}
 											webcamMaskShape={webcamMaskShape}
+											webcamSizePreset={webcamSizePreset}
 											webcamPosition={webcamPosition}
 											webcamFocusRegions={webcamVideoPath ? webcamFocusRegions : undefined}
 											onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos })}
@@ -1724,6 +1734,8 @@ export default function VideoEditor() {
 						}
 						webcamMaskShape={webcamMaskShape}
 						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
+						webcamSizePreset={webcamSizePreset}
+						onWebcamSizePresetChange={(preset) => pushState({ webcamSizePreset: preset })}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}
