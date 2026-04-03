@@ -143,6 +143,8 @@ interface SettingsPanelProps {
 	hasWebcam?: boolean;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
+	deviceFrame?: string;
+	onDeviceFrameChange?: (frame: string) => void;
 }
 
 export default SettingsPanel;
@@ -211,6 +213,8 @@ export function SettingsPanel({
 	hasWebcam = false,
 	webcamLayoutPreset = "picture-in-picture",
 	onWebcamLayoutPresetChange,
+	deviceFrame = "none",
+	onDeviceFrameChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -725,6 +729,31 @@ export function SettingsPanel({
 										disabled={webcamLayoutPreset === "vertical-stack"}
 										className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 									/>
+								</div>
+								<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+									<div className="flex items-center justify-between mb-1.5">
+										<div className="text-[10px] font-medium text-slate-300">Device Frame</div>
+									</div>
+									<div className="flex gap-1.5">
+										{[
+											{ id: "none", label: "None" },
+											{ id: "macbook", label: "MacBook" },
+											{ id: "browser", label: "Browser" },
+										].map((frame) => (
+											<button
+												key={frame.id}
+												type="button"
+												onClick={() => onDeviceFrameChange?.(frame.id)}
+												className={`flex-1 text-[9px] font-medium px-2 py-1.5 rounded-md transition-all ${
+													deviceFrame === frame.id
+														? "bg-[#34B27B] text-white"
+														: "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300"
+												}`}
+											>
+												{frame.label}
+											</button>
+										))}
+									</div>
 								</div>
 							</div>
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" fill="none">
+  <!-- MacBook Pro frame -->
+  <!-- Lid/screen bezel -->
+  <rect x="100" y="0" width="1000" height="680" rx="16" fill="#1a1a1a"/>
+  <rect x="138" y="27" width="924" height="630" rx="4" fill="transparent"/>
+  <!-- Camera notch -->
+  <circle cx="600" cy="13" r="4" fill="#333"/>
+  <!-- Bottom base -->
+  <path d="M60 680 H1140 Q1160 680 1170 700 L1190 740 Q1195 755 1180 760 L20 760 Q5 755 10 740 L30 700 Q40 680 60 680 Z" fill="#2a2a2a"/>
+  <!-- Trackpad line -->
+  <rect x="440" y="757" width="320" height="2" rx="1" fill="#444"/>
+</svg>

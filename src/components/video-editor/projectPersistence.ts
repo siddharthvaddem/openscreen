@@ -32,6 +32,7 @@ export const PROJECT_VERSION = 2;
 
 export interface ProjectEditorState {
 	wallpaper: string;
+	deviceFrame: string;
 	shadowIntensity: number;
 	showBlur: boolean;
 	motionBlurAmount: number;
@@ -324,6 +325,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 
 	return {
 		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
+		deviceFrame: typeof editor.deviceFrame === "string" ? editor.deviceFrame : "none",
 		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
 		showBlur: typeof editor.showBlur === "boolean" ? editor.showBlur : false,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)

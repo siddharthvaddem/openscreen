@@ -24,6 +24,7 @@ export interface EditorState {
 	annotationRegions: AnnotationRegion[];
 	cropRegion: CropRegion;
 	wallpaper: string;
+	deviceFrame: string;
 	shadowIntensity: number;
 	showBlur: boolean;
 	motionBlurAmount: number;
@@ -41,6 +42,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	annotationRegions: [],
 	cropRegion: DEFAULT_CROP_REGION,
 	wallpaper: "/wallpapers/wallpaper1.jpg",
+	deviceFrame: "none",
 	shadowIntensity: 0,
 	showBlur: false,
 	motionBlurAmount: 0,

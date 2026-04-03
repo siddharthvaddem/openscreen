@@ -37,6 +37,7 @@ import {
 	type Size,
 	type StyledRenderRect,
 } from "@/lib/compositeLayout";
+import { getDeviceFrame } from "@/lib/deviceFrames";
 import { renderAnnotations } from "./annotationRenderer";
 import {
 	getLinearGradientPoints,
@@ -49,6 +50,7 @@ interface FrameRenderConfig {
 	width: number;
 	height: number;
 	wallpaper: string;
+	deviceFrame?: string;
 	zoomRegions: ZoomRegion[];
 	showShadow: boolean;
 	shadowIntensity: number;
@@ -95,6 +97,7 @@ export class FrameRenderer {
 	private videoContainer: Container | null = null;
 	private videoSprite: Sprite | null = null;
 	private backgroundSprite: HTMLCanvasElement | null = null;
+	private deviceFrameImage: HTMLImageElement | null = null;
 	private maskGraphics: Graphics | null = null;
 	private blurFilter: BlurFilter | null = null;
 	private motionBlurFilter: MotionBlurFilter | null = null;
@@ -157,6 +160,9 @@ export class FrameRenderer {
 
 		// Setup background (render separately, not in PixiJS)
 		await this.setupBackground();
+
+		// Load device frame image if configured
+		await this.loadDeviceFrame();
 
 		// Setup blur filter for video container
 		this.blurFilter = new BlurFilter();
@@ -321,6 +327,40 @@ export class FrameRenderer {
 		this.backgroundSprite = bgCanvas;
 	}
 
+	private async loadDeviceFrame(): Promise<void> {
+		const frameId = this.config.deviceFrame;
+		if (!frameId || frameId === "none") return;
+
+		const frameDef = getDeviceFrame(frameId);
+		if (!frameDef) return;
+
+		const img = new Image();
+		const imageUrl = window.location.origin + frameDef.imagePath;
+
+		await new Promise<void>((resolve) => {
+			img.onload = () => resolve();
+			img.onerror = (err) => {
+				console.warn("[FrameRenderer] Failed to load device frame:", imageUrl, err);
+				resolve(); // Don't fail export if frame can't load
+			};
+			img.src = imageUrl;
+		});
+
+		if (img.complete && img.naturalWidth > 0) {
+			this.deviceFrameImage = img;
+		}
+	}
+
+	private drawDeviceFrame(): void {
+		if (!this.deviceFrameImage || !this.compositeCtx) return;
+
+		const ctx = this.compositeCtx;
+		const w = this.config.width;
+		const h = this.config.height;
+
+		ctx.drawImage(this.deviceFrameImage, 0, 0, w, h);
+	}
+
 	async renderFrame(
 		videoFrame: VideoFrame,
 		timestamp: number,
@@ -408,6 +448,9 @@ export class FrameRenderer {
 				scaleFactor,
 			);
 		}
+
+		// Draw device frame overlay on top of everything
+		this.drawDeviceFrame();
 	}
 
 	private updateLayout(webcamFrame?: VideoFrame | null): void {

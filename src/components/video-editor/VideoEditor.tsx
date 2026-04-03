@@ -77,6 +77,7 @@ export default function VideoEditor() {
 		annotationRegions,
 		cropRegion,
 		wallpaper,
+		deviceFrame,
 		shadowIntensity,
 		showBlur,
 		motionBlurAmount,
@@ -252,6 +253,7 @@ export default function VideoEditor() {
 		return JSON.stringify(
 			createProjectData(currentProjectMedia, {
 				wallpaper,
+				deviceFrame,
 				shadowIntensity,
 				showBlur,
 				motionBlurAmount,
@@ -275,6 +277,7 @@ export default function VideoEditor() {
 	}, [
 		currentProjectMedia,
 		wallpaper,
+		deviceFrame,
 		shadowIntensity,
 		showBlur,
 		motionBlurAmount,
@@ -368,6 +371,7 @@ export default function VideoEditor() {
 
 			const projectData = createProjectData(currentProjectMedia, {
 				wallpaper,
+				deviceFrame,
 				shadowIntensity,
 				showBlur,
 				motionBlurAmount,
@@ -422,6 +426,7 @@ export default function VideoEditor() {
 			currentProjectMedia,
 			currentProjectPath,
 			wallpaper,
+			deviceFrame,
 			shadowIntensity,
 			showBlur,
 			motionBlurAmount,
@@ -1077,6 +1082,7 @@ export default function VideoEditor() {
 						loop: settings.gifConfig.loop,
 						sizePreset: settings.gifConfig.sizePreset,
 						wallpaper,
+						deviceFrame,
 						zoomRegions,
 						trimRegions,
 						speedRegions,
@@ -1209,6 +1215,7 @@ export default function VideoEditor() {
 						bitrate,
 						codec: "avc1.640033",
 						wallpaper,
+						deviceFrame,
 						zoomRegions,
 						trimRegions,
 						speedRegions,
@@ -1276,6 +1283,7 @@ export default function VideoEditor() {
 			videoPath,
 			webcamVideoPath,
 			wallpaper,
+			deviceFrame,
 			zoomRegions,
 			trimRegions,
 			speedRegions,
@@ -1613,6 +1621,8 @@ export default function VideoEditor() {
 								webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
 							})
 						}
+						deviceFrame={deviceFrame}
+						onDeviceFrameChange={(f) => pushState({ deviceFrame: f })}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}

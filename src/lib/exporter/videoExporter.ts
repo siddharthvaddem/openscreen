@@ -20,6 +20,7 @@ interface VideoExporterConfig extends ExportConfig {
 	videoUrl: string;
 	webcamVideoUrl?: string;
 	wallpaper: string;
+	deviceFrame?: string;
 	zoomRegions: ZoomRegion[];
 	trimRegions?: TrimRegion[];
 	speedRegions?: SpeedRegion[];
@@ -122,6 +123,7 @@ export class VideoExporter {
 				width: this.config.width,
 				height: this.config.height,
 				wallpaper: this.config.wallpaper,
+				deviceFrame: this.config.deviceFrame,
 				zoomRegions: this.config.zoomRegions,
 				showShadow: this.config.showShadow,
 				shadowIntensity: this.config.shadowIntensity,
