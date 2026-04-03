@@ -258,6 +258,41 @@ async function renderImage(
 	});
 }
 
+function renderMarker(
+	ctx: CanvasRenderingContext2D,
+	annotation: AnnotationRegion,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	currentTimeMs: number,
+) {
+	const data = annotation.markerData;
+	if (!data) return;
+
+	const timeIntoAnnotation = currentTimeMs - annotation.startMs;
+	const totalDuration = annotation.endMs - annotation.startMs;
+	const fadeOutStart = Math.max(0, totalDuration - 500);
+	const globalOpacity =
+		timeIntoAnnotation >= fadeOutStart
+			? Math.max(0, 1 - (timeIntoAnnotation - fadeOutStart) / 500)
+			: 1;
+
+	const sweepProgress = Math.min(1, Math.max(0, timeIntoAnnotation / data.animationDuration));
+
+	let drawX = x;
+	let drawW = width * sweepProgress;
+	if (data.direction === "right") {
+		drawX = x + width * (1 - sweepProgress);
+	}
+
+	ctx.save();
+	ctx.globalAlpha = data.opacity * globalOpacity;
+	ctx.fillStyle = data.color;
+	ctx.fillRect(drawX, y, drawW, height);
+	ctx.restore();
+}
+
 async function renderCaption(
 	ctx: CanvasRenderingContext2D,
 	annotation: AnnotationRegion,
@@ -479,6 +514,12 @@ export async function renderAnnotations(
 			case "caption":
 				if (annotation.captionData) {
 					await renderCaption(ctx, annotation, x, y, width, height, scaleFactor, currentTimeMs);
+				}
+				break;
+
+			case "marker":
+				if (annotation.markerData) {
+					renderMarker(ctx, annotation, x, y, width, height, currentTimeMs);
 				}
 				break;
 		}

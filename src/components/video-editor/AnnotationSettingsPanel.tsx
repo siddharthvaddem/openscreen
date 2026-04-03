@@ -40,6 +40,8 @@ import type {
 	CaptionData,
 	CaptionGradientDirection,
 	FigureData,
+	MarkerData,
+	MarkerDirection,
 } from "./types";
 
 interface AnnotationSettingsPanelProps {
@@ -49,6 +51,7 @@ interface AnnotationSettingsPanelProps {
 	onStyleChange: (style: Partial<AnnotationRegion["style"]>) => void;
 	onFigureDataChange?: (figureData: FigureData) => void;
 	onCaptionDataChange?: (captionData: CaptionData) => void;
+	onMarkerDataChange?: (markerData: MarkerData) => void;
 	onDelete: () => void;
 }
 
@@ -72,6 +75,7 @@ export function AnnotationSettingsPanel({
 	onStyleChange,
 	onFigureDataChange,
 	onCaptionDataChange,
+	onMarkerDataChange,
 	onDelete,
 }: AnnotationSettingsPanelProps) {
 	const t = useScopedT("settings");
@@ -165,7 +169,7 @@ export function AnnotationSettingsPanel({
 					onValueChange={(value) => onTypeChange(value as AnnotationType)}
 					className="mb-6"
 				>
-					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-4 h-auto rounded-xl">
+					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-5 h-auto rounded-xl">
 						<TabsTrigger
 							value="text"
 							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
@@ -201,6 +205,15 @@ export function AnnotationSettingsPanel({
 						>
 							<Subtitles className="w-3.5 h-3.5" />
 							Caption
+						</TabsTrigger>
+						<TabsTrigger
+							value="marker"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-1 text-xs"
+						>
+							<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+								<rect x="2" y="8" width="20" height="8" rx="1" opacity="0.9" />
+							</svg>
+							Marker
 						</TabsTrigger>
 					</TabsList>
 
@@ -845,6 +858,97 @@ export function AnnotationSettingsPanel({
 												/>
 											</label>
 										)}
+									</div>
+								</>
+							);
+						})()}
+					</TabsContent>
+
+					{/* Marker highlight */}
+					<TabsContent value="marker" className="mt-0 space-y-4">
+						{(() => {
+							const data = annotation.markerData;
+							if (!data || !onMarkerDataChange) return null;
+							const update = (patch: Partial<MarkerData>) =>
+								onMarkerDataChange({ ...data, ...patch });
+							return (
+								<>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Color
+										</label>
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													variant="outline"
+													className="w-full h-9 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10 px-2"
+												>
+													<div
+														className="w-4 h-4 rounded-full border border-white/20"
+														style={{ backgroundColor: data.color }}
+													/>
+													<span className="text-xs text-slate-300 truncate flex-1 text-left">
+														{data.color}
+													</span>
+													<ChevronDown className="h-3 w-3 opacity-50" />
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
+												<Block
+													color={data.color}
+													colors={colorPalette}
+													onChange={(c) => update({ color: c.hex })}
+													style={{ borderRadius: "8px" }}
+												/>
+											</PopoverContent>
+										</Popover>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Opacity: {Math.round(data.opacity * 100)}%
+										</label>
+										<Slider
+											value={[data.opacity * 100]}
+											onValueChange={([v]) => update({ opacity: v / 100 })}
+											min={10}
+											max={90}
+											step={5}
+											className="w-full"
+										/>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Sweep direction
+										</label>
+										<div className="grid grid-cols-2 gap-2">
+											{(["left", "right"] as MarkerDirection[]).map((dir) => (
+												<button
+													key={dir}
+													onClick={() => update({ direction: dir })}
+													className={cn(
+														"py-2 rounded-lg border text-xs font-medium capitalize transition-all flex items-center justify-center gap-1.5",
+														data.direction === dir
+															? "bg-[#34B27B] border-[#34B27B] text-white"
+															: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10",
+													)}
+												>
+													{dir === "left" ? "← Left to right" : "Right to left →"}
+												</button>
+											))}
+										</div>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Sweep duration: {data.animationDuration}ms
+										</label>
+										<Slider
+											value={[data.animationDuration]}
+											onValueChange={([v]) => update({ animationDuration: v })}
+											min={100}
+											max={1000}
+											step={50}
+											className="w-full"
+										/>
 									</div>
 								</>
 							);

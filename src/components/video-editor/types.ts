@@ -47,7 +47,7 @@ export interface TrimRegion {
 	endMs: number;
 }
 
-export type AnnotationType = "text" | "image" | "figure" | "caption";
+export type AnnotationType = "text" | "image" | "figure" | "caption" | "marker";
 
 export type ArrowDirection =
 	| "up"
@@ -116,6 +116,7 @@ export interface AnnotationRegion {
 	zIndex: number;
 	figureData?: FigureData;
 	captionData?: CaptionData;
+	markerData?: MarkerData;
 }
 
 export const DEFAULT_ANNOTATION_POSITION: AnnotationPosition = {
@@ -143,6 +144,22 @@ export const DEFAULT_FIGURE_DATA: FigureData = {
 	arrowDirection: "right",
 	color: "#34B27B",
 	strokeWidth: 4,
+};
+
+export type MarkerDirection = "left" | "right";
+
+export interface MarkerData {
+	color: string;
+	opacity: number;
+	animationDuration: number; // ms for the slide-in sweep
+	direction: MarkerDirection;
+}
+
+export const DEFAULT_MARKER_DATA: MarkerData = {
+	color: "#FFE000",
+	opacity: 0.45,
+	animationDuration: 400,
+	direction: "left",
 };
 
 export const DEFAULT_CAPTION_DATA: CaptionData = {

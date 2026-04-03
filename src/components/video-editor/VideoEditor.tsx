@@ -49,10 +49,12 @@ import {
 	DEFAULT_ANNOTATION_STYLE,
 	DEFAULT_CAPTION_DATA,
 	DEFAULT_FIGURE_DATA,
+	DEFAULT_MARKER_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
 	type CaptionData,
 	type FigureData,
+	type MarkerData,
 	type PlaybackSpeed,
 	type SpeedRegion,
 	type TrimRegion,
@@ -949,6 +951,11 @@ export default function VideoEditor() {
 						// Auto-expand to full frame so gradient covers edge to edge
 						updatedRegion.position = { x: 0, y: 0 };
 						updatedRegion.size = { width: 100, height: 100 };
+					} else if (type === "marker") {
+						updatedRegion.content = "";
+						if (!region.markerData) {
+							updatedRegion.markerData = { ...DEFAULT_MARKER_DATA };
+						}
 					}
 					return updatedRegion;
 				}),
@@ -962,6 +969,17 @@ export default function VideoEditor() {
 			pushState((prev) => ({
 				annotationRegions: prev.annotationRegions.map((region) =>
 					region.id === id ? { ...region, style: { ...region.style, ...style } } : region,
+				),
+			}));
+		},
+		[pushState],
+	);
+
+	const handleAnnotationMarkerDataChange = useCallback(
+		(id: string, markerData: MarkerData) => {
+			pushState((prev) => ({
+				annotationRegions: prev.annotationRegions.map((region) =>
+					region.id === id ? { ...region, markerData } : region,
 				),
 			}));
 		},
@@ -1789,6 +1807,7 @@ export default function VideoEditor() {
 						onAnnotationStyleChange={handleAnnotationStyleChange}
 						onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
 						onAnnotationCaptionDataChange={handleAnnotationCaptionDataChange}
+						onAnnotationMarkerDataChange={handleAnnotationMarkerDataChange}
 						onAnnotationDelete={handleAnnotationDelete}
 						selectedSpeedId={selectedSpeedId}
 						selectedSpeedValue={

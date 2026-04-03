@@ -195,8 +195,40 @@ export function AnnotationOverlay({
 		);
 	};
 
+	const renderMarker = () => {
+		const data = annotation.markerData;
+		if (!data) return null;
+
+		const timeIntoAnnotation = currentTimeMs - annotation.startMs;
+		const totalDuration = annotation.endMs - annotation.startMs;
+		const fadeOutStart = Math.max(0, totalDuration - 500);
+		const globalOpacity =
+			timeIntoAnnotation >= fadeOutStart
+				? Math.max(0, 1 - (timeIntoAnnotation - fadeOutStart) / 500)
+				: 1;
+
+		const sweepProgress = Math.min(1, Math.max(0, timeIntoAnnotation / data.animationDuration));
+
+		const clipRight = data.direction === "left" ? `${(1 - sweepProgress) * 100}%` : "0%";
+		const clipLeft = data.direction === "right" ? `${(1 - sweepProgress) * 100}%` : "0%";
+
+		return (
+			<div
+				className="w-full h-full rounded-sm"
+				style={{
+					backgroundColor: data.color,
+					opacity: data.opacity * globalOpacity,
+					clipPath: `inset(0 ${clipRight} 0 ${clipLeft})`,
+				}}
+			/>
+		);
+	};
+
 	const renderContent = () => {
 		switch (annotation.type) {
+			case "marker":
+				return renderMarker();
+
 			case "caption":
 				return renderCaption();
 

@@ -11,6 +11,7 @@ import {
 	DEFAULT_CROP_REGION,
 	DEFAULT_CAPTION_DATA,
 	DEFAULT_FIGURE_DATA,
+	DEFAULT_MARKER_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
@@ -264,7 +265,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						startMs,
 						endMs,
 						type:
-							region.type === "image" || region.type === "figure" || region.type === "caption"
+							region.type === "image" ||
+							region.type === "figure" ||
+							region.type === "caption" ||
+							region.type === "marker"
 								? region.type
 								: "text",
 						content: typeof region.content === "string" ? region.content : "",
@@ -317,6 +321,12 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							? {
 									...DEFAULT_CAPTION_DATA,
 									...region.captionData,
+								}
+							: undefined,
+						markerData: region.markerData
+							? {
+									...DEFAULT_MARKER_DATA,
+									...region.markerData,
 								}
 							: undefined,
 					};
