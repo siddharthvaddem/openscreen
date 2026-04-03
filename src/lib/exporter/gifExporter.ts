@@ -44,6 +44,7 @@ interface GifExporterConfig {
 	cropRegion: CropRegion;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	webcamMaskShape?: WebcamMaskShape;
+	webcamSizePreset?: import("@/components/video-editor/types").WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
 	annotationRegions?: AnnotationRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
@@ -147,6 +148,7 @@ export class GifExporter {
 				webcamSize: webcamInfo ? { width: webcamInfo.width, height: webcamInfo.height } : null,
 				webcamLayoutPreset: this.config.webcamLayoutPreset,
 				webcamMaskShape: this.config.webcamMaskShape,
+				webcamSizePreset: this.config.webcamSizePreset,
 				webcamPosition: this.config.webcamPosition,
 				annotationRegions: this.config.annotationRegions,
 				speedRegions: this.config.speedRegions,

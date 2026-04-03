@@ -70,6 +70,7 @@ interface FrameRenderConfig {
 	annotationRegions?: AnnotationRegion[];
 	speedRegions?: SpeedRegion[];
 	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
+	webcamSizePreset?: import("@/components/video-editor/types").WebcamSizePreset;
 	webcamFocusRegions?: WebcamFocusRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
@@ -452,6 +453,7 @@ export class FrameRenderer {
 			webcamSize: webcamFrame ? this.config.webcamSize : null,
 			layoutPreset: this.config.webcamLayoutPreset,
 			webcamMaskShape: this.config.webcamMaskShape,
+			webcamSizePreset: this.config.webcamSizePreset,
 			webcamPosition: this.config.webcamPosition,
 		});
 		if (!compositeLayout) return;

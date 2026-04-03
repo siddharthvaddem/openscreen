@@ -68,6 +68,7 @@ interface VideoPlaybackProps {
 	webcamVideoPath?: string;
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape?: import("./types").WebcamMaskShape;
+	webcamSizePreset?: import("./types").WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
 	webcamFocusRegions?: import("./types").WebcamFocusRegion[];
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
@@ -119,6 +120,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamVideoPath,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			webcamFocusRegions = [],
 			onWebcamPositionChange,
@@ -285,6 +287,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				webcamDimensions,
 				webcamLayoutPreset,
 				webcamMaskShape,
+				webcamSizePreset,
 				webcamPosition,
 			});
 
@@ -316,6 +319,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamDimensions,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 		]);
 

@@ -6,9 +6,13 @@ export type { WebcamLayoutPreset };
 
 export const DEFAULT_WEBCAM_LAYOUT_PRESET: WebcamLayoutPreset = "picture-in-picture";
 
-export type WebcamMaskShape = "rectangle" | "circle" | "square" | "rounded";
+export type WebcamMaskShape = "rectangle" | "circle" | "square" | "rounded" | "portrait";
 
 export const DEFAULT_WEBCAM_MASK_SHAPE: WebcamMaskShape = "rectangle";
+
+export type WebcamSizePreset = "small" | "medium" | "large";
+
+export const DEFAULT_WEBCAM_SIZE_PRESET: WebcamSizePreset = "medium";
 
 export interface WebcamPosition {
 	cx: number; // normalized horizontal center (0-1)

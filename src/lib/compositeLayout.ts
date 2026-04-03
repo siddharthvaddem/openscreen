@@ -119,6 +119,15 @@ export function getWebcamLayoutCssBoxShadow(
 		: "none";
 }
 
+const WEBCAM_SIZE_MULTIPLIERS: Record<
+	import("@/components/video-editor/types").WebcamSizePreset,
+	number
+> = {
+	small: 1.0,
+	medium: 1.7,
+	large: 3.0
+};
+
 export function computeCompositeLayout(params: {
 	canvasSize: Size;
 	maxContentSize?: Size;
@@ -127,6 +136,7 @@ export function computeCompositeLayout(params: {
 	layoutPreset?: WebcamLayoutPreset;
 	webcamPosition?: { cx: number; cy: number } | null;
 	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
+	webcamSizePreset?: import("@/components/video-editor/types").WebcamSizePreset;
 }): WebcamCompositeLayout | null {
 	const {
 		canvasSize,
@@ -136,6 +146,7 @@ export function computeCompositeLayout(params: {
 		layoutPreset = "picture-in-picture",
 		webcamPosition,
 		webcamMaskShape = "rectangle",
+		webcamSizePreset = "medium",
 	} = params;
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;
 	const { width: screenWidth, height: screenHeight } = screenSize;
@@ -194,20 +205,38 @@ export function computeCompositeLayout(params: {
 		return { screenRect, webcamRect: null };
 	}
 
+	const sizeMultiplier = WEBCAM_SIZE_MULTIPLIERS[webcamSizePreset];
 	const margin = Math.max(
 		transform.minMargin,
 		Math.round(Math.min(canvasWidth, canvasHeight) * transform.marginFraction),
 	);
-	const maxWidth = Math.max(transform.minSize, canvasWidth * transform.maxStageFraction);
-	const maxHeight = Math.max(transform.minSize, canvasHeight * transform.maxStageFraction);
-	const scale = Math.min(maxWidth / webcamWidth, maxHeight / webcamHeight);
-	let width = Math.round(webcamWidth * scale);
-	let height = Math.round(webcamHeight * scale);
+	const maxWidth = Math.max(
+		transform.minSize,
+		canvasWidth * transform.maxStageFraction * sizeMultiplier,
+	);
+	const maxHeight = Math.max(
+		transform.minSize,
+		canvasHeight * transform.maxStageFraction * sizeMultiplier,
+	);
 
-	if (webcamMaskShape === "circle" || webcamMaskShape === "square") {
-		const side = Math.min(width, height);
-		width = side;
-		height = side;
+	let width: number;
+	let height: number;
+
+	if (webcamMaskShape === "portrait") {
+		// Force 9:16 portrait ratio regardless of webcam's actual aspect ratio
+		const portraitScale = Math.min(maxWidth / 9, maxHeight / 16);
+		width = Math.round(9 * portraitScale);
+		height = Math.round(16 * portraitScale);
+	} else {
+		const scale = Math.min(maxWidth / webcamWidth, maxHeight / webcamHeight);
+		width = Math.round(webcamWidth * scale);
+		height = Math.round(webcamHeight * scale);
+
+		if (webcamMaskShape === "circle" || webcamMaskShape === "square") {
+			const side = Math.min(width, height);
+			width = side;
+			height = side;
+		}
 	}
 
 	let webcamX: number;
@@ -227,8 +256,8 @@ export function computeCompositeLayout(params: {
 	}
 
 	let borderRadius: number;
-	if (webcamMaskShape === "rounded") {
-		borderRadius = Math.round(Math.min(width, height) * 0.3);
+	if (webcamMaskShape === "rounded" || webcamMaskShape === "portrait") {
+		borderRadius = Math.round(Math.min(width, height) * 0.15);
 	} else if (webcamMaskShape === "circle") {
 		borderRadius = Math.round(Math.min(width, height) / 2);
 	} else {
