@@ -14,6 +14,18 @@ export type WebcamSizePreset = "small" | "medium" | "large";
 
 export const DEFAULT_WEBCAM_SIZE_PRESET: WebcamSizePreset = "medium";
 
+export type WebcamCornerPreset =
+	| "top-left"
+	| "top-right"
+	| "center-left"
+	| "center-right"
+	| "bottom-left"
+	| "bottom-right";
+
+export type WebcamStackPosition = "top" | "bottom";
+
+export const DEFAULT_WEBCAM_STACK_POSITION: WebcamStackPosition = "bottom";
+
 export interface WebcamPosition {
 	cx: number; // normalized horizontal center (0-1)
 	cy: number; // normalized vertical center (0-1)

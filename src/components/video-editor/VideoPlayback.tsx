@@ -71,6 +71,8 @@ interface VideoPlaybackProps {
 	webcamMaskShape?: import("./types").WebcamMaskShape;
 	webcamSizePreset?: import("./types").WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamCornerPreset?: import("./types").WebcamCornerPreset | null;
+	webcamStackPosition?: import("./types").WebcamStackPosition | null;
 	webcamFocusRegions?: import("./types").WebcamFocusRegion[];
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
 	onWebcamPositionDragEnd?: () => void;
@@ -123,6 +125,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamMaskShape,
 			webcamSizePreset,
 			webcamPosition,
+			webcamCornerPreset,
+			webcamStackPosition,
 			webcamFocusRegions = [],
 			onWebcamPositionChange,
 			onWebcamPositionDragEnd,
@@ -290,6 +294,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				webcamMaskShape,
 				webcamSizePreset,
 				webcamPosition,
+				webcamCornerPreset,
+				webcamStackPosition,
 			});
 
 			if (result) {
@@ -322,6 +328,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamMaskShape,
 			webcamSizePreset,
 			webcamPosition,
+			webcamCornerPreset,
+			webcamStackPosition,
 		]);
 
 		useEffect(() => {
@@ -1056,6 +1064,16 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			if (!webcamDimensions || !webcamLayout) return null;
 			const { width: stageW, height: stageH } = stageSizeRef.current;
 			if (!stageW || !stageH) return null;
+			if (webcamLayoutPreset === "vertical-stack") {
+				return {
+					x: 0,
+					y: 0,
+					width: stageW,
+					height: stageH,
+					borderRadius: 0,
+					maskShape: webcamLayout.maskShape,
+				};
+			}
 			const shape = activeFocusRegion?.focusShape ?? webcamMaskShape;
 			const isRightAligned = shape === "portrait" || shape === "square";
 			const srcW = shape === "portrait" ? 9 : shape === "square" ? 1 : webcamDimensions.width;
@@ -1077,7 +1095,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				maskShape: focusShape ?? webcamLayout.maskShape,
 			};
 			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [webcamDimensions, webcamLayout, activeFocusRegion, webcamMaskShape]);
+		}, [webcamDimensions, webcamLayout, activeFocusRegion, webcamMaskShape, webcamLayoutPreset]);
 
 		useEffect(() => {
 			const webcamVideo = webcamVideoRef.current;

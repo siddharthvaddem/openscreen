@@ -52,9 +52,11 @@ import type {
 	FigureData,
 	MarkerData,
 	PlaybackSpeed,
+	WebcamCornerPreset,
 	WebcamLayoutPreset,
 	WebcamMaskShape,
 	WebcamSizePreset,
+	WebcamStackPosition,
 	ZoomDepth,
 	ZoomFocusMode,
 } from "./types";
@@ -151,6 +153,12 @@ interface SettingsPanelProps {
 	onSpeedChange?: (speed: PlaybackSpeed) => void;
 	onSpeedDelete?: (id: string) => void;
 	hasWebcam?: boolean;
+	onAddWebcamVideo?: () => void;
+	onRemoveWebcamVideo?: () => void;
+	webcamCornerPreset?: WebcamCornerPreset | null;
+	onWebcamCornerPresetChange?: (preset: WebcamCornerPreset) => void;
+	webcamStackPosition?: WebcamStackPosition;
+	onWebcamStackPositionChange?: (pos: WebcamStackPosition) => void;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
 	webcamMaskShape?: WebcamMaskShape;
@@ -232,6 +240,12 @@ export function SettingsPanel({
 	onSpeedChange,
 	onSpeedDelete,
 	hasWebcam = false,
+	onAddWebcamVideo,
+	onRemoveWebcamVideo,
+	webcamCornerPreset = null,
+	onWebcamCornerPresetChange,
+	webcamStackPosition = "bottom",
+	onWebcamStackPositionChange,
 	webcamLayoutPreset = "picture-in-picture",
 	onWebcamLayoutPresetChange,
 	webcamMaskShape = "rectangle",
@@ -659,18 +673,49 @@ export function SettingsPanel({
 					defaultValue={hasWebcam ? ["layout", "effects", "background"] : ["effects", "background"]}
 					className="space-y-1"
 				>
-					{hasWebcam && (
-						<AccordionItem
-							value="layout"
-							className="border-white/5 rounded-xl bg-white/[0.02] px-3"
-						>
-							<AccordionTrigger className="py-2.5 hover:no-underline">
-								<div className="flex items-center gap-2">
-									<Sparkles className="w-4 h-4 text-[#34B27B]" />
-									<span className="text-xs font-medium">{t("layout.title")}</span>
+					<AccordionItem
+						value="layout"
+						className="border-white/5 rounded-xl bg-white/[0.02] px-3"
+					>
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<Sparkles className="w-4 h-4 text-[#34B27B]" />
+								<span className="text-xs font-medium">{t("layout.title")}</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3">
+							{!hasWebcam ? (
+								<Button
+									onClick={onAddWebcamVideo}
+									variant="outline"
+									size="sm"
+									className="w-full gap-2 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 text-xs h-8"
+								>
+									<Film className="w-3.5 h-3.5" />
+									{t("layout.addCameraVideo")}
+								</Button>
+							) : (
+								<>
+								<div className="flex gap-1.5 mb-2">
+									<Button
+										onClick={onAddWebcamVideo}
+										variant="outline"
+										size="sm"
+										className="flex-1 gap-1.5 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 text-xs h-7"
+									>
+										<Film className="w-3 h-3" />
+										{t("layout.changeCameraVideo")}
+									</Button>
+									<Button
+										onClick={onRemoveWebcamVideo}
+										variant="outline"
+										size="sm"
+										className="gap-1.5 bg-red-500/10 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 text-red-400 text-xs h-7 px-2"
+									>
+										<X className="w-3 h-3" />
+										{t("layout.removeCameraVideo")}
+									</Button>
 								</div>
-							</AccordionTrigger>
-							<AccordionContent className="pb-3">
 								<div className="p-2 rounded-lg bg-white/5 border border-white/5">
 									<div className="text-[10px] font-medium text-slate-300 mb-1.5">
 										{t("layout.preset")}
@@ -698,6 +743,56 @@ export function SettingsPanel({
 											))}
 										</SelectContent>
 									</Select>
+								</div>
+								<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
+									<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+										{t("layout.position")}
+									</div>
+									{webcamLayoutPreset === "picture-in-picture" ? (
+										<div className="grid grid-cols-2 gap-1">
+											{(
+												[
+													["top-left", "top-right"],
+													["center-left", "center-right"],
+													["bottom-left", "bottom-right"],
+												] as WebcamCornerPreset[][]
+											).map((row) =>
+												row.map((corner) => (
+													<button
+														key={corner}
+														type="button"
+														onClick={() => onWebcamCornerPresetChange?.(corner)}
+														className={cn(
+															"h-7 rounded-md border text-[9px] font-medium transition-all",
+															webcamCornerPreset === corner
+																? "bg-[#34B27B] border-[#34B27B] text-white"
+																: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+														)}
+													>
+														{t(`layout.corner_${corner.replace("-", "_")}`)}
+													</button>
+												)),
+											)}
+										</div>
+									) : (
+										<div className="grid grid-cols-2 gap-1">
+											{(["top", "bottom"] as WebcamStackPosition[]).map((pos) => (
+												<button
+													key={pos}
+													type="button"
+													onClick={() => onWebcamStackPositionChange?.(pos)}
+													className={cn(
+														"h-7 rounded-md border text-[9px] font-medium transition-all",
+														webcamStackPosition === pos
+															? "bg-[#34B27B] border-[#34B27B] text-white"
+															: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+													)}
+												>
+													{t(`layout.stack_${pos}`)}
+												</button>
+											))}
+										</div>
+									)}
 								</div>
 								{webcamLayoutPreset === "picture-in-picture" && (
 									<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
@@ -868,9 +963,10 @@ export function SettingsPanel({
 										)}
 									</div>
 								)}
-							</AccordionContent>
-						</AccordionItem>
-					)}
+								</>
+							)}
+						</AccordionContent>
+					</AccordionItem>
 
 					<AccordionItem value="effects" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
 						<AccordionTrigger className="py-2.5 hover:no-underline">

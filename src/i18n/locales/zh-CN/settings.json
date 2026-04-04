@@ -30,7 +30,19 @@
 		"webcamSizeMedium": "中",
 		"webcamSizeLarge": "大",
 		"focusShape": "聚焦形状",
-		"deleteFocusRegion": "删除聚焦区域"
+		"deleteFocusRegion": "删除聚焦区域",
+		"addCameraVideo": "添加摄像头视频",
+		"removeCameraVideo": "移除摄像头视频",
+		"changeCameraVideo": "更换",
+		"position": "位置",
+		"corner_top_left": "左上",
+		"corner_top_right": "右上",
+		"corner_center_left": "左中",
+		"corner_center_right": "右中",
+		"corner_bottom_left": "左下",
+		"corner_bottom_right": "右下",
+		"stack_top": "摄像头置顶",
+		"stack_bottom": "摄像头置底"
 	},
 	"effects": {
 		"title": "视频效果",

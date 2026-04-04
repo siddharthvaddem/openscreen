@@ -6,7 +6,7 @@ import {
 	type StyledRenderRect,
 	type WebcamLayoutPreset,
 } from "@/lib/compositeLayout";
-import type { CropRegion, WebcamMaskShape, WebcamSizePreset } from "../types";
+import type { CropRegion, WebcamCornerPreset, WebcamMaskShape, WebcamSizePreset, WebcamStackPosition } from "../types";
 
 interface LayoutParams {
 	container: HTMLDivElement;
@@ -23,6 +23,8 @@ interface LayoutParams {
 	webcamMaskShape?: WebcamMaskShape;
 	webcamSizePreset?: WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamCornerPreset?: WebcamCornerPreset | null;
+	webcamStackPosition?: WebcamStackPosition | null;
 }
 
 interface LayoutResult {
@@ -51,6 +53,8 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		webcamCornerPreset,
+		webcamStackPosition,
 	} = params;
 
 	const videoWidth = lockedVideoDimensions?.width || videoElement.videoWidth;
@@ -100,6 +104,8 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		webcamCornerPreset,
+		webcamStackPosition,
 	});
 
 	if (!compositeLayout) {

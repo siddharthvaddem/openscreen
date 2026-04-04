@@ -17,14 +17,17 @@ import {
 	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
+	DEFAULT_WEBCAM_STACK_POSITION,
 	DEFAULT_ZOOM_DEPTH,
 	type SpeedRegion,
 	type TrimRegion,
+	type WebcamCornerPreset,
 	type WebcamFocusRegion,
 	type WebcamLayoutPreset,
 	type WebcamMaskShape,
 	type WebcamPosition,
 	type WebcamSizePreset,
+	type WebcamStackPosition,
 	type ZoomRegion,
 } from "./types";
 
@@ -55,6 +58,8 @@ export interface ProjectEditorState {
 	webcamMaskShape: WebcamMaskShape;
 	webcamSizePreset: WebcamSizePreset;
 	webcamPosition: WebcamPosition | null;
+	webcamCornerPreset: WebcamCornerPreset | null;
+	webcamStackPosition: WebcamStackPosition;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
 	gifFrameRate: GifFrameRate;
@@ -442,6 +447,19 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						cy: clamp((editor.webcamPosition as WebcamPosition).cy, 0, 1),
 					}
 				: DEFAULT_WEBCAM_POSITION,
+		webcamCornerPreset:
+			editor.webcamCornerPreset === "top-left" ||
+			editor.webcamCornerPreset === "top-right" ||
+			editor.webcamCornerPreset === "center-left" ||
+			editor.webcamCornerPreset === "center-right" ||
+			editor.webcamCornerPreset === "bottom-left" ||
+			editor.webcamCornerPreset === "bottom-right"
+				? editor.webcamCornerPreset
+				: null,
+		webcamStackPosition:
+			editor.webcamStackPosition === "top" || editor.webcamStackPosition === "bottom"
+				? editor.webcamStackPosition
+				: DEFAULT_WEBCAM_STACK_POSITION,
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality

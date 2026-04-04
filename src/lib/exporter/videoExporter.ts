@@ -37,6 +37,8 @@ interface VideoExporterConfig extends ExportConfig {
 	webcamMaskShape?: WebcamMaskShape;
 	webcamSizePreset?: import("@/components/video-editor/types").WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamCornerPreset?: import("@/components/video-editor/types").WebcamCornerPreset | null;
+	webcamStackPosition?: import("@/components/video-editor/types").WebcamStackPosition | null;
 	annotationRegions?: AnnotationRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	previewWidth?: number;
@@ -143,6 +145,8 @@ export class VideoExporter {
 				webcamMaskShape: this.config.webcamMaskShape,
 				webcamSizePreset: this.config.webcamSizePreset,
 				webcamPosition: this.config.webcamPosition,
+				webcamCornerPreset: this.config.webcamCornerPreset,
+				webcamStackPosition: this.config.webcamStackPosition,
 				annotationRegions: this.config.annotationRegions,
 				speedRegions: this.config.speedRegions,
 				webcamFocusRegions: this.config.webcamFocusRegions,

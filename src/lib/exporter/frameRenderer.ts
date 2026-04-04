@@ -68,6 +68,8 @@ interface FrameRenderConfig {
 	webcamSize?: Size | null;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamCornerPreset?: import("@/components/video-editor/types").WebcamCornerPreset | null;
+	webcamStackPosition?: import("@/components/video-editor/types").WebcamStackPosition | null;
 	annotationRegions?: AnnotationRegion[];
 	speedRegions?: SpeedRegion[];
 	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
@@ -456,6 +458,8 @@ export class FrameRenderer {
 			webcamMaskShape: this.config.webcamMaskShape,
 			webcamSizePreset: this.config.webcamSizePreset,
 			webcamPosition: this.config.webcamPosition,
+			webcamCornerPreset: this.config.webcamCornerPreset,
+			webcamStackPosition: this.config.webcamStackPosition,
 		});
 		if (!compositeLayout) return;
 
@@ -538,6 +542,9 @@ export class FrameRenderer {
 	): { x: number; y: number; width: number; height: number } | null {
 		const { width, height, webcamSize, webcamMaskShape } = this.config;
 		if (!webcamSize) return null;
+		if (this.config.webcamLayoutPreset === "vertical-stack") {
+			return { x: 0, y: 0, width, height };
+		}
 		const activeRegion = this.getActiveFocusRegion(timeMs);
 		const shape = activeRegion?.focusShape ?? webcamMaskShape;
 		const isRightAligned = shape === "portrait" || shape === "square";

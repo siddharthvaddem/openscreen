@@ -93,6 +93,8 @@ export default function VideoEditor() {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		webcamCornerPreset,
+		webcamStackPosition,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -209,6 +211,8 @@ export default function VideoEditor() {
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamSizePreset: normalizedEditor.webcamSizePreset,
 				webcamPosition: normalizedEditor.webcamPosition,
+				webcamCornerPreset: normalizedEditor.webcamCornerPreset,
+				webcamStackPosition: normalizedEditor.webcamStackPosition,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -282,6 +286,8 @@ export default function VideoEditor() {
 				webcamMaskShape,
 				webcamSizePreset,
 				webcamPosition,
+				webcamCornerPreset,
+				webcamStackPosition,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -308,6 +314,8 @@ export default function VideoEditor() {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+				webcamCornerPreset,
+				webcamStackPosition,
 		exportQuality,
 		exportFormat,
 		gifFrameRate,
@@ -404,6 +412,8 @@ export default function VideoEditor() {
 				webcamMaskShape,
 				webcamSizePreset,
 				webcamPosition,
+			webcamCornerPreset,
+			webcamStackPosition,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -461,6 +471,8 @@ export default function VideoEditor() {
 			webcamMaskShape,
 			webcamSizePreset,
 			webcamPosition,
+			webcamCornerPreset,
+			webcamStackPosition,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
@@ -489,6 +501,18 @@ export default function VideoEditor() {
 	const handleSaveProjectAs = useCallback(async () => {
 		await saveProject(true);
 	}, [saveProject]);
+
+	const handleAddWebcamVideo = useCallback(async () => {
+		const result = await window.electronAPI.openVideoFilePicker();
+		if (result.canceled || !result.success || !result.path) return;
+		setWebcamVideoSourcePath(result.path);
+		setWebcamVideoPath(toFileUrl(result.path));
+	}, []);
+
+	const handleRemoveWebcamVideo = useCallback(() => {
+		setWebcamVideoPath(null);
+		setWebcamVideoSourcePath(null);
+	}, []);
 
 	const handleLoadProject = useCallback(async () => {
 		const result = await window.electronAPI.loadProjectFile();
@@ -1245,6 +1269,8 @@ export default function VideoEditor() {
 						webcamMaskShape,
 						webcamSizePreset,
 						webcamPosition,
+						webcamCornerPreset,
+						webcamStackPosition,
 						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
 						previewHeight,
@@ -1380,6 +1406,8 @@ export default function VideoEditor() {
 						webcamMaskShape,
 						webcamSizePreset,
 						webcamPosition,
+						webcamCornerPreset,
+						webcamStackPosition,
 						webcamFocusRegions: webcamVideoPath ? webcamFocusRegions : undefined,
 						previewWidth,
 						previewHeight,
@@ -1640,8 +1668,10 @@ export default function VideoEditor() {
 											webcamMaskShape={webcamMaskShape}
 											webcamSizePreset={webcamSizePreset}
 											webcamPosition={webcamPosition}
+											webcamCornerPreset={webcamCornerPreset}
+											webcamStackPosition={webcamStackPosition}
 											webcamFocusRegions={webcamVideoPath ? webcamFocusRegions : undefined}
-											onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos })}
+											onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos, webcamCornerPreset: null })}
 											onWebcamPositionDragEnd={commitState}
 											onDurationChange={setDuration}
 											onTimeUpdate={setCurrentTime}
@@ -1788,6 +1818,8 @@ export default function VideoEditor() {
 						onCropChange={(r) => pushState({ cropRegion: r })}
 						aspectRatio={aspectRatio}
 						hasWebcam={Boolean(webcamVideoPath)}
+						onAddWebcamVideo={handleAddWebcamVideo}
+						onRemoveWebcamVideo={handleRemoveWebcamVideo}
 						webcamLayoutPreset={webcamLayoutPreset}
 						onWebcamLayoutPresetChange={(preset) =>
 							pushState({
@@ -1795,6 +1827,12 @@ export default function VideoEditor() {
 								webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
 							})
 						}
+						webcamCornerPreset={webcamCornerPreset}
+						onWebcamCornerPresetChange={(preset) =>
+							pushState({ webcamCornerPreset: preset, webcamPosition: null })
+						}
+						webcamStackPosition={webcamStackPosition}
+						onWebcamStackPositionChange={(pos) => pushState({ webcamStackPosition: pos })}
 						webcamMaskShape={webcamMaskShape}
 						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
 						webcamSizePreset={webcamSizePreset}
