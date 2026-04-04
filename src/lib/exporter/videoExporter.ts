@@ -56,7 +56,7 @@ export class VideoExporter {
 	private readonly MAX_ENCODE_QUEUE = 120;
 	private videoDescription: Uint8Array | undefined;
 	private videoColorSpace: VideoColorSpaceInit | undefined;
-	private muxingPromises: Promise<void>[] = [];
+	private muxingPromises: Set<Promise<void>> = new Set();
 	private chunkCount = 0;
 	private lastEncoderOutputAt = 0;
 	private fatalEncoderError: Error | null = null;
@@ -323,7 +323,10 @@ export class VideoExporter {
 				throw this.fatalEncoderError;
 			}
 
-			await Promise.all(this.muxingPromises);
+			// Drain any still-in-flight muxing operations (the Set self-prunes as each resolves).
+			while (this.muxingPromises.size > 0) {
+				await Promise.all([...this.muxingPromises]);
+			}
 
 			this.reportProgress({
 				currentFrame: totalFrames,
@@ -346,6 +349,16 @@ export class VideoExporter {
 						this.config.speedRegions,
 						readEndSec,
 						this.config.audioSettings,
+						(audioProgress) => {
+							this.reportProgress({
+								currentFrame: totalFrames,
+								totalFrames,
+								percentage: 100,
+								estimatedTimeRemaining: 0,
+								phase: "finalizing",
+								audioProgress,
+							});
+						},
 					);
 				}
 			}
@@ -364,7 +377,7 @@ export class VideoExporter {
 
 	private async initializeEncoder(hardwareAcceleration: HardwareAcceleration): Promise<void> {
 		this.encodeQueue = 0;
-		this.muxingPromises = [];
+		this.muxingPromises = new Set();
 		this.chunkCount = 0;
 		this.lastEncoderOutputAt = Date.now();
 		this.fatalEncoderError = null;
@@ -391,7 +404,7 @@ export class VideoExporter {
 				const isFirstChunk = this.chunkCount === 0;
 				this.chunkCount++;
 
-				const muxingPromise = (async () => {
+				const muxingWork = (async () => {
 					try {
 						if (isFirstChunk && this.videoDescription) {
 							const colorSpace = this.videoColorSpace || {
@@ -419,8 +432,13 @@ export class VideoExporter {
 						console.error("Muxing error:", error);
 					}
 				})();
+				// Chain a .finally() so we can reference `muxingPromise` after assignment.
+				const muxingPromise: Promise<void> = muxingWork.finally(() => {
+					// Prune from the Set immediately so memory stays lean for long videos.
+					this.muxingPromises.delete(muxingPromise);
+				});
 
-				this.muxingPromises.push(muxingPromise);
+				this.muxingPromises.add(muxingPromise);
 				this.encodeQueue--;
 			},
 			error: (error) => {
@@ -514,7 +532,7 @@ export class VideoExporter {
 		this.audioProcessor = null;
 		this.muxer = null;
 		this.encodeQueue = 0;
-		this.muxingPromises = [];
+		this.muxingPromises = new Set();
 		this.chunkCount = 0;
 		this.videoDescription = undefined;
 		this.videoColorSpace = undefined;

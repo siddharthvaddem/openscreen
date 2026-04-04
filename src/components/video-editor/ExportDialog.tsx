@@ -64,6 +64,12 @@ export function ExportDialog({
 		isExporting && progress && progress.percentage >= 100 && exportFormat === "gif";
 	const isFinalizing = progress?.phase === "finalizing";
 	const renderProgress = progress?.renderProgress;
+	const audioProgress = progress?.audioProgress;
+	// audioProgress takes priority over renderProgress during mp4 finalization
+	const finalizingProgress =
+		isFinalizing && exportFormat === "mp4" && audioProgress !== undefined
+			? audioProgress
+			: renderProgress;
 
 	// Get status message based on phase
 	const getStatusMessage = () => {
@@ -177,8 +183,8 @@ export function ExportDialog({
 								</span>
 								<span className="font-mono text-slate-200">
 									{isCompiling || isFinalizing ? (
-										renderProgress !== undefined && renderProgress > 0 ? (
-											`${renderProgress}%`
+										finalizingProgress !== undefined && finalizingProgress > 0 ? (
+											`${finalizingProgress}%`
 										) : (
 											<span className="flex items-center gap-2">
 												<Loader2 className="w-3 h-3 animate-spin" />
@@ -192,11 +198,11 @@ export function ExportDialog({
 							</div>
 							<div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
 								{isCompiling || isFinalizing ? (
-									// Show render progress if available, otherwise animated indeterminate bar
-									renderProgress !== undefined && renderProgress > 0 ? (
+									// Show real progress if available, otherwise animated indeterminate bar
+									finalizingProgress !== undefined && finalizingProgress > 0 ? (
 										<div
 											className="h-full bg-[#34B27B] shadow-[0_0_10px_rgba(52,178,123,0.3)] transition-all duration-300 ease-out"
-											style={{ width: `${renderProgress}%` }}
+											style={{ width: `${finalizingProgress}%` }}
 										/>
 									) : (
 										<div className="h-full w-full relative overflow-hidden">

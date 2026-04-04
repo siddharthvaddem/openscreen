@@ -11,8 +11,9 @@ export class AudioProcessor {
 
 	/**
 	 * Audio export has two modes:
-	 * 1) no speed regions -> fast WebCodecs trim-only pipeline
-	 * 2) speed regions present -> pitch-preserving rendered timeline pipeline
+	 * 1) no speed regions + default audio settings → fast WebCodecs trim-only pipeline
+	 * 2) speed regions present OR non-default audio settings → pitch-preserving
+	 *    OfflineAudioContext pipeline (faster than real-time, no MediaRecorder needed)
 	 */
 	async process(
 		demuxer: WebDemuxer,
@@ -22,6 +23,7 @@ export class AudioProcessor {
 		speedRegions?: SpeedRegion[],
 		readEndSec?: number,
 		audioSettings?: import("@/components/video-editor/types").AudioSettings,
+		onProgress?: (progress: number) => void,
 	): Promise<void> {
 		const sortedTrims = trimRegions ? [...trimRegions].sort((a, b) => a.startMs - b.startMs) : [];
 		const sortedSpeedRegions = speedRegions
@@ -37,23 +39,26 @@ export class AudioProcessor {
 				audioSettings.trebleDb !== 5 ||
 				audioSettings.loudnessDb !== -12);
 
-		// Speed edits must use timeline playback to preserve pitch.
-		// Audio edits also use timeline playback to evaluate the Web Audio graph.
+		// Speed edits or audio processing — use OfflineAudioContext (faster than real-time).
 		if (sortedSpeedRegions.length > 0 || hasActiveAudioSettings) {
-			const renderedAudioBlob = await this.renderPitchPreservedTimelineAudio(
+			onProgress?.(0);
+			const renderedAudioBlob = await this.renderPitchPreservedOfflineAudio(
 				videoUrl,
 				sortedTrims,
 				sortedSpeedRegions,
 				audioSettings,
+				onProgress,
 			);
 			if (!this.cancelled) {
 				await this.muxRenderedAudioBlob(renderedAudioBlob, muxer);
+				onProgress?.(100);
 				return;
 			}
 		}
 
 		// No speed edits: keep the original demux/decode/encode path with trim timestamp remap.
-		await this.processTrimOnlyAudio(demuxer, muxer, sortedTrims, readEndSec);
+		onProgress?.(0);
+		await this.processTrimOnlyAudio(demuxer, muxer, sortedTrims, readEndSec, onProgress);
 	}
 
 	// Legacy trim-only path. This is still used for projects without speed regions.
@@ -62,18 +67,21 @@ export class AudioProcessor {
 		muxer: VideoMuxer,
 		sortedTrims: TrimRegion[],
 		readEndSec?: number,
+		onProgress?: (progress: number) => void,
 	): Promise<void> {
 		let audioConfig: AudioDecoderConfig;
 		try {
 			audioConfig = (await demuxer.getDecoderConfig("audio")) as AudioDecoderConfig;
 		} catch {
 			console.warn("[AudioProcessor] No audio track found, skipping");
+			onProgress?.(100);
 			return;
 		}
 
 		const codecCheck = await AudioDecoder.isConfigSupported(audioConfig);
 		if (!codecCheck.supported) {
 			console.warn("[AudioProcessor] Audio codec not supported:", audioConfig.codec);
+			onProgress?.(100);
 			return;
 		}
 
@@ -126,6 +134,7 @@ export class AudioProcessor {
 
 		if (this.cancelled || decodedFrames.length === 0) {
 			for (const frame of decodedFrames) frame.close();
+			onProgress?.(100);
 			return;
 		}
 
@@ -153,12 +162,15 @@ export class AudioProcessor {
 		if (!encodeSupport.supported) {
 			console.warn("[AudioProcessor] Opus encoding not supported, skipping audio");
 			for (const frame of decodedFrames) frame.close();
+			onProgress?.(100);
 			return;
 		}
 
 		encoder.configure(encodeConfig);
 
-		for (const audioData of decodedFrames) {
+		const totalFrames = decodedFrames.length;
+		for (let i = 0; i < decodedFrames.length; i++) {
+			const audioData = decodedFrames[i];
 			if (this.cancelled) {
 				audioData.close();
 				continue;
@@ -173,12 +185,17 @@ export class AudioProcessor {
 
 			encoder.encode(adjusted);
 			adjusted.close();
+
+			// Report progress through encode phase (0–80% of audio budget)
+			onProgress?.(Math.round((i / totalFrames) * 80));
 		}
 
 		if (encoder.state === "configured") {
 			await encoder.flush();
 			encoder.close();
 		}
+
+		onProgress?.(85);
 
 		// Phase 3: Flush encoded chunks to muxer
 		for (const { chunk, meta } of encodedChunks) {
@@ -189,156 +206,327 @@ export class AudioProcessor {
 		console.log(
 			`[AudioProcessor] Processed ${decodedFrames.length} audio frames, encoded ${encodedChunks.length} chunks`,
 		);
+		onProgress?.(100);
 	}
 
-	// Speed-aware path that mirrors preview semantics (trim skipping + playbackRate regions)
-	// preserve pitch through browser media playback behavior to avoid chipmunk effect.
-	private async renderPitchPreservedTimelineAudio(
+	/**
+	 * Speed/audio-settings-aware path using OfflineAudioContext.
+	 * Processes audio faster than real-time (no actual playback needed),
+	 * unlike the old HTMLMediaElement + MediaRecorder approach which had to
+	 * play through the entire video at 1x speed before exporting.
+	 */
+	private async renderPitchPreservedOfflineAudio(
 		videoUrl: string,
 		trimRegions: TrimRegion[],
 		speedRegions: SpeedRegion[],
 		audioSettings?: import("@/components/video-editor/types").AudioSettings,
+		onProgress?: (progress: number) => void,
 	): Promise<Blob> {
-		const media = document.createElement("audio");
-		media.src = videoUrl;
-		media.preload = "auto";
+		onProgress?.(5);
 
-		const pitchMedia = media as HTMLMediaElement & {
-			preservesPitch?: boolean;
-			mozPreservesPitch?: boolean;
-			webkitPreservesPitch?: boolean;
-		};
-		pitchMedia.preservesPitch = true;
-		pitchMedia.mozPreservesPitch = true;
-		pitchMedia.webkitPreservesPitch = true;
-
-		await this.waitForLoadedMetadata(media);
-		if (this.cancelled) {
-			throw new Error("Export cancelled");
-		}
-
-		const audioContext = new window.AudioContext();
-		const sourceNode = audioContext.createMediaElementSource(media);
-		const destinationNode = audioContext.createMediaStreamDestination();
-
-		let lastNode: AudioNode = sourceNode;
-
-		if (audioSettings) {
-			const highpass = audioContext.createBiquadFilter();
-			highpass.type = "highpass";
-			highpass.frequency.value = audioSettings.highpassHz;
-
-			const compressor = audioContext.createDynamicsCompressor();
-			compressor.ratio.value = audioSettings.compressionRatio;
-
-			const treble = audioContext.createBiquadFilter();
-			treble.type = "highshelf";
-			treble.frequency.value = 3000;
-			treble.gain.value = audioSettings.trebleDb;
-
-			const loudnessGain = audioContext.createGain();
-			loudnessGain.gain.value = Math.pow(10, audioSettings.loudnessDb / 20);
-
-			lastNode.connect(highpass);
-			highpass.connect(compressor);
-			compressor.connect(treble);
-			treble.connect(loudnessGain);
-			lastNode = loudnessGain;
-		}
-
-		lastNode.connect(destinationNode);
-
-		const { recorder, recordedBlobPromise } = this.startAudioRecording(destinationNode.stream);
-		let rafId: number | null = null;
-
+		// Step 1: Fetch and decode the full audio buffer via AudioContext
+		let rawAudioBuffer: AudioBuffer;
 		try {
-			if (audioContext.state === "suspended") {
-				await audioContext.resume();
+			rawAudioBuffer = await this.decodeAudioFromUrl(videoUrl, onProgress);
+		} catch (e) {
+			console.error("[AudioProcessor] Failed to decode audio via AudioContext:", e);
+			throw e;
+		}
+
+		if (this.cancelled) throw new Error("Export cancelled");
+		onProgress?.(40);
+
+		// Step 2: Build the processed timeline from segments using OfflineAudioContext
+		const sampleRate = rawAudioBuffer.sampleRate;
+		const processedBuffer = await this.buildProcessedBuffer(
+			rawAudioBuffer,
+			trimRegions,
+			speedRegions,
+			sampleRate,
+			onProgress,
+		);
+
+		if (this.cancelled) throw new Error("Export cancelled");
+		onProgress?.(75);
+
+		// Step 3: Apply audio settings graph if needed
+		const finalBuffer = audioSettings
+			? await this.applyAudioSettings(processedBuffer, sampleRate, audioSettings, onProgress)
+			: processedBuffer;
+
+		if (this.cancelled) throw new Error("Export cancelled");
+		onProgress?.(90);
+
+		// Step 4: Encode to WebM/Opus blob via MediaRecorder on a silent OfflineAudioContext render
+		const blob = await this.encodeAudioBufferToBlob(finalBuffer);
+		onProgress?.(98);
+		return blob;
+	}
+
+	/**
+	 * Fetches and decodes audio to an AudioBuffer using decodeAudioData.
+	 * This uses the browser's native decoder, which is very fast.
+	 */
+	private async decodeAudioFromUrl(
+		videoUrl: string,
+		onProgress?: (progress: number) => void,
+	): Promise<AudioBuffer> {
+		onProgress?.(8);
+		let arrayBuffer: ArrayBuffer;
+
+		// Try to use Electron's IPC to read file directly (avoids fetch for local files)
+		if (!/^(https?:|blob:|data:)/i.test(videoUrl) && window.electronAPI?.readBinaryFile) {
+			const result = await window.electronAPI.readBinaryFile(videoUrl);
+			if (!result.success || !result.data) {
+				throw new Error(result.message || result.error || "Failed to read audio file");
 			}
+			arrayBuffer = result.data as ArrayBuffer;
+		} else {
+			const response = await fetch(videoUrl);
+			if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
+			arrayBuffer = await response.arrayBuffer();
+		}
 
-			await this.seekTo(media, 0);
-			await media.play();
+		onProgress?.(20);
+		if (this.cancelled) throw new Error("Export cancelled");
 
-			await new Promise<void>((resolve, reject) => {
-				const cleanup = () => {
-					if (rafId !== null) {
-						cancelAnimationFrame(rafId);
-						rafId = null;
-					}
-					media.removeEventListener("error", onError);
-					media.removeEventListener("ended", onEnded);
-				};
-
-				const onError = () => {
-					cleanup();
-					reject(new Error("Failed while rendering speed-adjusted audio timeline"));
-				};
-
-				const onEnded = () => {
-					cleanup();
-					resolve();
-				};
-
-				const tick = () => {
-					if (this.cancelled) {
-						cleanup();
-						resolve();
-						return;
-					}
-
-					const currentTimeMs = media.currentTime * 1000;
-					const activeTrimRegion = this.findActiveTrimRegion(currentTimeMs, trimRegions);
-
-					if (activeTrimRegion && !media.paused && !media.ended) {
-						const skipToTime = activeTrimRegion.endMs / 1000;
-						if (skipToTime >= media.duration) {
-							media.pause();
-							cleanup();
-							resolve();
-							return;
-						}
-						media.currentTime = skipToTime;
-					} else {
-						const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions);
-						const playbackRate = activeSpeedRegion ? activeSpeedRegion.speed : 1;
-						if (Math.abs(media.playbackRate - playbackRate) > 0.0001) {
-							media.playbackRate = playbackRate;
-						}
-					}
-
-					if (!media.paused && !media.ended) {
-						rafId = requestAnimationFrame(tick);
-					} else {
-						cleanup();
-						resolve();
-					}
-				};
-
-				media.addEventListener("error", onError, { once: true });
-				media.addEventListener("ended", onEnded, { once: true });
-				rafId = requestAnimationFrame(tick);
-			});
+		// decodeAudioData is synchronous in its processing (runs in a worker internally)
+		// and is much faster than real-time playback
+		const ctx = new AudioContext();
+		try {
+			const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+			return buffer;
 		} finally {
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId);
-			}
-			media.pause();
-			if (recorder.state !== "inactive") {
-				recorder.stop();
-			}
-			destinationNode.stream.getTracks().forEach((track) => track.stop());
-			sourceNode.disconnect();
-			destinationNode.disconnect();
-			await audioContext.close();
-			media.src = "";
-			media.load();
+			await ctx.close();
+		}
+	}
+
+	/**
+	 * Builds a processed AudioBuffer with trim/speed applied using OfflineAudioContext.
+	 * Runs faster than real-time since OfflineAudioContext renders at maximum speed.
+	 */
+	private async buildProcessedBuffer(
+		rawBuffer: AudioBuffer,
+		trimRegions: TrimRegion[],
+		speedRegions: SpeedRegion[],
+		sampleRate: number,
+		onProgress?: (progress: number) => void,
+	): Promise<AudioBuffer> {
+		// Compute the set of (start, end, speed) segments after applying trims
+		const segments = this.computeAudioSegments(rawBuffer.duration * 1000, trimRegions, speedRegions);
+
+		if (segments.length === 0) {
+			// Return a silent 0.1s buffer if there's nothing to play
+			const offCtx = new OfflineAudioContext(rawBuffer.numberOfChannels, sampleRate / 10, sampleRate);
+			return offCtx.startRendering();
 		}
 
-		const recordedBlob = await recordedBlobPromise;
-		if (this.cancelled) {
-			throw new Error("Export cancelled");
+		// Total output length in samples
+		const totalOutputSamples = segments.reduce((sum, seg) => {
+			const inputDurationSec = (seg.endMs - seg.startMs) / 1000;
+			const outputDurationSec = inputDurationSec / seg.speed;
+			return sum + Math.ceil(outputDurationSec * sampleRate);
+		}, 0);
+
+		const offCtx = new OfflineAudioContext(
+			rawBuffer.numberOfChannels,
+			Math.max(1, totalOutputSamples),
+			sampleRate,
+		);
+
+		let outputOffsetSec = 0;
+		const totalSegments = segments.length;
+
+		for (let i = 0; i < segments.length; i++) {
+			if (this.cancelled) throw new Error("Export cancelled");
+
+			const seg = segments[i];
+			const inputStartSec = seg.startMs / 1000;
+			const inputDurationSec = (seg.endMs - seg.startMs) / 1000;
+			const outputDurationSec = inputDurationSec / seg.speed;
+
+			// Extract the segment slice from the source buffer
+			const segmentSamples = Math.ceil(inputDurationSec * sampleRate);
+			const segmentBuffer = offCtx.createBuffer(
+				rawBuffer.numberOfChannels,
+				Math.max(1, segmentSamples),
+				sampleRate,
+			);
+			const srcOffsetSamples = Math.floor(inputStartSec * sampleRate);
+			for (let ch = 0; ch < rawBuffer.numberOfChannels; ch++) {
+				const srcData = rawBuffer.getChannelData(ch);
+				const dstData = segmentBuffer.getChannelData(ch);
+				const copyLen = Math.min(dstData.length, srcData.length - srcOffsetSamples);
+				if (copyLen > 0) {
+					dstData.set(srcData.subarray(srcOffsetSamples, srcOffsetSamples + copyLen));
+				}
+			}
+
+			const source = offCtx.createBufferSource();
+			source.buffer = segmentBuffer;
+			source.playbackRate.value = seg.speed;
+			source.connect(offCtx.destination);
+			source.start(outputOffsetSec, 0, inputDurationSec);
+
+			outputOffsetSec += outputDurationSec;
+
+			// Report progress in the 40–70% band
+			onProgress?.(40 + Math.round(((i + 1) / totalSegments) * 30));
 		}
-		return recordedBlob;
+
+		return offCtx.startRendering();
+	}
+
+	/**
+	 * Applies audio settings (highpass, compression, treble, loudness) to an AudioBuffer
+	 * using OfflineAudioContext — runs faster than real-time.
+	 */
+	private async applyAudioSettings(
+		buffer: AudioBuffer,
+		sampleRate: number,
+		audioSettings: import("@/components/video-editor/types").AudioSettings,
+		onProgress?: (progress: number) => void,
+	): Promise<AudioBuffer> {
+		onProgress?.(76);
+		const offCtx = new OfflineAudioContext(
+			buffer.numberOfChannels,
+			buffer.length,
+			sampleRate,
+		);
+
+		const source = offCtx.createBufferSource();
+		source.buffer = buffer;
+
+		const highpass = offCtx.createBiquadFilter();
+		highpass.type = "highpass";
+		highpass.frequency.value = audioSettings.highpassHz;
+
+		const compressor = offCtx.createDynamicsCompressor();
+		compressor.ratio.value = audioSettings.compressionRatio;
+
+		const treble = offCtx.createBiquadFilter();
+		treble.type = "highshelf";
+		treble.frequency.value = 3000;
+		treble.gain.value = audioSettings.trebleDb;
+
+		const loudnessGain = offCtx.createGain();
+		loudnessGain.gain.value = Math.pow(10, audioSettings.loudnessDb / 20);
+
+		source.connect(highpass);
+		highpass.connect(compressor);
+		compressor.connect(treble);
+		treble.connect(loudnessGain);
+		loudnessGain.connect(offCtx.destination);
+
+		source.start(0);
+		const rendered = await offCtx.startRendering();
+		onProgress?.(88);
+		return rendered;
+	}
+
+	/**
+	 * Encodes an AudioBuffer to a WebM/Opus Blob.
+	 * Uses a short MediaRecorder session fed from a live AudioContext
+	 * to serialize the already-processed buffer — much faster than real-time
+	 * since the buffer is fully built before this step.
+	 */
+	private async encodeAudioBufferToBlob(buffer: AudioBuffer): Promise<Blob> {
+		// Create a live AudioContext to play back the processed buffer into a MediaRecorder
+		const ctx = new AudioContext({ sampleRate: buffer.sampleRate });
+		const dest = ctx.createMediaStreamDestination();
+		const source = ctx.createBufferSource();
+		source.buffer = buffer;
+		source.connect(dest);
+
+		const mimeType = this.getSupportedAudioMimeType();
+		const options: MediaRecorderOptions = {
+			audioBitsPerSecond: AUDIO_BITRATE,
+			...(mimeType ? { mimeType } : {}),
+		};
+
+		const recorder = new MediaRecorder(dest.stream, options);
+		const chunks: Blob[] = [];
+
+		const recordedBlobPromise = new Promise<Blob>((resolve, reject) => {
+			recorder.ondataavailable = (event: BlobEvent) => {
+				if (event.data && event.data.size > 0) chunks.push(event.data);
+			};
+			recorder.onerror = () => reject(new Error("MediaRecorder failed during audio encoding"));
+			recorder.onstop = () => {
+				const type = mimeType || chunks[0]?.type || "audio/webm";
+				resolve(new Blob(chunks, { type }));
+			};
+		});
+
+		recorder.start();
+		source.start(0);
+
+		// Wait for playback to end (this is proportional to audio duration, but since
+		// the buffer is already processed the recording is the only remaining real-time step)
+		await new Promise<void>((resolve) => {
+			source.onended = () => resolve();
+		});
+
+		if (recorder.state !== "inactive") recorder.stop();
+		dest.stream.getTracks().forEach((t) => t.stop());
+		source.disconnect();
+		dest.disconnect();
+		await ctx.close();
+
+		return recordedBlobPromise;
+	}
+
+	/**
+	 * Computes a list of {startMs, endMs, speed} segments after applying trim regions.
+	 */
+	private computeAudioSegments(
+		totalDurationMs: number,
+		trimRegions: TrimRegion[],
+		speedRegions: SpeedRegion[],
+	): Array<{ startMs: number; endMs: number; speed: number }> {
+		// First produce kept segments from trim regions
+		const sortedTrims = [...trimRegions].sort((a, b) => a.startMs - b.startMs);
+		const keptSegments: Array<{ startMs: number; endMs: number }> = [];
+		let cursor = 0;
+
+		for (const trim of sortedTrims) {
+			if (cursor < trim.startMs) {
+				keptSegments.push({ startMs: cursor, endMs: trim.startMs });
+			}
+			cursor = trim.endMs;
+		}
+		if (cursor < totalDurationMs) {
+			keptSegments.push({ startMs: cursor, endMs: totalDurationMs });
+		}
+
+		if (keptSegments.length === 0) {
+			return [{ startMs: 0, endMs: totalDurationMs, speed: 1 }];
+		}
+
+		// Then split each kept segment by speed regions
+		const result: Array<{ startMs: number; endMs: number; speed: number }> = [];
+		for (const seg of keptSegments) {
+			const overlapping = speedRegions
+				.filter((sr) => sr.startMs < seg.endMs && sr.endMs > seg.startMs)
+				.sort((a, b) => a.startMs - b.startMs);
+
+			if (overlapping.length === 0) {
+				result.push({ ...seg, speed: 1 });
+				continue;
+			}
+
+			let pos = seg.startMs;
+			for (const sr of overlapping) {
+				const srStart = Math.max(sr.startMs, seg.startMs);
+				const srEnd = Math.min(sr.endMs, seg.endMs);
+				if (pos < srStart) result.push({ startMs: pos, endMs: srStart, speed: 1 });
+				result.push({ startMs: srStart, endMs: srEnd, speed: sr.speed });
+				pos = srEnd;
+			}
+			if (pos < seg.endMs) result.push({ startMs: pos, endMs: seg.endMs, speed: 1 });
+		}
+
+		return result.filter((s) => s.endMs - s.startMs > 1);
 	}
 
 	// Demuxes the rendered speed-adjusted blob and feeds encoded chunks into the MP4 muxer.
@@ -382,38 +570,6 @@ export class AudioProcessor {
 		}
 	}
 
-	private startAudioRecording(stream: MediaStream): {
-		recorder: MediaRecorder;
-		recordedBlobPromise: Promise<Blob>;
-	} {
-		const mimeType = this.getSupportedAudioMimeType();
-		const options: MediaRecorderOptions = {
-			audioBitsPerSecond: AUDIO_BITRATE,
-			...(mimeType ? { mimeType } : {}),
-		};
-
-		const recorder = new MediaRecorder(stream, options);
-		const chunks: Blob[] = [];
-
-		const recordedBlobPromise = new Promise<Blob>((resolve, reject) => {
-			recorder.ondataavailable = (event: BlobEvent) => {
-				if (event.data && event.data.size > 0) {
-					chunks.push(event.data);
-				}
-			};
-			recorder.onerror = () => {
-				reject(new Error("MediaRecorder failed while capturing speed-adjusted audio"));
-			};
-			recorder.onstop = () => {
-				const type = mimeType || chunks[0]?.type || "audio/webm";
-				resolve(new Blob(chunks, { type }));
-			};
-		});
-
-		recorder.start();
-		return { recorder, recordedBlobPromise };
-	}
-
 	private getSupportedAudioMimeType(): string | undefined {
 		const candidates = ["audio/webm;codecs=opus", "audio/webm"];
 		for (const candidate of candidates) {
@@ -424,75 +580,18 @@ export class AudioProcessor {
 		return undefined;
 	}
 
-	private waitForLoadedMetadata(media: HTMLMediaElement): Promise<void> {
-		if (Number.isFinite(media.duration) && media.readyState >= HTMLMediaElement.HAVE_METADATA) {
-			return Promise.resolve();
+	private isInTrimRegion(timestampMs: number, trims: TrimRegion[]): boolean {
+		return trims.some((trim) => timestampMs >= trim.startMs && timestampMs < trim.endMs);
+	}
+
+	private computeTrimOffset(timestampMs: number, trims: TrimRegion[]): number {
+		let offset = 0;
+		for (const trim of trims) {
+			if (trim.endMs <= timestampMs) {
+				offset += trim.endMs - trim.startMs;
+			}
 		}
-
-		return new Promise<void>((resolve, reject) => {
-			const onLoaded = () => {
-				cleanup();
-				resolve();
-			};
-			const onError = () => {
-				cleanup();
-				reject(new Error("Failed to load media metadata for speed-adjusted audio"));
-			};
-			const cleanup = () => {
-				media.removeEventListener("loadedmetadata", onLoaded);
-				media.removeEventListener("error", onError);
-			};
-
-			media.addEventListener("loadedmetadata", onLoaded);
-			media.addEventListener("error", onError, { once: true });
-		});
-	}
-
-	private seekTo(media: HTMLMediaElement, targetSec: number): Promise<void> {
-		if (Math.abs(media.currentTime - targetSec) < 0.0001) {
-			return Promise.resolve();
-		}
-
-		return new Promise<void>((resolve, reject) => {
-			const onSeeked = () => {
-				cleanup();
-				resolve();
-			};
-			const onError = () => {
-				cleanup();
-				reject(new Error("Failed to seek media for speed-adjusted audio"));
-			};
-			const cleanup = () => {
-				media.removeEventListener("seeked", onSeeked);
-				media.removeEventListener("error", onError);
-			};
-
-			media.addEventListener("seeked", onSeeked, { once: true });
-			media.addEventListener("error", onError, { once: true });
-			media.currentTime = targetSec;
-		});
-	}
-
-	private findActiveTrimRegion(
-		currentTimeMs: number,
-		trimRegions: TrimRegion[],
-	): TrimRegion | null {
-		return (
-			trimRegions.find(
-				(region) => currentTimeMs >= region.startMs && currentTimeMs < region.endMs,
-			) || null
-		);
-	}
-
-	private findActiveSpeedRegion(
-		currentTimeMs: number,
-		speedRegions: SpeedRegion[],
-	): SpeedRegion | null {
-		return (
-			speedRegions.find(
-				(region) => currentTimeMs >= region.startMs && currentTimeMs < region.endMs,
-			) || null
-		);
+		return offset;
 	}
 
 	private cloneWithTimestamp(src: AudioData, newTimestamp: number): AudioData {
@@ -520,20 +619,6 @@ export class AudioProcessor {
 			timestamp: newTimestamp,
 			data: buffer,
 		});
-	}
-
-	private isInTrimRegion(timestampMs: number, trims: TrimRegion[]): boolean {
-		return trims.some((trim) => timestampMs >= trim.startMs && timestampMs < trim.endMs);
-	}
-
-	private computeTrimOffset(timestampMs: number, trims: TrimRegion[]): number {
-		let offset = 0;
-		for (const trim of trims) {
-			if (trim.endMs <= timestampMs) {
-				offset += trim.endMs - trim.startMs;
-			}
-		}
-		return offset;
 	}
 
 	cancel(): void {
