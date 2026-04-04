@@ -1,3 +1,6 @@
+/** Fraction of canvas width used as right margin for right-aligned focus shapes (portrait/square). */
+export const FOCUS_RIGHT_MARGIN_FRACTION = 0.05;
+
 export interface RenderRect {
 	x: number;
 	y: number;
@@ -125,7 +128,7 @@ const WEBCAM_SIZE_MULTIPLIERS: Record<
 > = {
 	small: 1.0,
 	medium: 1.7,
-	large: 3.0
+	large: 3.0,
 };
 
 export function computeCompositeLayout(params: {

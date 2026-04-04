@@ -37,6 +37,7 @@ import {
 } from "@/components/video-editor/videoPlayback/zoomTransform";
 import {
 	computeCompositeLayout,
+	FOCUS_RIGHT_MARGIN_FRACTION,
 	getWebcamLayoutPresetDefinition,
 	type Size,
 	type StyledRenderRect,
@@ -532,7 +533,9 @@ export class FrameRenderer {
 		return regions.find((r) => timeMs >= r.startMs && timeMs < r.endMs) ?? null;
 	}
 
-	private computeFocusWebcamRect(timeMs: number): { x: number; y: number; width: number; height: number } | null {
+	private computeFocusWebcamRect(
+		timeMs: number,
+	): { x: number; y: number; width: number; height: number } | null {
 		const { width, height, webcamSize, webcamMaskShape } = this.config;
 		if (!webcamSize) return null;
 		const activeRegion = this.getActiveFocusRegion(timeMs);
@@ -544,7 +547,8 @@ export class FrameRenderer {
 		const scale = Math.min((height * 0.9) / srcH, maxW / srcW);
 		const w = Math.round(srcW * scale);
 		const h = Math.round(srcH * scale);
-		const x = isRightAligned ? width - (w + 150) : Math.round((width - w) / 2);
+		const rightMarginOffset = Math.round(width * FOCUS_RIGHT_MARGIN_FRACTION);
+		const x = isRightAligned ? width - (w + rightMarginOffset) : Math.round((width - w) / 2);
 		return { x, y: Math.round((height - h) / 2), width: w, height: h };
 	}
 
@@ -812,8 +816,12 @@ export class FrameRenderer {
 			// Interpolate webcam rect toward focus rect when in a focus region
 			let activeRect = webcamRect;
 			if (focusStrength > 0) {
-				const focusRect = this.computeFocusWebcamRect(this.currentVideoTime * 1000);
+				const focusMsNow = this.currentVideoTime * 1000;
+				const focusRect = this.computeFocusWebcamRect(focusMsNow);
 				if (focusRect) {
+					const activeRegion = this.getActiveFocusRegion(focusMsNow);
+					const focusShape =
+						activeRegion?.focusShape ?? this.config.webcamMaskShape ?? webcamRect.maskShape;
 					const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 					activeRect = {
 						...webcamRect,
@@ -821,6 +829,7 @@ export class FrameRenderer {
 						y: lerp(webcamRect.y, focusRect.y, focusStrength),
 						width: lerp(webcamRect.width, focusRect.width, focusStrength),
 						height: lerp(webcamRect.height, focusRect.height, focusStrength),
+						maskShape: focusShape,
 					};
 				}
 			}

@@ -765,13 +765,7 @@ export function AnnotationSettingsPanel({
 										</label>
 										<div className="grid grid-cols-5 gap-1.5">
 											{(
-												[
-													"bottom",
-													"top",
-													"left",
-													"right",
-													"none",
-												] as CaptionGradientDirection[]
+												["bottom", "top", "left", "right", "none"] as CaptionGradientDirection[]
 											).map((dir) => (
 												<button
 													key={dir}
@@ -787,6 +781,41 @@ export function AnnotationSettingsPanel({
 												</button>
 											))}
 										</div>
+									</div>
+									<div>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">
+											Text alignment
+										</label>
+										<ToggleGroup
+											type="single"
+											value={data.textAlign ?? "center"}
+											className="justify-start bg-white/5 p-1 rounded-lg border border-white/5"
+										>
+											<ToggleGroupItem
+												value="left"
+												aria-label="Align left"
+												onClick={() => update({ textAlign: "left" })}
+												className="h-8 w-8 data-[state=on]:bg-[#34B27B] data-[state=on]:text-white text-slate-400 hover:bg-white/5 hover:text-slate-200"
+											>
+												<AlignLeft className="h-4 w-4" />
+											</ToggleGroupItem>
+											<ToggleGroupItem
+												value="center"
+												aria-label="Align center"
+												onClick={() => update({ textAlign: "center" })}
+												className="h-8 w-8 data-[state=on]:bg-[#34B27B] data-[state=on]:text-white text-slate-400 hover:bg-white/5 hover:text-slate-200"
+											>
+												<AlignCenter className="h-4 w-4" />
+											</ToggleGroupItem>
+											<ToggleGroupItem
+												value="right"
+												aria-label="Align right"
+												onClick={() => update({ textAlign: "right" })}
+												className="h-8 w-8 data-[state=on]:bg-[#34B27B] data-[state=on]:text-white text-slate-400 hover:bg-white/5 hover:text-slate-200"
+											>
+												<AlignRight className="h-4 w-4" />
+											</ToggleGroupItem>
+										</ToggleGroup>
 									</div>
 									<div className="grid grid-cols-2 gap-3">
 										<div>
@@ -874,9 +903,7 @@ export function AnnotationSettingsPanel({
 							return (
 								<>
 									<div>
-										<label className="text-xs font-medium text-slate-200 mb-2 block">
-											Color
-										</label>
+										<label className="text-xs font-medium text-slate-200 mb-2 block">Color</label>
 										<Popover>
 											<PopoverTrigger asChild>
 												<Button

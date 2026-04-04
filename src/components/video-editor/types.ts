@@ -76,6 +76,7 @@ export interface CaptionData {
 	secondaryFontSize: number;
 	fontFamily: string;
 	gradientDirection: CaptionGradientDirection;
+	textAlign: "left" | "center" | "right";
 	wordDelay: number; // ms between each word appearing
 	animationDuration: number; // ms per word fade-in
 	imageUrl?: string;
@@ -171,6 +172,7 @@ export const DEFAULT_CAPTION_DATA: CaptionData = {
 	secondaryFontSize: 48,
 	fontFamily: "Impact, Arial Black, sans-serif",
 	gradientDirection: "bottom",
+	textAlign: "center",
 	wordDelay: 150,
 	animationDuration: 250,
 };

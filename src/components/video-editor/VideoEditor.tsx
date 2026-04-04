@@ -42,6 +42,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
 	type AnnotationRegion,
+	type CaptionData,
 	type CursorTelemetryPoint,
 	clampFocusToDepth,
 	DEFAULT_ANNOTATION_POSITION,
@@ -52,7 +53,6 @@ import {
 	DEFAULT_MARKER_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
-	type CaptionData,
 	type FigureData,
 	type MarkerData,
 	type PlaybackSpeed,
@@ -1001,9 +1001,21 @@ export default function VideoEditor() {
 	const handleAnnotationCaptionDataChange = useCallback(
 		(id: string, captionData: CaptionData) => {
 			pushState((prev) => ({
-				annotationRegions: prev.annotationRegions.map((region) =>
-					region.id === id ? { ...region, captionData } : region,
-				),
+				annotationRegions: prev.annotationRegions.map((region) => {
+					if (region.id !== id) return region;
+					const updated = { ...region, captionData };
+					if (captionData.gradientDirection === "left") {
+						updated.position = { x: 0, y: 0 };
+						updated.size = { width: 50, height: 100 };
+					} else if (captionData.gradientDirection === "right") {
+						updated.position = { x: 50, y: 0 };
+						updated.size = { width: 50, height: 100 };
+					} else {
+						updated.position = { x: 0, y: 0 };
+						updated.size = { width: 100, height: 100 };
+					}
+					return updated;
+				}),
 			}));
 		},
 		[pushState],
@@ -1790,7 +1802,8 @@ export default function VideoEditor() {
 						selectedWebcamFocusId={selectedWebcamFocusId}
 						selectedWebcamFocusShape={
 							selectedWebcamFocusId
-								? (webcamFocusRegions.find((r) => r.id === selectedWebcamFocusId)?.focusShape ?? webcamMaskShape)
+								? (webcamFocusRegions.find((r) => r.id === selectedWebcamFocusId)?.focusShape ??
+									webcamMaskShape)
 								: undefined
 						}
 						onWebcamFocusShapeChange={handleWebcamFocusShapeChange}

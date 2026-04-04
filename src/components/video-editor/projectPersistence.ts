@@ -8,8 +8,8 @@ import {
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
-	DEFAULT_CROP_REGION,
 	DEFAULT_CAPTION_DATA,
+	DEFAULT_CROP_REGION,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_MARKER_DATA,
 	DEFAULT_PLAYBACK_SPEED,
@@ -260,17 +260,16 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
 					const endMs = Math.max(startMs + 1, rawEnd);
 
-					return {
+					const normalized = {
 						id: region.id,
 						startMs,
 						endMs,
-						type:
-							region.type === "image" ||
-							region.type === "figure" ||
-							region.type === "caption" ||
-							region.type === "marker"
-								? region.type
-								: "text",
+						type: (region.type === "image" ||
+						region.type === "figure" ||
+						region.type === "caption" ||
+						region.type === "marker"
+							? region.type
+							: "text") as import("./types").AnnotationType,
 						content: typeof region.content === "string" ? region.content : "",
 						textContent: typeof region.textContent === "string" ? region.textContent : undefined,
 						imageContent: typeof region.imageContent === "string" ? region.imageContent : undefined,
@@ -330,6 +329,24 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 								}
 							: undefined,
 					};
+
+					// Correct caption position/size based on gradient direction so
+					// left/right gradients are always half-screen on the correct side.
+					if (normalized.type === "caption" && normalized.captionData) {
+						const dir = normalized.captionData.gradientDirection;
+						if (dir === "left") {
+							normalized.position = { x: 0, y: 0 };
+							normalized.size = { width: 50, height: 100 };
+						} else if (dir === "right") {
+							normalized.position = { x: 50, y: 0 };
+							normalized.size = { width: 50, height: 100 };
+						} else {
+							normalized.position = { x: 0, y: 0 };
+							normalized.size = { width: 100, height: 100 };
+						}
+					}
+
+					return normalized;
 				})
 		: [];
 

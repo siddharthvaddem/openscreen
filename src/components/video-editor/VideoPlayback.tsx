@@ -20,6 +20,7 @@ import {
 } from "react";
 import { getAssetPath } from "@/lib/assetPath";
 import {
+	FOCUS_RIGHT_MARGIN_FRACTION,
 	getWebcamLayoutCssBoxShadow,
 	type Size,
 	type StyledRenderRect,
@@ -1059,18 +1060,21 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			const isRightAligned = shape === "portrait" || shape === "square";
 			const srcW = shape === "portrait" ? 9 : shape === "square" ? 1 : webcamDimensions.width;
 			const srcH = shape === "portrait" ? 16 : shape === "square" ? 1 : webcamDimensions.height;
-			const maxW = shape === "portrait" ? stageW / 3 : shape === "square" ? stageW * 0.45 : stageW * 0.8;
+			const maxW =
+				shape === "portrait" ? stageW / 3 : shape === "square" ? stageW * 0.45 : stageW * 0.8;
 			const scale = Math.min((stageH * 0.9) / srcH, maxW / srcW);
 			const w = Math.round(srcW * scale);
 			const h = Math.round(srcH * scale);
-			const x = isRightAligned ? stageW - (w + 150) : Math.round((stageW - w) / 2);
+			const rightMarginOffset = Math.round(stageW * FOCUS_RIGHT_MARGIN_FRACTION);
+			const x = isRightAligned ? stageW - (w + rightMarginOffset) : Math.round((stageW - w) / 2);
+			const focusShape = activeFocusRegion?.focusShape ?? webcamMaskShape;
 			return {
 				x,
 				y: Math.round((stageH - h) / 2),
 				width: w,
 				height: h,
 				borderRadius: webcamLayout.borderRadius,
-				maskShape: webcamLayout.maskShape,
+				maskShape: focusShape ?? webcamLayout.maskShape,
 			};
 			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [webcamDimensions, webcamLayout, activeFocusRegion, webcamMaskShape]);
@@ -1200,10 +1204,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		const isImageUrl = Boolean(
 			resolvedWallpaper &&
-			(resolvedWallpaper.startsWith("file://") ||
-				resolvedWallpaper.startsWith("http") ||
-				resolvedWallpaper.startsWith("/") ||
-				resolvedWallpaper.startsWith("data:")),
+				(resolvedWallpaper.startsWith("file://") ||
+					resolvedWallpaper.startsWith("http") ||
+					resolvedWallpaper.startsWith("/") ||
+					resolvedWallpaper.startsWith("data:")),
 		);
 		const backgroundStyle = isImageUrl
 			? { backgroundImage: `url(${resolvedWallpaper || ""})` }
@@ -1218,10 +1222,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						aspectRatio,
 						aspectRatio === "native"
 							? getNativeAspectRatioValue(
-								lockedVideoDimensionsRef.current?.width || 1920,
-								lockedVideoDimensionsRef.current?.height || 1080,
-								cropRegion,
-							)
+									lockedVideoDimensionsRef.current?.width || 1920,
+									lockedVideoDimensionsRef.current?.height || 1080,
+									cropRegion,
+								)
 							: undefined,
 					),
 				}}

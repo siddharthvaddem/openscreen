@@ -96,13 +96,16 @@ export function AnnotationOverlay({
 			none: "none",
 		};
 
-		const alignMap: Record<string, string> = {
-			bottom: "center",
-			top: "center",
-			left: "flex-start",
-			right: "flex-end",
-			none: "center",
-		};
+		const textAlignToFlex = (ta: string) =>
+			ta === "left" ? "flex-start" : ta === "right" ? "flex-end" : "center";
+
+		// For left/right gradients, text is pinned to the dark side; otherwise use textAlign
+		const alignItems =
+			data.gradientDirection === "left"
+				? "flex-start"
+				: data.gradientDirection === "right"
+					? "flex-end"
+					: textAlignToFlex(data.textAlign ?? "center");
 
 		const justifyMap: Record<string, string> = {
 			bottom: "flex-end",
@@ -137,7 +140,7 @@ export function AnnotationOverlay({
 					className="absolute inset-0 flex flex-col"
 					style={{
 						justifyContent: justifyMap[data.gradientDirection],
-						alignItems: alignMap[data.gradientDirection],
+						alignItems,
 						padding: "20px 24px",
 						gap: "4px",
 						opacity: globalOpacity,
@@ -153,12 +156,7 @@ export function AnnotationOverlay({
 								maxWidth: "60%",
 								objectFit: "contain",
 								marginBottom: "6px",
-								alignSelf:
-									data.gradientDirection === "left"
-										? "flex-start"
-										: data.gradientDirection === "right"
-											? "flex-end"
-											: "center",
+								alignSelf: alignItems,
 							}}
 						/>
 					)}

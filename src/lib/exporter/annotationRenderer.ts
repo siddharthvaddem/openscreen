@@ -353,112 +353,202 @@ async function renderCaption(
 
 	const padding = 20 * scaleFactor;
 	const lineGap = 4 * scaleFactor;
+	const imageGap = 6 * scaleFactor;
 	const primaryFontSize = data.primaryFontSize * scaleFactor;
 	const secondaryFontSize = data.secondaryFontSize * scaleFactor;
 
-	const isLeft = data.gradientDirection === "left";
-	const isRight = data.gradientDirection === "right";
+	// For left/right gradients pin to that side; otherwise follow textAlign
+	const effectiveAlign =
+		data.gradientDirection === "left"
+			? "left"
+			: data.gradientDirection === "right"
+				? "right"
+				: (data.textAlign ?? "center");
+	const isLeft = effectiveAlign === "left";
+	const isRight = effectiveAlign === "right";
 	const isTop = data.gradientDirection === "top";
 
-	// Content block height (without image, which we'll prepend after load)
-	let contentHeight = 0;
-	if (data.primaryText) contentHeight += primaryFontSize * 1.1;
-	if (data.primaryText && data.secondaryText) contentHeight += lineGap;
-	if (data.secondaryText) contentHeight += secondaryFontSize * 1.1;
+	const availableWidth = width - 2 * padding;
 
-	let textStartY: number;
-	if (isTop) {
-		textStartY = y + padding;
-	} else {
-		// bottom / left / right / none — anchor text to the dark end
-		textStartY = y + height - padding - contentHeight;
+	// Load image first so we know its dimensions for layout
+	let imgElement: HTMLImageElement | null = null;
+	let imgDrawW = 0;
+	let imgDrawH = 0;
+	if (data.imageUrl) {
+		imgElement = await new Promise<HTMLImageElement | null>((resolve) => {
+			const img = new Image();
+			img.onload = () => resolve(img);
+			img.onerror = () => resolve(null);
+			img.src = data.imageUrl!;
+		});
+		if (imgElement) {
+			const maxH = height * 0.35;
+			const maxW = width * 0.6;
+			const aspect = imgElement.width / imgElement.height;
+			imgDrawW = Math.min(maxW, maxH * aspect);
+			imgDrawH = imgDrawW / aspect;
+			if (imgDrawH > maxH) {
+				imgDrawH = maxH;
+				imgDrawW = imgDrawH * aspect;
+			}
+		}
 	}
+	const imageBlockHeight = imgElement ? imgDrawH + imageGap : 0;
 
-	// Render words for one line
-	const renderWords = (text: string, startWordIndex: number, color: string, fontSize: number, lineY: number) => {
+	// Wrap text into lines that fit within availableWidth
+	const wrapText = (text: string, fontSize: number): string[][] => {
 		const uppercased = text.toUpperCase();
 		const words = uppercased.split(" ").filter((w) => w.length > 0);
 		ctx.font = `bold ${fontSize}px ${data.fontFamily}`;
-		ctx.textBaseline = "top";
-
 		const spaceWidth = ctx.measureText(" ").width;
-		const wordWidths = words.map((w) => ctx.measureText(w).width);
-		const totalLineWidth = wordWidths.reduce((a, b) => a + b, 0) + spaceWidth * (words.length - 1);
+		const lines: string[][] = [];
+		let currentLine: string[] = [];
+		let currentLineWidth = 0;
 
-		let curX: number;
-		if (isRight) curX = x + width - padding - totalLineWidth;
-		else if (isLeft) curX = x + padding;
-		else curX = x + (width - totalLineWidth) / 2;
-
-		words.forEach((word, i) => {
-			const wordIdx = startWordIndex + i;
-			const progress = Math.min(1, Math.max(0, (timeIntoAnnotation - wordIdx * data.wordDelay) / data.animationDuration));
-			const wordOpacity = progress * globalOpacity;
-			const offsetY = (1 - progress) * 14 * scaleFactor;
-
-			if (wordOpacity > 0) {
-				ctx.save();
-				ctx.globalAlpha = wordOpacity;
-				const isWhite = color.toLowerCase() === "#ffffff";
-				if (isWhite) {
-					ctx.shadowColor = "rgba(0,0,0,0.9)";
-					ctx.shadowBlur = 4 * scaleFactor;
-					ctx.shadowOffsetX = 2 * scaleFactor;
-					ctx.shadowOffsetY = 2 * scaleFactor;
-				} else {
-					ctx.shadowColor = color;
-					ctx.shadowBlur = 20 * scaleFactor;
-					ctx.shadowOffsetX = 0;
-					ctx.shadowOffsetY = 0;
-				}
-				ctx.fillStyle = color;
-				ctx.fillText(word, curX, lineY + offsetY);
-				ctx.restore();
+		for (const word of words) {
+			const wordWidth = ctx.measureText(word).width;
+			const addWidth = currentLine.length > 0 ? spaceWidth + wordWidth : wordWidth;
+			if (currentLine.length > 0 && currentLineWidth + addWidth > availableWidth) {
+				lines.push(currentLine);
+				currentLine = [word];
+				currentLineWidth = wordWidth;
+			} else {
+				currentLine.push(word);
+				currentLineWidth += addWidth;
 			}
-			curX += wordWidths[i] + spaceWidth;
+		}
+		if (currentLine.length > 0) lines.push(currentLine);
+		return lines;
+	};
+
+	// Pre-compute wrapped lines
+	const primaryLines = data.primaryText ? wrapText(data.primaryText, primaryFontSize) : [];
+	const secondaryLines = data.secondaryText ? wrapText(data.secondaryText, secondaryFontSize) : [];
+
+	// Text block height
+	const primaryLineHeight = primaryFontSize * 1.2;
+	const secondaryLineHeight = secondaryFontSize * 1.2;
+	let textHeight = 0;
+	if (primaryLines.length > 0) textHeight += primaryLines.length * primaryLineHeight;
+	if (primaryLines.length > 0 && secondaryLines.length > 0) textHeight += lineGap;
+	if (secondaryLines.length > 0) textHeight += secondaryLines.length * secondaryLineHeight;
+
+	const totalBlockHeight = imageBlockHeight + textHeight;
+
+	// Compute image and text start positions matching preview flexbox layout
+	let imageStartY: number;
+	let textStartY: number;
+	if (isTop) {
+		// flex-start: image at top, text below
+		imageStartY = y + padding;
+		textStartY = y + padding + imageBlockHeight;
+	} else if (data.gradientDirection === "left" || data.gradientDirection === "right") {
+		// justify-content: center — center the whole block
+		imageStartY = y + (height - totalBlockHeight) / 2;
+		textStartY = imageStartY + imageBlockHeight;
+	} else {
+		// bottom / none — flex-end: anchor block to bottom
+		imageStartY = y + height - padding - totalBlockHeight;
+		textStartY = imageStartY + imageBlockHeight;
+	}
+
+	// Render wrapped lines with per-word animation
+	const renderWrappedLines = (
+		lines: string[][],
+		startWordIndex: number,
+		color: string,
+		fontSize: number,
+		blockStartY: number,
+	) => {
+		ctx.font = `bold ${fontSize}px ${data.fontFamily}`;
+		ctx.textBaseline = "top";
+		const spaceWidth = ctx.measureText(" ").width;
+		const lineHeight = fontSize * 1.2;
+		let wordIdx = startWordIndex;
+
+		lines.forEach((lineWords, lineIndex) => {
+			const lineY = blockStartY + lineIndex * lineHeight;
+			const wordWidths = lineWords.map((w) => ctx.measureText(w).width);
+			const totalLineWidth =
+				wordWidths.reduce((a, b) => a + b, 0) + spaceWidth * (lineWords.length - 1);
+
+			let curX: number;
+			if (isRight) curX = x + width - padding - totalLineWidth;
+			else if (isLeft) curX = x + padding;
+			else curX = x + (width - totalLineWidth) / 2;
+
+			lineWords.forEach((word, wi) => {
+				const progress = Math.min(
+					1,
+					Math.max(0, (timeIntoAnnotation - wordIdx * data.wordDelay) / data.animationDuration),
+				);
+				const wordOpacity = progress * globalOpacity;
+				const offsetY = (1 - progress) * 14 * scaleFactor;
+
+				if (wordOpacity > 0) {
+					ctx.save();
+					ctx.globalAlpha = wordOpacity;
+					const isWhite = color.toLowerCase() === "#ffffff";
+					if (isWhite) {
+						ctx.shadowColor = "rgba(0,0,0,0.9)";
+						ctx.shadowBlur = 4 * scaleFactor;
+						ctx.shadowOffsetX = 2 * scaleFactor;
+						ctx.shadowOffsetY = 2 * scaleFactor;
+					} else {
+						// Glow pass
+						ctx.shadowColor = color;
+						ctx.shadowBlur = 20 * scaleFactor;
+						ctx.shadowOffsetX = 0;
+						ctx.shadowOffsetY = 0;
+					}
+					ctx.fillStyle = color;
+					ctx.fillText(word, curX, lineY + offsetY);
+					// Dark drop shadow pass for non-white (matches preview's dual textShadow)
+					if (!isWhite) {
+						ctx.shadowColor = "rgba(0,0,0,0.9)";
+						ctx.shadowBlur = 4 * scaleFactor;
+						ctx.shadowOffsetX = 2 * scaleFactor;
+						ctx.shadowOffsetY = 2 * scaleFactor;
+						ctx.fillText(word, curX, lineY + offsetY);
+					}
+					ctx.restore();
+				}
+				curX += wordWidths[wi] + spaceWidth;
+				wordIdx++;
+			});
 		});
 	};
 
-	// Optional image above the text block
-	if (data.imageUrl) {
-		await new Promise<void>((resolve) => {
-			const img = new Image();
-			img.onload = () => {
-				const maxH = height * 0.35;
-				const maxW = width * 0.6;
-				const aspect = img.width / img.height;
-				let iw = Math.min(maxW, maxH * aspect);
-				let ih = iw / aspect;
-				if (ih > maxH) { ih = maxH; iw = ih * aspect; }
+	// Image above the text block (already loaded for layout; draw synchronously)
+	if (imgElement && imgDrawW > 0) {
+		let ix: number;
+		if (isRight) ix = x + width - padding - imgDrawW;
+		else if (isLeft) ix = x + padding;
+		else ix = x + (width - imgDrawW) / 2;
 
-				let ix: number;
-				if (isRight) ix = x + width - padding - iw;
-				else if (isLeft) ix = x + padding;
-				else ix = x + (width - iw) / 2;
-
-				const iy = textStartY - ih - 6 * scaleFactor;
-				ctx.save();
-				ctx.globalAlpha = globalOpacity;
-				ctx.drawImage(img, ix, iy, iw, ih);
-				ctx.restore();
-				resolve();
-			};
-			img.onerror = () => resolve();
-			img.src = data.imageUrl!;
-		});
+		ctx.save();
+		ctx.globalAlpha = globalOpacity;
+		ctx.drawImage(imgElement, ix, imageStartY, imgDrawW, imgDrawH);
+		ctx.restore();
 	}
 
-	// Primary text line
+	// Primary text block
 	let currentY = textStartY;
-	const primaryWords = data.primaryText ? data.primaryText.split(" ").filter((w) => w.length > 0) : [];
-	if (data.primaryText) {
-		renderWords(data.primaryText, 0, data.primaryColor, primaryFontSize, currentY);
-		currentY += primaryFontSize * 1.1 + lineGap;
+	const primaryWordCount = primaryLines.reduce((sum, line) => sum + line.length, 0);
+	if (primaryLines.length > 0) {
+		renderWrappedLines(primaryLines, 0, data.primaryColor, primaryFontSize, currentY);
+		currentY += primaryLines.length * primaryLineHeight + lineGap;
 	}
 
-	// Secondary text line
-	if (data.secondaryText) {
-		renderWords(data.secondaryText, primaryWords.length, data.secondaryColor, secondaryFontSize, currentY);
+	// Secondary text block
+	if (secondaryLines.length > 0) {
+		renderWrappedLines(
+			secondaryLines,
+			primaryWordCount,
+			data.secondaryColor,
+			secondaryFontSize,
+			currentY,
+		);
 	}
 
 	ctx.restore();
