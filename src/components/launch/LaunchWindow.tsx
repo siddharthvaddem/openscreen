@@ -484,7 +484,7 @@ export function LaunchWindow() {
 
 				{/* Resume/Pause recording */}
 				{recording && (
-					<Tooltip content={paused ? "Resume recording" : "Pause recording"}>
+					<Tooltip content={paused ? t("tooltips.resumeRecording") : t("tooltips.pauseRecording")}>
 						<button
 							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
 							onClick={paused ? resumeRecording : pauseRecording}

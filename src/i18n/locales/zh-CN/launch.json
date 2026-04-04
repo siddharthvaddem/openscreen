@@ -4,7 +4,9 @@
 		"closeApp": "关闭应用",
 		"restartRecording": "重新开始录制",
 		"openVideoFile": "打开视频文件",
-		"openProject": "打开项目"
+		"openProject": "打开项目",
+		"pauseRecording": "暂停录制",
+		"resumeRecording": "恢复录制"
 	},
 	"audio": {
 		"enableSystemAudio": "启用系统音频",

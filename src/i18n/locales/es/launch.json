@@ -4,7 +4,9 @@
 		"closeApp": "Cerrar aplicación",
 		"restartRecording": "Reiniciar grabación",
 		"openVideoFile": "Abrir archivo de video",
-		"openProject": "Abrir proyecto"
+		"openProject": "Abrir proyecto",
+		"pauseRecording": "Pausar grabación",
+		"resumeRecording": "Reanudar grabación"
 	},
 	"audio": {
 		"enableSystemAudio": "Activar audio del sistema",

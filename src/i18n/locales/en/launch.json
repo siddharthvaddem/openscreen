@@ -4,7 +4,9 @@
 		"closeApp": "Close App",
 		"restartRecording": "Restart recording",
 		"openVideoFile": "Open video file",
-		"openProject": "Open project"
+		"openProject": "Open project",
+		"pauseRecording": "Pause recording",
+		"resumeRecording": "Resume recording"
 	},
 	"audio": {
 		"enableSystemAudio": "Enable system audio",
