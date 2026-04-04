@@ -38,6 +38,7 @@ interface VideoExporterConfig extends ExportConfig {
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
+	audioSettings?: import("@/components/video-editor/types").AudioSettings;
 	onProgress?: (progress: ExportProgress) => void;
 }
 
@@ -344,6 +345,7 @@ export class VideoExporter {
 						this.config.trimRegions,
 						this.config.speedRegions,
 						readEndSec,
+						this.config.audioSettings,
 					);
 				}
 			}

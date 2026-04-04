@@ -10,6 +10,8 @@ import type {
 	ZoomRegion,
 } from "@/components/video-editor/types";
 import {
+	type AudioSettings,
+	DEFAULT_AUDIO_SETTINGS,
 	DEFAULT_CROP_REGION,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
@@ -35,6 +37,7 @@ export interface EditorState {
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape: WebcamMaskShape;
 	webcamPosition: WebcamPosition | null;
+	audioSettings: AudioSettings;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -53,6 +56,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	webcamLayoutPreset: DEFAULT_WEBCAM_LAYOUT_PRESET,
 	webcamMaskShape: DEFAULT_WEBCAM_MASK_SHAPE,
 	webcamPosition: DEFAULT_WEBCAM_POSITION,
+	audioSettings: DEFAULT_AUDIO_SETTINGS,
 };
 
 type StateUpdate = Partial<EditorState> | ((prev: EditorState) => Partial<EditorState>);

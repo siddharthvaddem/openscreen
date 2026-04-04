@@ -1,6 +1,6 @@
 import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
 
-export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
+export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type ZoomFocusMode = "manual" | "auto";
 export type { WebcamLayoutPreset };
 
@@ -160,15 +160,16 @@ export const SPEED_OPTIONS: Array<{ speed: PlaybackSpeed; label: string }> = [
 export const DEFAULT_PLAYBACK_SPEED: PlaybackSpeed = 1.5;
 
 export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
-	1: 1.25,
-	2: 1.5,
-	3: 1.8,
-	4: 2.2,
-	5: 3.5,
-	6: 5.0,
+	1: 1.1,
+	2: 1.25,
+	3: 1.5,
+	4: 1.8,
+	5: 2.2,
+	6: 3.5,
+	7: 5.0,
 };
 
-export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
+export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 4;
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {
@@ -181,3 +182,17 @@ function clamp(value: number, min: number, max: number) {
 	if (Number.isNaN(value)) return (min + max) / 2;
 	return Math.min(max, Math.max(min, value));
 }
+
+export interface AudioSettings {
+	highpassHz: number; // For biquad highpass filter (80Hz default)
+	compressionRatio: number; // For DynamicsCompressorNode (4:1 default)
+	trebleDb: number; // For biquad highShelf filter (5dB default)
+	loudnessDb: number; // Makeup gain or target LUFS-analogous volume boost
+}
+
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+	highpassHz: 80,
+	compressionRatio: 4,
+	trebleDb: 5,
+	loudnessDb: -12,
+};

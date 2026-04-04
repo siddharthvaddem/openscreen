@@ -8,6 +8,7 @@ import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
+import { generateWaveformPeaks } from "@/lib/audioWaveform";
 import {
 	calculateOutputDimensions,
 	type ExportFormat,
@@ -87,6 +88,7 @@ export default function VideoEditor() {
 		webcamLayoutPreset,
 		webcamMaskShape,
 		webcamPosition,
+		audioSettings,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -95,6 +97,8 @@ export default function VideoEditor() {
 	const [webcamVideoPath, setWebcamVideoPath] = useState<string | null>(null);
 	const [webcamVideoSourcePath, setWebcamVideoSourcePath] = useState<string | null>(null);
 	const [currentProjectPath, setCurrentProjectPath] = useState<string | null>(null);
+	const [audioPeaks, setAudioPeaks] = useState<Float32Array | null>(null);
+	const [isAudioWaveformLoading, setIsAudioWaveformLoading] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -199,6 +203,7 @@ export default function VideoEditor() {
 				webcamLayoutPreset: normalizedEditor.webcamLayoutPreset,
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamPosition: normalizedEditor.webcamPosition,
+				audioSettings: normalizedEditor.audioSettings,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -269,6 +274,7 @@ export default function VideoEditor() {
 				webcamLayoutPreset,
 				webcamMaskShape,
 				webcamPosition,
+				audioSettings,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -293,6 +299,7 @@ export default function VideoEditor() {
 		webcamLayoutPreset,
 		webcamMaskShape,
 		webcamPosition,
+		audioSettings,
 		exportQuality,
 		exportFormat,
 		gifFrameRate,
@@ -359,6 +366,26 @@ export default function VideoEditor() {
 		loadInitialData();
 	}, [applyLoadedProject]);
 
+	useEffect(() => {
+		if (videoPath) {
+			setIsAudioWaveformLoading(true);
+			generateWaveformPeaks(videoPath)
+				.then((res) => {
+					console.log("[Waveform] peaks generated:", res.peaks.length);
+					setAudioPeaks(res.peaks);
+				})
+				.catch((err) => {
+					console.error("[Waveform] FAILED:", err);
+					toast.error("Waveform failed: " + String(err).slice(0, 80));
+					setAudioPeaks(null);
+				})
+				.finally(() => setIsAudioWaveformLoading(false));
+		} else {
+			setAudioPeaks(null);
+			setIsAudioWaveformLoading(false);
+		}
+	}, [videoPath]);
+
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
 			if (!videoPath) {
@@ -387,6 +414,7 @@ export default function VideoEditor() {
 				webcamLayoutPreset,
 				webcamMaskShape,
 				webcamPosition,
+				audioSettings,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -442,6 +470,7 @@ export default function VideoEditor() {
 			webcamLayoutPreset,
 			webcamMaskShape,
 			webcamPosition,
+			audioSettings,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
@@ -1247,6 +1276,7 @@ export default function VideoEditor() {
 						previewWidth,
 						previewHeight,
 						cursorTelemetry,
+						audioSettings,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1529,6 +1559,7 @@ export default function VideoEditor() {
 											onAnnotationPositionChange={handleAnnotationPositionChange}
 											onAnnotationSizeChange={handleAnnotationSizeChange}
 											cursorTelemetry={cursorTelemetry}
+											audioSettings={audioSettings}
 										/>
 									</div>
 								</div>
@@ -1596,6 +1627,8 @@ export default function VideoEditor() {
 													: webcamLayoutPreset,
 										})
 									}
+									audioPeaks={audioPeaks}
+									isAudioWaveformLoading={isAudioWaveformLoading}
 								/>
 							</div>
 						</Panel>
@@ -1649,6 +1682,9 @@ export default function VideoEditor() {
 						}
 						webcamMaskShape={webcamMaskShape}
 						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
+						audioSettings={audioSettings}
+						onAudioSettingsChange={(settings) => updateState({ audioSettings: settings })}
+						onAudioSettingsCommit={() => commitState()}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}

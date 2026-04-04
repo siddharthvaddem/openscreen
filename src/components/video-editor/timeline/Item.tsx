@@ -19,12 +19,13 @@ interface ItemProps {
 
 // Map zoom depth to multiplier labels
 const ZOOM_LABELS: Record<number, string> = {
-	1: "1.25×",
-	2: "1.5×",
-	3: "1.8×",
-	4: "2.2×",
-	5: "3.5×",
-	6: "5×",
+	1: "1.1×",
+	2: "1.25×",
+	3: "1.5×",
+	4: "1.8×",
+	5: "2.2×",
+	6: "3.5×",
+	7: "5×",
 };
 
 function formatMs(ms: number): string {

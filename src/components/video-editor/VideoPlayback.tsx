@@ -100,6 +100,7 @@ interface VideoPlaybackProps {
 	onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
 	onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
 	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
+	audioSettings?: import("./types").AudioSettings;
 }
 
 export interface VideoPlaybackRef {
@@ -150,6 +151,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onAnnotationPositionChange,
 			onAnnotationSizeChange,
 			cursorTelemetry = [],
+			audioSettings,
 		},
 		ref,
 	) => {
@@ -206,6 +208,75 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const videoReadyRafRef = useRef<number | null>(null);
 		const smoothedAutoFocusRef = useRef<ZoomFocus | null>(null);
 		const prevTargetProgressRef = useRef(0);
+
+		// Audio Graph Refs
+		const audioCtxRef = useRef<AudioContext | null>(null);
+		const highpassNodeRef = useRef<BiquadFilterNode | null>(null);
+		const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
+		const trebleNodeRef = useRef<BiquadFilterNode | null>(null);
+		const loudnessGainNodeRef = useRef<GainNode | null>(null);
+
+		useEffect(() => {
+			const video = videoRef.current;
+			if (!video || (video as any)._audioInitialized) return;
+			(video as any)._audioInitialized = true;
+
+			try {
+				const ctx = new window.AudioContext();
+				audioCtxRef.current = ctx;
+
+				const source = ctx.createMediaElementSource(video);
+
+				const highpass = ctx.createBiquadFilter();
+				highpass.type = "highpass";
+
+				const compressor = ctx.createDynamicsCompressor();
+
+				const treble = ctx.createBiquadFilter();
+				treble.type = "highshelf";
+				treble.frequency.value = 3000;
+
+				const loudnessGain = ctx.createGain();
+
+				source.connect(highpass);
+				highpass.connect(compressor);
+				compressor.connect(treble);
+				treble.connect(loudnessGain);
+				loudnessGain.connect(ctx.destination);
+
+				highpassNodeRef.current = highpass;
+				compressorNodeRef.current = compressor;
+				trebleNodeRef.current = treble;
+				loudnessGainNodeRef.current = loudnessGain;
+
+				if (!video.paused) {
+					ctx.resume().catch(console.error);
+				}
+			} catch (e) {
+				console.error("Failed to initialize Web Audio API:", e);
+			}
+		}, []);
+
+		useEffect(() => {
+			if (!audioSettings) return;
+			const { highpassHz, compressionRatio, trebleDb, loudnessDb } = audioSettings;
+			const ctx = audioCtxRef.current;
+			if (!ctx) return;
+
+			if (highpassNodeRef.current) {
+				highpassNodeRef.current.frequency.setTargetAtTime(highpassHz, ctx.currentTime, 0.1);
+			}
+			if (compressorNodeRef.current) {
+				compressorNodeRef.current.ratio.setTargetAtTime(compressionRatio, ctx.currentTime, 0.1);
+			}
+			if (trebleNodeRef.current) {
+				trebleNodeRef.current.gain.setTargetAtTime(trebleDb, ctx.currentTime, 0.1);
+			}
+			if (loudnessGainNodeRef.current) {
+				const linearGain = Math.pow(10, loudnessDb / 20);
+				loudnessGainNodeRef.current.gain.setTargetAtTime(linearGain, ctx.currentTime, 0.1);
+			}
+		}, [audioSettings]);
 
 		const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
 			return clampFocusToStageUtil(focus, depth, stageSizeRef.current);

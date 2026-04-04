@@ -4,10 +4,12 @@ import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { ASPECT_RATIOS, type AspectRatio } from "@/utils/aspectRatioUtils";
 import {
 	type AnnotationRegion,
+	type AudioSettings,
 	type CropRegion,
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
+	DEFAULT_AUDIO_SETTINGS,
 	DEFAULT_CROP_REGION,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
@@ -53,6 +55,7 @@ export interface ProjectEditorState {
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
+	audioSettings: AudioSettings;
 }
 
 export interface EditorProjectData {
@@ -392,6 +395,12 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.gifSizePreset === "original"
 				? editor.gifSizePreset
 				: "medium",
+		audioSettings: {
+			...DEFAULT_AUDIO_SETTINGS,
+			...(editor.audioSettings && typeof editor.audioSettings === "object"
+				? editor.audioSettings
+				: {}),
+		},
 	};
 }
 

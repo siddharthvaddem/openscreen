@@ -12,6 +12,7 @@ import {
 	Trash2,
 	Unlock,
 	Upload,
+	Volume2,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -47,6 +48,7 @@ import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
 	AnnotationRegion,
 	AnnotationType,
+	AudioSettings,
 	CropRegion,
 	FigureData,
 	PlaybackSpeed,
@@ -150,17 +152,21 @@ interface SettingsPanelProps {
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
 	webcamMaskShape?: import("./types").WebcamMaskShape;
 	onWebcamMaskShapeChange?: (shape: import("./types").WebcamMaskShape) => void;
+	audioSettings?: AudioSettings;
+	onAudioSettingsChange?: (settings: AudioSettings) => void;
+	onAudioSettingsCommit?: (settings: AudioSettings) => void;
 }
 
 export default SettingsPanel;
 
 const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
-	{ depth: 1, label: "1.25×" },
-	{ depth: 2, label: "1.5×" },
-	{ depth: 3, label: "1.8×" },
-	{ depth: 4, label: "2.2×" },
-	{ depth: 5, label: "3.5×" },
-	{ depth: 6, label: "5×" },
+	{ depth: 1, label: "1.1×" },
+	{ depth: 2, label: "1.25×" },
+	{ depth: 3, label: "1.5×" },
+	{ depth: 4, label: "1.8×" },
+	{ depth: 5, label: "2.2×" },
+	{ depth: 6, label: "3.5×" },
+	{ depth: 7, label: "5×" },
 ];
 
 export function SettingsPanel({
@@ -223,6 +229,9 @@ export function SettingsPanel({
 	onWebcamLayoutPresetChange,
 	webcamMaskShape = "rectangle",
 	onWebcamMaskShapeChange,
+	audioSettings,
+	onAudioSettingsChange,
+	onAudioSettingsCommit,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -486,7 +495,7 @@ export function SettingsPanel({
 							<KeyboardShortcutsHelp />
 						</div>
 					</div>
-					<div className="grid grid-cols-6 gap-1.5">
+					<div className="grid grid-cols-7 gap-1.5">
 						{ZOOM_DEPTH_OPTIONS.map((option) => {
 							const isActive = selectedZoomDepth === option.depth;
 							return (
@@ -1028,6 +1037,127 @@ export function SettingsPanel({
 									</TabsContent>
 								</div>
 							</Tabs>
+						</AccordionContent>
+					</AccordionItem>
+					<AccordionItem value="audio" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<Volume2 className="w-4 h-4 text-[#34B27B]" />
+								<span className="text-xs font-medium">Audio Adjustments</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3 space-y-3">
+							<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex flex-col">
+										<span className="text-[10px] font-medium text-slate-300">Highpass Filter</span>
+										<span className="text-[8px] text-slate-500">Cuts low rumble</span>
+									</div>
+									<span className="text-[10px] text-slate-500 font-mono">
+										{audioSettings?.highpassHz ?? 80} Hz
+									</span>
+								</div>
+								<Slider
+									value={[audioSettings?.highpassHz ?? 80]}
+									onValueChange={(values) =>
+										onAudioSettingsChange?.({ ...audioSettings!, highpassHz: values[0] })
+									}
+									onValueCommit={() =>
+										onAudioSettingsCommit?.({
+											...audioSettings!,
+											highpassHz: audioSettings?.highpassHz ?? 80,
+										})
+									}
+									min={0}
+									max={300}
+									step={10}
+									className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+								/>
+							</div>
+
+							<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex flex-col">
+										<span className="text-[10px] font-medium text-slate-300">Compression</span>
+										<span className="text-[8px] text-slate-500">Evens out volume</span>
+									</div>
+									<span className="text-[10px] text-slate-500 font-mono">
+										{audioSettings?.compressionRatio ?? 4}:1
+									</span>
+								</div>
+								<Slider
+									value={[audioSettings?.compressionRatio ?? 4]}
+									onValueChange={(values) =>
+										onAudioSettingsChange?.({ ...audioSettings!, compressionRatio: values[0] })
+									}
+									onValueCommit={() =>
+										onAudioSettingsCommit?.({
+											...audioSettings!,
+											compressionRatio: audioSettings?.compressionRatio ?? 4,
+										})
+									}
+									min={1}
+									max={20}
+									step={1}
+									className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+								/>
+							</div>
+
+							<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex flex-col">
+										<span className="text-[10px] font-medium text-slate-300">Treble</span>
+										<span className="text-[8px] text-slate-500">Adds clarity</span>
+									</div>
+									<span className="text-[10px] text-slate-500 font-mono">
+										+{audioSettings?.trebleDb ?? 5} dB
+									</span>
+								</div>
+								<Slider
+									value={[audioSettings?.trebleDb ?? 5]}
+									onValueChange={(values) =>
+										onAudioSettingsChange?.({ ...audioSettings!, trebleDb: values[0] })
+									}
+									onValueCommit={() =>
+										onAudioSettingsCommit?.({
+											...audioSettings!,
+											trebleDb: audioSettings?.trebleDb ?? 5,
+										})
+									}
+									min={0}
+									max={15}
+									step={1}
+									className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+								/>
+							</div>
+
+							<div className="p-2 rounded-lg bg-white/5 border border-white/5">
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex flex-col">
+										<span className="text-[10px] font-medium text-slate-300">Loudness Target</span>
+										<span className="text-[8px] text-slate-500">Relative boost level</span>
+									</div>
+									<span className="text-[10px] text-slate-500 font-mono">
+										{audioSettings?.loudnessDb ?? -12} LUFS
+									</span>
+								</div>
+								<Slider
+									value={[audioSettings?.loudnessDb ?? -12]}
+									onValueChange={(values) =>
+										onAudioSettingsChange?.({ ...audioSettings!, loudnessDb: values[0] })
+									}
+									onValueCommit={() =>
+										onAudioSettingsCommit?.({
+											...audioSettings!,
+											loudnessDb: audioSettings?.loudnessDb ?? -12,
+										})
+									}
+									min={-24}
+									max={0}
+									step={1}
+									className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+								/>
+							</div>
 						</AccordionContent>
 					</AccordionItem>
 				</Accordion>

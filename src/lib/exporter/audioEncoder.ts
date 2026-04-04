@@ -21,6 +21,7 @@ export class AudioProcessor {
 		trimRegions?: TrimRegion[],
 		speedRegions?: SpeedRegion[],
 		readEndSec?: number,
+		audioSettings?: import("@/components/video-editor/types").AudioSettings,
 	): Promise<void> {
 		const sortedTrims = trimRegions ? [...trimRegions].sort((a, b) => a.startMs - b.startMs) : [];
 		const sortedSpeedRegions = speedRegions
@@ -29,12 +30,21 @@ export class AudioProcessor {
 					.sort((a, b) => a.startMs - b.startMs)
 			: [];
 
-		// Speed edits must use timeline playback to preserve pitch
-		if (sortedSpeedRegions.length > 0) {
+		const hasActiveAudioSettings =
+			!!audioSettings &&
+			(audioSettings.highpassHz !== 80 ||
+				audioSettings.compressionRatio !== 4 ||
+				audioSettings.trebleDb !== 5 ||
+				audioSettings.loudnessDb !== -12);
+
+		// Speed edits must use timeline playback to preserve pitch.
+		// Audio edits also use timeline playback to evaluate the Web Audio graph.
+		if (sortedSpeedRegions.length > 0 || hasActiveAudioSettings) {
 			const renderedAudioBlob = await this.renderPitchPreservedTimelineAudio(
 				videoUrl,
 				sortedTrims,
 				sortedSpeedRegions,
+				audioSettings,
 			);
 			if (!this.cancelled) {
 				await this.muxRenderedAudioBlob(renderedAudioBlob, muxer);
@@ -187,6 +197,7 @@ export class AudioProcessor {
 		videoUrl: string,
 		trimRegions: TrimRegion[],
 		speedRegions: SpeedRegion[],
+		audioSettings?: import("@/components/video-editor/types").AudioSettings,
 	): Promise<Blob> {
 		const media = document.createElement("audio");
 		media.src = videoUrl;
@@ -206,10 +217,36 @@ export class AudioProcessor {
 			throw new Error("Export cancelled");
 		}
 
-		const audioContext = new AudioContext();
+		const audioContext = new window.AudioContext();
 		const sourceNode = audioContext.createMediaElementSource(media);
 		const destinationNode = audioContext.createMediaStreamDestination();
-		sourceNode.connect(destinationNode);
+
+		let lastNode: AudioNode = sourceNode;
+
+		if (audioSettings) {
+			const highpass = audioContext.createBiquadFilter();
+			highpass.type = "highpass";
+			highpass.frequency.value = audioSettings.highpassHz;
+
+			const compressor = audioContext.createDynamicsCompressor();
+			compressor.ratio.value = audioSettings.compressionRatio;
+
+			const treble = audioContext.createBiquadFilter();
+			treble.type = "highshelf";
+			treble.frequency.value = 3000;
+			treble.gain.value = audioSettings.trebleDb;
+
+			const loudnessGain = audioContext.createGain();
+			loudnessGain.gain.value = Math.pow(10, audioSettings.loudnessDb / 20);
+
+			lastNode.connect(highpass);
+			highpass.connect(compressor);
+			compressor.connect(treble);
+			treble.connect(loudnessGain);
+			lastNode = loudnessGain;
+		}
+
+		lastNode.connect(destinationNode);
 
 		const { recorder, recordedBlobPromise } = this.startAudioRecording(destinationNode.stream);
 		let rafId: number | null = null;

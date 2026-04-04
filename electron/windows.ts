@@ -40,7 +40,7 @@ export function createHudOverlayWindow(): BrowserWindow {
 		transparent: true,
 		resizable: false,
 		alwaysOnTop: true,
-		skipTaskbar: true,
+		skipTaskbar: false,
 		hasShadow: false,
 		show: !HEADLESS,
 		webPreferences: {

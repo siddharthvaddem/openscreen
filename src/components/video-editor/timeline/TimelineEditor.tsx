@@ -35,6 +35,7 @@ import type {
 	ZoomFocus,
 	ZoomRegion,
 } from "../types";
+import { AudioWaveform } from "./AudioWaveform";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import Row from "./Row";
@@ -81,6 +82,8 @@ interface TimelineEditorProps {
 	onSelectSpeed?: (id: string | null) => void;
 	aspectRatio: AspectRatio;
 	onAspectRatioChange: (aspectRatio: AspectRatio) => void;
+	audioPeaks?: Float32Array | null;
+	isAudioWaveformLoading?: boolean;
 }
 
 interface TimelineScaleConfig {
@@ -531,6 +534,8 @@ function Timeline({
 	selectedAnnotationId,
 	selectedSpeedId,
 	keyframes = [],
+	audioPeaks,
+	isAudioWaveformLoading,
 }: {
 	items: TimelineRenderItem[];
 	videoDurationMs: number;
@@ -546,6 +551,8 @@ function Timeline({
 	selectedAnnotationId?: string | null;
 	selectedSpeedId?: string | null;
 	keyframes?: { id: string; time: number }[];
+	audioPeaks?: Float32Array | null;
+	isAudioWaveformLoading?: boolean;
 }) {
 	const t = useScopedT("timeline");
 	const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
@@ -727,6 +734,11 @@ function Timeline({
 					</Item>
 				))}
 			</Row>
+			<AudioWaveform
+				peaks={audioPeaks ?? null}
+				isLoading={!!isAudioWaveformLoading}
+				videoDurationMs={videoDurationMs}
+			/>
 		</div>
 	);
 }
@@ -763,6 +775,8 @@ export default function TimelineEditor({
 	onSelectSpeed,
 	aspectRatio,
 	onAspectRatioChange,
+	audioPeaks,
+	isAudioWaveformLoading,
 }: TimelineEditorProps) {
 	const t = useScopedT("timeline");
 	const totalMs = useMemo(() => Math.max(0, Math.round(videoDuration * 1000)), [videoDuration]);
@@ -1495,6 +1509,8 @@ export default function TimelineEditor({
 						selectedAnnotationId={selectedAnnotationId}
 						selectedSpeedId={selectedSpeedId}
 						keyframes={keyframes}
+						audioPeaks={audioPeaks}
+						isAudioWaveformLoading={isAudioWaveformLoading}
 					/>
 				</TimelineWrapper>
 			</div>
