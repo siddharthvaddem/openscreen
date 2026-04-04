@@ -25,6 +25,12 @@ if (process.platform === "darwin") {
 	app.commandLine.appendSwitch("disable-features", "MacCatapLoopbackAudioForScreenShare");
 }
 
+// Enable PipeWire screen capture on Linux (required for Wayland screen sharing)
+if (process.platform === "linux") {
+	app.commandLine.appendSwitch("enable-features", "WebRTCPipeWireCapturer");
+	app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+}
+
 export const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");
 
 async function ensureRecordingsDir() {
