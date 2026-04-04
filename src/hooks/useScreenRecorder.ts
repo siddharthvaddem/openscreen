@@ -39,9 +39,14 @@ const WEBCAM_TARGET_WIDTH = 1280;
 const WEBCAM_TARGET_HEIGHT = 720;
 const WEBCAM_TARGET_FRAME_RATE = 30;
 
+export type PreviewStreamHandoff = {
+	screenStream: MediaStream;
+	webcamStream: MediaStream | null;
+};
+
 type UseScreenRecorderReturn = {
 	recording: boolean;
-	toggleRecording: () => void;
+	toggleRecording: (previewHandoff?: PreviewStreamHandoff) => void;
 	restartRecording: () => void;
 	microphoneEnabled: boolean;
 	setMicrophoneEnabled: (enabled: boolean) => void;
@@ -333,7 +338,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		};
 	}, [teardownMedia]);
 
-	const startRecording = async () => {
+	const startRecording = async (previewHandoff?: PreviewStreamHandoff) => {
 		try {
 			const selectedSource = await window.electronAPI.getSelectedSource();
 			if (!selectedSource) {
@@ -343,41 +348,81 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			let screenMediaStream: MediaStream;
 
-			const videoConstraints = {
-				mandatory: {
-					chromeMediaSource: CHROME_MEDIA_SOURCE,
-					chromeMediaSourceId: selectedSource.id,
-					maxWidth: TARGET_WIDTH,
-					maxHeight: TARGET_HEIGHT,
-					maxFrameRate: TARGET_FRAME_RATE,
-					minFrameRate: MIN_FRAME_RATE,
-				},
-			};
+			if (previewHandoff?.screenStream) {
+				// Reuse preview stream — upgrade constraints for recording quality
+				screenMediaStream = previewHandoff.screenStream;
+				const videoTrack = screenMediaStream.getVideoTracks()[0];
+				if (videoTrack) {
+					try {
+						await videoTrack.applyConstraints({
+							frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
+							width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
+							height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
+						});
+					} catch {
+						// Best-effort upgrade, preview constraints still work
+					}
+				}
 
-			if (systemAudioEnabled) {
-				try {
-					screenMediaStream = await navigator.mediaDevices.getUserMedia({
-						audio: {
-							mandatory: {
-								chromeMediaSource: CHROME_MEDIA_SOURCE,
-								chromeMediaSourceId: selectedSource.id,
+				// If system audio needed, get audio separately (can't add audio to existing stream)
+				if (systemAudioEnabled) {
+					try {
+						const audioStream = await navigator.mediaDevices.getUserMedia({
+							audio: {
+								mandatory: {
+									chromeMediaSource: CHROME_MEDIA_SOURCE,
+									chromeMediaSourceId: selectedSource.id,
+								},
 							},
-						},
-						video: videoConstraints,
-					} as unknown as MediaStreamConstraints);
-				} catch (audioErr) {
-					console.warn("System audio capture failed, falling back to video-only:", audioErr);
-					toast.error(t("recording.systemAudioUnavailable"));
+							video: false,
+						} as unknown as MediaStreamConstraints);
+						const audioTrack = audioStream.getAudioTracks()[0];
+						if (audioTrack) {
+							screenMediaStream.addTrack(audioTrack);
+						}
+					} catch (audioErr) {
+						console.warn("System audio capture failed:", audioErr);
+						toast.error(t("recording.systemAudioUnavailable"));
+					}
+				}
+			} else {
+				// No preview handoff — create fresh stream (original path)
+				const videoConstraints = {
+					mandatory: {
+						chromeMediaSource: CHROME_MEDIA_SOURCE,
+						chromeMediaSourceId: selectedSource.id,
+						maxWidth: TARGET_WIDTH,
+						maxHeight: TARGET_HEIGHT,
+						maxFrameRate: TARGET_FRAME_RATE,
+						minFrameRate: MIN_FRAME_RATE,
+					},
+				};
+
+				if (systemAudioEnabled) {
+					try {
+						screenMediaStream = await navigator.mediaDevices.getUserMedia({
+							audio: {
+								mandatory: {
+									chromeMediaSource: CHROME_MEDIA_SOURCE,
+									chromeMediaSourceId: selectedSource.id,
+								},
+							},
+							video: videoConstraints,
+						} as unknown as MediaStreamConstraints);
+					} catch (audioErr) {
+						console.warn("System audio capture failed, falling back to video-only:", audioErr);
+						toast.error(t("recording.systemAudioUnavailable"));
+						screenMediaStream = await navigator.mediaDevices.getUserMedia({
+							audio: false,
+							video: videoConstraints,
+						} as unknown as MediaStreamConstraints);
+					}
+				} else {
 					screenMediaStream = await navigator.mediaDevices.getUserMedia({
 						audio: false,
 						video: videoConstraints,
 					} as unknown as MediaStreamConstraints);
 				}
-			} else {
-				screenMediaStream = await navigator.mediaDevices.getUserMedia({
-					audio: false,
-					video: videoConstraints,
-				} as unknown as MediaStreamConstraints);
 			}
 			screenStream.current = screenMediaStream;
 
@@ -405,7 +450,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				}
 			}
 
-			if (webcamEnabled) {
+			if (previewHandoff?.webcamStream) {
+				// Reuse preview webcam stream
+				webcamStream.current = previewHandoff.webcamStream;
+			} else if (webcamEnabled) {
 				try {
 					webcamStream.current = await navigator.mediaDevices.getUserMedia({
 						audio: false,
@@ -453,17 +501,19 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				stream.current.addTrack(micAudioTrack);
 			}
 
-			try {
-				await videoTrack.applyConstraints({
-					frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
-					width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-					height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
-				});
-			} catch (constraintError) {
-				console.warn(
-					"Unable to lock 4K/60fps constraints, using best available track settings.",
-					constraintError,
-				);
+			if (!previewHandoff) {
+				try {
+					await videoTrack.applyConstraints({
+						frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
+						width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
+						height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
+					});
+				} catch (constraintError) {
+					console.warn(
+						"Unable to lock 4K/60fps constraints, using best available track settings.",
+						constraintError,
+					);
+				}
 			}
 
 			let {
@@ -548,8 +598,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		}
 	};
 
-	const toggleRecording = () => {
-		recording ? stopRecording.current() : startRecording();
+	const toggleRecording = (previewHandoff?: PreviewStreamHandoff) => {
+		recording ? stopRecording.current() : startRecording(previewHandoff);
 	};
 
 	const restartRecording = async () => {
