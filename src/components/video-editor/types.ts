@@ -202,6 +202,7 @@ export interface WebcamFocusRegion {
 	id: string;
 	startMs: number;
 	endMs: number;
+	focusShape?: WebcamMaskShape;
 }
 
 export const SPEED_OPTIONS: Array<{ speed: PlaybackSpeed; label: string }> = [

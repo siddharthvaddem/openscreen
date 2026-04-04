@@ -385,7 +385,12 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							: rawStart + 1000;
 						const startMs = Math.max(0, Math.min(rawStart, rawEnd));
 						const endMs = Math.max(startMs + 1, rawEnd);
-						return { id: region.id, startMs, endMs };
+						const validShapes = ["rectangle", "circle", "square", "rounded", "portrait"];
+						const focusShape =
+							typeof region.focusShape === "string" && validShapes.includes(region.focusShape)
+								? (region.focusShape as WebcamMaskShape)
+								: undefined;
+						return { id: region.id, startMs, endMs, ...(focusShape ? { focusShape } : {}) };
 					})
 			: [],
 		annotationRegions: normalizedAnnotationRegions,

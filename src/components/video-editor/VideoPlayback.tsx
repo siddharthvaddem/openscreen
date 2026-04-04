@@ -1043,24 +1043,29 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			[webcamLayoutPreset],
 		);
 
-		const isInFocusRegion = useMemo(() => {
-			if (!webcamFocusRegions.length) return false;
+		const activeFocusRegion = useMemo(() => {
+			if (!webcamFocusRegions.length) return null;
 			const currentMs = currentTime * 1000;
-			return webcamFocusRegions.some((r) => currentMs >= r.startMs && currentMs < r.endMs);
+			return webcamFocusRegions.find((r) => currentMs >= r.startMs && currentMs < r.endMs) ?? null;
 		}, [webcamFocusRegions, currentTime]);
+
+		const isInFocusRegion = Boolean(activeFocusRegion);
 
 		const focusedWebcamRect = useMemo(() => {
 			if (!webcamDimensions || !webcamLayout) return null;
 			const { width: stageW, height: stageH } = stageSizeRef.current;
 			if (!stageW || !stageH) return null;
-			const scale = Math.min(
-				(stageH * 0.9) / webcamDimensions.height,
-				(stageW * 0.8) / webcamDimensions.width,
-			);
-			const w = Math.round(webcamDimensions.width * scale);
-			const h = Math.round(webcamDimensions.height * scale);
+			const shape = activeFocusRegion?.focusShape ?? webcamMaskShape;
+			const isRightAligned = shape === "portrait" || shape === "square";
+			const srcW = shape === "portrait" ? 9 : shape === "square" ? 1 : webcamDimensions.width;
+			const srcH = shape === "portrait" ? 16 : shape === "square" ? 1 : webcamDimensions.height;
+			const maxW = shape === "portrait" ? stageW / 3 : shape === "square" ? stageW * 0.45 : stageW * 0.8;
+			const scale = Math.min((stageH * 0.9) / srcH, maxW / srcW);
+			const w = Math.round(srcW * scale);
+			const h = Math.round(srcH * scale);
+			const x = isRightAligned ? stageW - (w + 150) : Math.round((stageW - w) / 2);
 			return {
-				x: Math.round((stageW - w) / 2),
+				x,
 				y: Math.round((stageH - h) / 2),
 				width: w,
 				height: h,
@@ -1068,7 +1073,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				maskShape: webcamLayout.maskShape,
 			};
 			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [webcamDimensions, webcamLayout, isInFocusRegion]);
+		}, [webcamDimensions, webcamLayout, activeFocusRegion, webcamMaskShape]);
 
 		useEffect(() => {
 			const webcamVideo = webcamVideoRef.current;
@@ -1195,10 +1200,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		const isImageUrl = Boolean(
 			resolvedWallpaper &&
-				(resolvedWallpaper.startsWith("file://") ||
-					resolvedWallpaper.startsWith("http") ||
-					resolvedWallpaper.startsWith("/") ||
-					resolvedWallpaper.startsWith("data:")),
+			(resolvedWallpaper.startsWith("file://") ||
+				resolvedWallpaper.startsWith("http") ||
+				resolvedWallpaper.startsWith("/") ||
+				resolvedWallpaper.startsWith("data:")),
 		);
 		const backgroundStyle = isImageUrl
 			? { backgroundImage: `url(${resolvedWallpaper || ""})` }
@@ -1213,10 +1218,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						aspectRatio,
 						aspectRatio === "native"
 							? getNativeAspectRatioValue(
-									lockedVideoDimensionsRef.current?.width || 1920,
-									lockedVideoDimensionsRef.current?.height || 1080,
-									cropRegion,
-								)
+								lockedVideoDimensionsRef.current?.width || 1920,
+								lockedVideoDimensionsRef.current?.height || 1080,
+								cropRegion,
+							)
 							: undefined,
 					),
 				}}

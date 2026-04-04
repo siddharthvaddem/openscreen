@@ -853,6 +853,18 @@ export default function VideoEditor() {
 		[selectedWebcamFocusId, pushState],
 	);
 
+	const handleWebcamFocusShapeChange = useCallback(
+		(shape: import("./types").WebcamMaskShape) => {
+			if (!selectedWebcamFocusId) return;
+			pushState((prev) => ({
+				webcamFocusRegions: prev.webcamFocusRegions.map((r) =>
+					r.id === selectedWebcamFocusId ? { ...r, focusShape: shape } : r,
+				),
+			}));
+		},
+		[selectedWebcamFocusId, pushState],
+	);
+
 	const handleSelectWebcamFocus = useCallback((id: string | null) => {
 		setSelectedWebcamFocusId(id);
 		if (id) {
@@ -1775,6 +1787,14 @@ export default function VideoEditor() {
 						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
 						webcamSizePreset={webcamSizePreset}
 						onWebcamSizePresetChange={(preset) => pushState({ webcamSizePreset: preset })}
+						selectedWebcamFocusId={selectedWebcamFocusId}
+						selectedWebcamFocusShape={
+							selectedWebcamFocusId
+								? (webcamFocusRegions.find((r) => r.id === selectedWebcamFocusId)?.focusShape ?? webcamMaskShape)
+								: undefined
+						}
+						onWebcamFocusShapeChange={handleWebcamFocusShapeChange}
+						onWebcamFocusDelete={handleWebcamFocusDelete}
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}

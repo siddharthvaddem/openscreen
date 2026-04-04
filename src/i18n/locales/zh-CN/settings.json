@@ -28,7 +28,9 @@
 		"webcamSize": "摄像头大小",
 		"webcamSizeSmall": "小",
 		"webcamSizeMedium": "中",
-		"webcamSizeLarge": "大"
+		"webcamSizeLarge": "大",
+		"focusShape": "聚焦形状",
+		"deleteFocusRegion": "删除聚焦区域"
 	},
 	"effects": {
 		"title": "视频效果",

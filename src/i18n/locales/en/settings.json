@@ -28,7 +28,9 @@
 		"webcamSize": "Camera Size",
 		"webcamSizeSmall": "S",
 		"webcamSizeMedium": "M",
-		"webcamSizeLarge": "L"
+		"webcamSizeLarge": "L",
+		"focusShape": "Focus Shape",
+		"deleteFocusRegion": "Delete Focus Region"
 	},
 	"effects": {
 		"title": "Video Effects",

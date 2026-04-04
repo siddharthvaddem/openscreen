@@ -157,6 +157,10 @@ interface SettingsPanelProps {
 	onWebcamMaskShapeChange?: (shape: WebcamMaskShape) => void;
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (preset: WebcamSizePreset) => void;
+	selectedWebcamFocusId?: string | null;
+	selectedWebcamFocusShape?: WebcamMaskShape;
+	onWebcamFocusShapeChange?: (shape: WebcamMaskShape) => void;
+	onWebcamFocusDelete?: (id: string) => void;
 }
 
 export default SettingsPanel;
@@ -234,6 +238,10 @@ export function SettingsPanel({
 	onWebcamMaskShapeChange,
 	webcamSizePreset = "medium",
 	onWebcamSizePresetChange,
+	selectedWebcamFocusId,
+	selectedWebcamFocusShape,
+	onWebcamFocusShapeChange,
+	onWebcamFocusDelete,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -810,6 +818,54 @@ export function SettingsPanel({
 												))}
 											</div>
 										</div>
+										{selectedWebcamFocusId && (
+											<div className="mt-2 pt-2 border-t border-white/10">
+												<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+													{t("layout.focusShape")}
+												</div>
+												<div className="grid grid-cols-5 gap-1.5">
+													{(
+														[
+															{ value: "rectangle", label: "Rect" },
+															{ value: "circle", label: "Circle" },
+															{ value: "square", label: "Square" },
+															{ value: "rounded", label: "Rounded" },
+															{ value: "portrait", label: "Portrait" },
+														] as Array<{ value: WebcamMaskShape; label: string }>
+													).map((shape) => (
+														<button
+															key={shape.value}
+															type="button"
+															onClick={() => onWebcamFocusShapeChange?.(shape.value)}
+															className={cn(
+																"h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all",
+																selectedWebcamFocusShape === shape.value
+																	? "bg-[#34B27B] border-[#34B27B] text-white"
+																	: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+															)}
+														>
+															<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+																{shape.value === "rectangle" && <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />}
+																{shape.value === "circle" && <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />}
+																{shape.value === "square" && <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />}
+																{shape.value === "rounded" && <rect x="1" y="3" width="14" height="10" rx="5" stroke="currentColor" strokeWidth="1.5" />}
+																{shape.value === "portrait" && <rect x="4.5" y="1" width="7" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />}
+															</svg>
+															<span className="text-[8px] leading-none">{shape.label}</span>
+														</button>
+													))}
+												</div>
+												<Button
+													onClick={() => onWebcamFocusDelete?.(selectedWebcamFocusId)}
+													variant="destructive"
+													size="sm"
+													className="mt-2 w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all h-8 text-xs"
+												>
+													<Trash2 className="w-3 h-3" />
+													{t("layout.deleteFocusRegion")}
+												</Button>
+											</div>
+										)}
 									</div>
 								)}
 							</AccordionContent>

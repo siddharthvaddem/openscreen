@@ -526,13 +526,26 @@ export class FrameRenderer {
 		return 0;
 	}
 
-	private computeFocusWebcamRect(): { x: number; y: number; width: number; height: number } | null {
-		const { width, height, webcamSize } = this.config;
+	private getActiveFocusRegion(timeMs: number) {
+		const regions = this.config.webcamFocusRegions;
+		if (!regions?.length) return null;
+		return regions.find((r) => timeMs >= r.startMs && timeMs < r.endMs) ?? null;
+	}
+
+	private computeFocusWebcamRect(timeMs: number): { x: number; y: number; width: number; height: number } | null {
+		const { width, height, webcamSize, webcamMaskShape } = this.config;
 		if (!webcamSize) return null;
-		const scale = Math.min((height * 0.9) / webcamSize.height, (width * 0.8) / webcamSize.width);
-		const w = Math.round(webcamSize.width * scale);
-		const h = Math.round(webcamSize.height * scale);
-		return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), width: w, height: h };
+		const activeRegion = this.getActiveFocusRegion(timeMs);
+		const shape = activeRegion?.focusShape ?? webcamMaskShape;
+		const isRightAligned = shape === "portrait" || shape === "square";
+		const srcW = shape === "portrait" ? 9 : shape === "square" ? 1 : webcamSize.width;
+		const srcH = shape === "portrait" ? 16 : shape === "square" ? 1 : webcamSize.height;
+		const maxW = shape === "portrait" ? width / 3 : shape === "square" ? width * 0.45 : width * 0.8;
+		const scale = Math.min((height * 0.9) / srcH, maxW / srcW);
+		const w = Math.round(srcW * scale);
+		const h = Math.round(srcH * scale);
+		const x = isRightAligned ? width - (w + 150) : Math.round((width - w) / 2);
+		return { x, y: Math.round((height - h) / 2), width: w, height: h };
 	}
 
 	private clampFocusToStage(
@@ -799,7 +812,7 @@ export class FrameRenderer {
 			// Interpolate webcam rect toward focus rect when in a focus region
 			let activeRect = webcamRect;
 			if (focusStrength > 0) {
-				const focusRect = this.computeFocusWebcamRect();
+				const focusRect = this.computeFocusWebcamRect(this.currentVideoTime * 1000);
 				if (focusRect) {
 					const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 					activeRect = {
