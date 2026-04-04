@@ -1,7 +1,7 @@
 import { ChevronDown, Languages } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BsRecordCircle } from "react-icons/bs";
-import { FaRegStopCircle } from "react-icons/fa";
+import { FaPauseCircle, FaPlayCircle, FaRegStopCircle } from "react-icons/fa";
 import { FaFolderOpen } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
 import {
@@ -41,6 +41,8 @@ const ICON_CONFIG = {
 	micOff: { icon: MdMicOff, size: ICON_SIZE },
 	webcamOn: { icon: MdVideocam, size: ICON_SIZE },
 	webcamOff: { icon: MdVideocamOff, size: ICON_SIZE },
+	pause: { icon: FaPauseCircle, size: ICON_SIZE },
+	resume: { icon: FaPlayCircle, size: ICON_SIZE },
 	stop: { icon: FaRegStopCircle, size: ICON_SIZE },
 	restart: { icon: MdRestartAlt, size: ICON_SIZE },
 	record: { icon: BsRecordCircle, size: ICON_SIZE },
@@ -77,7 +79,10 @@ export function LaunchWindow() {
 
 	const {
 		recording,
+		paused,
 		toggleRecording,
+		pauseRecording,
+		resumeRecording,
 		restartRecording,
 		microphoneEnabled,
 		setMicrophoneEnabled,
@@ -92,6 +97,9 @@ export function LaunchWindow() {
 	} = useScreenRecorder();
 	const [recordingStart, setRecordingStart] = useState<number | null>(null);
 	const [elapsed, setElapsed] = useState(0);
+
+	const [pausedAt, setPausedAt] = useState<number | null>(null);
+	const [pausedTotalMs, setPausedTotalMs] = useState(0);
 
 	const showMicControls = microphoneEnabled && !recording;
 	const showWebcamControls = webcamEnabled && !recording;
@@ -147,23 +155,47 @@ export function LaunchWindow() {
 	}, [selectedCameraId, setWebcamDeviceId]);
 
 	useEffect(() => {
-		let timer: NodeJS.Timeout | null = null;
 		if (recording) {
-			if (!recordingStart) setRecordingStart(Date.now());
-			timer = setInterval(() => {
-				if (recordingStart) {
-					setElapsed(Math.floor((Date.now() - recordingStart) / 1000));
-				}
-			}, 1000);
-		} else {
-			setRecordingStart(null);
-			setElapsed(0);
-			if (timer) clearInterval(timer);
+			if (!recordingStart) {
+				setRecordingStart(Date.now());
+				setElapsed(0);
+			}
+			return;
 		}
-		return () => {
-			if (timer) clearInterval(timer);
-		};
+
+		setRecordingStart(null);
+		setElapsed(0);
+		setPausedAt(null);
+		setPausedTotalMs(0);
 	}, [recording, recordingStart]);
+
+	useEffect(() => {
+		if (!recording || !recordingStart) return;
+
+		if (paused) {
+			if (!pausedAt) {
+				setPausedAt(Date.now());
+			}
+			return;
+		}
+
+		if (pausedAt) {
+			setPausedTotalMs((prev) => prev + (Date.now() - pausedAt));
+			setPausedAt(null);
+		}
+	}, [recording, paused, recordingStart, pausedAt]);
+
+	useEffect(() => {
+		if (!recording || !recordingStart || paused) return;
+
+		const timer = setInterval(() => {
+			const livePaused = pausedAt ? Date.now() - pausedAt : 0;
+			const effectiveMs = Math.max(0, Date.now() - recordingStart - pausedTotalMs - livePaused);
+			setElapsed(Math.floor(effectiveMs / 1000));
+		}, 250);
+
+		return () => clearInterval(timer);
+	}, [recording, paused, recordingStart, pausedAt, pausedTotalMs]);
 
 	useEffect(() => {
 		if (!import.meta.env.DEV) {
@@ -274,7 +306,10 @@ export function LaunchWindow() {
 							onMouseLeave={() => setIsMicHovered(false)}
 							onFocus={() => setIsMicFocused(true)}
 							onBlur={() => setIsMicFocused(false)}
-							style={{ width: micExpanded ? "240px" : "140px", transition: "width 300ms ease" }}
+							style={{
+								width: micExpanded ? "240px" : "140px",
+								transition: "width 300ms ease",
+							}}
 						>
 							<div className="relative flex-1 min-w-0">
 								{!micExpanded && (
@@ -318,7 +353,10 @@ export function LaunchWindow() {
 							onMouseLeave={() => setIsWebcamHovered(false)}
 							onFocus={() => setIsWebcamFocused(true)}
 							onBlur={() => setIsWebcamFocused(false)}
-							style={{ width: webcamExpanded ? "240px" : "140px", transition: "width 300ms ease" }}
+							style={{
+								width: webcamExpanded ? "240px" : "140px",
+								transition: "width 300ms ease",
+							}}
 						>
 							<div className="relative flex-1 min-w-0">
 								{!webcamExpanded && (
@@ -444,10 +482,27 @@ export function LaunchWindow() {
 					</button>
 				</div>
 
+				{/* Resume/Pause recording */}
+				{recording && (
+					<Tooltip content={paused ? "Resume recording" : "Pause recording"}>
+						<button
+							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+							onClick={paused ? resumeRecording : pauseRecording}
+							style={{ flex: "0 0 auto" }}
+						>
+							{paused ? getIcon("resume", "text-amber-300") : getIcon("pause", "text-amber-300")}
+						</button>
+					</Tooltip>
+				)}
+
 				{/* Record/Stop group */}
 				<button
 					className={`flex items-center gap-0.5 rounded-full p-2 transition-colors duration-150 ${styles.electronNoDrag} ${
-						recording ? "animate-record-pulse bg-red-500/10" : "bg-white/5 hover:bg-white/[0.08]"
+						recording
+							? paused
+								? "bg-amber-500/10"
+								: "animate-record-pulse bg-red-500/10"
+							: "bg-white/5 hover:bg-white/[0.08]"
 					}`}
 					onClick={toggleRecording}
 					disabled={!hasSelectedSource && !recording}
