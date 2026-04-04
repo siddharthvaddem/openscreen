@@ -218,6 +218,11 @@ export function registerIpcHandlers(
 	getSourceSelectorWindow: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 ) {
+	ipcMain.handle("get-session-type", () => {
+		if (process.platform !== "linux") return "x11";
+		return process.env.XDG_SESSION_TYPE || (process.env.WAYLAND_DISPLAY ? "wayland" : "x11");
+	});
+
 	ipcMain.handle("get-sources", async (_, opts) => {
 		const sources = await desktopCapturer.getSources(opts);
 		return sources.map((source) => ({

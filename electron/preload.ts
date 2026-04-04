@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		// ask main process for the correct base path (production vs dev)
 		return await ipcRenderer.invoke("get-asset-base-path");
 	},
+	getSessionType: async () => {
+		return await ipcRenderer.invoke("get-session-type");
+	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
 	},
