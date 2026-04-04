@@ -564,10 +564,16 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						if (!allowAutoFinalize.current) {
 							return;
 						}
+						const activePauseMs = pausedStartedAt.current
+							? Date.now() - pausedStartedAt.current
+							: 0;
 						finalizeRecording(
 							activeScreenRecorder,
 							activeWebcamRecorder ?? null,
-							Math.max(0, Date.now() - startTime.current - pausedDurationMs.current),
+							Math.max(
+								0,
+								Date.now() - startTime.current - pausedDurationMs.current - activePauseMs,
+							),
 							activeRecordingId,
 						);
 					},
