@@ -127,6 +127,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	setMicrophoneExpanded: (expanded: boolean) => {
 		ipcRenderer.send("hud:setMicrophoneExpanded", expanded);
 	},
+	cliExportMessage: (message: { type: string; data: unknown }) => {
+		ipcRenderer.send("cli-export-message", message);
+	},
 	setHasUnsavedChanges: (hasChanges: boolean) => {
 		ipcRenderer.send("set-has-unsaved-changes", hasChanges);
 	},

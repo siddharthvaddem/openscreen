@@ -36,6 +36,18 @@ function approveFilePath(filePath: string): void {
 	approvedPaths.add(path.resolve(filePath));
 }
 
+/**
+ * Pre-approve a path for `read-binary-file`. Exposed so the CLI export
+ * bootstrap in main.ts can whitelist its temp config file (written under
+ * `os.tmpdir()` by electron-bridge.ts) before the hidden renderer tries to
+ * read it. Without this, the path guard rejects anything outside
+ * RECORDINGS_DIR and the headless export dies with "Failed to read CLI
+ * export config".
+ */
+export function approveReadablePath(filePath: string): void {
+	approveFilePath(filePath);
+}
+
 function getAllowedReadDirs(): string[] {
 	return [RECORDINGS_DIR];
 }

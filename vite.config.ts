@@ -12,6 +12,11 @@ export default defineConfig({
 				// Shortcut of `build.lib.entry`.
 				entry: "electron/main.ts",
 				vite: {
+					resolve: {
+						alias: {
+							"@": path.resolve(__dirname, "src"),
+						},
+					},
 					build: {},
 				},
 			},

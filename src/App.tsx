@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CliExportRenderer } from "./components/cli-export/CliExportRenderer";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { Toaster } from "./components/ui/sonner";
@@ -40,6 +41,8 @@ export default function App() {
 						<ShortcutsConfigDialog />
 					</ShortcutsProvider>
 				);
+			case "cli-export":
+				return <CliExportRenderer />;
 			default:
 				return (
 					<div className="w-full h-full bg-background text-foreground">

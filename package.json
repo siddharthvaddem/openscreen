@@ -29,10 +29,14 @@
 		"test:browser": "vitest --config vitest.browser.config.ts --run",
 		"test:browser:install": "playwright install --with-deps chromium-headless-shell",
 		"test:e2e": "playwright test",
-		"prepare": "husky"
+		"prepare": "husky",
+		"cli": "tsx cli/src/index.ts",
+		"cli:typecheck": "tsc -p cli/tsconfig.json",
+		"mcp-server": "tsx cli/src/mcp-server.ts"
 	},
 	"dependencies": {
 		"@fix-webm-duration/fix": "^1.0.1",
+		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@pixi/filter-drop-shadow": "^5.2.0",
 		"@radix-ui/react-accordion": "^1.2.12",
 		"@radix-ui/react-dialog": "^1.1.15",
@@ -51,6 +55,7 @@
 		"@uiw/react-color-block": "^2.9.2",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
+		"commander": "^14.0.3",
 		"dnd-timeline": "^2.2.0",
 		"emoji-picker-react": "^4.16.1",
 		"fix-webm-duration": "^1.0.6",
@@ -71,7 +76,8 @@
 		"tailwind-merge": "^3.3.1",
 		"tailwindcss-animate": "^1.0.7",
 		"uuid": "^13.0.0",
-		"web-demuxer": "^4.0.0"
+		"web-demuxer": "^4.0.0",
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.13",
@@ -98,6 +104,7 @@
 		"postcss": "^8.5.6",
 		"tailwindcss": "^3.4.18",
 		"terser": "^5.44.1",
+		"tsx": "^4.21.0",
 		"typescript": "^5.2.2",
 		"vite": "^5.1.6",
 		"vite-plugin-electron": "^0.28.6",
