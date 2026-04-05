@@ -496,7 +496,7 @@ export class FrameRenderer {
 		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
 		const scaledBorderRadius =
 			compositeLayout.screenBorderRadius != null
-				? compositeLayout.screenBorderRadius * canvasScaleFactor
+				? compositeLayout.screenBorderRadius
 				: compositeLayout.screenCover
 					? 0
 					: borderRadius * canvasScaleFactor;
