@@ -6,10 +6,13 @@
  * as percentages of the frame image dimensions.
  */
 
+import browserSvg from "../../public/frames/browser.svg";
+import macbookSvg from "../../public/frames/macbook.svg";
+
 export interface DeviceFrameDefinition {
 	id: string;
 	label: string;
-	/** Path to the frame image (SVG) relative to public/ */
+	/** Resolved URL to the frame image (SVG) */
 	imagePath: string;
 	/** Screen area within the frame as percentage of frame dimensions */
 	screen: {
@@ -24,13 +27,13 @@ export const DEVICE_FRAMES: DeviceFrameDefinition[] = [
 	{
 		id: "macbook",
 		label: "MacBook",
-		imagePath: "./frames/macbook.svg",
+		imagePath: macbookSvg,
 		screen: { x: 11.5, y: 3.5, width: 77, height: 81 },
 	},
 	{
 		id: "browser",
 		label: "Browser",
-		imagePath: "./frames/browser.svg",
+		imagePath: browserSvg,
 		screen: { x: 1.5, y: 7, width: 97, height: 91.5 },
 	},
 ];
