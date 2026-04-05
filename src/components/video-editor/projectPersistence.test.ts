@@ -80,4 +80,13 @@ describe("projectPersistence media compatibility", () => {
 			}).webcamLayoutPreset,
 		).toBe("picture-in-picture");
 	});
+
+	it("clears webcamPosition when the normalized preset is not picture in picture", () => {
+		expect(
+			normalizeProjectEditor({
+				webcamLayoutPreset: "dual-frame",
+				webcamPosition: { cx: 0.2, cy: 0.8 },
+			}).webcamPosition,
+		).toBeNull();
+	});
 });

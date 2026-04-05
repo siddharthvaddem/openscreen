@@ -190,6 +190,17 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						? DEFAULT_WEBCAM_LAYOUT_PRESET
 						: editor.webcamLayoutPreset
 					: DEFAULT_WEBCAM_LAYOUT_PRESET;
+	const normalizedWebcamPosition: WebcamPosition | null =
+		normalizedWebcamLayoutPreset === "picture-in-picture" &&
+		editor.webcamPosition &&
+		typeof editor.webcamPosition === "object" &&
+		isFiniteNumber((editor.webcamPosition as WebcamPosition).cx) &&
+		isFiniteNumber((editor.webcamPosition as WebcamPosition).cy)
+			? {
+					cx: clamp((editor.webcamPosition as WebcamPosition).cx, 0, 1),
+					cy: clamp((editor.webcamPosition as WebcamPosition).cy, 0, 1),
+				}
+			: DEFAULT_WEBCAM_POSITION;
 
 	const normalizedZoomRegions: ZoomRegion[] = Array.isArray(editor.zoomRegions)
 		? editor.zoomRegions
@@ -375,16 +386,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamMaskShape === "rounded"
 				? editor.webcamMaskShape
 				: DEFAULT_WEBCAM_MASK_SHAPE,
-		webcamPosition:
-			editor.webcamPosition &&
-			typeof editor.webcamPosition === "object" &&
-			isFiniteNumber((editor.webcamPosition as WebcamPosition).cx) &&
-			isFiniteNumber((editor.webcamPosition as WebcamPosition).cy)
-				? {
-						cx: clamp((editor.webcamPosition as WebcamPosition).cx, 0, 1),
-						cy: clamp((editor.webcamPosition as WebcamPosition).cy, 0, 1),
-					}
-				: DEFAULT_WEBCAM_POSITION,
+		webcamPosition: normalizedWebcamPosition,
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality
