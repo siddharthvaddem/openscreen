@@ -64,6 +64,28 @@ import {
 	type MotionBlurState,
 } from "./videoPlayback/zoomTransform";
 
+const CENTER_SNAP_ENTER_THRESHOLD = 0.012;
+const CENTER_SNAP_EXIT_THRESHOLD = 0.02;
+
+type SnapGuides = {
+	horizontal: boolean;
+	vertical: boolean;
+};
+
+const EMPTY_SNAP_GUIDES: SnapGuides = {
+	horizontal: false,
+	vertical: false,
+};
+
+function applyCenterSnap(value: number, wasSnapped: boolean): { value: number; snapped: boolean } {
+	const threshold = wasSnapped ? CENTER_SNAP_EXIT_THRESHOLD : CENTER_SNAP_ENTER_THRESHOLD;
+	if (Math.abs(value - 0.5) <= threshold) {
+		return { value: 0.5, snapped: true };
+	}
+
+	return { value, snapped: false };
+}
+
 interface VideoPlaybackProps {
 	videoPath: string;
 	webcamVideoPath?: string;
@@ -167,6 +189,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const focusIndicatorRef = useRef<HTMLDivElement | null>(null);
 		const [webcamLayout, setWebcamLayout] = useState<StyledRenderRect | null>(null);
 		const [webcamDimensions, setWebcamDimensions] = useState<Size | null>(null);
+		const [snapGuides, setSnapGuides] = useState<SnapGuides>(EMPTY_SNAP_GUIDES);
 		const currentTimeRef = useRef(0);
 		const zoomRegionsRef = useRef<ZoomRegion[]>([]);
 		const cursorTelemetryRef = useRef<import("./types").CursorTelemetryPoint[]>([]);
@@ -184,6 +207,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const motionBlurFilterRef = useRef<MotionBlurFilter | null>(null);
 		const isDraggingFocusRef = useRef(false);
 		const isDraggingWebcamRef = useRef(false);
+		const focusSnapRef = useRef<SnapGuides>(EMPTY_SNAP_GUIDES);
+		const webcamSnapRef = useRef<SnapGuides>(EMPTY_SNAP_GUIDES);
 		const webcamDragOffsetRef = useRef({ dx: 0, dy: 0 });
 		const stageSizeRef = useRef({ width: 0, height: 0 });
 		const videoSizeRef = useRef({ width: 0, height: 0 });
@@ -381,7 +406,22 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				cx: clamp01(localX / stageWidth),
 				cy: clamp01(localY / stageHeight),
 			};
-			const clampedFocus = clampFocusToStage(unclampedFocus, region.depth);
+			const snappedFocusX = applyCenterSnap(unclampedFocus.cx, focusSnapRef.current.vertical);
+			const snappedFocusY = applyCenterSnap(unclampedFocus.cy, focusSnapRef.current.horizontal);
+			const clampedFocus = clampFocusToStage(
+				{
+					cx: snappedFocusX.value,
+					cy: snappedFocusY.value,
+				},
+				region.depth,
+			);
+
+			const nextSnapGuides = {
+				vertical: snappedFocusX.snapped,
+				horizontal: snappedFocusY.snapped,
+			};
+			focusSnapRef.current = nextSnapGuides;
+			setSnapGuides(nextSnapGuides);
 
 			onZoomFocusChange(region.id, clampedFocus);
 			updateOverlayForRegion({ ...region, focus: clampedFocus }, clampedFocus);
@@ -410,6 +450,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const endFocusDrag = (event: React.PointerEvent<HTMLDivElement>) => {
 			if (!isDraggingFocusRef.current) return;
 			isDraggingFocusRef.current = false;
+			focusSnapRef.current = EMPTY_SNAP_GUIDES;
+			setSnapGuides(EMPTY_SNAP_GUIDES);
 			try {
 				event.currentTarget.releasePointerCapture(event.pointerId);
 			} catch {
@@ -453,18 +495,30 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			if (!containerEl || !onWebcamPositionChange) return;
 
 			const containerRect = containerEl.getBoundingClientRect();
-			const cx = clamp01(
+			const rawCx = clamp01(
 				(event.clientX - webcamDragOffsetRef.current.dx - containerRect.left) / containerRect.width,
 			);
-			const cy = clamp01(
+			const rawCy = clamp01(
 				(event.clientY - webcamDragOffsetRef.current.dy - containerRect.top) / containerRect.height,
 			);
-			onWebcamPositionChange({ cx, cy });
+			const snappedCx = applyCenterSnap(rawCx, webcamSnapRef.current.vertical);
+			const snappedCy = applyCenterSnap(rawCy, webcamSnapRef.current.horizontal);
+
+			const nextSnapGuides = {
+				vertical: snappedCx.snapped,
+				horizontal: snappedCy.snapped,
+			};
+			webcamSnapRef.current = nextSnapGuides;
+			setSnapGuides(nextSnapGuides);
+
+			onWebcamPositionChange({ cx: snappedCx.value, cy: snappedCy.value });
 		};
 
 		const handleWebcamPointerUp = (event: React.PointerEvent<HTMLVideoElement>) => {
 			if (!isDraggingWebcamRef.current) return;
 			isDraggingWebcamRef.current = false;
+			webcamSnapRef.current = EMPTY_SNAP_GUIDES;
+			setSnapGuides(EMPTY_SNAP_GUIDES);
 			try {
 				event.currentTarget.releasePointerCapture(event.pointerId);
 			} catch {
@@ -1277,6 +1331,18 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							className="absolute rounded-md border border-[#34B27B]/80 bg-[#34B27B]/20 shadow-[0_0_0_1px_rgba(52,178,123,0.35)]"
 							style={{ display: "none", pointerEvents: "none" }}
 						/>
+						{snapGuides.vertical && (
+							<div
+								className="absolute top-0 bottom-0 w-px bg-[#34B27B]/65 shadow-[0_0_10px_rgba(52,178,123,0.4)]"
+								style={{ left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }}
+							/>
+						)}
+						{snapGuides.horizontal && (
+							<div
+								className="absolute left-0 right-0 h-px bg-[#34B27B]/65 shadow-[0_0_10px_rgba(52,178,123,0.4)]"
+								style={{ top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+							/>
+						)}
 						{(() => {
 							const filtered = (annotationRegions || []).filter((annotation) => {
 								if (typeof annotation.startMs !== "number" || typeof annotation.endMs !== "number")
