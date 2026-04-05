@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="none">
-  <!-- Browser window frame -->
-  <rect x="0" y="0" width="1200" height="800" rx="10" fill="#2a2a2a"/>
+  <defs>
+    <mask id="content-cutout">
+      <rect width="1200" height="800" fill="white"/>
+      <rect x="18" y="56" width="1164" height="732" fill="black"/>
+    </mask>
+  </defs>
+  <!-- Browser window frame with content area cutout -->
+  <rect x="0" y="0" width="1200" height="800" rx="10" fill="#2a2a2a" mask="url(#content-cutout)"/>
   <!-- Title bar -->
   <rect x="0" y="0" width="1200" height="56" rx="10" fill="#333"/>
   <!-- Fix bottom corners of title bar -->
@@ -11,6 +17,4 @@
   <circle cx="72" cy="28" r="7" fill="#28c840"/>
   <!-- Address bar -->
   <rect x="100" y="14" width="1000" height="28" rx="6" fill="#1a1a1a"/>
-  <!-- Content area (transparent) -->
-  <rect x="18" y="56" width="1164" height="732" fill="transparent"/>
 </svg>

@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" fill="none">
-  <!-- MacBook Pro frame -->
-  <!-- Lid/screen bezel -->
-  <rect x="100" y="0" width="1000" height="680" rx="16" fill="#1a1a1a"/>
-  <rect x="138" y="27" width="924" height="630" rx="4" fill="transparent"/>
+  <defs>
+    <mask id="screen-cutout">
+      <rect width="1200" height="780" fill="white"/>
+      <rect x="138" y="27" width="924" height="630" rx="4" fill="black"/>
+    </mask>
+  </defs>
+  <!-- MacBook Pro frame with screen cutout so video shows through -->
+  <rect x="100" y="0" width="1000" height="680" rx="16" fill="#1a1a1a" mask="url(#screen-cutout)"/>
   <!-- Camera notch -->
   <circle cx="600" cy="13" r="4" fill="#333"/>
   <!-- Bottom base -->
