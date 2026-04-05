@@ -136,7 +136,7 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 		screenRect.y,
 		screenRect.width,
 		screenRect.height,
-		compositeLayout.screenCover ? 0 : borderRadius,
+		compositeLayout.screenBorderRadius ?? (compositeLayout.screenCover ? 0 : borderRadius),
 	);
 	maskGraphics.fill({ color: 0xffffff });
 

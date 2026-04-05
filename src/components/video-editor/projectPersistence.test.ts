@@ -42,6 +42,7 @@ describe("projectPersistence media compatibility", () => {
 				aspectRatio: "16:9",
 				webcamLayoutPreset: "picture-in-picture",
 				webcamMaskShape: "circle",
+				webcamPosition: null,
 				exportQuality: "good",
 				exportFormat: "mp4",
 				gifFrameRate: 15,
@@ -63,5 +64,11 @@ describe("projectPersistence media compatibility", () => {
 		expect(
 			normalizeProjectEditor({ webcamMaskShape: "not-a-real-shape" as never }).webcamMaskShape,
 		).toBe("rectangle");
+	});
+
+	it("accepts the dual frame webcam layout preset", () => {
+		expect(normalizeProjectEditor({ webcamLayoutPreset: "two-timer" }).webcamLayoutPreset).toBe(
+			"two-timer",
+		);
 	});
 });

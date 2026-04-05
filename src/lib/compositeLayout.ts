@@ -15,7 +15,7 @@ export interface Size {
 	height: number;
 }
 
-export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack";
+export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack" | "two-timer";
 
 export interface WebcamLayoutShadow {
 	color: string;
@@ -43,9 +43,17 @@ interface StackTransform {
 	gap: number;
 }
 
+interface SplitTransform {
+	type: "split";
+	gapFraction: number;
+	minGap: number;
+	screenUnits: number;
+	webcamUnits: number;
+}
+
 export interface WebcamLayoutPresetDefinition {
 	label: string;
-	transform: OverlayTransform | StackTransform;
+	transform: OverlayTransform | StackTransform | SplitTransform;
 	borderRadius: BorderRadiusRule;
 	shadow: WebcamLayoutShadow | null;
 }
@@ -53,6 +61,7 @@ export interface WebcamLayoutPresetDefinition {
 export interface WebcamCompositeLayout {
 	screenRect: RenderRect;
 	webcamRect: StyledRenderRect | null;
+	screenBorderRadius?: number;
 	/** When true, the video should be scaled to cover screenRect (cropping overflow). */
 	screenCover?: boolean;
 }
@@ -92,6 +101,22 @@ const WEBCAM_LAYOUT_PRESET_MAP: Record<WebcamLayoutPreset, WebcamLayoutPresetDef
 			max: 0,
 			min: 0,
 			fraction: 0,
+		},
+		shadow: null,
+	},
+	"two-timer": {
+		label: "Dual Frame",
+		transform: {
+			type: "split",
+			gapFraction: 0.02,
+			minGap: 12,
+			screenUnits: 2,
+			webcamUnits: 1,
+		},
+		borderRadius: {
+			max: MAX_BORDER_RADIUS,
+			min: 12,
+			fraction: 0.06,
 		},
 		shadow: null,
 	},
@@ -183,6 +208,69 @@ export function computeCompositeLayout(params: {
 		};
 	}
 
+	if (preset.transform.type === "split") {
+		const screenRect = centerRect({
+			canvasSize,
+			size: screenSize,
+			maxSize: maxContentSize,
+		});
+
+		if (!webcamWidth || !webcamHeight || webcamWidth <= 0 || webcamHeight <= 0) {
+			return { screenRect, webcamRect: null };
+		}
+
+		const contentWidth = Math.min(canvasWidth, Math.max(1, Math.round(maxContentSize.width)));
+		const contentHeight = Math.min(canvasHeight, Math.max(1, Math.round(maxContentSize.height)));
+		const contentX = Math.max(0, Math.floor((canvasWidth - contentWidth) / 2));
+		const contentY = Math.max(0, Math.floor((canvasHeight - contentHeight) / 2));
+		const gap = Math.max(
+			preset.transform.minGap,
+			Math.round(contentWidth * preset.transform.gapFraction),
+		);
+		const totalUnits = preset.transform.screenUnits + preset.transform.webcamUnits;
+		const availableWidth = Math.max(1, contentWidth - gap);
+		const screenSlotWidth = Math.max(
+			1,
+			Math.round((availableWidth * preset.transform.screenUnits) / totalUnits),
+		);
+		const webcamSlotWidth = Math.max(1, availableWidth - screenSlotWidth);
+
+		const screenSlot = {
+			x: contentX,
+			y: contentY,
+			width: screenSlotWidth,
+			height: contentHeight,
+		};
+		const webcamSlot = {
+			x: contentX + screenSlotWidth + gap,
+			y: contentY,
+			width: webcamSlotWidth,
+			height: contentHeight,
+		};
+
+		const webcamBorderRadius = Math.min(
+			preset.borderRadius.max,
+			Math.max(
+				preset.borderRadius.min,
+				Math.round(Math.min(webcamSlot.width, webcamSlot.height) * preset.borderRadius.fraction),
+			),
+		);
+
+		return {
+			screenRect: screenSlot,
+			screenBorderRadius: webcamBorderRadius,
+			webcamRect: {
+				x: webcamSlot.x,
+				y: webcamSlot.y,
+				width: webcamSlot.width,
+				height: webcamSlot.height,
+				borderRadius: webcamBorderRadius,
+				maskShape: "rectangle",
+			},
+			screenCover: true,
+		};
+	}
+
 	const transform = preset.transform;
 	const screenRect = centerRect({
 		canvasSize,
@@ -258,7 +346,16 @@ export function computeCompositeLayout(params: {
 
 function centerRect(params: { canvasSize: Size; size: Size; maxSize: Size }): RenderRect {
 	const { canvasSize, size, maxSize } = params;
-	const { width: canvasWidth, height: canvasHeight } = canvasSize;
+	return centerRectInBounds({
+		bounds: { x: 0, y: 0, width: canvasSize.width, height: canvasSize.height },
+		size,
+		maxSize,
+	});
+}
+
+function centerRectInBounds(params: { bounds: RenderRect; size: Size; maxSize: Size }): RenderRect {
+	const { bounds, size, maxSize } = params;
+	const { x: boundsX, y: boundsY, width: boundsWidth, height: boundsHeight } = bounds;
 	const { width, height } = size;
 	const { width: maxWidth, height: maxHeight } = maxSize;
 	const scale = Math.min(maxWidth / width, maxHeight / height, 1);
@@ -266,8 +363,8 @@ function centerRect(params: { canvasSize: Size; size: Size; maxSize: Size }): Re
 	const resolvedHeight = Math.round(height * scale);
 
 	return {
-		x: Math.max(0, Math.floor((canvasWidth - resolvedWidth) / 2)),
-		y: Math.max(0, Math.floor((canvasHeight - resolvedHeight) / 2)),
+		x: boundsX + Math.max(0, Math.floor((boundsWidth - resolvedWidth) / 2)),
+		y: boundsY + Math.max(0, Math.floor((boundsHeight - resolvedHeight) / 2)),
 		width: resolvedWidth,
 		height: resolvedHeight,
 	};

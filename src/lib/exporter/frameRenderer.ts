@@ -494,7 +494,12 @@ export class FrameRenderer {
 		const previewWidth = this.config.previewWidth || 1920;
 		const previewHeight = this.config.previewHeight || 1080;
 		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
-		const scaledBorderRadius = compositeLayout.screenCover ? 0 : borderRadius * canvasScaleFactor;
+		const scaledBorderRadius =
+			compositeLayout.screenBorderRadius != null
+				? compositeLayout.screenBorderRadius * canvasScaleFactor
+				: compositeLayout.screenCover
+					? 0
+					: borderRadius * canvasScaleFactor;
 
 		this.maskGraphics.clear();
 		this.maskGraphics.roundRect(0, 0, screenRect.width, screenRect.height, scaledBorderRadius);
@@ -735,6 +740,22 @@ export class FrameRenderer {
 		if (webcamFrame && webcamRect) {
 			const preset = getWebcamLayoutPresetDefinition(this.config.webcamLayoutPreset);
 			const shape = webcamRect.maskShape ?? this.config.webcamMaskShape ?? "rectangle";
+			const sourceWidth =
+				("displayWidth" in webcamFrame && webcamFrame.displayWidth > 0
+					? webcamFrame.displayWidth
+					: webcamFrame.codedWidth) || webcamRect.width;
+			const sourceHeight =
+				("displayHeight" in webcamFrame && webcamFrame.displayHeight > 0
+					? webcamFrame.displayHeight
+					: webcamFrame.codedHeight) || webcamRect.height;
+			const sourceAspect = sourceWidth / sourceHeight;
+			const targetAspect = webcamRect.width / webcamRect.height;
+			const sourceCropWidth =
+				sourceAspect > targetAspect ? Math.round(sourceHeight * targetAspect) : sourceWidth;
+			const sourceCropHeight =
+				sourceAspect > targetAspect ? sourceHeight : Math.round(sourceWidth / targetAspect);
+			const sourceCropX = Math.max(0, Math.round((sourceWidth - sourceCropWidth) / 2));
+			const sourceCropY = Math.max(0, Math.round((sourceHeight - sourceCropHeight) / 2));
 			ctx.save();
 			drawCanvasClipPath(
 				ctx,
@@ -756,6 +777,10 @@ export class FrameRenderer {
 			ctx.clip();
 			ctx.drawImage(
 				webcamFrame as unknown as CanvasImageSource,
+				sourceCropX,
+				sourceCropY,
+				sourceCropWidth,
+				sourceCropHeight,
 				webcamRect.x,
 				webcamRect.y,
 				webcamRect.width,

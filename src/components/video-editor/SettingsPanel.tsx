@@ -268,6 +268,7 @@ export function SettingsPanel({
 	const cropSnapshotRef = useRef<CropRegion | null>(null);
 	const [cropAspectLocked, setCropAspectLocked] = useState(false);
 	const [cropAspectRatio, setCropAspectRatio] = useState("");
+	const isPortraitCanvas = isPortraitAspectRatio(aspectRatio);
 
 	const videoWidth = videoElement?.videoWidth || 1920;
 	const videoHeight = videoElement?.videoHeight || 1080;
@@ -656,15 +657,17 @@ export function SettingsPanel({
 											<SelectValue placeholder={t("layout.selectPreset")} />
 										</SelectTrigger>
 										<SelectContent>
-											{WEBCAM_LAYOUT_PRESETS.filter(
-												(preset) =>
-													preset.value === "picture-in-picture" ||
-													isPortraitAspectRatio(aspectRatio),
-											).map((preset) => (
+											{WEBCAM_LAYOUT_PRESETS.filter((preset) => {
+												if (preset.value === "picture-in-picture") return true;
+												if (preset.value === "vertical-stack") return isPortraitCanvas;
+												return !isPortraitCanvas;
+											}).map((preset) => (
 												<SelectItem key={preset.value} value={preset.value} className="text-xs">
 													{preset.value === "picture-in-picture"
 														? t("layout.pictureInPicture")
-														: t("layout.verticalStack")}
+														: preset.value === "vertical-stack"
+															? t("layout.verticalStack")
+															: t("layout.twoTimer")}
 												</SelectItem>
 											))}
 										</SelectContent>
