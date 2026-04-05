@@ -667,7 +667,7 @@ export function SettingsPanel({
 														? t("layout.pictureInPicture")
 														: preset.value === "vertical-stack"
 															? t("layout.verticalStack")
-															: t("layout.twoTimer")}
+															: t("layout.dualFrame")}
 												</SelectItem>
 											))}
 										</SelectContent>

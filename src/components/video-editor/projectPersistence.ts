@@ -353,7 +353,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.aspectRatio && validAspectRatios.has(editor.aspectRatio) ? editor.aspectRatio : "16:9",
 		webcamLayoutPreset:
 			editor.webcamLayoutPreset === "vertical-stack" ||
-			editor.webcamLayoutPreset === "two-timer" ||
+			editor.webcamLayoutPreset === "dual-frame" ||
 			editor.webcamLayoutPreset === "picture-in-picture"
 				? editor.webcamLayoutPreset
 				: DEFAULT_WEBCAM_LAYOUT_PRESET,

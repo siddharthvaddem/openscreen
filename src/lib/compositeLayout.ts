@@ -15,7 +15,7 @@ export interface Size {
 	height: number;
 }
 
-export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack" | "two-timer";
+export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack" | "dual-frame";
 
 export interface WebcamLayoutShadow {
 	color: string;
@@ -104,7 +104,7 @@ const WEBCAM_LAYOUT_PRESET_MAP: Record<WebcamLayoutPreset, WebcamLayoutPresetDef
 		},
 		shadow: null,
 	},
-	"two-timer": {
+	"dual-frame": {
 		label: "Dual Frame",
 		transform: {
 			type: "split",

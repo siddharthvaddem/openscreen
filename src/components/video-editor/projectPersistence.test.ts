@@ -67,8 +67,8 @@ describe("projectPersistence media compatibility", () => {
 	});
 
 	it("accepts the dual frame webcam layout preset", () => {
-		expect(normalizeProjectEditor({ webcamLayoutPreset: "two-timer" }).webcamLayoutPreset).toBe(
-			"two-timer",
+		expect(normalizeProjectEditor({ webcamLayoutPreset: "dual-frame" }).webcamLayoutPreset).toBe(
+			"dual-frame",
 		);
 	});
 });

@@ -84,7 +84,7 @@ describe("computeCompositeLayout", () => {
 			maxContentSize: { width: 1536, height: 864 },
 			screenSize: { width: 1920, height: 1080 },
 			webcamSize: { width: 1280, height: 720 },
-			layoutPreset: "two-timer",
+			layoutPreset: "dual-frame",
 		});
 
 		expect(layout).not.toBeNull();

@@ -1630,7 +1630,7 @@ export default function VideoEditor() {
 										pushState({
 											aspectRatio: ar,
 											webcamLayoutPreset:
-												(isPortraitAspectRatio(ar) && webcamLayoutPreset === "two-timer") ||
+												(isPortraitAspectRatio(ar) && webcamLayoutPreset === "dual-frame") ||
 												(!isPortraitAspectRatio(ar) && webcamLayoutPreset === "vertical-stack")
 													? "picture-in-picture"
 													: webcamLayoutPreset,
