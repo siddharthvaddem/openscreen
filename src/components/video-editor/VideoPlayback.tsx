@@ -1155,14 +1155,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					ref={containerRef}
 					className="absolute"
 					style={{
+						inset: 0,
 						...(frameScreen
 							? {
-									left: `${frameScreen.x}%`,
-									top: `${frameScreen.y}%`,
-									width: `${frameScreen.width}%`,
-									height: `${frameScreen.height}%`,
+									transform: `translate(${frameScreen.x}%, ${frameScreen.y}%) scale(${frameScreen.width / 100}, ${frameScreen.height / 100})`,
+									transformOrigin: "top left",
 								}
-							: { inset: 0 }),
+							: {}),
 						filter:
 							showShadow && shadowIntensity > 0
 								? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
