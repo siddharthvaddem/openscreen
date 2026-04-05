@@ -351,6 +351,28 @@ export class FrameRenderer {
 		}
 	}
 
+	/**
+	 * Returns the pixel-space screen rect where video content should be rendered
+	 * when a device frame is active, or null if no frame is configured.
+	 */
+	private getDeviceScreenRect(): { x: number; y: number; width: number; height: number } | null {
+		const frameId = this.config.deviceFrame;
+		if (!frameId || frameId === "none" || !this.deviceFrameImage) return null;
+
+		const frameDef = getDeviceFrame(frameId);
+		if (!frameDef) return null;
+
+		const w = this.config.width;
+		const h = this.config.height;
+
+		return {
+			x: (frameDef.screen.x / 100) * w,
+			y: (frameDef.screen.y / 100) * h,
+			width: (frameDef.screen.width / 100) * w,
+			height: (frameDef.screen.height / 100) * h,
+		};
+	}
+
 	private drawDeviceFrame(): void {
 		if (!this.deviceFrameImage || !this.compositeCtx) return;
 
@@ -679,7 +701,88 @@ export class FrameRenderer {
 			console.warn("[FrameRenderer] No background sprite found during compositing!");
 		}
 
-		// Draw video layer with shadows on top of background
+		// When a device frame is active, draw the video content scaled to fit
+		// inside the frame's screen area, then overlay the frame image on top.
+		const screenRect = this.getDeviceScreenRect();
+		if (screenRect) {
+			const scaleX = screenRect.width / w;
+			const scaleY = screenRect.height / h;
+			const scale = Math.min(scaleX, scaleY);
+			const scaledW = w * scale;
+			const scaledH = h * scale;
+			const offsetX = screenRect.x + (screenRect.width - scaledW) / 2;
+			const offsetY = screenRect.y + (screenRect.height - scaledH) / 2;
+
+			ctx.save();
+			// Clip to the screen area so nothing bleeds outside the frame
+			ctx.beginPath();
+			ctx.rect(screenRect.x, screenRect.y, screenRect.width, screenRect.height);
+			ctx.clip();
+
+			// Draw video content (with or without shadow) into the screen area
+			if (
+				this.config.showShadow &&
+				this.config.shadowIntensity > 0 &&
+				this.shadowCanvas &&
+				this.shadowCtx
+			) {
+				const shadowCtx = this.shadowCtx;
+				shadowCtx.clearRect(0, 0, w, h);
+				shadowCtx.save();
+				const intensity = this.config.shadowIntensity;
+				const baseBlur1 = 48 * intensity;
+				const baseBlur2 = 16 * intensity;
+				const baseBlur3 = 8 * intensity;
+				const baseAlpha1 = 0.7 * intensity;
+				const baseAlpha2 = 0.5 * intensity;
+				const baseAlpha3 = 0.3 * intensity;
+				const baseOffset = 12 * intensity;
+				shadowCtx.filter = `drop-shadow(0 ${baseOffset}px ${baseBlur1}px rgba(0,0,0,${baseAlpha1})) drop-shadow(0 ${baseOffset / 3}px ${baseBlur2}px rgba(0,0,0,${baseAlpha2})) drop-shadow(0 ${baseOffset / 6}px ${baseBlur3}px rgba(0,0,0,${baseAlpha3}))`;
+				shadowCtx.drawImage(videoCanvas, 0, 0, w, h);
+				shadowCtx.restore();
+				ctx.drawImage(this.shadowCanvas, 0, 0, w, h, offsetX, offsetY, scaledW, scaledH);
+			} else {
+				ctx.drawImage(videoCanvas, 0, 0, w, h, offsetX, offsetY, scaledW, scaledH);
+			}
+
+			// Draw webcam inside frame screen area too
+			const webcamRect = this.layoutCache?.webcamRect ?? null;
+			if (webcamFrame && webcamRect) {
+				const preset = getWebcamLayoutPresetDefinition(this.config.webcamLayoutPreset);
+				ctx.save();
+				ctx.beginPath();
+				ctx.roundRect(
+					offsetX + webcamRect.x * scale,
+					offsetY + webcamRect.y * scale,
+					webcamRect.width * scale,
+					webcamRect.height * scale,
+					webcamRect.borderRadius * scale,
+				);
+				ctx.closePath();
+				if (preset.shadow) {
+					ctx.shadowColor = preset.shadow.color;
+					ctx.shadowBlur = preset.shadow.blur * scale;
+					ctx.shadowOffsetX = preset.shadow.offsetX * scale;
+					ctx.shadowOffsetY = preset.shadow.offsetY * scale;
+				}
+				ctx.fillStyle = "#000000";
+				ctx.fill();
+				ctx.clip();
+				ctx.drawImage(
+					webcamFrame as unknown as CanvasImageSource,
+					offsetX + webcamRect.x * scale,
+					offsetY + webcamRect.y * scale,
+					webcamRect.width * scale,
+					webcamRect.height * scale,
+				);
+				ctx.restore();
+			}
+
+			ctx.restore();
+			return;
+		}
+
+		// No device frame - original compositing path
 		if (
 			this.config.showShadow &&
 			this.config.shadowIntensity > 0 &&

@@ -25,6 +25,7 @@ import {
 	type StyledRenderRect,
 	type WebcamLayoutPreset,
 } from "@/lib/compositeLayout";
+import { getDeviceFrame } from "@/lib/deviceFrames";
 import {
 	type AspectRatio,
 	formatAspectRatioForCSS,
@@ -93,6 +94,7 @@ interface VideoPlaybackProps {
 	onSelectAnnotation?: (id: string | null) => void;
 	onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
 	onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
+	deviceFrame?: string;
 }
 
 export interface VideoPlaybackRef {
@@ -141,6 +143,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onSelectAnnotation,
 			onAnnotationPositionChange,
 			onAnnotationSizeChange,
+			deviceFrame,
 		},
 		ref,
 	) => {
@@ -1119,6 +1122,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			? { backgroundImage: `url(${resolvedWallpaper || ""})` }
 			: { background: resolvedWallpaper || "" };
 
+		const activeFrameDef =
+			deviceFrame && deviceFrame !== "none" ? getDeviceFrame(deviceFrame) : null;
+		const frameScreen = activeFrameDef?.screen ?? null;
+
 		return (
 			<div
 				className="relative rounded-sm overflow-hidden"
@@ -1146,14 +1153,31 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				/>
 				<div
 					ref={containerRef}
-					className="absolute inset-0"
+					className="absolute"
 					style={{
+						...(frameScreen
+							? {
+									left: `${frameScreen.x}%`,
+									top: `${frameScreen.y}%`,
+									width: `${frameScreen.width}%`,
+									height: `${frameScreen.height}%`,
+								}
+							: { inset: 0 }),
 						filter:
 							showShadow && shadowIntensity > 0
 								? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
 								: "none",
 					}}
 				/>
+				{/* Device frame overlay rendered on top of video content */}
+				{activeFrameDef && (
+					<img
+						src={activeFrameDef.imagePath}
+						alt=""
+						className="absolute inset-0 w-full h-full pointer-events-none"
+						style={{ zIndex: 15 }}
+					/>
+				)}
 				{webcamVideoPath && (
 					<video
 						ref={webcamVideoRef}

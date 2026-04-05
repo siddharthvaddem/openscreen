@@ -1510,6 +1510,7 @@ export default function VideoEditor() {
 											onSelectAnnotation={handleSelectAnnotation}
 											onAnnotationPositionChange={handleAnnotationPositionChange}
 											onAnnotationSizeChange={handleAnnotationSizeChange}
+											deviceFrame={deviceFrame}
 										/>
 									</div>
 								</div>
