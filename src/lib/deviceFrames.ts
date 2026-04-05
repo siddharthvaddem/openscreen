@@ -24,13 +24,13 @@ export const DEVICE_FRAMES: DeviceFrameDefinition[] = [
 	{
 		id: "macbook",
 		label: "MacBook",
-		imagePath: "/frames/macbook.svg",
+		imagePath: "./frames/macbook.svg",
 		screen: { x: 11.5, y: 3.5, width: 77, height: 81 },
 	},
 	{
 		id: "browser",
 		label: "Browser",
-		imagePath: "/frames/browser.svg",
+		imagePath: "./frames/browser.svg",
 		screen: { x: 1.5, y: 7, width: 97, height: 91.5 },
 	},
 ];

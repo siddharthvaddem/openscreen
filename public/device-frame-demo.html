@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device Frame Demo - Openscreen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+  .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .controls button {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .controls button.active {
+    background: #34B27B;
+    color: white;
+  }
+  .controls button:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: #94a3b8;
+  }
+  .controls button:not(.active):hover {
+    background: rgba(255,255,255,0.1);
+    color: #cbd5e1;
+  }
+  .preview-container {
+    position: relative;
+    width: 900px;
+    max-width: 95vw;
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  .video-content {
+    position: absolute;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .video-content.no-frame {
+    inset: 0;
+  }
+  .video-content canvas {
+    width: 100%;
+    height: 100%;
+  }
+  .frame-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15;
+  }
+  .label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .frame-info {
+    margin-top: 20px;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+    max-width: 900px;
+    width: 95vw;
+    line-height: 1.6;
+  }
+  .frame-info code {
+    background: rgba(52,178,123,0.15);
+    color: #34B27B;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Device Frame Mockup Preview</h1>
+<p class="subtitle">Video content renders inside the device frame at the correct screen coordinates</p>
+
+<div class="controls">
+  <button id="btn-none" class="active" onclick="setFrame('none')">None</button>
+  <button id="btn-macbook" onclick="setFrame('macbook')">MacBook</button>
+  <button id="btn-browser" onclick="setFrame('browser')">Browser</button>
+</div>
+
+<div class="preview-container" id="preview">
+  <div class="video-content no-frame" id="videoContent">
+    <canvas id="mockVideo" width="1920" height="1080"></canvas>
+  </div>
+  <img id="frameOverlay" class="frame-overlay" style="display:none" />
+</div>
+
+<div class="label" id="statusLabel">No device frame - video fills entire canvas</div>
+
+<div class="frame-info" id="frameDetails">
+  Select a device frame above to see how video content is positioned inside the frame boundary.
+  The frame image is rendered as an overlay (z-index 15) while video content is positioned
+  behind it using percentage-based screen coordinates from <code>deviceFrames.ts</code>.
+</div>
+
+<script>
+const FRAMES = {
+  macbook: {
+    imagePath: '/frames/macbook.svg',
+    screen: { x: 11.5, y: 3.5, width: 77, height: 81 }
+  },
+  browser: {
+    imagePath: '/frames/browser.svg',
+    screen: { x: 1.5, y: 7, width: 97, height: 91.5 }
+  }
+};
+
+// Draw animated mock "video" content on canvas
+const canvas = document.getElementById('mockVideo');
+const ctx = canvas.getContext('2d');
+let animFrame;
+let startTime = performance.now();
+
+function drawMockVideo() {
+  const t = (performance.now() - startTime) / 1000;
+  const w = canvas.width, h = canvas.height;
+
+  // Dark editor-like background
+  ctx.fillStyle = '#1e1e2e';
+  ctx.fillRect(0, 0, w, h);
+
+  // Fake code editor lines
+  const colors = ['#89b4fa', '#a6e3a1', '#f9e2af', '#cba6f7', '#94e2d5', '#f38ba8'];
+  const lineHeight = 36;
+  const startY = 80;
+  for (let i = 0; i < 22; i++) {
+    const indent = [0, 1, 2, 2, 3, 3, 2, 2, 1, 0][i % 10] * 40;
+    const lineWidth = 100 + Math.sin(i * 1.7 + t * 0.5) * 30 + (i % 3) * 80;
+    ctx.fillStyle = colors[i % colors.length] + '60';
+    ctx.fillRect(60 + indent, startY + i * lineHeight, lineWidth, 14);
+
+    // Line numbers
+    ctx.fillStyle = '#585b70';
+    ctx.font = '24px monospace';
+    ctx.fillText(String(i + 1).padStart(2, ' '), 16, startY + i * lineHeight + 13);
+  }
+
+  // Animated cursor blink
+  if (Math.sin(t * 4) > 0) {
+    ctx.fillStyle = '#cdd6f4';
+    ctx.fillRect(220, startY + 5 * lineHeight - 2, 2, 18);
+  }
+
+  // Title bar
+  ctx.fillStyle = '#181825';
+  ctx.fillRect(0, 0, w, 48);
+  ctx.fillStyle = '#f38ba8'; ctx.beginPath(); ctx.arc(24, 24, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#f9e2af'; ctx.beginPath(); ctx.arc(52, 24, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#a6e3a1'; ctx.beginPath(); ctx.arc(80, 24, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#a6adc8';
+  ctx.font = '20px -apple-system, sans-serif';
+  ctx.fillText('VideoEditor.tsx - Openscreen', 110, 30);
+
+  // Scrolling indicator
+  const scrollY = (t * 20) % h;
+  ctx.fillStyle = '#585b7040';
+  ctx.fillRect(w - 12, 48, 6, h - 48);
+  ctx.fillStyle = '#585b70';
+  ctx.fillRect(w - 12, 48 + (scrollY / h) * (h - 148), 6, 100);
+
+  animFrame = requestAnimationFrame(drawMockVideo);
+}
+
+drawMockVideo();
+
+function setFrame(id) {
+  // Update button states
+  document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + id).classList.add('active');
+
+  const videoContent = document.getElementById('videoContent');
+  const frameOverlay = document.getElementById('frameOverlay');
+  const statusLabel = document.getElementById('statusLabel');
+  const frameDetails = document.getElementById('frameDetails');
+
+  if (id === 'none') {
+    videoContent.className = 'video-content no-frame';
+    videoContent.style.cssText = '';
+    frameOverlay.style.display = 'none';
+    statusLabel.textContent = 'No device frame - video fills entire canvas';
+    frameDetails.innerHTML = 'No frame active. Video content fills the entire preview area.';
+    return;
+  }
+
+  const frame = FRAMES[id];
+  const s = frame.screen;
+
+  // Position video inside frame screen area
+  videoContent.className = 'video-content';
+  videoContent.style.left = s.x + '%';
+  videoContent.style.top = s.y + '%';
+  videoContent.style.width = s.width + '%';
+  videoContent.style.height = s.height + '%';
+
+  // Show frame overlay
+  frameOverlay.src = frame.imagePath;
+  frameOverlay.style.display = 'block';
+
+  statusLabel.textContent = id.charAt(0).toUpperCase() + id.slice(1) + ' frame active - video positioned at screen coordinates';
+  frameDetails.innerHTML =
+    '<strong style="color:#e2e8f0">Frame:</strong> ' + id +
+    ' &nbsp;|&nbsp; <strong style="color:#e2e8f0">Screen rect:</strong>' +
+    ' <code>x: ' + s.x + '%</code>' +
+    ' <code>y: ' + s.y + '%</code>' +
+    ' <code>width: ' + s.width + '%</code>' +
+    ' <code>height: ' + s.height + '%</code>' +
+    '<br>Video content is positioned INSIDE the frame at these coordinates. ' +
+    'The frame SVG renders on top (z-index 15) while video sits behind it within the screen boundary.';
+}
+</script>
+</body>
+</html>

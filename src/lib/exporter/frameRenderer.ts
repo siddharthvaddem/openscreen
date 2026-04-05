@@ -335,7 +335,7 @@ export class FrameRenderer {
 		if (!frameDef) return;
 
 		const img = new Image();
-		const imageUrl = window.location.origin + frameDef.imagePath;
+		const imageUrl = frameDef.imagePath;
 
 		await new Promise<void>((resolve) => {
 			img.onload = () => resolve();
