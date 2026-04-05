@@ -1,7 +1,7 @@
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
-import { ASPECT_RATIOS, type AspectRatio } from "@/utils/aspectRatioUtils";
+import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import {
 	type AnnotationRegion,
 	type CropRegion,
@@ -173,6 +173,23 @@ export function resolveProjectMedia(
 
 export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): ProjectEditorState {
 	const validAspectRatios = new Set<AspectRatio>(ASPECT_RATIOS);
+	const normalizedAspectRatio: AspectRatio = validAspectRatios.has(
+		editor.aspectRatio as AspectRatio,
+	)
+		? (editor.aspectRatio as AspectRatio)
+		: "16:9";
+	const normalizedWebcamLayoutPreset: WebcamLayoutPreset =
+		editor.webcamLayoutPreset === "picture-in-picture"
+			? editor.webcamLayoutPreset
+			: editor.webcamLayoutPreset === "vertical-stack"
+				? isPortraitAspectRatio(normalizedAspectRatio)
+					? editor.webcamLayoutPreset
+					: DEFAULT_WEBCAM_LAYOUT_PRESET
+				: editor.webcamLayoutPreset === "dual-frame"
+					? isPortraitAspectRatio(normalizedAspectRatio)
+						? DEFAULT_WEBCAM_LAYOUT_PRESET
+						: editor.webcamLayoutPreset
+					: DEFAULT_WEBCAM_LAYOUT_PRESET;
 
 	const normalizedZoomRegions: ZoomRegion[] = Array.isArray(editor.zoomRegions)
 		? editor.zoomRegions
@@ -349,14 +366,8 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		trimRegions: normalizedTrimRegions,
 		speedRegions: normalizedSpeedRegions,
 		annotationRegions: normalizedAnnotationRegions,
-		aspectRatio:
-			editor.aspectRatio && validAspectRatios.has(editor.aspectRatio) ? editor.aspectRatio : "16:9",
-		webcamLayoutPreset:
-			editor.webcamLayoutPreset === "vertical-stack" ||
-			editor.webcamLayoutPreset === "dual-frame" ||
-			editor.webcamLayoutPreset === "picture-in-picture"
-				? editor.webcamLayoutPreset
-				: DEFAULT_WEBCAM_LAYOUT_PRESET,
+		aspectRatio: normalizedAspectRatio,
+		webcamLayoutPreset: normalizedWebcamLayoutPreset,
 		webcamMaskShape:
 			editor.webcamMaskShape === "rectangle" ||
 			editor.webcamMaskShape === "circle" ||
