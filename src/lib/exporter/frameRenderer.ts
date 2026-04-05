@@ -18,10 +18,17 @@ import type {
 } from "@/components/video-editor/types";
 import { ZOOM_DEPTH_SCALES } from "@/components/video-editor/types";
 import {
+	AUTO_FOLLOW_RAMP_DISTANCE,
+	AUTO_FOLLOW_SMOOTHING_FACTOR,
+	AUTO_FOLLOW_SMOOTHING_FACTOR_MAX,
 	DEFAULT_FOCUS,
 	ZOOM_SCALE_DEADZONE,
 	ZOOM_TRANSLATION_DEADZONE_PX,
 } from "@/components/video-editor/videoPlayback/constants";
+import {
+	adaptiveSmoothFactor,
+	smoothCursorFocus,
+} from "@/components/video-editor/videoPlayback/cursorFollowUtils";
 import { clampFocusToStage as clampFocusToStageUtil } from "@/components/video-editor/videoPlayback/focusUtils";
 import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
@@ -37,6 +44,7 @@ import {
 	type Size,
 	type StyledRenderRect,
 } from "@/lib/compositeLayout";
+import { drawCanvasClipPath } from "@/lib/webcamMaskShapes";
 import { renderAnnotations } from "./annotationRenderer";
 import {
 	getLinearGradientPoints,
@@ -61,11 +69,13 @@ interface FrameRenderConfig {
 	videoHeight: number;
 	webcamSize?: Size | null;
 	webcamLayoutPreset?: WebcamLayoutPreset;
+	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
 	webcamPosition?: { cx: number; cy: number } | null;
 	annotationRegions?: AnnotationRegion[];
 	speedRegions?: SpeedRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
+	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 }
 
 interface AnimationState {
@@ -107,6 +117,9 @@ export class FrameRenderer {
 	private layoutCache: LayoutCache | null = null;
 	private currentVideoTime = 0;
 	private motionBlurState: MotionBlurState = createMotionBlurState();
+	private smoothedAutoFocus: { cx: number; cy: number } | null = null;
+	private prevAnimationTimeMs: number | null = null;
+	private prevTargetProgress = 0;
 
 	constructor(config: FrameRenderConfig) {
 		this.config = config;
@@ -441,6 +454,7 @@ export class FrameRenderer {
 			webcamSize: webcamFrame ? this.config.webcamSize : null,
 			layoutPreset: this.config.webcamLayoutPreset,
 			webcamPosition: this.config.webcamPosition,
+			webcamMaskShape: this.config.webcamMaskShape,
 		});
 		if (!compositeLayout) return;
 
@@ -508,10 +522,16 @@ export class FrameRenderer {
 	private updateAnimationState(timeMs: number): number {
 		if (!this.cameraContainer || !this.layoutCache) return 0;
 
+		const bmEx = this.layoutCache.maskRect;
+		const ssEx = this.layoutCache.stageSize;
+		const viewportRatio =
+			bmEx.width > 0 && bmEx.height > 0
+				? { widthRatio: ssEx.width / bmEx.width, heightRatio: ssEx.height / bmEx.height }
+				: undefined;
 		const { region, strength, blendedScale, transition } = findDominantRegion(
 			this.config.zoomRegions,
 			timeMs,
-			{ connectZooms: true },
+			{ connectZooms: true, cursorTelemetry: this.config.cursorTelemetry, viewportRatio },
 		);
 
 		const defaultFocus = DEFAULT_FOCUS;
@@ -526,6 +546,50 @@ export class FrameRenderer {
 			targetScaleFactor = zoomScale;
 			targetFocus = regionFocus;
 			targetProgress = strength;
+
+			// Apply adaptive smoothing for auto-follow mode
+			if (region.focusMode === "auto" && !transition) {
+				const raw = targetFocus;
+				const dtMs = this.prevAnimationTimeMs != null ? timeMs - this.prevAnimationTimeMs : 0;
+				const framesElapsed = dtMs > 0 ? dtMs / (1000 / 60) : 1;
+				const isZoomingIn = targetProgress < 0.999 && targetProgress >= this.prevTargetProgress;
+				if (targetProgress >= 0.999) {
+					// Full zoom: adaptive smoothing — moves faster when far, decelerates when close
+					const prev = this.smoothedAutoFocus ?? raw;
+					const baseFactor = adaptiveSmoothFactor(
+						raw,
+						prev,
+						AUTO_FOLLOW_SMOOTHING_FACTOR,
+						AUTO_FOLLOW_SMOOTHING_FACTOR_MAX,
+						AUTO_FOLLOW_RAMP_DISTANCE,
+					);
+					const factor = 1 - Math.pow(1 - baseFactor, Math.max(1, framesElapsed));
+					const smoothed = smoothCursorFocus(raw, prev, factor);
+					this.smoothedAutoFocus = smoothed;
+					targetFocus = smoothed;
+				} else if (isZoomingIn) {
+					// Zoom-in: track cursor directly so zoom always aims at current cursor
+					// position; keep ref in sync to avoid snap when full-zoom begins
+					this.smoothedAutoFocus = raw;
+				} else {
+					// Zoom-out: keep smoothing for continuity — avoids snap at zoom-out start
+					const prev = this.smoothedAutoFocus ?? raw;
+					const baseFactor = adaptiveSmoothFactor(
+						raw,
+						prev,
+						AUTO_FOLLOW_SMOOTHING_FACTOR,
+						AUTO_FOLLOW_SMOOTHING_FACTOR_MAX,
+						AUTO_FOLLOW_RAMP_DISTANCE,
+					);
+					const factor = 1 - Math.pow(1 - baseFactor, Math.max(1, framesElapsed));
+					const smoothed = smoothCursorFocus(raw, prev, factor);
+					this.smoothedAutoFocus = smoothed;
+					targetFocus = smoothed;
+				}
+			} else if (region.focusMode !== "auto") {
+				this.smoothedAutoFocus = null;
+			}
+			this.prevTargetProgress = targetProgress;
 
 			if (transition) {
 				const startTransform = computeZoomTransform({
@@ -602,6 +666,8 @@ export class FrameRenderer {
 		state.y = appliedY;
 		state.appliedScale = appliedScale;
 
+		this.prevAnimationTimeMs = timeMs;
+
 		return Math.max(
 			Math.abs(appliedScale - prevScale),
 			Math.abs(appliedX - prevX) / Math.max(1, this.layoutCache.stageSize.width),
@@ -668,16 +734,17 @@ export class FrameRenderer {
 		const webcamRect = this.layoutCache?.webcamRect ?? null;
 		if (webcamFrame && webcamRect) {
 			const preset = getWebcamLayoutPresetDefinition(this.config.webcamLayoutPreset);
+			const shape = webcamRect.maskShape ?? this.config.webcamMaskShape ?? "rectangle";
 			ctx.save();
-			ctx.beginPath();
-			ctx.roundRect(
+			drawCanvasClipPath(
+				ctx,
 				webcamRect.x,
 				webcamRect.y,
 				webcamRect.width,
 				webcamRect.height,
+				shape,
 				webcamRect.borderRadius,
 			);
-			ctx.closePath();
 			if (preset.shadow) {
 				ctx.shadowColor = preset.shadow.color;
 				ctx.shadowBlur = preset.shadow.blur;

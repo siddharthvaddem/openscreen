@@ -33,7 +33,7 @@ describe("computeCompositeLayout", () => {
 		).toBeLessThanOrEqual(1920);
 	});
 
-	it("centers the combined screen and webcam stack in vertical stack mode", () => {
+	it("uses cover-style full-width stacking in vertical stack mode", () => {
 		const layout = computeCompositeLayout({
 			canvasSize: { width: 1920, height: 1080 },
 			maxContentSize: { width: 1536, height: 864 },
@@ -44,21 +44,22 @@ describe("computeCompositeLayout", () => {
 
 		expect(layout).not.toBeNull();
 		expect(layout?.screenRect).toEqual({
-			x: 576,
-			y: 108,
-			width: 768,
-			height: 432,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 0,
 		});
 		expect(layout?.webcamRect).toEqual({
-			x: 576,
-			y: 540,
-			width: 768,
-			height: 432,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 1080,
 			borderRadius: 0,
 		});
+		expect(layout?.screenCover).toBe(true);
 	});
 
-	it("keeps the screen centered and omits the webcam when dimensions are unavailable", () => {
+	it("fills the canvas with the screen when vertical stack has no webcam", () => {
 		const layout = computeCompositeLayout({
 			canvasSize: { width: 1920, height: 1080 },
 			maxContentSize: { width: 1536, height: 864 },
@@ -68,11 +69,56 @@ describe("computeCompositeLayout", () => {
 
 		expect(layout).not.toBeNull();
 		expect(layout?.screenRect).toEqual({
-			x: 192,
-			y: 108,
-			width: 1536,
-			height: 864,
+			x: 0,
+			y: 0,
+			width: 1920,
+			height: 1080,
 		});
 		expect(layout?.webcamRect).toBeNull();
+		expect(layout?.screenCover).toBe(true);
+	});
+
+	it("forces circular and square masks to use square dimensions", () => {
+		const circularLayout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 1280, height: 720 },
+			webcamMaskShape: "circle",
+		});
+		const squareLayout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 1280, height: 720 },
+			webcamMaskShape: "square",
+		});
+
+		expect(circularLayout?.webcamRect).not.toBeNull();
+		expect(squareLayout?.webcamRect).not.toBeNull();
+		expect(circularLayout?.webcamRect?.width).toBe(circularLayout?.webcamRect?.height);
+		expect(squareLayout?.webcamRect?.width).toBe(squareLayout?.webcamRect?.height);
+		expect(circularLayout?.webcamRect?.maskShape).toBe("circle");
+		expect(squareLayout?.webcamRect?.maskShape).toBe("square");
+	});
+
+	it("applies larger rounding for the rounded webcam mask", () => {
+		const roundedLayout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 1280, height: 720 },
+			webcamMaskShape: "rounded",
+		});
+		const rectangleLayout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 1280, height: 720 },
+			webcamMaskShape: "rectangle",
+		});
+
+		expect(roundedLayout?.webcamRect).not.toBeNull();
+		expect(rectangleLayout?.webcamRect).not.toBeNull();
+		expect(roundedLayout?.webcamRect?.borderRadius).toBeGreaterThan(
+			rectangleLayout?.webcamRect?.borderRadius ?? 0,
+		);
+		expect(roundedLayout?.webcamRect?.maskShape).toBe("rounded");
 	});
 });

@@ -10,11 +10,16 @@
 		"enableSystemAudio": "启用系统音频",
 		"disableSystemAudio": "禁用系统音频",
 		"enableMicrophone": "启用麦克风",
-		"disableMicrophone": "禁用麦克风"
+		"disableMicrophone": "禁用麦克风",
+		"defaultMicrophone": "默认麦克风"
 	},
 	"webcam": {
 		"enableWebcam": "启用摄像头",
-		"disableWebcam": "禁用摄像头"
+		"disableWebcam": "禁用摄像头",
+		"defaultCamera": "默认摄像头",
+		"searching": "正在搜索...",
+		"noneFound": "未找到摄像头",
+		"unavailable": "摄像头不可用"
 	},
 	"sourceSelector": {
 		"loading": "正在加载源...",

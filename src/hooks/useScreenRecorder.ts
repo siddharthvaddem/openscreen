@@ -52,6 +52,8 @@ type UseScreenRecorderReturn = {
 	setMicrophoneEnabled: (enabled: boolean) => void;
 	microphoneDeviceId: string | undefined;
 	setMicrophoneDeviceId: (deviceId: string | undefined) => void;
+	webcamDeviceId: string | undefined;
+	setWebcamDeviceId: (deviceId: string | undefined) => void;
 	systemAudioEnabled: boolean;
 	setSystemAudioEnabled: (enabled: boolean) => void;
 	webcamEnabled: boolean;
@@ -90,6 +92,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const [recording, setRecording] = useState(false);
 	const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
 	const [microphoneDeviceId, setMicrophoneDeviceId] = useState<string | undefined>(undefined);
+	const [webcamDeviceId, setWebcamDeviceId] = useState<string | undefined>(undefined);
 	const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
 	const [webcamEnabled, setWebcamEnabledState] = useState(false);
 	const screenRecorder = useRef<RecorderHandle | null>(null);
@@ -457,11 +460,18 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				try {
 					webcamStream.current = await navigator.mediaDevices.getUserMedia({
 						audio: false,
-						video: {
-							width: { ideal: WEBCAM_TARGET_WIDTH },
-							height: { ideal: WEBCAM_TARGET_HEIGHT },
-							frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
-						},
+						video: webcamDeviceId
+							? {
+									deviceId: { exact: webcamDeviceId },
+									width: { ideal: WEBCAM_TARGET_WIDTH },
+									height: { ideal: WEBCAM_TARGET_HEIGHT },
+									frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
+								}
+							: {
+									width: { ideal: WEBCAM_TARGET_WIDTH },
+									height: { ideal: WEBCAM_TARGET_HEIGHT },
+									frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
+								},
 					});
 				} catch (cameraError) {
 					console.warn("Failed to get webcam access:", cameraError);
@@ -613,6 +623,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 		restarting.current = true;
 		discardRecordingId.current = activeRecordingId;
+		allowAutoFinalize.current = false;
 
 		const stopPromises = [
 			new Promise<void>((resolve) => {
@@ -648,6 +659,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		setMicrophoneEnabled,
 		microphoneDeviceId,
 		setMicrophoneDeviceId,
+		webcamDeviceId,
+		setWebcamDeviceId,
 		systemAudioEnabled,
 		setSystemAudioEnabled,
 		webcamEnabled,

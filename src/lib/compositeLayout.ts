@@ -7,6 +7,7 @@ export interface RenderRect {
 
 export interface StyledRenderRect extends RenderRect {
 	borderRadius: number;
+	maskShape?: import("@/components/video-editor/types").WebcamMaskShape;
 }
 
 export interface Size {
@@ -125,6 +126,7 @@ export function computeCompositeLayout(params: {
 	webcamSize?: Size | null;
 	layoutPreset?: WebcamLayoutPreset;
 	webcamPosition?: { cx: number; cy: number } | null;
+	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
 }): WebcamCompositeLayout | null {
 	const {
 		canvasSize,
@@ -133,6 +135,7 @@ export function computeCompositeLayout(params: {
 		webcamSize,
 		layoutPreset = "picture-in-picture",
 		webcamPosition,
+		webcamMaskShape = "rectangle",
 	} = params;
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;
 	const { width: screenWidth, height: screenHeight } = screenSize;
@@ -198,8 +201,15 @@ export function computeCompositeLayout(params: {
 	const maxWidth = Math.max(transform.minSize, canvasWidth * transform.maxStageFraction);
 	const maxHeight = Math.max(transform.minSize, canvasHeight * transform.maxStageFraction);
 	const scale = Math.min(maxWidth / webcamWidth, maxHeight / webcamHeight);
-	const width = Math.round(webcamWidth * scale);
-	const height = Math.round(webcamHeight * scale);
+	let width = Math.round(webcamWidth * scale);
+	let height = Math.round(webcamHeight * scale);
+
+	// Shape-specific dimension adjustments
+	if (webcamMaskShape === "circle" || webcamMaskShape === "square") {
+		const side = Math.min(width, height);
+		width = side;
+		height = side;
+	}
 
 	let webcamX: number;
 	let webcamY: number;
@@ -217,6 +227,22 @@ export function computeCompositeLayout(params: {
 		webcamY = Math.max(0, Math.round(canvasHeight - margin - height));
 	}
 
+	// Shape-specific border radius
+	let borderRadius: number;
+	if (webcamMaskShape === "rounded") {
+		borderRadius = Math.round(Math.min(width, height) * 0.3);
+	} else if (webcamMaskShape === "circle") {
+		borderRadius = Math.round(Math.min(width, height) / 2);
+	} else {
+		borderRadius = Math.min(
+			preset.borderRadius.max,
+			Math.max(
+				preset.borderRadius.min,
+				Math.round(Math.min(width, height) * preset.borderRadius.fraction),
+			),
+		);
+	}
+
 	return {
 		screenRect,
 		webcamRect: {
@@ -224,13 +250,8 @@ export function computeCompositeLayout(params: {
 			y: webcamY,
 			width,
 			height,
-			borderRadius: Math.min(
-				preset.borderRadius.max,
-				Math.max(
-					preset.borderRadius.min,
-					Math.round(Math.min(width, height) * preset.borderRadius.fraction),
-				),
-			),
+			borderRadius,
+			maskShape: webcamMaskShape,
 		},
 	};
 }

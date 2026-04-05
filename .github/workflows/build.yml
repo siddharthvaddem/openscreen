@@ -94,6 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-installer
-          path: release/**/*.AppImage
+          path: |
+            release/**/*.AppImage
+            release/**/*.zsync
           retention-days: 30
-

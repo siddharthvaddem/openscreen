@@ -10,11 +10,16 @@
 		"enableSystemAudio": "Enable system audio",
 		"disableSystemAudio": "Disable system audio",
 		"enableMicrophone": "Enable microphone",
-		"disableMicrophone": "Disable microphone"
+		"disableMicrophone": "Disable microphone",
+		"defaultMicrophone": "Default Microphone"
 	},
 	"webcam": {
 		"enableWebcam": "Enable webcam",
-		"disableWebcam": "Disable webcam"
+		"disableWebcam": "Disable webcam",
+		"defaultCamera": "Default Camera",
+		"searching": "Searching...",
+		"noneFound": "No camera found",
+		"unavailable": "Camera unavailable"
 	},
 	"sourceSelector": {
 		"loading": "Loading sources...",

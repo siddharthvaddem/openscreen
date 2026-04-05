@@ -26,6 +26,7 @@
       "to": "assets/wallpapers"
     }
   ],
+  "publish": [{"provider": "github"}],
 
   "mac": {
     "hardenedRuntime": false,

@@ -20,6 +20,7 @@ import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
 import { useAudioLevelMeter } from "../../hooks/useAudioLevelMeter";
+import { useCameraDevices } from "../../hooks/useCameraDevices";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
 import { usePreviewStream } from "../../hooks/usePreviewStream";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
@@ -82,6 +83,8 @@ export function LaunchWindow() {
 		setSystemAudioEnabled,
 		webcamEnabled,
 		setWebcamEnabled,
+		webcamDeviceId,
+		setWebcamDeviceId,
 	} = useScreenRecorder();
 
 	const {
@@ -97,18 +100,57 @@ export function LaunchWindow() {
 	const [elapsed, setElapsed] = useState(0);
 
 	const showMicControls = microphoneEnabled && !recording;
-	const { devices, selectedDeviceId, setSelectedDeviceId } =
-		useMicrophoneDevices(microphoneEnabled);
+	const showWebcamControls = webcamEnabled && !recording;
+
+	const [isMicHovered, setIsMicHovered] = useState(false);
+	const [isMicFocused, setIsMicFocused] = useState(false);
+	const micExpanded = isMicHovered || isMicFocused;
+
+	const [isWebcamHovered, setIsWebcamHovered] = useState(false);
+	const [isWebcamFocused, setIsWebcamFocused] = useState(false);
+	const webcamExpanded = isWebcamHovered || isWebcamFocused;
+
+	const {
+		devices: micDevices,
+		selectedDeviceId: selectedMicId,
+		setSelectedDeviceId: setSelectedMicId,
+	} = useMicrophoneDevices(microphoneEnabled);
+	const {
+		devices: cameraDevices,
+		selectedDeviceId: selectedCameraId,
+		setSelectedDeviceId: setSelectedCameraId,
+		isLoading: isCameraDevicesLoading,
+		error: cameraDevicesError,
+	} = useCameraDevices(webcamEnabled);
+
+	const selectedMicLabel =
+		micDevices.find((d) => d.deviceId === (microphoneDeviceId || selectedMicId))?.label ||
+		t("audio.defaultMicrophone");
+	const selectedCameraLabel = isCameraDevicesLoading
+		? t("webcam.searching")
+		: cameraDevicesError
+			? t("webcam.unavailable")
+			: cameraDevices.length === 0
+				? t("webcam.noneFound")
+				: cameraDevices.find((d) => d.deviceId === (webcamDeviceId || selectedCameraId))?.label ||
+					t("webcam.defaultCamera");
+
 	const { level } = useAudioLevelMeter({
 		enabled: showMicControls,
 		deviceId: microphoneDeviceId,
 	});
 
 	useEffect(() => {
-		if (selectedDeviceId && selectedDeviceId !== "default") {
-			setMicrophoneDeviceId(selectedDeviceId);
+		if (selectedMicId && selectedMicId !== "default") {
+			setMicrophoneDeviceId(selectedMicId);
 		}
-	}, [selectedDeviceId, setMicrophoneDeviceId]);
+	}, [selectedMicId, setMicrophoneDeviceId]);
+
+	useEffect(() => {
+		if (selectedCameraId) {
+			setWebcamDeviceId(selectedCameraId);
+		}
+	}, [selectedCameraId, setWebcamDeviceId]);
 
 	useEffect(() => {
 		let timer: NodeJS.Timeout | null = null;
@@ -347,7 +389,9 @@ export function LaunchWindow() {
 						className={`${hudGroupClasses} p-2`}
 						onClick={openSourceSelector}
 						disabled={recording}
-						title={selectedSource}
+						title={
+							systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
+						}
 					>
 						{getIcon("monitor", "text-white/80")}
 						<span className="text-white/70 text-[11px] max-w-[80px] truncate">
@@ -419,6 +463,7 @@ export function LaunchWindow() {
 							</>
 						)}
 					</button>
+				</div>
 
 					{/* Restart recording */}
 					{recording && (
@@ -428,6 +473,7 @@ export function LaunchWindow() {
 							</button>
 						</Tooltip>
 					)}
+				</button>
 
 					{/* Open video file */}
 					<Tooltip content={t("tooltips.openVideoFile")}>
@@ -435,6 +481,7 @@ export function LaunchWindow() {
 							{getIcon("videoFile", "text-white/60")}
 						</button>
 					</Tooltip>
+				)}
 
 					{/* Open project */}
 					<Tooltip content={t("tooltips.openProject")}>

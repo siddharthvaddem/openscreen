@@ -12,11 +12,13 @@ import {
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
+	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_ZOOM_DEPTH,
 	type SpeedRegion,
 	type TrimRegion,
 	type WebcamLayoutPreset,
+	type WebcamMaskShape,
 	type WebcamPosition,
 	type ZoomRegion,
 } from "./types";
@@ -44,6 +46,7 @@ export interface ProjectEditorState {
 	annotationRegions: AnnotationRegion[];
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
+	webcamMaskShape: WebcamMaskShape;
 	webcamPosition: WebcamPosition | null;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
@@ -189,6 +192,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							cx: clamp(isFiniteNumber(region.focus?.cx) ? region.focus.cx : 0.5, 0, 1),
 							cy: clamp(isFiniteNumber(region.focus?.cy) ? region.focus.cy : 0.5, 0, 1),
 						},
+						focusMode: region.focusMode === "auto" ? "auto" : "manual",
 					};
 				})
 		: [];
@@ -352,6 +356,13 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamLayoutPreset === "picture-in-picture"
 				? editor.webcamLayoutPreset
 				: DEFAULT_WEBCAM_LAYOUT_PRESET,
+		webcamMaskShape:
+			editor.webcamMaskShape === "rectangle" ||
+			editor.webcamMaskShape === "circle" ||
+			editor.webcamMaskShape === "square" ||
+			editor.webcamMaskShape === "rounded"
+				? editor.webcamMaskShape
+				: DEFAULT_WEBCAM_MASK_SHAPE,
 		webcamPosition:
 			editor.webcamPosition &&
 			typeof editor.webcamPosition === "object" &&

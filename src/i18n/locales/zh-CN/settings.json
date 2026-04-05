@@ -2,7 +2,13 @@
 	"zoom": {
 		"level": "缩放级别",
 		"selectRegion": "选择要调整的缩放区域",
-		"deleteZoom": "删除缩放"
+		"deleteZoom": "删除缩放",
+		"focusMode": {
+			"title": "对焦模式",
+			"manual": "手动",
+			"auto": "自动",
+			"autoDescription": "摄像头跟随录制时的光标位置"
+		}
 	},
 	"speed": {
 		"playbackSpeed": "播放速度",
@@ -17,7 +23,8 @@
 		"preset": "预设",
 		"selectPreset": "选择预设",
 		"pictureInPicture": "画中画",
-		"verticalStack": "垂直堆叠"
+		"verticalStack": "垂直堆叠",
+		"webcamShape": "摄像头形状"
 	},
 	"effects": {
 		"title": "视频效果",

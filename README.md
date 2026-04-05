@@ -8,6 +8,10 @@
   <a href="https://deepwiki.com/siddharthvaddem/openscreen">
     <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" />
   </a>
+  &nbsp;
+  <a href="https://discord.gg/yAQQhRaEeg">
+    <img src="https://img.shields.io/discord/pHAUbcqNd?logo=discord&label=Discord&color=5865F2" alt="Join Discord" />
+  </a>
 </p>
 
 # <p align="center">OpenScreen</p>

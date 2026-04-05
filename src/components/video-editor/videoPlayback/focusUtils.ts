@@ -39,9 +39,16 @@ function getFocusBounds(depth: ZoomDepth) {
 	return getFocusBoundsForScale(zoomScale);
 }
 
-function getFocusBoundsForScale(zoomScale: number) {
-	const marginX = 1 / (2 * zoomScale);
-	const marginY = 1 / (2 * zoomScale);
+interface ViewportRatio {
+	widthRatio: number;
+	heightRatio: number;
+}
+
+function getFocusBoundsForScale(zoomScale: number, viewportRatio?: ViewportRatio) {
+	const wr = viewportRatio?.widthRatio ?? 1;
+	const hr = viewportRatio?.heightRatio ?? 1;
+	const marginX = Math.min(0.5, wr / (2 * zoomScale));
+	const marginY = Math.min(0.5, hr / (2 * zoomScale));
 
 	return {
 		minX: marginX,
@@ -65,12 +72,16 @@ export function clampFocusToStage(
 	};
 }
 
-export function clampFocusToScale(focus: ZoomFocus, zoomScale: number): ZoomFocus {
+export function clampFocusToScale(
+	focus: ZoomFocus,
+	zoomScale: number,
+	viewportRatio?: ViewportRatio,
+): ZoomFocus {
 	const baseFocus = {
 		cx: clamp(focus.cx, 0, 1),
 		cy: clamp(focus.cy, 0, 1),
 	};
-	const bounds = getFocusBoundsForScale(zoomScale);
+	const bounds = getFocusBoundsForScale(zoomScale, viewportRatio);
 
 	return {
 		cx: clamp(baseFocus.cx, bounds.minX, bounds.maxX),
@@ -78,12 +89,16 @@ export function clampFocusToScale(focus: ZoomFocus, zoomScale: number): ZoomFocu
 	};
 }
 
-export function softenFocusToScale(focus: ZoomFocus, zoomScale: number): ZoomFocus {
+export function softenFocusToScale(
+	focus: ZoomFocus,
+	zoomScale: number,
+	viewportRatio?: ViewportRatio,
+): ZoomFocus {
 	const baseFocus = {
 		cx: clamp(focus.cx, 0, 1),
 		cy: clamp(focus.cy, 0, 1),
 	};
-	const bounds = getFocusBoundsForScale(zoomScale);
+	const bounds = getFocusBoundsForScale(zoomScale, viewportRatio);
 	const horizontalRange = bounds.maxX - bounds.minX;
 	const verticalRange = bounds.maxY - bounds.minY;
 	const horizontalSoftness = Math.min(0.12, horizontalRange * 0.35);

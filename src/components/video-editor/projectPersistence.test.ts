@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	createProjectData,
+	normalizeProjectEditor,
 	PROJECT_VERSION,
 	resolveProjectMedia,
 	validateProjectData,
@@ -40,6 +41,7 @@ describe("projectPersistence media compatibility", () => {
 				annotationRegions: [],
 				aspectRatio: "16:9",
 				webcamLayoutPreset: "picture-in-picture",
+				webcamMaskShape: "circle",
 				exportQuality: "good",
 				exportFormat: "mp4",
 				gifFrameRate: 15,
@@ -54,5 +56,12 @@ describe("projectPersistence media compatibility", () => {
 			webcamVideoPath: "/tmp/webcam.webm",
 		});
 		expect(validateProjectData(project)).toBe(true);
+	});
+
+	it("normalizes webcam mask shape values safely", () => {
+		expect(normalizeProjectEditor({ webcamMaskShape: "rounded" }).webcamMaskShape).toBe("rounded");
+		expect(
+			normalizeProjectEditor({ webcamMaskShape: "not-a-real-shape" as never }).webcamMaskShape,
+		).toBe("rectangle");
 	});
 });

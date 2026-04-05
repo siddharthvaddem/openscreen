@@ -51,7 +51,9 @@ import type {
 	FigureData,
 	PlaybackSpeed,
 	WebcamLayoutPreset,
+	WebcamMaskShape,
 	ZoomDepth,
+	ZoomFocusMode,
 } from "./types";
 import { SPEED_OPTIONS } from "./types";
 
@@ -92,6 +94,9 @@ interface SettingsPanelProps {
 	onWallpaperChange: (path: string) => void;
 	selectedZoomDepth?: ZoomDepth | null;
 	onZoomDepthChange?: (depth: ZoomDepth) => void;
+	selectedZoomFocusMode?: ZoomFocusMode | null;
+	onZoomFocusModeChange?: (mode: ZoomFocusMode) => void;
+	hasCursorTelemetry?: boolean;
 	selectedZoomId?: string | null;
 	onZoomDelete?: (id: string) => void;
 	selectedTrimId?: string | null;
@@ -143,6 +148,8 @@ interface SettingsPanelProps {
 	hasWebcam?: boolean;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
+	webcamMaskShape?: import("./types").WebcamMaskShape;
+	onWebcamMaskShapeChange?: (shape: import("./types").WebcamMaskShape) => void;
 }
 
 export default SettingsPanel;
@@ -161,6 +168,9 @@ export function SettingsPanel({
 	onWallpaperChange,
 	selectedZoomDepth,
 	onZoomDepthChange,
+	selectedZoomFocusMode,
+	onZoomFocusModeChange,
+	hasCursorTelemetry = false,
 	selectedZoomId,
 	onZoomDelete,
 	selectedTrimId,
@@ -211,6 +221,8 @@ export function SettingsPanel({
 	hasWebcam = false,
 	webcamLayoutPreset = "picture-in-picture",
 	onWebcamLayoutPresetChange,
+	webcamMaskShape = "rectangle",
+	onWebcamMaskShapeChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -500,6 +512,41 @@ export function SettingsPanel({
 					{!zoomEnabled && (
 						<p className="text-[10px] text-slate-500 mt-2 text-center">{t("zoom.selectRegion")}</p>
 					)}
+					{zoomEnabled && hasCursorTelemetry && (
+						<div className="mt-3">
+							<span className="text-sm font-medium text-slate-200 mb-2 block">
+								{t("zoom.focusMode.title")}
+							</span>
+							<div className="grid grid-cols-2 gap-1.5">
+								{(["manual", "auto"] as const).map((mode) => {
+									const isActive = selectedZoomFocusMode === mode;
+									return (
+										<Button
+											key={mode}
+											type="button"
+											onClick={() => onZoomFocusModeChange?.(mode)}
+											className={cn(
+												"h-auto w-full rounded-lg border px-2 py-2 text-center shadow-sm transition-all",
+												"duration-200 ease-out cursor-pointer",
+												isActive
+													? "border-[#34B27B] bg-[#34B27B] text-white shadow-[#34B27B]/20"
+													: "border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-slate-200",
+											)}
+										>
+											<span className="text-xs font-semibold capitalize">
+												{t(`zoom.focusMode.${mode}`)}
+											</span>
+										</Button>
+									);
+								})}
+							</div>
+							{selectedZoomFocusMode === "auto" && (
+								<p className="text-[10px] text-slate-500 mt-1.5">
+									{t("zoom.focusMode.autoDescription")}
+								</p>
+							)}
+						</div>
+					)}
 					{zoomEnabled && (
 						<Button
 							onClick={handleDeleteClick}
@@ -623,6 +670,87 @@ export function SettingsPanel({
 										</SelectContent>
 									</Select>
 								</div>
+								{webcamLayoutPreset === "picture-in-picture" && (
+									<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
+										<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+											{t("layout.webcamShape")}
+										</div>
+										<div className="grid grid-cols-4 gap-1.5">
+											{(
+												[
+													{ value: "rectangle", label: "Rect" },
+													{ value: "circle", label: "Circle" },
+													{ value: "square", label: "Square" },
+													{ value: "rounded", label: "Rounded" },
+												] as Array<{ value: WebcamMaskShape; label: string }>
+											).map((shape) => (
+												<button
+													key={shape.value}
+													type="button"
+													onClick={() => onWebcamMaskShapeChange?.(shape.value)}
+													className={cn(
+														"h-10 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all",
+														webcamMaskShape === shape.value
+															? "bg-[#34B27B] border-[#34B27B] text-white"
+															: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+													)}
+												>
+													<svg
+														width="16"
+														height="16"
+														viewBox="0 0 16 16"
+														fill="none"
+														xmlns="http://www.w3.org/2000/svg"
+													>
+														{shape.value === "rectangle" && (
+															<rect
+																x="1"
+																y="3"
+																width="14"
+																height="10"
+																rx="2"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "circle" && (
+															<circle
+																cx="8"
+																cy="8"
+																r="6.5"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "square" && (
+															<rect
+																x="2"
+																y="2"
+																width="12"
+																height="12"
+																rx="1"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+														{shape.value === "rounded" && (
+															<rect
+																x="1"
+																y="3"
+																width="14"
+																height="10"
+																rx="5"
+																stroke="currentColor"
+																strokeWidth="1.5"
+															/>
+														)}
+													</svg>
+													<span className="text-[8px] leading-none">{shape.label}</span>
+												</button>
+											))}
+										</div>
+									</div>
+								)}
 							</AccordionContent>
 						</AccordionItem>
 					)}
