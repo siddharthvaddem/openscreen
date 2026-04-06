@@ -66,6 +66,26 @@ function isFiniteNumber(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value);
 }
 
+function computeNormalizedWebcamLayoutPreset(
+	webcamLayoutPreset: Partial<ProjectEditorState>["webcamLayoutPreset"],
+	normalizedAspectRatio: AspectRatio,
+): WebcamLayoutPreset {
+	switch (webcamLayoutPreset) {
+		case "picture-in-picture":
+			return webcamLayoutPreset;
+		case "vertical-stack":
+			return isPortraitAspectRatio(normalizedAspectRatio)
+				? webcamLayoutPreset
+				: DEFAULT_WEBCAM_LAYOUT_PRESET;
+		case "dual-frame":
+			return isPortraitAspectRatio(normalizedAspectRatio)
+				? DEFAULT_WEBCAM_LAYOUT_PRESET
+				: webcamLayoutPreset;
+		default:
+			return DEFAULT_WEBCAM_LAYOUT_PRESET;
+	}
+}
+
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
 }
@@ -178,18 +198,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 	)
 		? (editor.aspectRatio as AspectRatio)
 		: "16:9";
-	const normalizedWebcamLayoutPreset: WebcamLayoutPreset =
-		editor.webcamLayoutPreset === "picture-in-picture"
-			? editor.webcamLayoutPreset
-			: editor.webcamLayoutPreset === "vertical-stack"
-				? isPortraitAspectRatio(normalizedAspectRatio)
-					? editor.webcamLayoutPreset
-					: DEFAULT_WEBCAM_LAYOUT_PRESET
-				: editor.webcamLayoutPreset === "dual-frame"
-					? isPortraitAspectRatio(normalizedAspectRatio)
-						? DEFAULT_WEBCAM_LAYOUT_PRESET
-						: editor.webcamLayoutPreset
-					: DEFAULT_WEBCAM_LAYOUT_PRESET;
+	const normalizedWebcamLayoutPreset = computeNormalizedWebcamLayoutPreset(
+		editor.webcamLayoutPreset,
+		normalizedAspectRatio,
+	);
 	const normalizedWebcamPosition: WebcamPosition | null =
 		normalizedWebcamLayoutPreset === "picture-in-picture" &&
 		editor.webcamPosition &&
