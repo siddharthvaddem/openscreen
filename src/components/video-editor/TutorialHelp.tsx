@@ -37,11 +37,10 @@ export function TutorialHelp() {
 					{/* Explanation */}
 					<div className="bg-white/5 rounded-lg p-4 border border-white/5">
 						<p className="text-slate-300 leading-relaxed">
-							{t("tutorial.explanationBefore")}
-							<span className="text-[#ef4444] font-bold"> {t("tutorial.remove")}</span>
-							{t("tutorial.explanationMiddle")}
-							<span className="text-[#ef4444] font-bold"> {t("tutorial.covered")}</span>
-							{t("tutorial.explanationAfter")}
+							{t("tutorial.explanation")}
+							<span className="text-[#ef4444] font-bold"> {t("tutorial.explanationRemove")}</span>
+							<span className="text-[#ef4444] font-bold"> {t("tutorial.explanationCovered")}</span>
+							{t("tutorial.explanationEnd")}
 						</p>
 					</div>
 					{/* Visual Illustration */}
@@ -115,11 +114,7 @@ export function TutorialHelp() {
 					<div className="grid grid-cols-2 gap-4">
 						<div className="p-3 rounded bg-white/5 border border-white/5">
 							<div className="text-[#ef4444] font-bold mb-1">{t("tutorial.step1Title")}</div>
-							<p className="text-xs text-slate-400">
-								{t("tutorial.step1DescriptionBefore")}
-								<kbd className="bg-white/10 px-1 rounded text-slate-300">T</kbd>
-								{t("tutorial.step1DescriptionAfter")}
-							</p>
+							<p className="text-xs text-slate-400">{t("tutorial.step1Description")}</p>
 						</div>
 						<div className="p-3 rounded bg-white/5 border border-white/5">
 							<div className="text-[#ef4444] font-bold mb-1">{t("tutorial.step2Title")}</div>
