@@ -14,6 +14,7 @@ import {
 import {
 	normalizeProjectMedia,
 	normalizeRecordingSession,
+	type ProjectMedia,
 	type RecordingSession,
 	type StoreRecordedSessionInput,
 } from "../../src/lib/recordingSession";
@@ -23,6 +24,143 @@ import { RECORDINGS_DIR } from "../main";
 const PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 const RECORDING_SESSION_SUFFIX = ".session.json";
+const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+
+/**
+ * Paths explicitly approved by the user via file picker dialogs or project loads.
+ * These are added at runtime when the user selects files from outside the default directories.
+ */
+const approvedPaths = new Set<string>();
+
+function approveFilePath(filePath: string): void {
+	approvedPaths.add(path.resolve(filePath));
+}
+
+function getAllowedReadDirs(): string[] {
+	return [RECORDINGS_DIR];
+}
+
+function isPathWithinDir(filePath: string, dirPath: string): boolean {
+	const resolved = path.resolve(filePath);
+	const resolvedDir = path.resolve(dirPath);
+	return resolved === resolvedDir || resolved.startsWith(resolvedDir + path.sep);
+}
+
+function isPathAllowed(filePath: string): boolean {
+	const resolved = path.resolve(filePath);
+	if (approvedPaths.has(resolved)) return true;
+	return getAllowedReadDirs().some((dir) => isPathWithinDir(resolved, dir));
+}
+
+function hasAllowedImportVideoExtension(filePath: string): boolean {
+	return ALLOWED_IMPORT_VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+async function approveReadableVideoPath(
+	filePath?: string | null,
+	trustedDirs?: string[],
+): Promise<string | null> {
+	const normalizedPath = normalizeVideoSourcePath(filePath);
+	if (!normalizedPath) {
+		return null;
+	}
+
+	if (isPathAllowed(normalizedPath)) {
+		return normalizedPath;
+	}
+
+	if (!hasAllowedImportVideoExtension(normalizedPath)) {
+		return null;
+	}
+
+	// When called with trustedDirs (e.g. from project load), only auto-approve
+	// paths within those directories. This prevents malicious project files from
+	// approving reads to arbitrary filesystem locations.
+	if (trustedDirs) {
+		const resolved = path.resolve(normalizedPath);
+		const withinTrusted = trustedDirs.some((dir) => isPathWithinDir(resolved, dir));
+		if (!withinTrusted) {
+			return null;
+		}
+	}
+
+	try {
+		const stats = await fs.stat(normalizedPath);
+		if (!stats.isFile()) {
+			return null;
+		}
+	} catch {
+		return null;
+	}
+
+	approveFilePath(normalizedPath);
+	return normalizedPath;
+}
+
+function resolveRecordingOutputPath(fileName: string): string {
+	const trimmed = fileName.trim();
+	if (!trimmed) {
+		throw new Error("Invalid recording file name");
+	}
+
+	const parsedPath = path.parse(trimmed);
+	const hasTraversalSegments = trimmed.split(/[\\/]+/).some((segment) => segment === "..");
+	const isNestedPath =
+		parsedPath.dir !== "" ||
+		path.isAbsolute(trimmed) ||
+		trimmed.includes("/") ||
+		trimmed.includes("\\");
+	if (hasTraversalSegments || isNestedPath || parsedPath.base !== trimmed) {
+		throw new Error("Recording file name must not contain path segments");
+	}
+
+	return path.join(RECORDINGS_DIR, parsedPath.base);
+}
+
+async function getApprovedProjectSession(
+	project: unknown,
+	projectFilePath?: string,
+): Promise<RecordingSession | null> {
+	if (!project || typeof project !== "object") {
+		return null;
+	}
+
+	const rawProject = project as { media?: unknown; videoPath?: unknown };
+	const media: ProjectMedia | null =
+		normalizeProjectMedia(rawProject.media) ??
+		(typeof rawProject.videoPath === "string"
+			? {
+					screenVideoPath: normalizeVideoSourcePath(rawProject.videoPath) ?? rawProject.videoPath,
+				}
+			: null);
+
+	if (!media) {
+		return null;
+	}
+
+	// Only auto-approve media paths within the project's directory or RECORDINGS_DIR.
+	// This prevents crafted project files from approving reads to arbitrary locations.
+	const trustedDirs = [RECORDINGS_DIR];
+	if (projectFilePath) {
+		trustedDirs.push(path.dirname(path.resolve(projectFilePath)));
+	}
+
+	const screenVideoPath = await approveReadableVideoPath(media.screenVideoPath, trustedDirs);
+	if (!screenVideoPath) {
+		throw new Error("Project references an invalid or unsupported screen video path");
+	}
+
+	const webcamVideoPath = media.webcamVideoPath
+		? await approveReadableVideoPath(media.webcamVideoPath, trustedDirs)
+		: undefined;
+	if (media.webcamVideoPath && !webcamVideoPath) {
+		throw new Error("Project references an invalid or unsupported webcam video path");
+	}
+
+	return webcamVideoPath
+		? { screenVideoPath, webcamVideoPath, createdAt: Date.now() }
+		: { screenVideoPath, createdAt: Date.now() };
+}
 
 type SelectedSource = {
 	name: string;
@@ -121,12 +259,12 @@ async function storeRecordedSessionFiles(payload: StoreRecordedSessionInput) {
 		typeof payload.createdAt === "number" && Number.isFinite(payload.createdAt)
 			? payload.createdAt
 			: Date.now();
-	const screenVideoPath = path.join(RECORDINGS_DIR, payload.screen.fileName);
+	const screenVideoPath = resolveRecordingOutputPath(payload.screen.fileName);
 	await fs.writeFile(screenVideoPath, Buffer.from(payload.screen.videoData));
 
 	let webcamVideoPath: string | undefined;
 	if (payload.webcam) {
-		webcamVideoPath = path.join(RECORDINGS_DIR, payload.webcam.fileName);
+		webcamVideoPath = resolveRecordingOutputPath(payload.webcam.fileName);
 		await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
 	}
 
@@ -357,6 +495,14 @@ export function registerIpcHandlers(
 				return { success: false, message: "Invalid file path" };
 			}
 
+			if (!isPathAllowed(normalizedPath)) {
+				console.warn(
+					"[read-binary-file] Rejected path outside allowed directories:",
+					normalizedPath,
+				);
+				return { success: false, message: "Access denied: path outside allowed directories" };
+			}
+
 			const data = await fs.readFile(normalizedPath);
 			return {
 				success: true,
@@ -398,6 +544,14 @@ export function registerIpcHandlers(
 			videoPath ?? currentRecordingSession?.screenVideoPath,
 		);
 		if (!targetVideoPath) {
+			return { success: true, samples: [] };
+		}
+
+		if (!isPathAllowed(targetVideoPath)) {
+			console.warn(
+				"[get-cursor-telemetry] Rejected path outside allowed directories:",
+				targetVideoPath,
+			);
 			return { success: true, samples: [] };
 		}
 
@@ -534,10 +688,17 @@ export function registerIpcHandlers(
 				return { success: false, canceled: true };
 			}
 
+			const approvedPath = await approveReadableVideoPath(result.filePaths[0]);
+			if (!approvedPath) {
+				return {
+					success: false,
+					message: "Selected file is not a supported video",
+				};
+			}
 			currentProjectPath = null;
 			return {
 				success: true,
-				path: result.filePaths[0],
+				path: approvedPath,
 			};
 		} catch (error) {
 			console.error("Failed to open file picker:", error);
@@ -663,19 +824,9 @@ export function registerIpcHandlers(
 			const filePath = result.filePaths[0];
 			const content = await fs.readFile(filePath, "utf-8");
 			const project = JSON.parse(content);
+			const session = await getApprovedProjectSession(project, filePath);
 			currentProjectPath = filePath;
-			if (project && typeof project === "object") {
-				const rawProject = project as { media?: unknown; videoPath?: unknown };
-				const media =
-					normalizeProjectMedia(rawProject.media) ??
-					(typeof rawProject.videoPath === "string"
-						? {
-								screenVideoPath:
-									normalizeVideoSourcePath(rawProject.videoPath) ?? rawProject.videoPath,
-							}
-						: null);
-				setCurrentRecordingSessionState(media ? { ...media, createdAt: Date.now() } : null);
-			}
+			setCurrentRecordingSessionState(session);
 
 			return {
 				success: true,
@@ -700,18 +851,8 @@ export function registerIpcHandlers(
 
 			const content = await fs.readFile(currentProjectPath, "utf-8");
 			const project = JSON.parse(content);
-			if (project && typeof project === "object") {
-				const rawProject = project as { media?: unknown; videoPath?: unknown };
-				const media =
-					normalizeProjectMedia(rawProject.media) ??
-					(typeof rawProject.videoPath === "string"
-						? {
-								screenVideoPath:
-									normalizeVideoSourcePath(rawProject.videoPath) ?? rawProject.videoPath,
-							}
-						: null);
-				setCurrentRecordingSessionState(media ? { ...media, createdAt: Date.now() } : null);
-			}
+			const session = await getApprovedProjectSession(project, currentProjectPath);
+			setCurrentRecordingSessionState(session);
 			return {
 				success: true,
 				path: currentProjectPath,
@@ -740,12 +881,22 @@ export function registerIpcHandlers(
 	});
 
 	ipcMain.handle("set-current-video-path", async (_, path: string) => {
-		const restoredSession = await loadRecordedSessionForVideoPath(path);
+		const normalizedPath = normalizeVideoSourcePath(path);
+		if (!normalizedPath || !isPathAllowed(normalizedPath)) {
+			return { success: false, message: "Video path has not been approved" };
+		}
+
+		const restoredSession = await loadRecordedSessionForVideoPath(normalizedPath);
 		if (restoredSession) {
+			// Approve all media paths from the restored session so they can be read later
+			approveFilePath(restoredSession.screenVideoPath);
+			if (restoredSession.webcamVideoPath) {
+				approveFilePath(restoredSession.webcamVideoPath);
+			}
 			setCurrentRecordingSessionState(restoredSession);
 		} else {
 			setCurrentRecordingSessionState({
-				screenVideoPath: normalizeVideoSourcePath(path) ?? path,
+				screenVideoPath: normalizedPath,
 				createdAt: Date.now(),
 			});
 		}

@@ -3,6 +3,9 @@
 		"hideHUD": "Hide HUD",
 		"closeApp": "Close App",
 		"restartRecording": "Restart recording",
+		"cancelRecording": "Cancel recording",
+		"pauseRecording": "Pause recording",
+		"resumeRecording": "Resume recording",
 		"openVideoFile": "Open video file",
 		"openProject": "Open project"
 	},

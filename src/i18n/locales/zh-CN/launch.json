@@ -3,6 +3,9 @@
 		"hideHUD": "隐藏控制面板",
 		"closeApp": "关闭应用",
 		"restartRecording": "重新开始录制",
+		"cancelRecording": "取消录制",
+		"pauseRecording": "暂停录制",
+		"resumeRecording": "继续录制",
 		"openVideoFile": "打开视频文件",
 		"openProject": "打开项目"
 	},

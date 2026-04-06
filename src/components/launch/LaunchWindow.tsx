@@ -5,6 +5,7 @@ import { FaRegStopCircle } from "react-icons/fa";
 import { FaFolderOpen } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
 import {
+	MdCancel,
 	MdMic,
 	MdMicOff,
 	MdMonitor,
@@ -42,8 +43,11 @@ const ICON_CONFIG = {
 	micOff: { icon: MdMicOff, size: ICON_SIZE },
 	webcamOn: { icon: MdVideocam, size: ICON_SIZE },
 	webcamOff: { icon: MdVideocamOff, size: ICON_SIZE },
+	pause: { icon: BsPauseCircle, size: ICON_SIZE },
+	resume: { icon: BsPlayCircle, size: ICON_SIZE },
 	stop: { icon: FaRegStopCircle, size: ICON_SIZE },
 	restart: { icon: MdRestartAlt, size: ICON_SIZE },
+	cancel: { icon: MdCancel, size: ICON_SIZE },
 	record: { icon: BsRecordCircle, size: ICON_SIZE },
 	videoFile: { icon: MdVideoFile, size: ICON_SIZE },
 	folder: { icon: FaFolderOpen, size: ICON_SIZE },
@@ -73,8 +77,12 @@ export function LaunchWindow() {
 
 	const {
 		recording,
+		paused,
+		elapsedSeconds,
 		toggleRecording,
+		togglePaused,
 		restartRecording,
+		cancelRecording,
 		microphoneEnabled,
 		setMicrophoneEnabled,
 		microphoneDeviceId,
@@ -151,25 +159,6 @@ export function LaunchWindow() {
 			setWebcamDeviceId(selectedCameraId);
 		}
 	}, [selectedCameraId, setWebcamDeviceId]);
-
-	useEffect(() => {
-		let timer: NodeJS.Timeout | null = null;
-		if (recording) {
-			if (!recordingStart) setRecordingStart(Date.now());
-			timer = setInterval(() => {
-				if (recordingStart) {
-					setElapsed(Math.floor((Date.now() - recordingStart) / 1000));
-				}
-			}, 1000);
-		} else {
-			setRecordingStart(null);
-			setElapsed(0);
-			if (timer) clearInterval(timer);
-		}
-		return () => {
-			if (timer) clearInterval(timer);
-		};
-	}, [recording, recordingStart]);
 
 	useEffect(() => {
 		if (!import.meta.env.DEV) {

@@ -21,14 +21,16 @@ export interface ShortcutBinding {
 export type ShortcutsConfig = Record<ShortcutAction, ShortcutBinding>;
 
 export interface FixedShortcut {
+	i18nKey: string;
 	label: string;
 	display: string;
 	bindings: ShortcutBinding[];
 }
 
 export const FIXED_SHORTCUTS: FixedShortcut[] = [
-	{ label: "Undo", display: "Ctrl + Z", bindings: [{ key: "z", ctrl: true }] },
+	{ i18nKey: "undo", label: "Undo", display: "Ctrl + Z", bindings: [{ key: "z", ctrl: true }] },
 	{
+		i18nKey: "redo",
 		label: "Redo",
 		display: "Ctrl + Shift + Z / Ctrl + Y",
 		bindings: [
@@ -36,19 +38,38 @@ export const FIXED_SHORTCUTS: FixedShortcut[] = [
 			{ key: "y", ctrl: true },
 		],
 	},
-	{ label: "Cycle Annotations Forward", display: "Tab", bindings: [{ key: "tab" }] },
 	{
+		i18nKey: "cycleAnnotationsForward",
+		label: "Cycle Annotations Forward",
+		display: "Tab",
+		bindings: [{ key: "tab" }],
+	},
+	{
+		i18nKey: "cycleAnnotationsBackward",
 		label: "Cycle Annotations Backward",
 		display: "Shift + Tab",
 		bindings: [{ key: "tab", shift: true }],
 	},
 	{
+		i18nKey: "deleteSelectedAlt",
 		label: "Delete Selected (alt)",
 		display: "Del / ⌫",
 		bindings: [{ key: "delete" }, { key: "backspace" }],
 	},
-	{ label: "Pan Timeline", display: "Shift + Ctrl + Scroll", bindings: [] },
-	{ label: "Zoom Timeline", display: "Ctrl + Scroll", bindings: [] },
+	{
+		i18nKey: "panTimeline",
+		label: "Pan Timeline",
+		display: "Shift + Ctrl + Scroll",
+		bindings: [],
+	},
+	{ i18nKey: "zoomTimeline", label: "Zoom Timeline", display: "Ctrl + Scroll", bindings: [] },
+	{ i18nKey: "frameBack", label: "Frame Back", display: "←", bindings: [{ key: "arrowleft" }] },
+	{
+		i18nKey: "frameForward",
+		label: "Frame Forward",
+		display: "→",
+		bindings: [{ key: "arrowright" }],
+	},
 ];
 
 export type ShortcutConflict =

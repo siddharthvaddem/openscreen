@@ -29,6 +29,8 @@
 		"cycleAnnotationsBackward": "向后切换标注",
 		"deleteSelectedAlt": "删除所选（替代）",
 		"panTimeline": "平移时间轴",
-		"zoomTimeline": "缩放时间轴"
+		"zoomTimeline": "缩放时间轴",
+		"frameBack": "上一帧",
+		"frameForward": "下一帧"
 	}
 }

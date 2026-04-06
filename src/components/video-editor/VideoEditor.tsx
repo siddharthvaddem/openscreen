@@ -20,8 +20,10 @@ import {
 	type GifSizePreset,
 	VideoExporter,
 } from "@/lib/exporter";
+import { computeFrameStepTime } from "@/lib/frameStep";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { matchesShortcut } from "@/lib/shortcuts";
+import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
 import {
 	getAspectRatioValue,
 	getNativeAspectRatioValue,
@@ -31,8 +33,10 @@ import { ExportDialog } from "./ExportDialog";
 import PlaybackControls from "./PlaybackControls";
 import {
 	createProjectData,
+	createProjectSnapshot,
 	deriveNextId,
 	fromFileUrl,
+	hasProjectUnsavedChanges,
 	normalizeProjectEditor,
 	resolveProjectMedia,
 	toFileUrl,
@@ -100,6 +104,10 @@ export default function VideoEditor() {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [duration, setDuration] = useState(0);
+	const currentTimeRef = useRef(currentTime);
+	currentTimeRef.current = currentTime;
+	const durationRef = useRef(duration);
+	durationRef.current = duration;
 	const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
@@ -234,13 +242,11 @@ export default function VideoEditor() {
 				) + 1;
 
 			setLastSavedSnapshot(
-				JSON.stringify(
-					createProjectData(
-						webcamSourcePath
-							? { screenVideoPath: sourcePath, webcamVideoPath: webcamSourcePath }
-							: { screenVideoPath: sourcePath },
-						normalizedEditor,
-					),
+				createProjectSnapshot(
+					webcamSourcePath
+						? { screenVideoPath: sourcePath, webcamVideoPath: webcamSourcePath }
+						: { screenVideoPath: sourcePath },
+					normalizedEditor,
 				),
 			);
 			return true;
@@ -252,30 +258,28 @@ export default function VideoEditor() {
 		if (!currentProjectMedia) {
 			return null;
 		}
-		return JSON.stringify(
-			createProjectData(currentProjectMedia, {
-				wallpaper,
-				shadowIntensity,
-				showBlur,
-				motionBlurAmount,
-				borderRadius,
-				padding,
-				cropRegion,
-				zoomRegions,
-				trimRegions,
-				speedRegions,
-				annotationRegions,
-				aspectRatio,
-				webcamLayoutPreset,
-				webcamMaskShape,
-				webcamPosition,
-				exportQuality,
-				exportFormat,
-				gifFrameRate,
-				gifLoop,
-				gifSizePreset,
-			}),
-		);
+		return createProjectSnapshot(currentProjectMedia, {
+			wallpaper,
+			shadowIntensity,
+			showBlur,
+			motionBlurAmount,
+			borderRadius,
+			padding,
+			cropRegion,
+			zoomRegions,
+			trimRegions,
+			speedRegions,
+			annotationRegions,
+			aspectRatio,
+			webcamLayoutPreset,
+			webcamMaskShape,
+			webcamPosition,
+			exportQuality,
+			exportFormat,
+			gifFrameRate,
+			gifLoop,
+			gifSizePreset,
+		});
 	}, [
 		currentProjectMedia,
 		wallpaper,
@@ -300,12 +304,7 @@ export default function VideoEditor() {
 		gifSizePreset,
 	]);
 
-	const hasUnsavedChanges = Boolean(
-		currentProjectPath &&
-			currentProjectSnapshot &&
-			lastSavedSnapshot &&
-			currentProjectSnapshot !== lastSavedSnapshot,
-	);
+	const hasUnsavedChanges = hasProjectUnsavedChanges(currentProjectSnapshot, lastSavedSnapshot);
 
 	useEffect(() => {
 		async function loadInitialData() {
@@ -333,7 +332,14 @@ export default function VideoEditor() {
 					setWebcamVideoSourcePath(webcamSourcePath);
 					setWebcamVideoPath(webcamSourcePath ? toFileUrl(webcamSourcePath) : null);
 					setCurrentProjectPath(null);
-					setLastSavedSnapshot(null);
+					setLastSavedSnapshot(
+						createProjectSnapshot(
+							webcamSourcePath
+								? { screenVideoPath: sourcePath, webcamVideoPath: webcamSourcePath }
+								: { screenVideoPath: sourcePath },
+							INITIAL_EDITOR_STATE,
+						),
+					);
 					return;
 				}
 
@@ -345,7 +351,9 @@ export default function VideoEditor() {
 					setWebcamVideoSourcePath(null);
 					setWebcamVideoPath(null);
 					setCurrentProjectPath(null);
-					setLastSavedSnapshot(null);
+					setLastSavedSnapshot(
+						createProjectSnapshot({ screenVideoPath: sourcePath }, INITIAL_EDITOR_STATE),
+					);
 				} else {
 					setError("No video to load. Please record or select a video.");
 				}
@@ -358,6 +366,28 @@ export default function VideoEditor() {
 
 		loadInitialData();
 	}, [applyLoadedProject]);
+
+	// Track whether user preferences have been loaded to avoid
+	// overwriting saved prefs with defaults on the first render
+	const [prefsHydrated, setPrefsHydrated] = useState(false);
+
+	// Load persisted user preferences on mount (intentionally runs once)
+	useEffect(() => {
+		const prefs = loadUserPreferences();
+		updateState({
+			padding: prefs.padding,
+			aspectRatio: prefs.aspectRatio,
+		});
+		setExportQuality(prefs.exportQuality);
+		setExportFormat(prefs.exportFormat);
+		setPrefsHydrated(true);
+	}, [updateState]);
+
+	// Auto-save user preferences when settings change
+	useEffect(() => {
+		if (!prefsHydrated) return;
+		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat });
+	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat]);
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
@@ -942,6 +972,40 @@ export default function VideoEditor() {
 				e.preventDefault();
 				e.stopPropagation();
 				redo();
+				return;
+			}
+
+			// Frame-step navigation (arrow keys, no modifiers)
+			if (
+				(e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				!e.shiftKey &&
+				!e.altKey
+			) {
+				const target = e.target;
+				if (
+					target instanceof HTMLInputElement ||
+					target instanceof HTMLTextAreaElement ||
+					target instanceof HTMLSelectElement ||
+					(target instanceof HTMLElement &&
+						(target.isContentEditable ||
+							target.closest('[role="separator"], [role="slider"], [role="spinbutton"]')))
+				) {
+					return;
+				}
+				e.preventDefault();
+				const video = videoPlaybackRef.current?.video;
+				if (!video) {
+					return;
+				}
+				const direction = e.key === "ArrowLeft" ? "backward" : "forward";
+				const newTime = computeFrameStepTime(
+					video.currentTime,
+					Number.isFinite(video.duration) ? video.duration : durationRef.current,
+					direction,
+				);
+				video.currentTime = newTime;
 				return;
 			}
 

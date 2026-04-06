@@ -11,12 +11,15 @@ const TEST_VIDEO = path.join(__dirname, "../fixtures/sample.webm");
 
 test("exports a GIF from a loaded video", async () => {
 	const outputPath = path.join(os.tmpdir(), `test-gif-export-${Date.now()}.gif`);
+	let testVideoInRecordings = "";
 
 	const app = await electron.launch({
 		args: [
 			MAIN_JS,
 			// Required in CI sandbox environments (GitHub Actions, Docker, etc.)
 			"--no-sandbox",
+			// Force software WebGL in headless CI to avoid GPU framebuffer errors.
+			"--enable-unsafe-swiftshader",
 		],
 		env: {
 			...process.env,
@@ -58,14 +61,25 @@ test("exports a GIF from a loaded video", async () => {
 			);
 		});
 
-		await hudWindow.evaluate((videoPath: string) => {
-			window.electronAPI.setCurrentVideoPath(videoPath);
-			try {
+		// Copy the test fixture into the app's recordings directory so it passes
+		// the path security check in set-current-video-path.
+		const userDataDir = await app.evaluate(({ app: electronApp }) => {
+			return electronApp.getPath("userData");
+		});
+		const recordingsDir = path.join(userDataDir, "recordings");
+		testVideoInRecordings = path.join(recordingsDir, "test-sample.webm");
+		fs.mkdirSync(recordingsDir, { recursive: true });
+		fs.copyFileSync(TEST_VIDEO, testVideoInRecordings);
+
+		try {
+			await hudWindow.evaluate((videoPath: string) => {
+				window.electronAPI.setCurrentVideoPath(videoPath);
 				window.electronAPI.switchToEditor();
-			} catch {
-				// Expected: HUD window closes during this call, killing the context.
-			}
-		}, TEST_VIDEO);
+			}, testVideoInRecordings);
+		} catch {
+			// Expected: switchToEditor() closes the HUD window, terminating
+			// the Playwright page context before evaluate() can resolve.
+		}
 
 		// ── 3. Switch to the editor window. This closes the HUD and opens
 		//       a new BrowserWindow with ?windowType=editor.
@@ -115,6 +129,9 @@ test("exports a GIF from a loaded video", async () => {
 		await app.close();
 		if (fs.existsSync(outputPath)) {
 			fs.unlinkSync(outputPath);
+		}
+		if (testVideoInRecordings && fs.existsSync(testVideoInRecordings)) {
+			fs.unlinkSync(testVideoInRecordings);
 		}
 	}
 });

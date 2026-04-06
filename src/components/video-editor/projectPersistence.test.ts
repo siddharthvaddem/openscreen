@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	createProjectData,
+	createProjectSnapshot,
+	hasProjectUnsavedChanges,
 	normalizeProjectEditor,
 	PROJECT_VERSION,
 	resolveProjectMedia,
@@ -64,4 +66,40 @@ describe("projectPersistence media compatibility", () => {
 			normalizeProjectEditor({ webcamMaskShape: "not-a-real-shape" as never }).webcamMaskShape,
 		).toBe("rectangle");
 	});
+});
+
+it("creates stable snapshots for identical project state", () => {
+	const media = {
+		screenVideoPath: "/tmp/screen.webm",
+		webcamVideoPath: "/tmp/webcam.webm",
+	};
+	const editor = normalizeProjectEditor({
+		wallpaper: "/wallpapers/wallpaper1.jpg",
+		shadowIntensity: 0,
+		showBlur: false,
+		motionBlurAmount: 0,
+		borderRadius: 0,
+		padding: 50,
+		cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+		zoomRegions: [],
+		trimRegions: [],
+		speedRegions: [],
+		annotationRegions: [],
+		aspectRatio: "16:9",
+		webcamLayoutPreset: "picture-in-picture",
+		webcamMaskShape: "circle",
+		exportQuality: "good",
+		exportFormat: "mp4",
+		gifFrameRate: 15,
+		gifLoop: true,
+		gifSizePreset: "medium",
+	});
+
+	expect(createProjectSnapshot(media, editor)).toBe(createProjectSnapshot(media, editor));
+});
+
+it("detects unsaved changes from differing snapshots", () => {
+	expect(hasProjectUnsavedChanges(null, null)).toBe(false);
+	expect(hasProjectUnsavedChanges("same", "same")).toBe(false);
+	expect(hasProjectUnsavedChanges("current", "baseline")).toBe(true);
 });

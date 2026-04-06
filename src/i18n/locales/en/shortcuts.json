@@ -29,6 +29,8 @@
 		"cycleAnnotationsBackward": "Cycle Annotations Backward",
 		"deleteSelectedAlt": "Delete Selected (alt)",
 		"panTimeline": "Pan Timeline",
-		"zoomTimeline": "Zoom Timeline"
+		"zoomTimeline": "Zoom Timeline",
+		"frameBack": "Frame Back",
+		"frameForward": "Frame Forward"
 	}
 }

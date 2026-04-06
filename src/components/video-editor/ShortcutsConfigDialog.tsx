@@ -197,12 +197,14 @@ export function ShortcutsConfigDialog() {
 					<p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">
 						{t("fixed")}
 					</p>
-					{FIXED_SHORTCUTS.map(({ label, display }) => (
+					{FIXED_SHORTCUTS.map(({ i18nKey, label, display }) => (
 						<div
-							key={label}
+							key={i18nKey}
 							className="flex items-center justify-between py-1.5 px-1 border-b border-white/5 last:border-0"
 						>
-							<span className="text-sm text-slate-400">{label}</span>
+							<span className="text-sm text-slate-400">
+								{t(`fixedActions.${i18nKey}`, { defaultValue: label })}
+							</span>
 							<kbd className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs font-mono text-slate-400 min-w-[90px] text-center">
 								{display}
 							</kbd>

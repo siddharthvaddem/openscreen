@@ -37,8 +37,10 @@ export function KeyboardShortcutsHelp() {
 
 					<div className="pt-1 border-t border-white/5 mt-1 space-y-1.5">
 						{FIXED_SHORTCUTS.map((fixed) => (
-							<div key={fixed.label} className="flex items-center justify-between">
-								<span className="text-slate-400">{fixed.label}</span>
+							<div key={fixed.i18nKey} className="flex items-center justify-between">
+								<span className="text-slate-400">
+									{t(`fixedActions.${fixed.i18nKey}`, { defaultValue: fixed.label })}
+								</span>
 								<kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-mono">
 									{isMac
 										? fixed.display
