@@ -1,6 +1,6 @@
 import { ChevronDown, Languages } from "lucide-react";
-import { useEffect, useState } from "react";
-import { BsPauseCircle, BsPlayCircle, BsRecordCircle } from "react-icons/bs";
+import { useCallback, useEffect, useState } from "react";
+import { BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { FaFolderOpen } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
@@ -20,16 +20,17 @@ import { RxDragHandleDots2 } from "react-icons/rx";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
-import { isMac as getIsMac } from "@/utils/platformUtils";
 import { useAudioLevelMeter } from "../../hooks/useAudioLevelMeter";
 import { useCameraDevices } from "../../hooks/useCameraDevices";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
+import { usePreviewStream } from "../../hooks/usePreviewStream";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { requestCameraAccess } from "../../lib/requestCameraAccess";
 import { formatTimePadded } from "../../utils/timeUtils";
 import { AudioLevelMeter } from "../ui/audio-level-meter";
 import { Tooltip } from "../ui/tooltip";
 import styles from "./LaunchWindow.module.css";
+import { LivePreview } from "./LivePreview";
 
 const ICON_SIZE = 20;
 
@@ -73,11 +74,6 @@ const windowBtnClasses =
 export function LaunchWindow() {
 	const t = useScopedT("launch");
 	const { locale, setLocale } = useI18n();
-	const [isMac, setIsMac] = useState(false);
-
-	useEffect(() => {
-		getIsMac().then(setIsMac);
-	}, []);
 
 	const {
 		recording,
@@ -98,6 +94,18 @@ export function LaunchWindow() {
 		webcamDeviceId,
 		setWebcamDeviceId,
 	} = useScreenRecorder();
+
+	const {
+		streams,
+		previewActive,
+		startPreview,
+		stopPreview,
+		detachScreenStream,
+		detachWebcamStream,
+	} = usePreviewStream({ webcamEnabled });
+
+	const [recordingStart, setRecordingStart] = useState<number | null>(null);
+	const [elapsed, setElapsed] = useState(0);
 
 	const showMicControls = microphoneEnabled && !recording;
 	const showWebcamControls = webcamEnabled && !recording;
@@ -165,13 +173,22 @@ export function LaunchWindow() {
 	const [selectedSource, setSelectedSource] = useState("Screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 
+	// Poll for source selection and start preview when source is picked
 	useEffect(() => {
+		let prevSourceId: string | null = null;
+
 		const checkSelectedSource = async () => {
 			if (window.electronAPI) {
 				const source = await window.electronAPI.getSelectedSource();
 				if (source) {
 					setSelectedSource(source.name);
 					setHasSelectedSource(true);
+
+					// Auto-start preview when source changes
+					if (source.id !== prevSourceId && !recording) {
+						prevSourceId = source.id;
+						startPreview(source.id);
+					}
 				} else {
 					setSelectedSource("Screen");
 					setHasSelectedSource(false);
@@ -183,21 +200,52 @@ export function LaunchWindow() {
 
 		const interval = setInterval(checkSelectedSource, 500);
 		return () => clearInterval(interval);
-	}, []);
+	}, [recording, startPreview]);
 
-	const openSourceSelector = () => {
+	const openSourceSelector = useCallback(() => {
 		if (window.electronAPI) {
 			window.electronAPI.openSourceSelector();
 		}
-	};
+	}, []);
+
+	const handleToggleRecording = useCallback(() => {
+		if (recording) {
+			toggleRecording();
+			// Restart preview after recording stops
+			setTimeout(async () => {
+				const source = await window.electronAPI.getSelectedSource();
+				if (source) {
+					startPreview(source.id);
+				}
+			}, 500);
+		} else if (hasSelectedSource && previewActive) {
+			// Detach streams from preview and hand them to recorder
+			const screenStream = detachScreenStream();
+			const webcamStream = detachWebcamStream();
+			if (screenStream) {
+				toggleRecording({ screenStream, webcamStream });
+			} else {
+				toggleRecording();
+			}
+		} else if (hasSelectedSource) {
+			toggleRecording();
+		} else {
+			openSourceSelector();
+		}
+	}, [
+		recording,
+		hasSelectedSource,
+		previewActive,
+		toggleRecording,
+		startPreview,
+		detachScreenStream,
+		detachWebcamStream,
+		openSourceSelector,
+	]);
 
 	const openVideoFile = async () => {
 		const result = await window.electronAPI.openVideoFilePicker();
-
-		if (result.canceled) {
-			return;
-		}
-
+		if (result.canceled) return;
 		if (result.success && result.path) {
 			await window.electronAPI.setCurrentVideoPath(result.path);
 			await window.electronAPI.switchToEditor();
@@ -211,12 +259,14 @@ export function LaunchWindow() {
 	};
 
 	const sendHudOverlayHide = () => {
-		if (window.electronAPI && window.electronAPI.hudOverlayHide) {
+		if (window.electronAPI?.hudOverlayHide) {
 			window.electronAPI.hudOverlayHide();
 		}
 	};
+
 	const sendHudOverlayClose = () => {
-		if (window.electronAPI && window.electronAPI.hudOverlayClose) {
+		stopPreview();
+		if (window.electronAPI?.hudOverlayClose) {
 			window.electronAPI.hudOverlayClose();
 		}
 	};
@@ -228,294 +278,46 @@ export function LaunchWindow() {
 	};
 
 	return (
-		<div className={`w-screen h-screen bg-transparent ${styles.electronDrag}`}>
-			{/* Language switcher — top-left, beside traffic lights */}
-			<div
-				className={`fixed top-2 flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${isMac ? "left-[72px]" : "left-2"} ${styles.electronNoDrag}`}
-			>
-				<Languages size={14} />
-				<select
-					value={locale}
-					onChange={(e) => setLocale(e.target.value as Locale)}
-					className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
-					style={{ color: "inherit" }}
-				>
-					{SUPPORTED_LOCALES.map((loc) => (
-						<option key={loc} value={loc} className="bg-[#1c1c24] text-white">
-							{getLocaleName(loc)}
-						</option>
-					))}
-				</select>
-			</div>
-
-			{/* Device selectors — fixed above HUD bar, viewport-relative, never clipped */}
-			{(showMicControls || showWebcamControls) && (
+		<div
+			className={`w-full h-full flex flex-col rounded-2xl overflow-hidden ${styles.electronDrag}`}
+			style={{
+				background:
+					"linear-gradient(135deg, rgba(28, 28, 36, 0.95) 0%, rgba(18, 18, 26, 0.93) 100%)",
+				backdropFilter: "blur(20px) saturate(160%)",
+				WebkitBackdropFilter: "blur(20px) saturate(160%)",
+				border: "1px solid rgba(60, 60, 80, 0.25)",
+				boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)",
+			}}
+		>
+			{/* Title bar */}
+			<div className={`flex items-center justify-between px-3 py-2 ${styles.electronDrag}`}>
 				<div
-					className={`fixed bottom-[60px] left-1/2 -translate-x-1/2 flex items-center gap-2 animate-mic-panel-in ${styles.electronNoDrag}`}
+					className={`flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${styles.electronNoDrag}`}
 				>
-					{/* Mic selector */}
-					{showMicControls && (
-						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!micExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
-							onMouseEnter={() => setIsMicHovered(true)}
-							onMouseLeave={() => setIsMicHovered(false)}
-							onFocus={() => setIsMicFocused(true)}
-							onBlur={() => setIsMicFocused(false)}
-							style={{ width: micExpanded ? "240px" : "140px", transition: "width 300ms ease" }}
-						>
-							<div className="relative flex-1 min-w-0">
-								{!micExpanded && (
-									<div className="text-white/60 text-[10px] font-medium truncate">
-										{selectedMicLabel}
-									</div>
-								)}
-								<select
-									value={microphoneDeviceId || selectedMicId}
-									onChange={(e) => {
-										setSelectedMicId(e.target.value);
-										setMicrophoneDeviceId(e.target.value);
-									}}
-									className={`w-full appearance-none bg-white/5 text-white text-[11px] rounded-lg pl-2 pr-6 py-1 border border-white/10 outline-none hover:bg-white/10 transition-colors cursor-pointer ${!micExpanded ? "sr-only" : ""}`}
-								>
-									{micDevices.map((device) => (
-										<option key={device.deviceId} value={device.deviceId} className="bg-[#1c1c24]">
-											{device.label}
-										</option>
-									))}
-								</select>
-								{micExpanded && (
-									<ChevronDown
-										size={12}
-										className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
-									/>
-								)}
-							</div>
-							<AudioLevelMeter
-								level={level}
-								className={`${micExpanded ? "w-16" : "w-8"} h-2 transition-all duration-300`}
-							/>
-						</div>
-					)}
-
-					{/* Webcam selector */}
-					{showWebcamControls && (
-						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!webcamExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
-							onMouseEnter={() => setIsWebcamHovered(true)}
-							onMouseLeave={() => setIsWebcamHovered(false)}
-							onFocus={() => setIsWebcamFocused(true)}
-							onBlur={() => setIsWebcamFocused(false)}
-							style={{ width: webcamExpanded ? "240px" : "140px", transition: "width 300ms ease" }}
-						>
-							<div className="relative flex-1 min-w-0">
-								{!webcamExpanded && (
-									<div className="text-white/60 text-[10px] font-medium truncate">
-										{selectedCameraLabel}
-									</div>
-								)}
-								{webcamExpanded &&
-									(isCameraDevicesLoading ? (
-										<span className="text-white/40 text-[10px] italic">
-											{t("webcam.searching")}
-										</span>
-									) : cameraDevicesError ? (
-										<span className="text-white/40 text-[10px] italic">
-											{t("webcam.unavailable")}
-										</span>
-									) : cameraDevices.length === 0 ? (
-										<span className="text-white/40 text-[10px] italic">
-											{t("webcam.noneFound")}
-										</span>
-									) : (
-										<>
-											<select
-												value={webcamDeviceId || selectedCameraId}
-												onChange={(e) => {
-													setSelectedCameraId(e.target.value);
-													setWebcamDeviceId(e.target.value);
-												}}
-												className="w-full appearance-none bg-white/5 text-white text-[11px] rounded-lg pl-2 pr-6 py-1 border border-white/10 outline-none hover:bg-white/10 transition-colors cursor-pointer"
-											>
-												{cameraDevices.map((device) => (
-													<option
-														key={device.deviceId}
-														value={device.deviceId}
-														className="bg-[#1c1c24]"
-													>
-														{device.label}
-													</option>
-												))}
-											</select>
-											<ChevronDown
-												size={12}
-												className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
-											/>
-										</>
-									))}
-								{(!webcamExpanded || cameraDevices.length === 0) && (
-									<select
-										value={webcamDeviceId || selectedCameraId}
-										onChange={(e) => {
-											setSelectedCameraId(e.target.value);
-											setWebcamDeviceId(e.target.value);
-										}}
-										className="sr-only"
-									>
-										{cameraDevices.map((device) => (
-											<option key={device.deviceId} value={device.deviceId}>
-												{device.label}
-											</option>
-										))}
-									</select>
-								)}
-							</div>
-						</div>
-					)}
-				</div>
-			)}
-
-			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
-			<div
-				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[16px] backdrop-saturate-[140%] border border-[rgba(80,80,120,0.25)]`}
-			>
-				{/* Drag handle */}
-				<div className={`flex items-center px-1 ${styles.electronDrag}`}>
-					{getIcon("drag", "text-white/30")}
+					<Languages size={14} />
+					<select
+						value={locale}
+						onChange={(e) => setLocale(e.target.value as Locale)}
+						className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
+						style={{ color: "inherit" }}
+					>
+						{SUPPORTED_LOCALES.map((loc) => (
+							<option key={loc} value={loc} className="bg-[#1c1c24] text-white">
+								{getLocaleName(loc)}
+							</option>
+						))}
+					</select>
 				</div>
 
-				{/* Source selector */}
-				<button
-					className={`${hudGroupClasses} p-2 ${styles.electronNoDrag}`}
-					onClick={openSourceSelector}
-					disabled={recording}
-					title={selectedSource}
-				>
-					{getIcon("monitor", "text-white/80")}
-					<span className="text-white/70 text-[11px] max-w-[72px] truncate">{selectedSource}</span>
-				</button>
-
-				{/* Audio controls group */}
-				<div className={`${hudGroupClasses} ${styles.electronNoDrag}`}>
-					<button
-						className={`${hudIconBtnClasses} ${systemAudioEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={() => !recording && setSystemAudioEnabled(!systemAudioEnabled)}
-						disabled={recording}
-						title={
-							systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
-						}
-					>
-						{systemAudioEnabled
-							? getIcon("volumeOn", "text-green-400")
-							: getIcon("volumeOff", "text-white/40")}
-					</button>
-					<button
-						className={`${hudIconBtnClasses} ${microphoneEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={toggleMicrophone}
-						disabled={recording}
-						title={microphoneEnabled ? t("audio.disableMicrophone") : t("audio.enableMicrophone")}
-					>
-						{microphoneEnabled
-							? getIcon("micOn", "text-green-400")
-							: getIcon("micOff", "text-white/40")}
-					</button>
-					<button
-						className={`${hudIconBtnClasses} ${webcamEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={async () => {
-							await setWebcamEnabled(!webcamEnabled);
-						}}
-						title={webcamEnabled ? t("webcam.disableWebcam") : t("webcam.enableWebcam")}
-					>
-						{webcamEnabled
-							? getIcon("webcamOn", "text-green-400")
-							: getIcon("webcamOff", "text-white/40")}
-					</button>
-				</div>
-
-				{/* Record/Stop group */}
-				<button
-					className={`flex items-center gap-0.5 rounded-full p-2 transition-colors duration-150 ${styles.electronNoDrag} ${
-						recording
-							? paused
-								? "bg-amber-500/10 hover:bg-amber-500/15"
-								: "animate-record-pulse bg-red-500/10"
-							: "bg-white/5 hover:bg-white/[0.08]"
-					}`}
-					onClick={toggleRecording}
-					disabled={!hasSelectedSource && !recording}
-					style={{ flex: "0 0 auto" }}
-				>
-					{recording ? (
-						<>
-							{getIcon("stop", paused ? "text-amber-400" : "text-red-400")}
-							<span
-								className={`${paused ? "text-amber-400" : "text-red-400"} text-xs font-semibold tabular-nums`}
-							>
-								{formatTimePadded(elapsedSeconds)}
-							</span>
-						</>
-					) : (
-						getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")
-					)}
-				</button>
-
 				{recording && (
-					<Tooltip content={paused ? t("tooltips.resumeRecording") : t("tooltips.pauseRecording")}>
-						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={togglePaused}
-						>
-							{getIcon(paused ? "resume" : "pause", paused ? "text-amber-400" : "text-white/60")}
-						</button>
-					</Tooltip>
+					<div className="flex items-center gap-1.5 px-2">
+						<div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+						<span className="text-red-400 text-[11px] font-semibold tabular-nums">
+							REC {formatTimePadded(elapsed)}
+						</span>
+					</div>
 				)}
 
-				{/* Restart recording */}
-				{recording && (
-					<Tooltip content={t("tooltips.restartRecording")}>
-						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={restartRecording}
-						>
-							{getIcon("restart", "text-white/60")}
-						</button>
-					</Tooltip>
-				)}
-
-				{/* Cancel recording */}
-				{recording && (
-					<Tooltip content={t("tooltips.cancelRecording")}>
-						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={cancelRecording}
-						>
-							{getIcon("cancel", "text-white/60")}
-						</button>
-					</Tooltip>
-				)}
-
-				{/* Open video file */}
-				<Tooltip content={t("tooltips.openVideoFile")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openVideoFile}
-						disabled={recording}
-					>
-						{getIcon("videoFile", "text-white/60")}
-					</button>
-				</Tooltip>
-
-				{/* Open project */}
-				<Tooltip content={t("tooltips.openProject")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openProjectFile}
-						disabled={recording}
-					>
-						{getIcon("folder", "text-white/60")}
-					</button>
-				</Tooltip>
-
-				{/* Window controls */}
 				<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>
 					<button
 						className={windowBtnClasses}
@@ -531,6 +333,151 @@ export function LaunchWindow() {
 					>
 						{getIcon("close", "text-white")}
 					</button>
+				</div>
+			</div>
+
+			{/* Live preview area */}
+			<div className={`flex-1 min-h-0 px-3 ${styles.electronNoDrag}`}>
+				<LivePreview streams={streams} className="w-full h-full" />
+			</div>
+
+			{/* Mic controls panel */}
+			{showMicControls && (
+				<div
+					className={`mx-3 mt-2 flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl ${styles.electronNoDrag}`}
+				>
+					<div className="relative flex-1" style={{ maxWidth: "70%" }}>
+						<select
+							value={microphoneDeviceId || selectedDeviceId}
+							onChange={(e) => {
+								setSelectedDeviceId(e.target.value);
+								setMicrophoneDeviceId(e.target.value);
+							}}
+							className="w-full appearance-none bg-white/10 text-white text-xs rounded-full pl-3 pr-7 py-2 border border-white/20 outline-none truncate"
+						>
+							{devices.map((device) => (
+								<option key={device.deviceId} value={device.deviceId}>
+									{device.label}
+								</option>
+							))}
+						</select>
+						<ChevronDown
+							size={14}
+							className="absolute right-2 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none"
+						/>
+					</div>
+					<AudioLevelMeter level={level} className="w-24 h-4" />
+				</div>
+			)}
+
+			{/* Control bar */}
+			<div className={`px-3 py-2.5 ${styles.electronNoDrag}`}>
+				<div className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full bg-white/[0.03]">
+					{/* Source selector */}
+					<button
+						className={`${hudGroupClasses} p-2`}
+						onClick={openSourceSelector}
+						disabled={recording}
+						title={
+							systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
+						}
+					>
+						{getIcon("monitor", "text-white/80")}
+						<span className="text-white/70 text-[11px] max-w-[80px] truncate">
+							{selectedSource}
+						</span>
+					</button>
+
+					{/* Audio controls group */}
+					<div className={hudGroupClasses}>
+						<button
+							className={`${hudIconBtnClasses} ${systemAudioEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+							onClick={() => !recording && setSystemAudioEnabled(!systemAudioEnabled)}
+							disabled={recording}
+							title={
+								systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
+							}
+						>
+							{systemAudioEnabled
+								? getIcon("volumeOn", "text-green-400")
+								: getIcon("volumeOff", "text-white/40")}
+						</button>
+						<button
+							className={`${hudIconBtnClasses} ${microphoneEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+							onClick={toggleMicrophone}
+							disabled={recording}
+							title={microphoneEnabled ? t("audio.disableMicrophone") : t("audio.enableMicrophone")}
+						>
+							{microphoneEnabled
+								? getIcon("micOn", "text-green-400")
+								: getIcon("micOff", "text-white/40")}
+						</button>
+						<button
+							className={`${hudIconBtnClasses} ${webcamEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+							onClick={async () => {
+								await setWebcamEnabled(!webcamEnabled);
+							}}
+							title={webcamEnabled ? t("webcam.disableWebcam") : t("webcam.enableWebcam")}
+						>
+							{webcamEnabled
+								? getIcon("webcamOn", "text-green-400")
+								: getIcon("webcamOff", "text-white/40")}
+						</button>
+					</div>
+
+					{/* Record/Stop */}
+					<button
+						className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors duration-150 ${
+							recording ? "animate-record-pulse bg-red-500/10" : "bg-white/5 hover:bg-white/[0.08]"
+						}`}
+						onClick={handleToggleRecording}
+						disabled={!hasSelectedSource && !recording}
+						style={{ flex: "0 0 auto" }}
+					>
+						{recording ? (
+							<>
+								{getIcon("stop", "text-red-400")}
+								<span className="text-red-400 text-xs font-semibold tabular-nums">
+									{formatTimePadded(elapsed)}
+								</span>
+							</>
+						) : (
+							<>
+								{getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")}
+								<span
+									className={`text-xs font-medium ${hasSelectedSource ? "text-white/60" : "text-white/20"}`}
+								>
+									REC
+								</span>
+							</>
+						)}
+					</button>
+				</div>
+
+					{/* Restart recording */}
+					{recording && (
+						<Tooltip content={t("tooltips.restartRecording")}>
+							<button className={hudIconBtnClasses} onClick={restartRecording}>
+								{getIcon("restart", "text-white/60")}
+							</button>
+						</Tooltip>
+					)}
+				</button>
+
+					{/* Open video file */}
+					<Tooltip content={t("tooltips.openVideoFile")}>
+						<button className={hudIconBtnClasses} onClick={openVideoFile} disabled={recording}>
+							{getIcon("videoFile", "text-white/60")}
+						</button>
+					</Tooltip>
+				)}
+
+					{/* Open project */}
+					<Tooltip content={t("tooltips.openProject")}>
+						<button className={hudIconBtnClasses} onClick={openProjectFile} disabled={recording}>
+							{getIcon("folder", "text-white/60")}
+						</button>
+					</Tooltip>
 				</div>
 			</div>
 		</div>
