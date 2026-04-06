@@ -91,7 +91,9 @@ export async function runExport(options: ExportOptions): Promise<void> {
 		const electronBin = findElectronBinary();
 		const mainJs = findMainJs();
 
-		outputText(`Exporting ${format.toUpperCase()} to ${absOutput}...`);
+		if (!isJsonMode()) {
+			outputText(`Exporting ${format.toUpperCase()} to ${absOutput}...`);
+		}
 
 		const args = [
 			mainJs,
@@ -131,19 +133,22 @@ export async function runExport(options: ExportOptions): Promise<void> {
 								break;
 							}
 							case "status":
-								outputText((msg.data.message as string) ?? "");
+								if (!isJsonMode()) {
+									outputText((msg.data.message as string) ?? "");
+								}
 								break;
 							case "done":
-								outputText(`\nExport complete: ${msg.data.path}`);
 								if (isJsonMode()) {
 									process.stdout.write(
-										JSON.stringify({
+										`${JSON.stringify({
 											success: true,
 											path: msg.data.path,
 											format: msg.data.format,
 											size: msg.data.size,
-										}) + "\n",
+										})}\n`,
 									);
+								} else {
+									outputText(`\nExport complete: ${msg.data.path}`);
 								}
 								break;
 							case "error":

@@ -22,6 +22,9 @@ export const renderCommand = new Command("render")
 		}
 	});
 
+const VALID_GIF_PRESETS = ["medium", "large", "original"] as const;
+const VALID_GIF_FRAME_RATES = [15, 20, 25, 30] as const;
+
 export const gifCommand = new Command("gif")
 	.description("Render project as animated GIF")
 	.requiredOption("--project <path>", "Path to .openscreen project file")
@@ -32,11 +35,24 @@ export const gifCommand = new Command("gif")
 	.option("--overwrite", "Overwrite existing output file")
 	.action(async (opts) => {
 		try {
+			const frameRate = Number.parseInt(opts.frameRate, 10);
+			if (!VALID_GIF_FRAME_RATES.includes(frameRate as (typeof VALID_GIF_FRAME_RATES)[number])) {
+				outputError(
+					`Invalid frame rate: ${opts.frameRate}. Valid values: ${VALID_GIF_FRAME_RATES.join(", ")}`,
+				);
+				return;
+			}
+			if (!VALID_GIF_PRESETS.includes(opts.sizePreset)) {
+				outputError(
+					`Invalid size preset: ${opts.sizePreset}. Valid values: ${VALID_GIF_PRESETS.join(", ")}`,
+				);
+				return;
+			}
 			await runExport({
 				projectPath: opts.project,
 				outputPath: opts.output,
 				format: "gif",
-				gifFrameRate: parseInt(opts.frameRate, 10),
+				gifFrameRate: frameRate,
 				gifSizePreset: opts.sizePreset,
 				gifLoop: opts.loop,
 				overwrite: opts.overwrite,

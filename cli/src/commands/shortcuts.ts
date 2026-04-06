@@ -12,27 +12,31 @@ import {
 } from "../../../src/shared/shortcuts";
 import { outputError, outputSuccess, outputTable } from "../output";
 
-// Shortcuts are stored in the user data directory, same as the Electron app
-function getShortcutsPath(): string {
-	const platform = os.platform();
-	const appName = "openscreen";
+// Electron uses productName ("Openscreen") for packaged builds, "Electron" for dev.
+// Try both paths, preferring the packaged name.
+const APP_NAMES = ["Openscreen", "Electron"];
 
-	let userDataDir: string;
+function getUserDataDir(appName: string): string {
+	const platform = os.platform();
 	if (platform === "darwin") {
-		userDataDir = path.join(os.homedir(), "Library", "Application Support", appName);
-	} else if (platform === "win32") {
-		userDataDir = path.join(
+		return path.join(os.homedir(), "Library", "Application Support", appName);
+	}
+	if (platform === "win32") {
+		return path.join(
 			process.env["APPDATA"] || path.join(os.homedir(), "AppData", "Roaming"),
 			appName,
 		);
-	} else {
-		userDataDir = path.join(
-			process.env["XDG_CONFIG_HOME"] || path.join(os.homedir(), ".config"),
-			appName,
-		);
 	}
+	return path.join(process.env["XDG_CONFIG_HOME"] || path.join(os.homedir(), ".config"), appName);
+}
 
-	return path.join(userDataDir, "shortcuts.json");
+function getShortcutsPath(): string {
+	for (const appName of APP_NAMES) {
+		const candidate = path.join(getUserDataDir(appName), "shortcuts.json");
+		if (fs.existsSync(candidate)) return candidate;
+	}
+	// Default to packaged name for writes
+	return path.join(getUserDataDir(APP_NAMES[0]), "shortcuts.json");
 }
 
 function loadShortcuts(): ShortcutsConfig {

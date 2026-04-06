@@ -13,6 +13,7 @@ import {
 	normalizeProjectEditor,
 	PROJECT_VERSION,
 	type ProjectEditorState,
+	resolveProjectMedia,
 	validateProjectData,
 	WALLPAPER_PATHS,
 } from "../../../src/shared/project-schema";
@@ -70,8 +71,12 @@ export function loadProject(projectPath: string): EditorProjectData {
 		throw new Error(`Invalid project data in: ${absPath}`);
 	}
 
+	// Materialize media from legacy videoPath if needed
+	const media = resolveProjectMedia(parsed);
+
 	return {
 		...parsed,
+		...(media ? { media } : {}),
 		editor: normalizeProjectEditor(parsed.editor),
 	};
 }
