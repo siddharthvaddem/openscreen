@@ -640,14 +640,14 @@ export default function VideoEditor() {
 	);
 
 	const handleZoomSuggested = useCallback(
-		(span: Span, focus: ZoomFocus) => {
+		(span: Span, focus: ZoomFocus, depth: number) => {
 			const id = `zoom-${nextZoomIdRef.current++}`;
 			const newRegion: ZoomRegion = {
 				id,
 				startMs: Math.round(span.start),
 				endMs: Math.round(span.end),
-				depth: DEFAULT_ZOOM_DEPTH,
-				focus: clampFocusToDepth(focus, DEFAULT_ZOOM_DEPTH),
+				depth: depth,
+				focus: clampFocusToDepth(focus, depth),
 			};
 			pushState((prev) => ({ zoomRegions: [...prev.zoomRegions, newRegion] }));
 			setSelectedZoomId(id);
@@ -1654,6 +1654,8 @@ export default function VideoEditor() {
 									onAspectRatioChange={(ar) =>
 										pushState({
 											aspectRatio: ar,
+											padding: ar === "native" ? 0 : padding,
+											borderRadius: ar === "native" ? 0 : borderRadius,
 											webcamLayoutPreset:
 												!isPortraitAspectRatio(ar) && webcamLayoutPreset === "vertical-stack"
 													? "picture-in-picture"

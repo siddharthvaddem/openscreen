@@ -18,11 +18,31 @@ import { createEditorWindow, createHudOverlayWindow, createSourceSelectorWindow 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+	app.quit();
+} else {
+	app.on("second-instance", (_event, _commandLine, _workingDirectory) => {
+		// Someone tried to run a second instance, we should focus our window.
+		if (mainWindow) {
+			if (mainWindow.isMinimized()) mainWindow.restore();
+			mainWindow.focus();
+		}
+	});
+}
+
 // Use Screen & System Audio Recording permissions instead of CoreAudio Tap API on macOS.
 // CoreAudio Tap requires NSAudioCaptureUsageDescription in the parent app's Info.plist,
 // which doesn't work when running from a terminal/IDE during development, makes my life easier
 if (process.platform === "darwin") {
 	app.commandLine.appendSwitch("disable-features", "MacCatapLoopbackAudioForScreenShare");
+}
+
+if (process.platform === "win32") {
+	app.setAppUserModelId("com.siddharthvaddem.openscreen");
+	app.commandLine.appendSwitch("high-dpi-support", "1");
 }
 
 export const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");

@@ -58,10 +58,18 @@
     "target": [
       "nsis"
     ],
-    "icon": "icons/icons/win/icon.ico"
+    "icon": "icons/icons/win/icon.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "shortcutName": "Openscreen",
+    "installerIcon": "icons/icons/win/icon.ico",
+    "uninstallerIcon": "icons/icons/win/icon.ico",
+    "uninstallDisplayName": "Openscreen"
   }
 }

@@ -56,7 +56,7 @@ interface TimelineEditorProps {
 	cursorTelemetry?: CursorTelemetryPoint[];
 	zoomRegions: ZoomRegion[];
 	onZoomAdded: (span: Span) => void;
-	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
+	onZoomSuggested?: (span: Span, focus: ZoomFocus, depth: number) => void;
 	onZoomSpanChange: (id: string, span: Span) => void;
 	onZoomDelete: (id: string) => void;
 	selectedZoomId: string | null;
@@ -1037,9 +1037,13 @@ export default function TimelineEditor({
 				return;
 			}
 
-			const centeredStart = Math.round(candidate.centerTimeMs - defaultDuration / 2);
-			const candidateStart = Math.max(0, Math.min(centeredStart, totalMs - defaultDuration));
-			const candidateEnd = candidateStart + defaultDuration;
+			const candidateStart = Math.max(0, Math.min(candidate.startTimeMs, totalMs - 100));
+			const candidateEnd = Math.min(candidate.endTimeMs, totalMs);
+
+			if (candidateEnd - candidateStart < 200) {
+				return;
+			}
+
 			const hasOverlap = reservedSpans.some(
 				(span) => candidateEnd > span.start && candidateStart < span.end,
 			);
@@ -1050,7 +1054,11 @@ export default function TimelineEditor({
 
 			reservedSpans.push({ start: candidateStart, end: candidateEnd });
 			acceptedCenters.push(candidate.centerTimeMs);
-			onZoomSuggested({ start: candidateStart, end: candidateEnd }, candidate.focus);
+			onZoomSuggested(
+				{ start: candidateStart, end: candidateEnd },
+				candidate.focus,
+				candidate.depth,
+			);
 			addedCount += 1;
 		});
 

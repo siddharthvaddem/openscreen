@@ -6,13 +6,15 @@ import { requestCameraAccess } from "@/lib/requestCameraAccess";
 
 const TARGET_FRAME_RATE = 60;
 const MIN_FRAME_RATE = 30;
-const TARGET_WIDTH = 3840;
-const TARGET_HEIGHT = 2160;
-const FOUR_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
+const TARGET_WIDTH = 7680;
+const TARGET_HEIGHT = 4320;
+const EIGHT_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
+const FOUR_K_PIXELS = 3840 * 2160;
 const QHD_WIDTH = 2560;
 const QHD_HEIGHT = 1440;
 const QHD_PIXELS = QHD_WIDTH * QHD_HEIGHT;
 
+const BITRATE_8K = 80_000_000;
 const BITRATE_4K = 45_000_000;
 const BITRATE_QHD = 28_000_000;
 const BITRATE_BASE = 18_000_000;
@@ -133,6 +135,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		const pixels = width * height;
 		const highFrameRateBoost =
 			TARGET_FRAME_RATE >= HIGH_FRAME_RATE_THRESHOLD ? HIGH_FRAME_RATE_BOOST : 1;
+
+		if (pixels >= EIGHT_K_PIXELS) {
+			return Math.round(BITRATE_8K * highFrameRateBoost);
+		}
 
 		if (pixels >= FOUR_K_PIXELS) {
 			return Math.round(BITRATE_4K * highFrameRateBoost);
