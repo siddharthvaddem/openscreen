@@ -14,7 +14,18 @@
 		"disableSystemAudio": "Désactiver l'audio système",
 		"enableMicrophone": "Activer le microphone",
 		"disableMicrophone": "Désactiver le microphone",
-		"defaultMicrophone": "Microphone par défaut"
+		"defaultMicrophone": "Microphone par défaut",
+		"enableNoiseReduction": "Activer la réduction de bruit (IA)",
+		"disableNoiseReduction": "Désactiver la réduction de bruit",
+		"noiseReduction": "Réduction de bruit",
+		"clickToCycle": "Cliquez pour changer le niveau",
+		"nrLevel": {
+			"light": "Léger",
+			"moderate": "Modéré",
+			"aggressive": "Agressif"
+		},
+		"noiseReductionPrompt": "Activer la réduction de bruit IA pour un audio plus clair ?",
+		"enableNoiseReductionShort": "Activer"
 	},
 	"webcam": {
 		"enableWebcam": "Activer la webcam",

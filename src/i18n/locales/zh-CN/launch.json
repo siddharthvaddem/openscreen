@@ -14,7 +14,18 @@
 		"disableSystemAudio": "禁用系统音频",
 		"enableMicrophone": "启用麦克风",
 		"disableMicrophone": "禁用麦克风",
-		"defaultMicrophone": "默认麦克风"
+		"defaultMicrophone": "默认麦克风",
+		"enableNoiseReduction": "启用降噪（AI 驱动）",
+		"disableNoiseReduction": "禁用降噪",
+		"noiseReduction": "降噪",
+		"clickToCycle": "点击切换级别",
+		"nrLevel": {
+			"light": "轻度",
+			"moderate": "中度",
+			"aggressive": "强力"
+		},
+		"noiseReductionPrompt": "是否启用 AI 降噪以获得更清晰的音频？",
+		"enableNoiseReductionShort": "启用"
 	},
 	"webcam": {
 		"enableWebcam": "启用摄像头",

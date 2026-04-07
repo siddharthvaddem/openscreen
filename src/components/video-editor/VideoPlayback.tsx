@@ -18,6 +18,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useAudioEnhancement } from "@/hooks/useAudioEnhancement";
 import { getAssetPath } from "@/lib/assetPath";
 import {
 	getWebcamLayoutCssBoxShadow,
@@ -110,6 +111,8 @@ interface VideoPlaybackProps {
 	onBlurDataChange?: (id: string, blurData: BlurData) => void;
 	onBlurDataCommit?: () => void;
 	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
+	noiseReductionEnabled?: boolean;
+	noiseReductionLevel?: import("@/lib/audioEnhancement").NoiseReductionLevel;
 }
 
 export interface VideoPlaybackRef {
@@ -168,10 +171,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onBlurDataChange,
 			onBlurDataCommit,
 			cursorTelemetry = [],
+			noiseReductionEnabled = false,
+			noiseReductionLevel = "moderate",
 		},
 		ref,
 	) => {
 		const videoRef = useRef<HTMLVideoElement | null>(null);
+		const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
 		const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const appRef = useRef<Application | null>(null);
@@ -179,6 +185,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const videoContainerRef = useRef<Container | null>(null);
 		const cameraContainerRef = useRef<Container | null>(null);
 		const timeUpdateAnimationRef = useRef<number | null>(null);
+		// Post-processing noise reduction on playback audio
+		useAudioEnhancement(videoElement, noiseReductionEnabled, noiseReductionLevel);
+
 		const [pixiReady, setPixiReady] = useState(false);
 		const [videoReady, setVideoReady] = useState(false);
 		const [overlaySize, setOverlaySize] = useState({ width: 800, height: 600 });
@@ -1083,6 +1092,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
 			const video = e.currentTarget;
+			setVideoElement(video);
 			onDurationChange(video.duration);
 			video.currentTime = 0;
 			video.pause();

@@ -232,6 +232,12 @@ interface SettingsPanelProps {
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
+	noiseReductionEnabled?: boolean;
+	onNoiseReductionEnabledChange?: (enabled: boolean) => void;
+	noiseReductionLevel?: import("@/lib/audioEnhancement").NoiseReductionLevel;
+	onNoiseReductionLevelChange?: (
+		level: import("@/lib/audioEnhancement").NoiseReductionLevel,
+	) => void;
 }
 
 export default SettingsPanel;
@@ -324,6 +330,10 @@ export function SettingsPanel({
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
+	noiseReductionEnabled = false,
+	onNoiseReductionEnabledChange,
+	noiseReductionLevel = "moderate",
+	onNoiseReductionLevelChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	const [wallpaperPaths, setWallpaperPaths] = useState<string[]>([]);
@@ -1062,6 +1072,65 @@ export function SettingsPanel({
 								<Crop className="w-3 h-3" />
 								{t("crop.cropVideo")}
 							</Button>
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="audio" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<svg
+									className="w-4 h-4 text-[#34B27B]"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<path d="M2 10v3" />
+									<path d="M6 6v11" />
+									<path d="M10 3v18" />
+									<path d="M14 8v7" />
+									<path d="M18 5v13" />
+									<path d="M22 10v3" />
+								</svg>
+								<span className="text-xs font-medium">{t("audio.title")}</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3 space-y-3">
+							<div className="flex items-center justify-between">
+								<label className="text-[11px] text-slate-300">{t("audio.noiseReduction")}</label>
+								<Switch
+									checked={noiseReductionEnabled}
+									onCheckedChange={onNoiseReductionEnabledChange}
+								/>
+							</div>
+							{noiseReductionEnabled && (
+								<div className="space-y-2">
+									<label className="text-[10px] text-slate-400">{t("audio.level")}</label>
+									<div className="grid grid-cols-3 gap-1">
+										{(["light", "moderate", "aggressive"] as const).map((lvl) => (
+											<button
+												key={lvl}
+												type="button"
+												className={`text-[10px] py-1.5 rounded-md border transition-all ${
+													noiseReductionLevel === lvl
+														? lvl === "aggressive"
+															? "bg-red-500/20 border-red-500/50 text-red-300"
+															: lvl === "moderate"
+																? "bg-blue-500/20 border-blue-500/50 text-blue-300"
+																: "bg-green-500/20 border-green-500/50 text-green-300"
+														: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+												}`}
+												onClick={() => onNoiseReductionLevelChange?.(lvl)}
+											>
+												{t(`audio.nrLevel.${lvl}`)}
+											</button>
+										))}
+									</div>
+									<p className="text-[9px] text-slate-500">{t("audio.nrDescription")}</p>
+								</div>
+							)}
 						</AccordionContent>
 					</AccordionItem>
 

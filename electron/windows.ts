@@ -62,6 +62,10 @@ export function createHudOverlayWindow(): BrowserWindow {
 		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	}
 
+	// Use "floating" level so macOS system dialogs (e.g. screen recording
+	// permission prompt) are not hidden behind the HUD overlay.
+	win.setAlwaysOnTop(true, "floating");
+
 	win.webContents.on("did-finish-load", () => {
 		win?.webContents.send("main-process-message", new Date().toLocaleString());
 	});
@@ -166,6 +170,9 @@ export function createSourceSelectorWindow(): BrowserWindow {
 	if (process.platform === "darwin") {
 		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	}
+
+	// Use "floating" level so macOS system dialogs appear above this window.
+	win.setAlwaysOnTop(true, "floating");
 
 	if (VITE_DEV_SERVER_URL) {
 		win.loadURL(VITE_DEV_SERVER_URL + "?windowType=source-selector");
