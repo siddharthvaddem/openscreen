@@ -29,6 +29,12 @@ import {
 	adaptiveSmoothFactor,
 	smoothCursorFocus,
 } from "@/components/video-editor/videoPlayback/cursorFollowUtils";
+import {
+	drawCursorHighlight,
+	drawCursorRipple,
+	getCursorHighlightState,
+	getCursorRippleState,
+} from "@/components/video-editor/videoPlayback/cursorVisualUtils";
 import { clampFocusToStage as clampFocusToStageUtil } from "@/components/video-editor/videoPlayback/focusUtils";
 import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
@@ -76,6 +82,7 @@ interface FrameRenderConfig {
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
+	interactionClicks?: Array<{ timeMs: number; cx: number; cy: number }>;
 }
 
 interface AnimationState {
@@ -213,6 +220,11 @@ export class FrameRenderer {
 
 	private async setupBackground(): Promise<void> {
 		const wallpaper = this.config.wallpaper;
+
+		if (wallpaper === "none") {
+			this.backgroundSprite = null;
+			return;
+		}
 
 		// Create background canvas for separate rendering (not affected by zoom)
 		const bgCanvas = document.createElement("canvas");
@@ -698,8 +710,6 @@ export class FrameRenderer {
 			} else {
 				ctx.drawImage(bgCanvas, 0, 0, w, h);
 			}
-		} else {
-			console.warn("[FrameRenderer] No background sprite found during compositing!");
 		}
 
 		// Draw video layer with shadows on top of background
@@ -763,6 +773,28 @@ export class FrameRenderer {
 			);
 			ctx.restore();
 		}
+
+		const cursorHighlight = getCursorHighlightState({
+			cursorTelemetry: this.config.cursorTelemetry ?? [],
+			timeMs: this.currentVideoTime * 1000,
+			baseMask: this.layoutCache?.maskRect ?? { x: 0, y: 0, width: 0, height: 0 },
+			transform: {
+				scale: this.animationState.appliedScale,
+				x: this.animationState.x,
+				y: this.animationState.y,
+			},
+			zoomProgress: this.animationState.progress,
+		});
+		drawCursorRipple(
+			ctx,
+			getCursorRippleState({
+				highlight: cursorHighlight,
+				clicks: this.config.interactionClicks ?? [],
+				timeMs: this.currentVideoTime * 1000,
+				zoomProgress: this.animationState.progress,
+			}),
+		);
+		drawCursorHighlight(ctx, cursorHighlight);
 	}
 
 	getCanvas(): HTMLCanvasElement {

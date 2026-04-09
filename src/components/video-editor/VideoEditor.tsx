@@ -1,8 +1,9 @@
 import type { Span } from "dnd-timeline";
-import { FolderOpen, Languages, Save, Video } from "lucide-react";
+import { FolderOpen, Languages, Save, Settings, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import type { ExportVideoCommandInput, ExportVideoCommandResult } from "@/editor/commands/types";
+import { useEditorController } from "@/editor/useEditorController";
+import type { AuthAccessPolicy } from "@/features/auth/authTypes";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
@@ -29,7 +33,11 @@ import {
 	VideoExporter,
 } from "@/lib/exporter";
 import { computeFrameStepTime } from "@/lib/frameStep";
-import type { ProjectMedia } from "@/lib/recordingSession";
+import type {
+	InteractionClickSample,
+	InteractionKeySample,
+	ProjectMedia,
+} from "@/lib/recordingSession";
 import { matchesShortcut } from "@/lib/shortcuts";
 import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
 import {
@@ -37,6 +45,7 @@ import {
 	getNativeAspectRatioValue,
 	isPortraitAspectRatio,
 } from "@/utils/aspectRatioUtils";
+import { EditorStartScreen } from "./EditorStartScreen";
 import { ExportDialog } from "./ExportDialog";
 import PlaybackControls from "./PlaybackControls";
 import {
@@ -51,9 +60,14 @@ import {
 	validateProjectData,
 } from "./projectPersistence";
 import { SettingsPanel } from "./SettingsPanel";
+import { detectSilentIntervals, detectSmartSpeedRegions } from "./smartSpeedUtils";
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
 	type AnnotationRegion,
+	type AutoEditBackgroundMode,
+	type AutoEditFocusStrategy,
+	type AutoEditPauseMode,
+	type AutoEditStyle,
 	type CursorTelemetryPoint,
 	clampFocusToDepth,
 	DEFAULT_ANNOTATION_POSITION,
@@ -62,8 +76,10 @@ import {
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
+	type EditMode,
 	type FigureData,
 	type PlaybackSpeed,
+	type SmartSpeedIntensity,
 	type SpeedRegion,
 	type TrimRegion,
 	type ZoomDepth,
@@ -71,9 +87,22 @@ import {
 	type ZoomFocusMode,
 	type ZoomRegion,
 } from "./types";
+import styles from "./VideoEditor.module.css";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 
-export default function VideoEditor() {
+interface VideoEditorProps {
+	accessPolicy: AuthAccessPolicy;
+	onUpgrade: () => Promise<void>;
+	onOpenLogin?: () => Promise<void>;
+	onOpenSignup?: () => Promise<void>;
+}
+
+export default function VideoEditor({
+	accessPolicy,
+	onUpgrade,
+	onOpenLogin,
+	onOpenSignup,
+}: VideoEditorProps) {
 	const {
 		state: editorState,
 		pushState,
@@ -95,6 +124,9 @@ export default function VideoEditor() {
 		motionBlurAmount,
 		borderRadius,
 		padding,
+		editMode,
+		smartSpeedEnabled,
+		smartSpeedIntensity,
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
@@ -117,6 +149,11 @@ export default function VideoEditor() {
 	const durationRef = useRef(duration);
 	durationRef.current = duration;
 	const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
+	const [silentIntervals, setSilentIntervals] = useState<Array<{ startMs: number; endMs: number }>>(
+		[],
+	);
+	const [interactionClicks, setInteractionClicks] = useState<InteractionClickSample[]>([]);
+	const [interactionKeys, setInteractionKeys] = useState<InteractionKeySample[]>([]);
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
 	const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
@@ -126,6 +163,7 @@ export default function VideoEditor() {
 	const [exportError, setExportError] = useState<string | null>(null);
 	const [showExportDialog, setShowExportDialog] = useState(false);
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
+	const [showMcpSettingsDialog, setShowMcpSettingsDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
@@ -139,6 +177,27 @@ export default function VideoEditor() {
 		format: string;
 	} | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [showSettingsPanel, setShowSettingsPanel] = useState(true);
+	const [requestedSettingsSection, setRequestedSettingsSection] = useState<"mcp" | null>(null);
+	const [autoEditStyle, setAutoEditStyle] = useState<AutoEditStyle>("balanced");
+	const [autoEditFocusStrategy, setAutoEditFocusStrategy] =
+		useState<AutoEditFocusStrategy>("cursor");
+	const [autoEditPauseMode, setAutoEditPauseMode] = useState<AutoEditPauseMode>("balanced");
+	const [autoEditBackgroundMode, setAutoEditBackgroundMode] =
+		useState<AutoEditBackgroundMode>("keep");
+	const [mcpConnectionInfo, setMcpConnectionInfo] = useState<{
+		enabled: boolean;
+		url: string;
+		token: string;
+	}>({
+		enabled: false,
+		url: "",
+		token: "",
+	});
+	const [mcpConnectionStatus, setMcpConnectionStatus] = useState<{
+		tone: "neutral" | "success" | "error";
+		message: string;
+	} | null>(null);
 
 	const playerContainerRef = useRef<HTMLDivElement>(null);
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
@@ -151,10 +210,18 @@ export default function VideoEditor() {
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
 	const { locale, setLocale } = useI18n();
+	const showGuestAuthActions = accessPolicy.mode === "guest";
+	const canOpenMcpSettings = accessPolicy.mode === "pro";
 
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
 	const exporterRef = useRef<VideoExporter | null>(null);
+	const agentExportInvokerRef = useRef<
+		(input: ExportVideoCommandInput) => Promise<ExportVideoCommandResult>
+	>(async () => ({
+		success: false,
+		message: "Export handler not ready",
+	}));
 
 	const currentProjectMedia = useMemo<ProjectMedia | null>(() => {
 		const screenVideoPath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
@@ -207,6 +274,9 @@ export default function VideoEditor() {
 				motionBlurAmount: normalizedEditor.motionBlurAmount,
 				borderRadius: normalizedEditor.borderRadius,
 				padding: normalizedEditor.padding,
+				editMode: normalizedEditor.editMode,
+				smartSpeedEnabled: normalizedEditor.smartSpeedEnabled,
+				smartSpeedIntensity: normalizedEditor.smartSpeedIntensity,
 				cropRegion: normalizedEditor.cropRegion,
 				zoomRegions: normalizedEditor.zoomRegions,
 				trimRegions: normalizedEditor.trimRegions,
@@ -274,6 +344,9 @@ export default function VideoEditor() {
 			motionBlurAmount,
 			borderRadius,
 			padding,
+			editMode,
+			smartSpeedEnabled,
+			smartSpeedIntensity,
 			cropRegion,
 			zoomRegions,
 			trimRegions,
@@ -297,6 +370,9 @@ export default function VideoEditor() {
 		motionBlurAmount,
 		borderRadius,
 		padding,
+		editMode,
+		smartSpeedEnabled,
+		smartSpeedIntensity,
 		cropRegion,
 		zoomRegions,
 		trimRegions,
@@ -364,7 +440,7 @@ export default function VideoEditor() {
 						createProjectSnapshot({ screenVideoPath: sourcePath }, INITIAL_EDITOR_STATE),
 					);
 				} else {
-					setError("No video to load. Please record or select a video.");
+					setError(null);
 				}
 			} catch (err) {
 				setError("Error loading video: " + String(err));
@@ -389,14 +465,15 @@ export default function VideoEditor() {
 		});
 		setExportQuality(prefs.exportQuality);
 		setExportFormat(prefs.exportFormat);
+		setShowSettingsPanel(prefs.showSettingsPanel);
 		setPrefsHydrated(true);
 	}, [updateState]);
 
 	// Auto-save user preferences when settings change
 	useEffect(() => {
 		if (!prefsHydrated) return;
-		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat });
-	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat]);
+		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat, showSettingsPanel });
+	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat, showSettingsPanel]);
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
@@ -417,6 +494,9 @@ export default function VideoEditor() {
 				motionBlurAmount,
 				borderRadius,
 				padding,
+				editMode,
+				smartSpeedEnabled,
+				smartSpeedIntensity,
 				cropRegion,
 				zoomRegions,
 				trimRegions,
@@ -472,6 +552,9 @@ export default function VideoEditor() {
 			motionBlurAmount,
 			borderRadius,
 			padding,
+			editMode,
+			smartSpeedEnabled,
+			smartSpeedIntensity,
 			cropRegion,
 			zoomRegions,
 			trimRegions,
@@ -520,6 +603,30 @@ export default function VideoEditor() {
 		}
 	}, []);
 
+	const handleImportVideo = useCallback(async () => {
+		const result = await window.electronAPI.openVideoFilePicker();
+		if (result.canceled) {
+			return;
+		}
+
+		if (!result.success || !result.path) {
+			toast.error(t("project.failedToLoad"));
+			return;
+		}
+
+		const sourcePath = fromFileUrl(result.path);
+		setVideoSourcePath(sourcePath);
+		setVideoPath(toFileUrl(sourcePath));
+		setWebcamVideoSourcePath(null);
+		setWebcamVideoPath(null);
+		setCurrentProjectPath(null);
+		setError(null);
+		setLastSavedSnapshot(
+			createProjectSnapshot({ screenVideoPath: sourcePath }, INITIAL_EDITOR_STATE),
+		);
+		await window.electronAPI.setCurrentVideoPath(result.path);
+	}, [t]);
+
 	const handleLoadProject = useCallback(async () => {
 		const result = await window.electronAPI.loadProjectFile();
 
@@ -554,6 +661,27 @@ export default function VideoEditor() {
 	}, [handleLoadProject, handleSaveProject, handleSaveProjectAs]);
 
 	useEffect(() => {
+		window.electronAPI
+			.getMcpConnectionInfo()
+			.then((info) => {
+				setMcpConnectionInfo(info);
+				setMcpConnectionStatus(
+					info.enabled
+						? {
+								tone: "neutral",
+								message:
+									"앱 내부 MCP 서버가 준비되었습니다. 연결 상태를 눌러 실제 응답까지 확인하세요.",
+							}
+						: { tone: "error", message: "MCP 연결 정보를 아직 가져오지 못했습니다." },
+				);
+			})
+			.catch(() => {
+				setMcpConnectionInfo({ enabled: false, url: "", token: "" });
+				setMcpConnectionStatus({ tone: "error", message: "MCP 연결 정보를 불러오지 못했습니다." });
+			});
+	}, []);
+
+	useEffect(() => {
 		let mounted = true;
 
 		async function loadCursorTelemetry() {
@@ -585,6 +713,165 @@ export default function VideoEditor() {
 			mounted = false;
 		};
 	}, [currentProjectMedia]);
+
+	useEffect(() => {
+		let mounted = true;
+
+		async function loadInteractionTelemetry() {
+			const sourcePath = currentProjectMedia?.screenVideoPath ?? null;
+			if (!sourcePath) {
+				if (mounted) {
+					setInteractionClicks([]);
+					setInteractionKeys([]);
+				}
+				return;
+			}
+			try {
+				const result = await window.electronAPI.getInteractionTelemetry(sourcePath);
+				if (mounted) {
+					setInteractionClicks(result.success ? result.clicks : []);
+					setInteractionKeys(result.success ? result.keys : []);
+				}
+			} catch {
+				if (mounted) {
+					setInteractionClicks([]);
+					setInteractionKeys([]);
+				}
+			}
+		}
+
+		loadInteractionTelemetry();
+		return () => {
+			mounted = false;
+		};
+	}, [currentProjectMedia]);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		async function loadSilentIntervals() {
+			if (!videoPath || duration <= 0 || !smartSpeedEnabled) {
+				if (!cancelled) {
+					setSilentIntervals([]);
+				}
+				return;
+			}
+
+			const intervals = await detectSilentIntervals({
+				videoUrl: videoPath,
+				intensity: smartSpeedIntensity as SmartSpeedIntensity,
+				totalMs: Math.round(duration * 1000),
+			});
+
+			if (!cancelled) {
+				setSilentIntervals(intervals);
+			}
+		}
+
+		loadSilentIntervals();
+		return () => {
+			cancelled = true;
+		};
+	}, [videoPath, duration, smartSpeedEnabled, smartSpeedIntensity]);
+
+	const editorController = useEditorController({
+		editorState,
+		pushState,
+		currentProjectMedia,
+		currentTimeMs: Math.round(currentTime * 1000),
+		durationMs: Math.round(duration * 1000),
+		exportFormat,
+		exportQuality,
+		videoUrl: videoPath,
+		cursorTelemetry,
+		silentIntervals,
+		interactionClicks,
+		interactionKeys,
+		issueZoomId: () => `zoom-${nextZoomIdRef.current++}`,
+		issueTrimId: () => `trim-${nextTrimIdRef.current++}`,
+		issueSpeedId: () => `speed-${nextSpeedIdRef.current++}`,
+		setSelectedZoomId,
+		setSelectedSpeedId,
+		setSelectedTrimId,
+		setSelectedAnnotationId,
+		undo,
+		redo,
+		exportVideo: (input) => agentExportInvokerRef.current(input),
+	});
+
+	useEffect(() => {
+		const unsubscribe = window.electronAPI.onEditorCommandRequest(async (request) => {
+			try {
+				const result = await editorController.executeCommand(
+					request.command,
+					request.payload as never,
+				);
+				window.electronAPI.sendEditorCommandResponse({
+					requestId: request.requestId,
+					success: true,
+					command: request.command,
+					result,
+				});
+			} catch (error) {
+				window.electronAPI.sendEditorCommandResponse({
+					requestId: request.requestId,
+					success: false,
+					command: request.command,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		});
+		return unsubscribe;
+	}, [editorController]);
+
+	useEffect(() => {
+		window.electronAPI.publishEditorState(editorController.getProjectState());
+	}, [
+		editorController,
+		editorState,
+		currentProjectMedia,
+		currentTime,
+		duration,
+		exportFormat,
+		exportQuality,
+	]);
+
+	const handleRemoveBackground = useCallback(() => {
+		editorController.removeBackground();
+	}, [editorController]);
+
+	const handleWallpaperChange = useCallback(
+		(nextWallpaper: string) => {
+			editorController.setBackground(nextWallpaper);
+		},
+		[editorController],
+	);
+
+	const handleApplyAutoEdits = useCallback(async () => {
+		try {
+			const result = await editorController.applyAutoEdit({
+				style: autoEditStyle,
+				focusStrategy: autoEditFocusStrategy,
+				pauseMode: autoEditPauseMode,
+				backgroundMode: autoEditBackgroundMode,
+			});
+
+			toast.success(
+				result.summary.length > 0
+					? `자동 편집 적용: ${result.summary.join(", ")}`
+					: "자동 편집에 맞는 구간을 찾지 못했습니다.",
+			);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "자동 편집을 적용하지 못했습니다.";
+			toast.error(message);
+		}
+	}, [
+		autoEditBackgroundMode,
+		autoEditFocusStrategy,
+		autoEditPauseMode,
+		autoEditStyle,
+		editorController,
+	]);
 
 	function togglePlayPause() {
 		const playback = videoPlaybackRef.current;
@@ -777,6 +1064,10 @@ export default function VideoEditor() {
 	);
 
 	const handleSelectSpeed = useCallback((id: string | null) => {
+		if (id?.startsWith("smart-speed-")) {
+			setSelectedSpeedId(null);
+			return;
+		}
 		setSelectedSpeedId(id);
 		if (id) {
 			setSelectedZoomId(null);
@@ -843,6 +1134,32 @@ export default function VideoEditor() {
 		},
 		[selectedSpeedId, pushState],
 	);
+
+	const effectiveSpeedRegions = useMemo(() => {
+		const smartRegions = detectSmartSpeedRegions({
+			cursorTelemetry,
+			silentIntervals,
+			keySamples: interactionKeys,
+			zoomRegions,
+			trimRegions,
+			speedRegions,
+			totalMs: Math.round(duration * 1000),
+			enabled: smartSpeedEnabled,
+			intensity: smartSpeedIntensity as SmartSpeedIntensity,
+		});
+
+		return [...speedRegions, ...smartRegions].sort((a, b) => a.startMs - b.startMs);
+	}, [
+		cursorTelemetry,
+		silentIntervals,
+		interactionKeys,
+		zoomRegions,
+		trimRegions,
+		speedRegions,
+		duration,
+		smartSpeedEnabled,
+		smartSpeedIntensity,
+	]);
 
 	const handleAnnotationAdded = useCallback(
 		(span: Span) => {
@@ -1112,6 +1429,11 @@ export default function VideoEditor() {
 
 	const handleSaveUnsavedExport = useCallback(async () => {
 		if (!unsavedExport) return;
+		if (!accessPolicy.canExport) {
+			toast.error(accessPolicy.message || "현재 플랜에서는 내보내기를 사용할 수 없습니다.");
+			await onUpgrade();
+			return;
+		}
 		try {
 			const saveResult = await window.electronAPI.saveExportedVideo(
 				unsavedExport.arrayBuffer,
@@ -1133,6 +1455,12 @@ export default function VideoEditor() {
 
 	const handleExport = useCallback(
 		async (settings: ExportSettings) => {
+			if (!accessPolicy.canExport) {
+				toast.error(accessPolicy.message || "현재 플랜에서는 내보내기를 사용할 수 없습니다.");
+				await onUpgrade();
+				return;
+			}
+
 			if (!videoPath) {
 				toast.error("No video loaded");
 				return;
@@ -1181,7 +1509,7 @@ export default function VideoEditor() {
 						wallpaper,
 						zoomRegions,
 						trimRegions,
-						speedRegions,
+						speedRegions: effectiveSpeedRegions,
 						showShadow: shadowIntensity > 0,
 						shadowIntensity,
 						showBlur,
@@ -1197,6 +1525,7 @@ export default function VideoEditor() {
 						previewWidth,
 						previewHeight,
 						cursorTelemetry,
+						interactionClicks,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1315,7 +1644,7 @@ export default function VideoEditor() {
 						wallpaper,
 						zoomRegions,
 						trimRegions,
-						speedRegions,
+						speedRegions: effectiveSpeedRegions,
 						showShadow: shadowIntensity > 0,
 						shadowIntensity,
 						showBlur,
@@ -1330,6 +1659,7 @@ export default function VideoEditor() {
 						previewWidth,
 						previewHeight,
 						cursorTelemetry,
+						interactionClicks,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1384,7 +1714,7 @@ export default function VideoEditor() {
 			wallpaper,
 			zoomRegions,
 			trimRegions,
-			speedRegions,
+			effectiveSpeedRegions,
 			shadowIntensity,
 			showBlur,
 			motionBlurAmount,
@@ -1400,10 +1730,27 @@ export default function VideoEditor() {
 			exportQuality,
 			handleExportSaved,
 			cursorTelemetry,
+			interactionClicks,
 		],
 	);
 
-	const handleOpenExportDialog = useCallback(() => {
+	useEffect(() => {
+		agentExportInvokerRef.current = async (input: ExportVideoCommandInput) => {
+			await handleExport(input.settings);
+			return {
+				success: true,
+				message: "Export command executed. Check app notifications for the saved path.",
+			};
+		};
+	}, [handleExport]);
+
+	const handleOpenExportDialog = useCallback(async () => {
+		if (!accessPolicy.canExport) {
+			toast.error(accessPolicy.message || "현재 플랜에서는 내보내기를 사용할 수 없습니다.");
+			await onUpgrade();
+			return;
+		}
+
 		if (!videoPath) {
 			toast.error("No video loaded");
 			return;
@@ -1450,7 +1797,7 @@ export default function VideoEditor() {
 		setExportedFilePath(null);
 
 		// Start export immediately
-		handleExport(settings);
+		void handleExport(settings);
 	}, [
 		videoPath,
 		exportFormat,
@@ -1473,6 +1820,50 @@ export default function VideoEditor() {
 			setExportError(null);
 			setExportedFilePath(null);
 		}
+	}, []);
+
+	const handleTestMcpConnection = useCallback(async () => {
+		setMcpConnectionStatus({ tone: "neutral", message: "MCP 연결 상태를 확인하고 있습니다..." });
+		const result = await window.electronAPI.testMcpConnection();
+		setMcpConnectionStatus(
+			result.success
+				? { tone: "success", message: result.message ?? "MCP 연결이 정상입니다." }
+				: { tone: "error", message: result.error ?? "MCP 연결 확인에 실패했습니다." },
+		);
+	}, []);
+
+	const handleCopyMcpConnection = useCallback(async () => {
+		if (!mcpConnectionInfo.enabled) {
+			toast.error("MCP 연결 정보가 아직 준비되지 않았습니다.");
+			return;
+		}
+		const text = `Auto Screen MCP\nURL: ${mcpConnectionInfo.url}\nToken: ${mcpConnectionInfo.token}`;
+		await window.electronAPI.writeClipboardText(text);
+		toast.success("MCP 연결 정보를 복사했습니다.");
+	}, [mcpConnectionInfo]);
+
+	const handleCopyMcpCurlCommand = useCallback(async () => {
+		if (!mcpConnectionInfo.enabled) {
+			toast.error("MCP 연결 정보가 아직 준비되지 않았습니다.");
+			return;
+		}
+		const curlCommand = `curl -H \"Authorization: Bearer ${mcpConnectionInfo.token}\" \"${mcpConnectionInfo.url}/session\"`;
+		await window.electronAPI.writeClipboardText(curlCommand);
+		toast.success("curl 테스트 명령을 복사했습니다.");
+	}, [mcpConnectionInfo]);
+
+	const handleResetMcpToken = useCallback(async () => {
+		const result = await window.electronAPI.resetMcpToken();
+		if (!result.success || !result.token || !result.url) {
+			toast.error(result.error || "토큰 재발급에 실패했습니다.");
+			return;
+		}
+		setMcpConnectionInfo({ enabled: true, url: result.url, token: result.token });
+		setMcpConnectionStatus({
+			tone: "success",
+			message: "기존 토큰을 무효화하고 새 토큰을 발급했습니다.",
+		});
+		toast.success("새 MCP 토큰을 발급했습니다.");
 	}, []);
 
 	if (loading) {
@@ -1499,8 +1890,116 @@ export default function VideoEditor() {
 		);
 	}
 
+	if (!videoPath) {
+		return (
+			<EditorStartScreen
+				onStartRecording={handleNewRecordingConfirm}
+				onImportVideo={handleImportVideo}
+				onOpenProject={handleLoadProject}
+			/>
+		);
+	}
+
 	return (
 		<div className="flex flex-col h-screen bg-[#09090b] text-slate-200 overflow-hidden selection:bg-[#34B27B]/30">
+			<Dialog open={showMcpSettingsDialog} onOpenChange={setShowMcpSettingsDialog}>
+				<DialogContent
+					className="sm:max-w-[720px] border-white/10 bg-[#101114] text-white"
+					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+				>
+					<DialogHeader>
+						<DialogTitle>MCP 설정</DialogTitle>
+						<DialogDescription className="text-slate-400">
+							Codex 와 Claude Code가 현재 열린 Auto Screen 편집기를 직접 제어할 수 있습니다.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+							<div className="flex items-start justify-between gap-3">
+								<div>
+									<div className="text-sm font-semibold text-slate-100">MCP 연결</div>
+									<div className="mt-1 text-sm text-slate-400">
+										현재 편집기를 외부 AI 도구와 연결할 때 사용하는 URL 과 토큰을 확인합니다.
+									</div>
+								</div>
+								<div
+									className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${mcpConnectionInfo.enabled ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200" : "border-white/10 bg-white/5 text-slate-400"}`}
+								>
+									{mcpConnectionInfo.enabled ? "준비됨" : "준비 중"}
+								</div>
+							</div>
+							<div className="mt-3 rounded-xl border border-white/8 bg-white/[0.03] p-3 space-y-3">
+								<div>
+									<div className="text-xs uppercase tracking-[0.18em] text-slate-500">MCP URL</div>
+									<div className="mt-1 break-all text-sm text-slate-200">
+										{mcpConnectionInfo.enabled ? mcpConnectionInfo.url : "연결 정보 준비 중"}
+									</div>
+								</div>
+								<div>
+									<div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+										Access Token
+									</div>
+									<div className="mt-1 break-all text-sm text-slate-200">
+										{mcpConnectionInfo.enabled
+											? `${mcpConnectionInfo.token.slice(0, 8)}••••••••${mcpConnectionInfo.token.slice(-6)}`
+											: "토큰 준비 중"}
+									</div>
+								</div>
+							</div>
+							{mcpConnectionStatus ? (
+								<div
+									className={`mt-3 rounded-xl border px-3 py-2 text-sm ${mcpConnectionStatus.tone === "success" ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200" : mcpConnectionStatus.tone === "error" ? "border-red-500/25 bg-red-500/10 text-red-200" : "border-white/10 bg-white/5 text-slate-300"}`}
+								>
+									{mcpConnectionStatus.message}
+								</div>
+							) : null}
+						</div>
+						<div className="rounded-2xl border border-white/8 bg-black/20 p-4 space-y-3">
+							<div className="text-sm font-semibold text-slate-100">토큰 관리</div>
+							<div className="text-sm text-slate-400">
+								토큰이 노출됐거나 새로 연결해야 하면 재발급 버튼을 누르세요. 기존 토큰은 즉시
+								무효화됩니다.
+							</div>
+							<div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+								현재 구조에서는 URL 은 유지되고 토큰만 새로 바뀝니다.
+							</div>
+						</div>
+					</div>
+					<DialogFooter className="gap-2 sm:justify-start">
+						<Button
+							type="button"
+							onClick={() => void handleTestMcpConnection()}
+							className="bg-[#34B27B] text-white hover:bg-[#34B27B]/90"
+						>
+							연결 상태 확인
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => void handleCopyMcpConnection()}
+							className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+						>
+							연결 정보 복사
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => void handleCopyMcpCurlCommand()}
+							className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+						>
+							curl 테스트 명령 복사
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => void handleResetMcpToken()}
+							className="border-red-500/20 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+						>
+							토큰 재발급
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 			<Dialog open={showNewRecordingDialog} onOpenChange={setShowNewRecordingDialog}>
 				<DialogContent
 					className="sm:max-w-[425px]"
@@ -1530,21 +2029,19 @@ export default function VideoEditor() {
 			</Dialog>
 
 			<div
-				className="h-10 flex-shrink-0 bg-[#09090b]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 z-50"
-				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+				data-testid="editor-header"
+				className={`h-11 flex-shrink-0 bg-[#09090b]/80 backdrop-blur-md flex items-center px-4 z-50 ${styles.headerBar}`}
 			>
-				<div
-					className="flex-1 flex items-center gap-1"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				>
+				<div className={`flex items-center gap-1.5 ${styles.headerControls}`}>
 					<div
+						data-testid="editor-header-language"
 						className={`flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${isMac ? "ml-14" : "ml-2"}`}
 					>
 						<Languages size={14} />
 						<select
 							value={locale}
 							onChange={(e) => setLocale(e.target.value as Locale)}
-							className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
+							className={`bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1 ${styles.headerLocaleSelect}`}
 							style={{ color: "inherit" }}
 						>
 							{SUPPORTED_LOCALES.map((loc) => (
@@ -1555,30 +2052,77 @@ export default function VideoEditor() {
 						</select>
 					</div>
 					<button
+						data-testid="editor-header-new-recording"
 						type="button"
 						onClick={() => setShowNewRecordingDialog(true)}
 						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
 					>
 						<Video size={14} />
-						{t("newRecording.title")}
+						<span className={styles.headerActionText}>{t("newRecording.title")}</span>
 					</button>
 					<button
+						data-testid="editor-header-load-project"
 						type="button"
 						onClick={handleLoadProject}
 						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
 					>
 						<FolderOpen size={14} />
-						{ts("project.load")}
+						<span className={styles.headerActionText}>{ts("project.load")}</span>
 					</button>
 					<button
+						data-testid="editor-header-save-project"
 						type="button"
 						onClick={handleSaveProject}
 						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
 					>
 						<Save size={14} />
-						{ts("project.save")}
+						<span className={styles.headerActionText}>{ts("project.save")}</span>
 					</button>
 				</div>
+				<div data-testid="editor-header-drag-fill-left" className={styles.headerDragFill} />
+				<div
+					className={`text-[11px] font-medium tracking-[0.08em] uppercase text-white/30 ${styles.headerTitle}`}
+				>
+					Auto Screen
+				</div>
+				<div data-testid="editor-header-drag-fill-right" className={styles.headerDragFill} />
+				<div className={`flex items-center ${styles.headerRightControls}`}>
+					{showGuestAuthActions ? (
+						<>
+							<button
+								type="button"
+								onClick={() => void onOpenLogin?.()}
+								className="min-w-[56px] flex items-center justify-center px-2.5 py-1 rounded-md border border-white/10 bg-white/5 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
+							>
+								<span>로그인</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => void onOpenSignup?.()}
+								className="min-w-[72px] flex items-center justify-center px-2.5 py-1 rounded-md border border-white/10 bg-white/5 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
+							>
+								<span>회원가입</span>
+							</button>
+						</>
+					) : null}
+					{canOpenMcpSettings ? (
+						<button
+							data-testid="editor-header-toggle-settings"
+							type="button"
+							onClick={() => {
+								setShowMcpSettingsDialog(true);
+							}}
+							className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-150 text-[11px] font-medium ${showMcpSettingsDialog ? "text-white bg-white/10" : "text-white/50 hover:text-white/90 hover:bg-white/10"}`}
+							title="MCP 설정 열기"
+							aria-label="MCP 설정 열기"
+							aria-pressed={showMcpSettingsDialog}
+						>
+							<Settings size={14} />
+							<span className={styles.headerActionText}>MCP 설정</span>
+						</button>
+					) : null}
+				</div>
+				<div className={styles.headerDivider} />
 			</div>
 
 			<div className="flex-1 p-5 gap-4 flex min-h-0 relative">
@@ -1641,13 +2185,14 @@ export default function VideoEditor() {
 											padding={padding}
 											cropRegion={cropRegion}
 											trimRegions={trimRegions}
-											speedRegions={speedRegions}
+											speedRegions={effectiveSpeedRegions}
 											annotationRegions={annotationRegions}
 											selectedAnnotationId={selectedAnnotationId}
 											onSelectAnnotation={handleSelectAnnotation}
 											onAnnotationPositionChange={handleAnnotationPositionChange}
 											onAnnotationSizeChange={handleAnnotationSizeChange}
 											cursorTelemetry={cursorTelemetry}
+											interactionClicks={interactionClicks}
 										/>
 									</div>
 								</div>
@@ -1693,7 +2238,7 @@ export default function VideoEditor() {
 									onTrimDelete={handleTrimDelete}
 									selectedTrimId={selectedTrimId}
 									onSelectTrim={handleSelectTrim}
-									speedRegions={speedRegions}
+									speedRegions={effectiveSpeedRegions}
 									onSpeedAdded={handleSpeedAdded}
 									onSpeedSpanChange={handleSpeedSpanChange}
 									onSpeedDelete={handleSpeedDelete}
@@ -1722,96 +2267,122 @@ export default function VideoEditor() {
 				</div>
 
 				{/* Right section: settings panel */}
-				<div className="flex-[3] min-w-[280px] max-w-[420px] h-full">
-					<SettingsPanel
-						selected={wallpaper}
-						onWallpaperChange={(w) => pushState({ wallpaper: w })}
-						selectedZoomDepth={
-							selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
-						}
-						onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
-						selectedZoomFocusMode={
-							selectedZoomId
-								? (zoomRegions.find((z) => z.id === selectedZoomId)?.focusMode ?? "manual")
-								: null
-						}
-						onZoomFocusModeChange={(mode) => selectedZoomId && handleZoomFocusModeChange(mode)}
-						hasCursorTelemetry={cursorTelemetry.length > 0}
-						selectedZoomId={selectedZoomId}
-						onZoomDelete={handleZoomDelete}
-						selectedTrimId={selectedTrimId}
-						onTrimDelete={handleTrimDelete}
-						shadowIntensity={shadowIntensity}
-						onShadowChange={(v) => updateState({ shadowIntensity: v })}
-						onShadowCommit={commitState}
-						showBlur={showBlur}
-						onBlurChange={(v) => pushState({ showBlur: v })}
-						motionBlurAmount={motionBlurAmount}
-						onMotionBlurChange={(v) => updateState({ motionBlurAmount: v })}
-						onMotionBlurCommit={commitState}
-						borderRadius={borderRadius}
-						onBorderRadiusChange={(v) => updateState({ borderRadius: v })}
-						onBorderRadiusCommit={commitState}
-						padding={padding}
-						onPaddingChange={(v) => updateState({ padding: v })}
-						onPaddingCommit={commitState}
-						cropRegion={cropRegion}
-						onCropChange={(r) => pushState({ cropRegion: r })}
-						aspectRatio={aspectRatio}
-						hasWebcam={Boolean(webcamVideoPath)}
-						webcamLayoutPreset={webcamLayoutPreset}
-						onWebcamLayoutPresetChange={(preset) =>
-							pushState({
-								webcamLayoutPreset: preset,
-								webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
-							})
-						}
-						webcamMaskShape={webcamMaskShape}
-						onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
-						videoElement={videoPlaybackRef.current?.video || null}
-						exportQuality={exportQuality}
-						onExportQualityChange={setExportQuality}
-						exportFormat={exportFormat}
-						onExportFormatChange={setExportFormat}
-						gifFrameRate={gifFrameRate}
-						onGifFrameRateChange={setGifFrameRate}
-						gifLoop={gifLoop}
-						onGifLoopChange={setGifLoop}
-						gifSizePreset={gifSizePreset}
-						onGifSizePresetChange={setGifSizePreset}
-						gifOutputDimensions={calculateOutputDimensions(
-							videoPlaybackRef.current?.video?.videoWidth || 1920,
-							videoPlaybackRef.current?.video?.videoHeight || 1080,
-							gifSizePreset,
-							GIF_SIZE_PRESETS,
-							aspectRatio === "native"
-								? getNativeAspectRatioValue(
-										videoPlaybackRef.current?.video?.videoWidth || 1920,
-										videoPlaybackRef.current?.video?.videoHeight || 1080,
-										cropRegion,
-									)
-								: getAspectRatioValue(aspectRatio),
-						)}
-						onExport={handleOpenExportDialog}
-						selectedAnnotationId={selectedAnnotationId}
-						annotationRegions={annotationRegions}
-						onAnnotationContentChange={handleAnnotationContentChange}
-						onAnnotationTypeChange={handleAnnotationTypeChange}
-						onAnnotationStyleChange={handleAnnotationStyleChange}
-						onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
-						onAnnotationDelete={handleAnnotationDelete}
-						selectedSpeedId={selectedSpeedId}
-						selectedSpeedValue={
-							selectedSpeedId
-								? (speedRegions.find((r) => r.id === selectedSpeedId)?.speed ?? null)
-								: null
-						}
-						onSpeedChange={handleSpeedChange}
-						onSpeedDelete={handleSpeedDelete}
-						unsavedExport={unsavedExport}
-						onSaveUnsavedExport={handleSaveUnsavedExport}
-					/>
-				</div>
+				{showSettingsPanel ? (
+					<div className="flex-[3] min-w-[280px] max-w-[420px] h-full">
+						<SettingsPanel
+							selected={wallpaper}
+							onWallpaperChange={handleWallpaperChange}
+							focusSection={requestedSettingsSection}
+							onFocusSectionHandled={() => setRequestedSettingsSection(null)}
+							editMode={editMode}
+							onEditModeChange={(mode) => pushState({ editMode: mode as EditMode })}
+							onRemoveBackground={handleRemoveBackground}
+							autoEditStyle={autoEditStyle}
+							onAutoEditStyleChange={setAutoEditStyle}
+							autoEditFocusStrategy={autoEditFocusStrategy}
+							onAutoEditFocusStrategyChange={setAutoEditFocusStrategy}
+							autoEditPauseMode={autoEditPauseMode}
+							onAutoEditPauseModeChange={setAutoEditPauseMode}
+							autoEditBackgroundMode={autoEditBackgroundMode}
+							onAutoEditBackgroundModeChange={setAutoEditBackgroundMode}
+							onApplyAutoEdits={handleApplyAutoEdits}
+							selectedZoomDepth={
+								selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
+							}
+							onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
+							selectedZoomFocusMode={
+								selectedZoomId
+									? (zoomRegions.find((z) => z.id === selectedZoomId)?.focusMode ?? "manual")
+									: null
+							}
+							onZoomFocusModeChange={(mode) => selectedZoomId && handleZoomFocusModeChange(mode)}
+							hasCursorTelemetry={cursorTelemetry.length > 0}
+							selectedZoomId={selectedZoomId}
+							onZoomDelete={handleZoomDelete}
+							selectedTrimId={selectedTrimId}
+							onTrimDelete={handleTrimDelete}
+							shadowIntensity={shadowIntensity}
+							onShadowChange={(v) => updateState({ shadowIntensity: v })}
+							onShadowCommit={commitState}
+							showBlur={showBlur}
+							onBlurChange={(v) => pushState({ showBlur: v })}
+							motionBlurAmount={motionBlurAmount}
+							onMotionBlurChange={(v) => updateState({ motionBlurAmount: v })}
+							onMotionBlurCommit={commitState}
+							borderRadius={borderRadius}
+							onBorderRadiusChange={(v) => updateState({ borderRadius: v })}
+							onBorderRadiusCommit={commitState}
+							padding={padding}
+							onPaddingChange={(v) => updateState({ padding: v })}
+							onPaddingCommit={commitState}
+							cropRegion={cropRegion}
+							onCropChange={(r) => pushState({ cropRegion: r })}
+							aspectRatio={aspectRatio}
+							hasWebcam={Boolean(webcamVideoPath)}
+							webcamLayoutPreset={webcamLayoutPreset}
+							onWebcamLayoutPresetChange={(preset) =>
+								pushState({
+									webcamLayoutPreset: preset,
+									webcamPosition: preset === "vertical-stack" ? null : webcamPosition,
+								})
+							}
+							webcamMaskShape={webcamMaskShape}
+							onWebcamMaskShapeChange={(shape) => pushState({ webcamMaskShape: shape })}
+							videoElement={videoPlaybackRef.current?.video || null}
+							exportQuality={exportQuality}
+							onExportQualityChange={setExportQuality}
+							exportFormat={exportFormat}
+							onExportFormatChange={setExportFormat}
+							gifFrameRate={gifFrameRate}
+							onGifFrameRateChange={setGifFrameRate}
+							gifLoop={gifLoop}
+							onGifLoopChange={setGifLoop}
+							gifSizePreset={gifSizePreset}
+							onGifSizePresetChange={setGifSizePreset}
+							gifOutputDimensions={calculateOutputDimensions(
+								videoPlaybackRef.current?.video?.videoWidth || 1920,
+								videoPlaybackRef.current?.video?.videoHeight || 1080,
+								gifSizePreset,
+								GIF_SIZE_PRESETS,
+								aspectRatio === "native"
+									? getNativeAspectRatioValue(
+											videoPlaybackRef.current?.video?.videoWidth || 1920,
+											videoPlaybackRef.current?.video?.videoHeight || 1080,
+											cropRegion,
+										)
+									: getAspectRatioValue(aspectRatio),
+							)}
+							onExport={handleOpenExportDialog}
+							selectedAnnotationId={selectedAnnotationId}
+							annotationRegions={annotationRegions}
+							onAnnotationContentChange={handleAnnotationContentChange}
+							onAnnotationTypeChange={handleAnnotationTypeChange}
+							onAnnotationStyleChange={handleAnnotationStyleChange}
+							onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
+							onAnnotationDelete={handleAnnotationDelete}
+							selectedSpeedId={selectedSpeedId}
+							selectedSpeedValue={
+								selectedSpeedId
+									? (speedRegions.find((r) => r.id === selectedSpeedId)?.speed ?? null)
+									: null
+							}
+							onSpeedChange={handleSpeedChange}
+							onSpeedDelete={handleSpeedDelete}
+							smartSpeedEnabled={smartSpeedEnabled}
+							onSmartSpeedEnabledChange={(enabled) => pushState({ smartSpeedEnabled: enabled })}
+							smartSpeedIntensity={smartSpeedIntensity}
+							onSmartSpeedIntensityChange={(intensity) =>
+								pushState({ smartSpeedIntensity: intensity as SmartSpeedIntensity })
+							}
+							unsavedExport={unsavedExport}
+							onSaveUnsavedExport={handleSaveUnsavedExport}
+							canExport={accessPolicy.canExport}
+							exportLockedReason={accessPolicy.message}
+							onUpgrade={onUpgrade}
+							trialBadge={accessPolicy.mode === "trial" ? accessPolicy.message : undefined}
+						/>
+					</div>
+				) : null}
 			</div>
 
 			<ExportDialog

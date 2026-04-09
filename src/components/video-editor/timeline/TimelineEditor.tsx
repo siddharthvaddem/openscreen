@@ -1308,7 +1308,9 @@ export default function TimelineEditor({
 			id: region.id,
 			rowId: SPEED_ROW_ID,
 			span: { start: region.startMs, end: region.endMs },
-			label: t("labels.speedItem", { index: String(index + 1) }),
+			label: region.id.startsWith("smart-speed-")
+				? `Smart ${region.speed}×`
+				: t("labels.speedItem", { index: String(index + 1) }),
 			speedValue: region.speed,
 			variant: "speed",
 		}));

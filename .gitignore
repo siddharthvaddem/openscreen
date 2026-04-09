@@ -30,3 +30,11 @@ release/**
 # Playwright
 test-results
 playwright-report/
+
+# Local agent / scratch artifacts
+.captures/
+.omc/
+.omx/
+.tmp/
+tmp/
+backend/data/

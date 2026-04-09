@@ -1,4 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+	EditorCommandRequestEnvelope,
+	EditorCommandResponseEnvelope,
+	ProjectStateSnapshot,
+} from "../src/editor/commands/types";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -53,6 +58,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getCursorTelemetry: (videoPath?: string) => {
 		return ipcRenderer.invoke("get-cursor-telemetry", videoPath);
 	},
+	getInteractionTelemetry: (videoPath?: string) => {
+		return ipcRenderer.invoke("get-interaction-telemetry", videoPath);
+	},
 	onStopRecordingFromTray: (callback: () => void) => {
 		const listener = () => callback();
 		ipcRenderer.on("stop-recording-from-tray", listener);
@@ -60,6 +68,68 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
+	},
+	writeClipboardText: (text: string) => {
+		return ipcRenderer.invoke("write-clipboard-text", text);
+	},
+	getAuthSession: () => {
+		return ipcRenderer.invoke("get-auth-session");
+	},
+	logoutAuthSession: () => {
+		return ipcRenderer.invoke("logout-auth-session");
+	},
+	clearAuthSession: () => {
+		return ipcRenderer.invoke("clear-auth-session");
+	},
+	getDeviceFingerprint: () => {
+		return ipcRenderer.invoke("get-device-fingerprint");
+	},
+	createLocalAuthAccount: (payload: {
+		username: string;
+		familyName: string;
+		givenName: string;
+		phoneNumber: string;
+		password: string;
+		verificationToken: string;
+		deviceId: string;
+		agreements: {
+			terms: boolean;
+			privacy: boolean;
+			marketing: boolean;
+		};
+	}) => {
+		return ipcRenderer.invoke("create-local-auth-account", payload);
+	},
+	loginLocalAuthAccount: (payload: { identifier: string; password: string; deviceId?: string }) => {
+		return ipcRenderer.invoke("login-local-auth-account", payload);
+	},
+	requestLocalPhoneVerification: (payload: { phoneNumber: string; deviceId?: string }) => {
+		return ipcRenderer.invoke("request-local-phone-verification", payload);
+	},
+	verifyLocalPhoneCode: (payload: { phoneNumber: string; code: string; deviceId?: string }) => {
+		return ipcRenderer.invoke("verify-local-phone-code", payload);
+	},
+	findLocalAuthUsername: (payload: {
+		familyName: string;
+		givenName: string;
+		phoneNumber: string;
+		verificationToken: string;
+	}) => {
+		return ipcRenderer.invoke("find-local-auth-username", payload);
+	},
+	resetLocalAuthPassword: (payload: {
+		username: string;
+		phoneNumber: string;
+		verificationToken: string;
+		newPassword: string;
+	}) => {
+		return ipcRenderer.invoke("reset-local-auth-password", payload);
+	},
+	onAuthSessionChanged: (callback: (session: unknown | null) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, session: unknown | null) =>
+			callback(session);
+		ipcRenderer.on("auth-session-changed", listener);
+		return () => ipcRenderer.removeListener("auth-session-changed", listener);
 	},
 	saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => {
 		return ipcRenderer.invoke("save-exported-video", videoData, fileName);
@@ -141,5 +211,32 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		};
 		ipcRenderer.on("request-save-before-close", listener);
 		return () => ipcRenderer.removeListener("request-save-before-close", listener);
+	},
+	onEditorCommandRequest: (
+		callback: (request: EditorCommandRequestEnvelope) => void | Promise<void>,
+	) => {
+		const listener = (_event: Electron.IpcRendererEvent, request: EditorCommandRequestEnvelope) => {
+			void callback(request);
+		};
+		ipcRenderer.on("editor-command:request", listener);
+		return () => ipcRenderer.removeListener("editor-command:request", listener);
+	},
+	sendEditorCommandResponse: (response: EditorCommandResponseEnvelope) => {
+		ipcRenderer.send("editor-command:response", response);
+	},
+	publishEditorState: (snapshot: ProjectStateSnapshot) => {
+		ipcRenderer.send("editor-state:publish", snapshot);
+	},
+	getMcpConnectionInfo: () => {
+		return ipcRenderer.invoke("get-mcp-connection-info");
+	},
+	resetMcpToken: () => {
+		return ipcRenderer.invoke("reset-mcp-token");
+	},
+	getAdminBackendStatus: () => {
+		return ipcRenderer.invoke("get-admin-backend-status");
+	},
+	testMcpConnection: () => {
+		return ipcRenderer.invoke("test-mcp-connection");
 	},
 });

@@ -7,6 +7,23 @@ export interface RecordingSession extends ProjectMedia {
 	createdAt: number;
 }
 
+export interface InteractionClickSample {
+	timeMs: number;
+	cx: number;
+	cy: number;
+}
+
+export interface InteractionKeySample {
+	timeMs: number;
+	key: string;
+}
+
+export interface InteractionTelemetry {
+	version: number;
+	clicks: InteractionClickSample[];
+	keys: InteractionKeySample[];
+}
+
 export interface RecordedVideoAssetInput {
 	fileName: string;
 	videoData: ArrayBuffer;
@@ -16,6 +33,7 @@ export interface StoreRecordedSessionInput {
 	screen: RecordedVideoAssetInput;
 	webcam?: RecordedVideoAssetInput;
 	createdAt?: number;
+	interactions?: InteractionTelemetry;
 }
 
 function normalizePath(value: unknown): string | undefined {

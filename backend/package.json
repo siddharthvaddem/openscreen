@@ -1,0 +1,23 @@
+{
+	"name": "autoscreen-backend",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsc -p tsconfig.json",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@types/pg": "^8.20.0",
+		"express": "^5.2.1",
+		"pg": "^8.20.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@types/express": "^5.0.6",
+		"@types/node": "^25.0.3",
+		"tsx": "^4.20.6",
+		"typescript": "^5.2.2"
+	}
+}

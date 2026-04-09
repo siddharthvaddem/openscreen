@@ -8,8 +8,8 @@ import {
 	useState,
 } from "react";
 import {
-	DEFAULT_LOCALE,
 	type I18nNamespace,
+	LEGACY_LOCALE_STORAGE_KEY,
 	LOCALE_STORAGE_KEY,
 	type Locale,
 	SUPPORTED_LOCALES,
@@ -46,12 +46,13 @@ function isSupportedLocale(value: string): value is Locale {
 
 function getInitialLocale(): Locale {
 	try {
-		const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+		const stored =
+			localStorage.getItem(LOCALE_STORAGE_KEY) ?? localStorage.getItem(LEGACY_LOCALE_STORAGE_KEY);
 		if (stored && isSupportedLocale(stored)) return stored;
 	} catch {
 		// localStorage may be unavailable
 	}
-	return DEFAULT_LOCALE;
+	return "ko";
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {

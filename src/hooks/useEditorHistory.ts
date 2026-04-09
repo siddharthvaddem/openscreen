@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from "react";
 import type {
 	AnnotationRegion,
 	CropRegion,
+	EditMode,
+	SmartSpeedIntensity,
 	SpeedRegion,
 	TrimRegion,
 	WebcamLayoutPreset,
@@ -11,6 +13,7 @@ import type {
 } from "@/components/video-editor/types";
 import {
 	DEFAULT_CROP_REGION,
+	DEFAULT_EDIT_MODE,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
@@ -31,6 +34,9 @@ export interface EditorState {
 	motionBlurAmount: number;
 	borderRadius: number;
 	padding: number;
+	editMode: EditMode;
+	smartSpeedEnabled: boolean;
+	smartSpeedIntensity: SmartSpeedIntensity;
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape: WebcamMaskShape;
@@ -44,11 +50,14 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	annotationRegions: [],
 	cropRegion: DEFAULT_CROP_REGION,
 	wallpaper: "/wallpapers/wallpaper1.jpg",
-	shadowIntensity: 0,
+	shadowIntensity: 0.32,
 	showBlur: false,
 	motionBlurAmount: 0,
-	borderRadius: 0,
-	padding: 50,
+	borderRadius: 18,
+	padding: 14,
+	editMode: DEFAULT_EDIT_MODE,
+	smartSpeedEnabled: true,
+	smartSpeedIntensity: "balanced",
 	aspectRatio: "16:9",
 	webcamLayoutPreset: DEFAULT_WEBCAM_LAYOUT_PRESET,
 	webcamMaskShape: DEFAULT_WEBCAM_MASK_SHAPE,

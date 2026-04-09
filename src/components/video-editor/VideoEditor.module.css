@@ -1,0 +1,98 @@
+/* Electron-specific drag regions for the editor header */
+.electronDrag {
+	-webkit-app-region: drag;
+}
+
+.electronNoDrag {
+	-webkit-app-region: no-drag;
+}
+
+.headerBar {
+	position: relative;
+	-webkit-app-region: drag;
+	container-type: inline-size;
+	user-select: none;
+}
+
+.headerControls {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	-webkit-app-region: no-drag;
+	min-width: 0;
+}
+
+.headerDragFill {
+	flex: 1 1 auto;
+	min-width: 120px;
+	min-height: 100%;
+	-webkit-app-region: drag;
+	cursor: grab;
+}
+
+.headerTitle {
+	-webkit-app-region: drag;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 180px;
+	overflow: hidden;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.headerActionText {
+	white-space: nowrap;
+}
+
+.headerLocaleSelect {
+	max-width: 96px;
+}
+
+.headerRightControls {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	-webkit-app-region: no-drag;
+	z-index: 1;
+}
+
+.headerDivider {
+	position: absolute;
+	left: 24px;
+	right: 24px;
+	bottom: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 18%, rgba(255, 255, 255, 0.5) 82%, transparent 100%);
+	opacity: 0.45;
+	pointer-events: none;
+}
+
+@container (max-width: 1280px) {
+	.headerTitle {
+		display: none;
+	}
+}
+
+@container (max-width: 1080px) {
+	.headerActionText {
+		display: none;
+	}
+
+	.headerLocaleSelect {
+		max-width: 1px;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.headerControls {
+		gap: 0.25rem;
+	}
+
+	.headerDragFill {
+		min-width: 48px;
+	}
+}

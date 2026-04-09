@@ -1,0 +1,59 @@
+{
+	"newRecording": {
+		"title": "녹화기로 돌아가기",
+		"description": "현재 세션이 저장되었습니다.",
+		"cancel": "취소",
+		"confirm": "확인"
+	},
+	"startScreen": {
+		"title": "무엇을 시작할까요?",
+		"description": "처음 사용하는 사람도 바로 이해할 수 있도록, 먼저 작업 시작 방식을 고를 수 있게 했습니다.",
+		"record": {
+			"title": "화면 녹화 시작",
+			"description": "화면을 바로 녹화하고, 끝나면 편집기로 이어서 작업합니다."
+		},
+		"import": {
+			"title": "영상 파일 가져오기",
+			"description": "기존 영상 파일을 불러와 바로 자르고 편집할 수 있습니다."
+		},
+		"openProject": "프로젝트 파일 열기"
+	},
+	"errors": {
+		"noVideoLoaded": "불러온 비디오가 없습니다",
+		"videoNotReady": "비디오가 준비되지 않았습니다",
+		"unableToDetermineSourcePath": "원본 비디오 경로를 확인할 수 없습니다",
+		"failedToSaveGif": "GIF 저장 실패",
+		"gifExportFailed": "GIF 내보내기 실패",
+		"failedToSaveVideo": "비디오 저장 실패",
+		"exportFailed": "내보내기 실패",
+		"exportFailedWithError": "내보내기 실패: {{error}}",
+		"failedToSaveExport": "내보내기 저장 실패",
+		"failedToSaveExportedVideo": "내보낸 비디오 저장 실패",
+		"failedToRevealInFolder": "폴더 열기 실패: {{error}}"
+	},
+	"export": {
+		"canceled": "내보내기가 취소되었습니다",
+		"exportedSuccessfully": "{{format}} 내보내기 완료"
+	},
+	"project": {
+		"saveCanceled": "프로젝트 저장이 취소되었습니다",
+		"failedToSave": "프로젝트 저장 실패",
+		"savedTo": "{{path}}에 프로젝트를 저장했습니다",
+		"failedToLoad": "프로젝트 불러오기 실패",
+		"invalidFormat": "올바르지 않은 프로젝트 파일 형식입니다",
+		"loadedFrom": "{{path}}에서 프로젝트를 불러왔습니다"
+	},
+	"recording": {
+		"failedCameraAccess": "카메라 접근 권한 요청에 실패했습니다.",
+		"cameraBlocked": "카메라 접근이 차단되어 있습니다. 시스템 설정에서 허용해 주세요.",
+		"systemAudioUnavailable": "시스템 오디오를 사용할 수 없어 시스템 오디오 없이 녹화합니다.",
+		"microphoneDenied": "마이크 접근이 거부되었습니다. 오디오 없이 계속 녹화합니다.",
+		"cameraDenied": "카메라 접근이 거부되었습니다. 웹캠 없이 계속 녹화합니다.",
+		"permissionDenied": "녹화 권한이 거부되었습니다. 화면 녹화를 허용해 주세요."
+	},
+	"header": {
+		"settings": "설정",
+		"showSettings": "설정 패널 열기",
+		"hideSettings": "설정 패널 숨기기"
+	}
+}

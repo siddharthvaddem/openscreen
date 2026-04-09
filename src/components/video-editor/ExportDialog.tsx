@@ -63,11 +63,15 @@ export function ExportDialog({
 	const isCompiling =
 		isExporting && progress && progress.percentage >= 100 && exportFormat === "gif";
 	const isFinalizing = progress?.phase === "finalizing";
+	const isProcessingAudio = progress?.phase === "audio";
 	const renderProgress = progress?.renderProgress;
 
 	// Get status message based on phase
 	const getStatusMessage = () => {
 		if (error) return t("export.tryAgain");
+		if (isProcessingAudio && exportFormat === "mp4") {
+			return t("export.processingAudio");
+		}
 		if (isCompiling || isFinalizing) {
 			if (exportFormat === "mp4") {
 				return t("export.finalizingVideo");
@@ -83,6 +87,7 @@ export function ExportDialog({
 	// Get title based on phase
 	const getTitle = () => {
 		if (error) return t("export.failed");
+		if (isProcessingAudio && exportFormat === "mp4") return t("export.processingAudioTitle");
 		if (isFinalizing && exportFormat === "mp4") return t("export.finalizingVideoTitle");
 		if (isCompiling || isFinalizing) return t("export.compilingGif");
 		return t("export.exportingFormat", { format: formatLabel });
@@ -171,12 +176,12 @@ export function ExportDialog({
 						<div className="space-y-2">
 							<div className="flex justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
 								<span>
-									{isCompiling || isFinalizing
+									{isCompiling || isFinalizing || isProcessingAudio
 										? t("export.compiling")
 										: t("export.renderingFrames")}
 								</span>
 								<span className="font-mono text-slate-200">
-									{isCompiling || isFinalizing ? (
+									{isCompiling || isFinalizing || isProcessingAudio ? (
 										renderProgress !== undefined && renderProgress > 0 ? (
 											`${renderProgress}%`
 										) : (
@@ -191,7 +196,7 @@ export function ExportDialog({
 								</span>
 							</div>
 							<div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
-								{isCompiling || isFinalizing ? (
+								{isCompiling || isFinalizing || isProcessingAudio ? (
 									// Show render progress if available, otherwise animated indeterminate bar
 									renderProgress !== undefined && renderProgress > 0 ? (
 										<div
@@ -229,11 +234,13 @@ export function ExportDialog({
 									{isCompiling || isFinalizing ? t("export.status") : t("export.format")}
 								</div>
 								<div className="text-slate-200 font-medium text-sm">
-									{isFinalizing && exportFormat === "mp4"
-										? t("export.finalizing")
-										: isCompiling || isFinalizing
-											? t("export.compilingStatus")
-											: formatLabel}
+									{isProcessingAudio && exportFormat === "mp4"
+										? t("export.processingAudioShort")
+										: isFinalizing && exportFormat === "mp4"
+											? t("export.finalizing")
+											: isCompiling || isFinalizing
+												? t("export.compilingStatus")
+												: formatLabel}
 								</div>
 							</div>
 							<div className="bg-white/5 rounded-xl p-3 border border-white/5">

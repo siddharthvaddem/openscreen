@@ -1,0 +1,29 @@
+{
+	"actions": {
+		"cancel": "취소",
+		"save": "저장",
+		"delete": "삭제",
+		"close": "닫기",
+		"share": "공유",
+		"done": "완료",
+		"open": "열기",
+		"upload": "업로드",
+		"export": "내보내기",
+		"file": "파일",
+		"edit": "편집",
+		"view": "보기",
+		"window": "창",
+		"quit": "종료",
+		"stopRecording": "녹화 중지"
+	},
+	"playback": {
+		"play": "재생",
+		"pause": "일시정지",
+		"fullscreen": "전체 화면",
+		"exitFullscreen": "전체 화면 종료"
+	},
+	"locale": {
+		"name": "한국어",
+		"short": "KO"
+	}
+}

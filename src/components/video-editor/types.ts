@@ -2,6 +2,11 @@ import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
 
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
 export type ZoomFocusMode = "manual" | "auto";
+export type EditMode = "manual" | "auto";
+export type AutoEditStyle = "calm" | "balanced" | "emphasis";
+export type AutoEditFocusStrategy = "cursor" | "activity";
+export type AutoEditBackgroundMode = "keep" | "remove";
+export type AutoEditPauseMode = "off" | "light" | "balanced" | "aggressive";
 export type { WebcamLayoutPreset };
 
 export const DEFAULT_WEBCAM_LAYOUT_PRESET: WebcamLayoutPreset = "picture-in-picture";
@@ -139,6 +144,7 @@ export const DEFAULT_CROP_REGION: CropRegion = {
 };
 
 export type PlaybackSpeed = number;
+export type SmartSpeedIntensity = "light" | "balanced" | "aggressive";
 
 export const MIN_PLAYBACK_SPEED = 0.1;
 // Anything above 16x causes the playhead to stall during preview
@@ -181,6 +187,7 @@ export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
 };
 
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
+export const DEFAULT_EDIT_MODE: EditMode = "manual";
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {

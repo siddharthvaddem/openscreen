@@ -5,6 +5,19 @@
 		"cancel": "Cancel",
 		"confirm": "Confirm"
 	},
+	"startScreen": {
+		"title": "What would you like to start?",
+		"description": "Make the first step obvious: start with a recording or bring in a video file to edit.",
+		"record": {
+			"title": "Start screen recording",
+			"description": "Record your screen first, then continue editing right away when you finish."
+		},
+		"import": {
+			"title": "Import video file",
+			"description": "Bring in an existing video file and start trimming or editing immediately."
+		},
+		"openProject": "Open project file"
+	},
 	"errors": {
 		"noVideoLoaded": "No video loaded",
 		"videoNotReady": "Video not ready",
@@ -37,5 +50,10 @@
 		"microphoneDenied": "Microphone access denied. Recording will continue without audio.",
 		"cameraDenied": "Camera access denied. Recording will continue without webcam.",
 		"permissionDenied": "Recording permission denied. Please allow screen recording."
+	},
+	"header": {
+		"settings": "Settings",
+		"showSettings": "Show settings",
+		"hideSettings": "Hide settings"
 	}
 }

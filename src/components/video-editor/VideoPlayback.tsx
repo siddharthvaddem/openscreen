@@ -50,6 +50,12 @@ import {
 	ZOOM_TRANSLATION_DEADZONE_PX,
 } from "./videoPlayback/constants";
 import { adaptiveSmoothFactor, smoothCursorFocus } from "./videoPlayback/cursorFollowUtils";
+import {
+	applyCursorHighlightElement,
+	applyCursorRippleElement,
+	getCursorHighlightState,
+	getCursorRippleState,
+} from "./videoPlayback/cursorVisualUtils";
 import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { clamp01 } from "./videoPlayback/mathUtils";
@@ -100,6 +106,7 @@ interface VideoPlaybackProps {
 	onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
 	onAnnotationSizeChange?: (id: string, size: { width: number; height: number }) => void;
 	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
+	interactionClicks?: Array<{ timeMs: number; cx: number; cy: number }>;
 }
 
 export interface VideoPlaybackRef {
@@ -150,6 +157,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onAnnotationPositionChange,
 			onAnnotationSizeChange,
 			cursorTelemetry = [],
+			interactionClicks = [],
 		},
 		ref,
 	) => {
@@ -165,11 +173,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const [videoReady, setVideoReady] = useState(false);
 		const overlayRef = useRef<HTMLDivElement | null>(null);
 		const focusIndicatorRef = useRef<HTMLDivElement | null>(null);
+		const cursorHighlightRef = useRef<HTMLDivElement | null>(null);
+		const cursorRippleRef = useRef<HTMLDivElement | null>(null);
 		const [webcamLayout, setWebcamLayout] = useState<StyledRenderRect | null>(null);
 		const [webcamDimensions, setWebcamDimensions] = useState<Size | null>(null);
 		const currentTimeRef = useRef(0);
 		const zoomRegionsRef = useRef<ZoomRegion[]>([]);
 		const cursorTelemetryRef = useRef<import("./types").CursorTelemetryPoint[]>([]);
+		const interactionClicksRef = useRef<Array<{ timeMs: number; cx: number; cy: number }>>([]);
 		const selectedZoomIdRef = useRef<string | null>(null);
 		const animationStateRef = useRef({
 			scale: 1,
@@ -480,6 +491,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		useEffect(() => {
 			cursorTelemetryRef.current = cursorTelemetry;
 		}, [cursorTelemetry]);
+
+		useEffect(() => {
+			interactionClicksRef.current = interactionClicks;
+		}, [interactionClicks]);
 
 		useEffect(() => {
 			selectedZoomIdRef.current = selectedZoomId;
@@ -997,6 +1012,28 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					Math.abs(appliedY - prevY) / Math.max(1, stageSizeRef.current.height),
 				);
 
+				const cursorHighlight = getCursorHighlightState({
+					cursorTelemetry: cursorTelemetryRef.current,
+					timeMs: currentTimeRef.current,
+					baseMask: baseMaskRef.current,
+					transform: { scale: appliedScale, x: appliedX, y: appliedY },
+					zoomProgress: targetProgress,
+				});
+				if (cursorHighlightRef.current) {
+					applyCursorHighlightElement(cursorHighlightRef.current, cursorHighlight);
+				}
+				if (cursorRippleRef.current) {
+					applyCursorRippleElement(
+						cursorRippleRef.current,
+						getCursorRippleState({
+							highlight: cursorHighlight,
+							clicks: interactionClicksRef.current,
+							timeMs: currentTimeRef.current,
+							zoomProgress: targetProgress,
+						}),
+					);
+				}
+
 				const motionVector = {
 					x: appliedX - prevX,
 					y: appliedY - prevY,
@@ -1123,6 +1160,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						return;
 					}
 
+					if (wallpaper === "none") {
+						if (mounted) setResolvedWallpaper("none");
+						return;
+					}
+
 					if (
 						wallpaper.startsWith("#") ||
 						wallpaper.startsWith("linear-gradient") ||
@@ -1176,11 +1218,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		const isImageUrl = Boolean(
 			resolvedWallpaper &&
+				resolvedWallpaper !== "none" &&
 				(resolvedWallpaper.startsWith("file://") ||
 					resolvedWallpaper.startsWith("http") ||
 					resolvedWallpaper.startsWith("/") ||
 					resolvedWallpaper.startsWith("data:")),
 		);
+		const hasBackground = resolvedWallpaper !== "none";
 		const backgroundStyle = isImageUrl
 			? { backgroundImage: `url(${resolvedWallpaper || ""})` }
 			: { background: resolvedWallpaper || "" };
@@ -1203,13 +1247,15 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				}}
 			>
 				{/* Background layer - always render as DOM element with blur */}
-				<div
-					className="absolute inset-0 bg-cover bg-center"
-					style={{
-						...backgroundStyle,
-						filter: showBlur ? "blur(2px)" : "none",
-					}}
-				/>
+				{hasBackground && (
+					<div
+						className="absolute inset-0 bg-cover bg-center"
+						style={{
+							...backgroundStyle,
+							filter: showBlur ? "blur(2px)" : "none",
+						}}
+					/>
+				)}
 				<div
 					ref={containerRef}
 					className="absolute inset-0"
@@ -1277,6 +1323,29 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							className="absolute rounded-md border border-[#34B27B]/80 bg-[#34B27B]/20 shadow-[0_0_0_1px_rgba(52,178,123,0.35)]"
 							style={{ display: "none", pointerEvents: "none" }}
 						/>
+						<div
+							ref={cursorRippleRef}
+							className="absolute rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none border-2 border-[#34B27B]/60"
+							style={{ display: "none" }}
+						/>
+						<div
+							ref={cursorHighlightRef}
+							className="absolute rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+							style={{
+								display: "none",
+								background:
+									"radial-gradient(circle, rgba(52,178,123,0.35) 0%, rgba(52,178,123,0.18) 45%, rgba(52,178,123,0) 100%)",
+								boxShadow: "0 0 0 2px rgba(52,178,123,0.28) inset, 0 0 18px rgba(52,178,123,0.18)",
+							}}
+						>
+							<div
+								className="absolute left-1/2 top-1/2 w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
+								style={{
+									background: "rgba(255,255,255,0.92)",
+									boxShadow: "0 0 0 2px rgba(52,178,123,0.8)",
+								}}
+							/>
+						</div>
 						{(() => {
 							const filtered = (annotationRegions || []).filter((annotation) => {
 								if (typeof annotation.startMs !== "number" || typeof annotation.endMs !== "number")

@@ -10,14 +10,17 @@ import {
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
 	DEFAULT_CROP_REGION,
+	DEFAULT_EDIT_MODE,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_ZOOM_DEPTH,
+	type EditMode,
 	MAX_PLAYBACK_SPEED,
 	MIN_PLAYBACK_SPEED,
+	type SmartSpeedIntensity,
 	type SpeedRegion,
 	type TrimRegion,
 	type WebcamLayoutPreset,
@@ -42,6 +45,9 @@ export interface ProjectEditorState {
 	motionBlurAmount: number;
 	borderRadius: number;
 	padding: number;
+	editMode: EditMode;
+	smartSpeedEnabled: boolean;
+	smartSpeedIntensity: SmartSpeedIntensity;
 	cropRegion: CropRegion;
 	zoomRegions: ZoomRegion[];
 	trimRegions: TrimRegion[];
@@ -327,7 +333,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 
 	return {
 		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
-		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
+		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0.32,
 		showBlur: typeof editor.showBlur === "boolean" ? editor.showBlur : false,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)
 			? clamp(editor.motionBlurAmount, 0, 1)
@@ -336,8 +342,15 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					? 0.35
 					: 0
 				: 0,
-		borderRadius: typeof editor.borderRadius === "number" ? editor.borderRadius : 0,
-		padding: isFiniteNumber(editor.padding) ? clamp(editor.padding, 0, 100) : 50,
+		borderRadius: typeof editor.borderRadius === "number" ? editor.borderRadius : 18,
+		padding: isFiniteNumber(editor.padding) ? clamp(editor.padding, 0, 100) : 14,
+		editMode: editor.editMode === "auto" ? "auto" : DEFAULT_EDIT_MODE,
+		smartSpeedEnabled:
+			typeof editor.smartSpeedEnabled === "boolean" ? editor.smartSpeedEnabled : true,
+		smartSpeedIntensity:
+			editor.smartSpeedIntensity === "light" || editor.smartSpeedIntensity === "aggressive"
+				? editor.smartSpeedIntensity
+				: "balanced",
 		cropRegion: {
 			x: cropX,
 			y: cropY,

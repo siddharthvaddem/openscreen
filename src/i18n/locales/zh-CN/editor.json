@@ -1,4 +1,23 @@
 {
+	"newRecording": {
+		"title": "返回录制器",
+		"description": "当前会话已保存。",
+		"cancel": "取消",
+		"confirm": "确认"
+	},
+	"startScreen": {
+		"title": "你想先做什么？",
+		"description": "让第一步一眼就懂：先开始录屏，或者导入一个视频文件来编辑。",
+		"record": {
+			"title": "开始屏幕录制",
+			"description": "先录制屏幕，完成后立即继续进入编辑。"
+		},
+		"import": {
+			"title": "导入视频文件",
+			"description": "导入已有视频文件，马上开始裁剪或编辑。"
+		},
+		"openProject": "打开项目文件"
+	},
 	"errors": {
 		"noVideoLoaded": "未加载视频",
 		"videoNotReady": "视频未就绪",
@@ -31,5 +50,10 @@
 		"microphoneDenied": "麦克风权限被拒绝。录制将继续，但不包含音频。",
 		"cameraDenied": "摄像头权限被拒绝。录制将继续，但不包含摄像头画面。",
 		"permissionDenied": "录屏权限被拒绝。请允许屏幕录制。"
+	},
+	"header": {
+		"settings": "设置",
+		"showSettings": "显示设置",
+		"hideSettings": "隐藏设置"
 	}
 }

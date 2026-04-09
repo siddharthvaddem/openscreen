@@ -12,6 +12,7 @@ import {
 	systemPreferences,
 } from "electron";
 import {
+	type InteractionTelemetry,
 	normalizeProjectMedia,
 	normalizeRecordingSession,
 	type ProjectMedia,
@@ -21,7 +22,8 @@ import {
 import { mainT } from "../i18n";
 import { RECORDINGS_DIR } from "../main";
 
-const PROJECT_FILE_EXTENSION = "openscreen";
+const PROJECT_FILE_EXTENSION = "autoscreen";
+const LEGACY_PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 const RECORDING_SESSION_SUFFIX = ".session.json";
 const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
@@ -284,6 +286,15 @@ async function storeRecordedSessionFiles(payload: StoreRecordedSessionInput) {
 	}
 	pendingCursorSamples = [];
 
+	if (payload.interactions) {
+		const interactionTelemetryPath = `${screenVideoPath}.interaction.json`;
+		await fs.writeFile(
+			interactionTelemetryPath,
+			JSON.stringify(payload.interactions, null, 2),
+			"utf-8",
+		);
+	}
+
 	const sessionManifestPath = path.join(
 		RECORDINGS_DIR,
 		`${path.parse(payload.screen.fileName).name}${RECORDING_SESSION_SUFFIX}`,
@@ -352,7 +363,6 @@ function sampleCursorPoint() {
 export function registerIpcHandlers(
 	createEditorWindow: () => void,
 	createSourceSelectorWindow: () => BrowserWindow,
-	getMainWindow: () => BrowserWindow | null,
 	getSourceSelectorWindow: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 	switchToHud?: () => void,
@@ -439,10 +449,6 @@ export function registerIpcHandlers(
 	});
 
 	ipcMain.handle("switch-to-editor", () => {
-		const mainWin = getMainWindow();
-		if (mainWin) {
-			mainWin.close();
-		}
 		createEditorWindow();
 	});
 
@@ -611,6 +617,27 @@ export function registerIpcHandlers(
 				error: String(error),
 				samples: [],
 			};
+		}
+	});
+
+	ipcMain.handle("get-interaction-telemetry", async (_, videoPath?: string) => {
+		const targetVideoPath = normalizeVideoSourcePath(
+			videoPath ?? currentRecordingSession?.screenVideoPath,
+		);
+		if (!targetVideoPath || !isPathAllowed(targetVideoPath)) {
+			return { success: true, clicks: [], keys: [] };
+		}
+		const interactionTelemetryPath = `${targetVideoPath}.interaction.json`;
+		try {
+			const content = await fs.readFile(interactionTelemetryPath, "utf-8");
+			const parsed = JSON.parse(content) as InteractionTelemetry;
+			return {
+				success: true,
+				clicks: Array.isArray(parsed?.clicks) ? parsed.clicks : [],
+				keys: Array.isArray(parsed?.keys) ? parsed.keys : [],
+			};
+		} catch {
+			return { success: true, clicks: [], keys: [] };
 		}
 	});
 
@@ -821,7 +848,7 @@ export function registerIpcHandlers(
 				filters: [
 					{
 						name: mainT("dialogs", "fileDialogs.openscreenProject"),
-						extensions: [PROJECT_FILE_EXTENSION],
+						extensions: [PROJECT_FILE_EXTENSION, LEGACY_PROJECT_FILE_EXTENSION],
 					},
 					{ name: "JSON", extensions: ["json"] },
 					{ name: mainT("dialogs", "fileDialogs.allFiles"), extensions: ["*"] },

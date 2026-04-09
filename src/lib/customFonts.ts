@@ -7,13 +7,14 @@ export interface CustomFont {
 	importUrl: string; // Google Fonts @import URL
 }
 
-const STORAGE_KEY = "openscreen_custom_fonts";
+const STORAGE_KEY = "autoscreen_custom_fonts";
+const LEGACY_STORAGE_KEY = "openscreen_custom_fonts";
 const loadedFonts = new Set<string>();
 
 // Load custom fonts from localStorage
 export function getCustomFonts(): CustomFont[] {
 	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
+		const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
 		return stored ? JSON.parse(stored) : [];
 	} catch (error) {
 		console.error("Failed to load custom fonts from storage:", error);

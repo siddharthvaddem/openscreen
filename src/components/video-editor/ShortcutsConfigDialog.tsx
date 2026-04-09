@@ -16,6 +16,7 @@ import {
 	FIXED_SHORTCUTS,
 	findConflict,
 	formatBinding,
+	getBindingKeyFromKeyboardEvent,
 	SHORTCUT_ACTIONS,
 	type ShortcutAction,
 	type ShortcutBinding,
@@ -62,7 +63,7 @@ export function ShortcutsConfigDialog() {
 			if (MODIFIER_KEYS.has(e.key)) return;
 
 			const binding: ShortcutBinding = {
-				key: e.key.toLowerCase(),
+				key: getBindingKeyFromKeyboardEvent(e),
 				...(e.ctrlKey || e.metaKey ? { ctrl: true } : {}),
 				...(e.shiftKey ? { shift: true } : {}),
 				...(e.altKey ? { alt: true } : {}),

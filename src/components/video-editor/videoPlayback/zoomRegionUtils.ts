@@ -3,11 +3,14 @@ import { ZOOM_DEPTH_SCALES } from "../types";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./constants";
 import { interpolateCursorAt } from "./cursorFollowUtils";
 import { clampFocusToScale } from "./focusUtils";
-import { clamp01, cubicBezier, easeOutScreenStudio } from "./mathUtils";
+import { clamp01, easeOutScreenStudio, springEasing } from "./mathUtils";
 
-const CHAINED_ZOOM_PAN_GAP_MS = 1500;
-const CONNECTED_ZOOM_PAN_DURATION_MS = 1000;
+const CHAINED_ZOOM_PAN_GAP_MS = 1400;
+const CONNECTED_ZOOM_PAN_DURATION_MS = 900;
+const MIN_CONNECTED_ZOOM_PAN_DURATION_MS = 360;
 const ZOOM_IN_OVERLAP_MS = 500;
+const CONNECTABLE_FOCUS_DISTANCE = 0.18;
+const CONNECTABLE_SCALE_DELTA = 0.8;
 
 type DominantRegionOptions = {
 	connectZooms?: boolean;
@@ -35,7 +38,31 @@ function lerp(start: number, end: number, amount: number) {
 }
 
 function easeConnectedPan(value: number) {
-	return cubicBezier(0.1, 0.0, 0.2, 1.0, value);
+	return springEasing(value);
+}
+
+function getFocusDistance(left: ZoomFocus, right: ZoomFocus) {
+	return Math.hypot(left.cx - right.cx, left.cy - right.cy);
+}
+
+function shouldConnectRegions(currentRegion: ZoomRegion, nextRegion: ZoomRegion, gapMs: number) {
+	if (gapMs > CHAINED_ZOOM_PAN_GAP_MS) {
+		return false;
+	}
+
+	const currentScale = ZOOM_DEPTH_SCALES[currentRegion.depth];
+	const nextScale = ZOOM_DEPTH_SCALES[nextRegion.depth];
+	const scaleDelta = Math.abs(currentScale - nextScale);
+
+	if (scaleDelta > CONNECTABLE_SCALE_DELTA) {
+		return false;
+	}
+
+	if (currentRegion.focusMode === "auto" || nextRegion.focusMode === "auto") {
+		return true;
+	}
+
+	return getFocusDistance(currentRegion.focus, nextRegion.focus) <= CONNECTABLE_FOCUS_DISTANCE;
 }
 
 export function computeRegionStrength(region: ZoomRegion, timeMs: number) {
@@ -49,7 +76,7 @@ export function computeRegionStrength(region: ZoomRegion, timeMs: number) {
 
 	if (timeMs < zoomInEnd) {
 		const progress = (timeMs - leadInStart) / ZOOM_IN_TRANSITION_WINDOW_MS;
-		return easeOutScreenStudio(progress);
+		return springEasing(progress);
 	}
 
 	if (timeMs <= region.endMs) {
@@ -105,15 +132,23 @@ function getConnectedRegionPairs(regions: ZoomRegion[]) {
 		const nextRegion = sortedRegions[index + 1];
 		const gapMs = nextRegion.startMs - currentRegion.endMs;
 
-		if (gapMs > CHAINED_ZOOM_PAN_GAP_MS) {
+		if (!shouldConnectRegions(currentRegion, nextRegion, gapMs)) {
 			continue;
 		}
+
+		const transitionDuration = Math.min(
+			CONNECTED_ZOOM_PAN_DURATION_MS,
+			Math.max(
+				MIN_CONNECTED_ZOOM_PAN_DURATION_MS,
+				gapMs > 0 ? gapMs * 0.8 : MIN_CONNECTED_ZOOM_PAN_DURATION_MS,
+			),
+		);
 
 		pairs.push({
 			currentRegion,
 			nextRegion,
 			transitionStart: currentRegion.endMs,
-			transitionEnd: currentRegion.endMs + CONNECTED_ZOOM_PAN_DURATION_MS,
+			transitionEnd: currentRegion.endMs + transitionDuration,
 		});
 	}
 

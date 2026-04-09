@@ -1,7 +1,8 @@
 import type { ExportFormat, ExportQuality } from "@/lib/exporter";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
-const PREFS_KEY = "openscreen_user_preferences";
+const PREFS_KEY = "autoscreen_user_preferences";
+const LEGACY_PREFS_KEY = "openscreen_user_preferences";
 
 const VALID_ASPECT_RATIOS: readonly string[] = [
 	"16:9",
@@ -23,13 +24,16 @@ export interface UserPreferences {
 	exportQuality: ExportQuality;
 	/** Default export format */
 	exportFormat: ExportFormat;
+	/** Remember whether the editor settings panel is open */
+	showSettingsPanel: boolean;
 }
 
 const DEFAULT_PREFS: UserPreferences = {
-	padding: 50,
+	padding: 14,
 	aspectRatio: "16:9",
 	exportQuality: "good",
 	exportFormat: "mp4",
+	showSettingsPanel: true,
 };
 
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
@@ -48,7 +52,9 @@ function safeJsonParse(text: string | null): Record<string, unknown> | null {
 export function loadUserPreferences(): UserPreferences {
 	let raw: Record<string, unknown> | null = null;
 	try {
-		raw = safeJsonParse(localStorage.getItem(PREFS_KEY));
+		raw =
+			safeJsonParse(localStorage.getItem(PREFS_KEY)) ??
+			safeJsonParse(localStorage.getItem(LEGACY_PREFS_KEY));
 	} catch {
 		return { ...DEFAULT_PREFS };
 	}
@@ -76,6 +82,10 @@ export function loadUserPreferences(): UserPreferences {
 			raw.exportFormat === "gif" || raw.exportFormat === "mp4"
 				? (raw.exportFormat as ExportFormat)
 				: DEFAULT_PREFS.exportFormat,
+		showSettingsPanel:
+			typeof raw.showSettingsPanel === "boolean"
+				? raw.showSettingsPanel
+				: DEFAULT_PREFS.showSettingsPanel,
 	};
 }
 

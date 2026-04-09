@@ -3,52 +3,55 @@ name: Build Electron App
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            build-script: build:win
+            artifact-name: windows-release
+            artifact-paths: |
+              release/**/*.exe
+              release/**/latest.yml
+          - name: macOS
+            os: macos-latest
+            build-script: build:mac
+            artifact-name: macos-release
+            artifact-paths: |
+              release/**/*.dmg
+              release/**/*.zip
+              release/**/*.blockmap
+              release/**/latest-mac.yml
+          - name: Linux
+            os: ubuntu-latest
+            build-script: build:linux
+            artifact-name: linux-release
+            artifact-paths: |
+              release/**/*.AppImage
+              release/**/*.deb
+              release/**/latest-linux.yml
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Install app dependencies
-        run: npx electron-builder install-app-deps
-        
-      - name: Build Windows app
-        run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Upload Windows build
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: release/**/*.exe
-          retention-days: 30
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -56,46 +59,21 @@ jobs:
       - name: Install app dependencies
         run: npx electron-builder install-app-deps
 
-      - name: Build macOS app
-        run: npm run build:mac
+      - name: Build and publish release assets
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: npm run ${{ matrix.build-script }} -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload macOS build
+      - name: Build workflow artifacts
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run ${{ matrix.build-script }} -- --publish never
+
+      - name: Upload workflow artifacts
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: macos-installer
-          path: release/**/*.dmg
-          retention-days: 30
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install app dependencies
-        run: npx electron-builder install-app-deps
-
-      - name: Build Linux app
-        run: npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux build
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-installer
-          path: |
-            release/**/*.AppImage
-            release/**/*.zsync
-            release/**/*.deb
+          name: ${{ matrix.artifact-name }}-${{ github.run_number }}
+          path: ${{ matrix.artifact-paths }}
+          if-no-files-found: error
           retention-days: 30

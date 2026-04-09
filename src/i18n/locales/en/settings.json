@@ -8,6 +8,14 @@
 			"manual": "Manual",
 			"auto": "Auto",
 			"autoDescription": "Camera follows the recorded cursor position"
+		},
+		"presets": {
+			"title": "Zoom Feel",
+			"subtle": "Subtle",
+			"light": "Light",
+			"moderate": "Moderate",
+			"strong": "Strong",
+			"dramatic": "Dramatic"
 		}
 	},
 	"speed": {
@@ -42,13 +50,16 @@
 		"image": "Image",
 		"color": "Color",
 		"gradient": "Gradient",
+		"remove": "Remove Background",
+		"removeDescription": "Show the screen full-bleed without a wallpaper behind it.",
 		"uploadCustom": "Upload Custom",
 		"gradientLabel": "Gradient {{index}}"
 	},
 	"crop": {
 		"title": "Crop",
 		"cropVideo": "Crop Video",
-		"dragInstruction": "Drag on each side to adjust the crop area",
+		"dragInstruction": "Only the area inside the green box will remain. Move the box or drag each side to choose what to keep.",
+		"cancelHint": "Clicking X or the backdrop cancels the crop. Press Done to apply it.",
 		"ratio": "Ratio",
 		"free": "Free",
 		"done": "Done",
@@ -64,14 +75,25 @@
 		"gifDescription": "Animated image for sharing"
 	},
 	"exportQuality": {
-		"title": "Export Quality",
+		"title": "Export Preset",
 		"low": "Low",
 		"medium": "Medium",
-		"high": "High"
+		"high": "High",
+		"presetDescription": "Choose a quality preset for polished exports.",
+		"social": "Social",
+		"balanced": "Balanced",
+		"archive": "Archive"
 	},
 	"gifSettings": {
 		"frameRate": "GIF Frame Rate",
+		"frameRateHelp": "Frames per second",
 		"size": "GIF Size",
+		"sizeHelp": "Output resolution",
+		"sizePreset": {
+			"medium": "Standard",
+			"large": "High Res",
+			"original": "Original"
+		},
 		"loop": "Loop GIF"
 	},
 	"project": {
@@ -156,6 +178,50 @@
 		"errorLoadFailed": "The font could not be loaded. Please verify the Google Fonts URL is correct."
 	},
 	"language": {
-		"title": "Language"
+		"title": "Language",
+		"description": "Choose the language used across the app.",
+		"select": "Select language"
+	},
+	"editMode": {
+		"title": "Edit Mode",
+		"description": "Adjust regions manually or generate a first pass automatically.",
+		"manual": "Manual",
+		"auto": "Auto"
+	},
+	"autoEdit": {
+		"title": "Auto Edit",
+		"description": "Pick a few defaults and generate a starting draft for zoom and speed edits.",
+		"style": "Editing style",
+		"focus": "Focus behavior",
+		"pause": "Pause compression",
+		"background": "Background handling",
+		"apply": "Apply Auto Edit",
+		"hint": "After applying, switch back to manual mode to fine-tune individual regions.",
+		"styles": {
+			"calm": "Calm",
+			"balanced": "Standard",
+			"emphasis": "Emphasis"
+		},
+		"focusOptions": {
+			"cursor": "Follow cursor",
+			"activity": "Activity center"
+		},
+		"pauseOptions": {
+			"off": "Off",
+			"light": "Light",
+			"balanced": "Balanced",
+			"aggressive": "Strong"
+		},
+		"backgroundOptions": {
+			"keep": "Keep current",
+			"remove": "Remove background"
+		}
+	},
+	"smartSpeed": {
+		"title": "Smart Speed",
+		"description": "Automatically compress long pauses and hesitation moments.",
+		"light": "Light",
+		"balanced": "Balanced",
+		"aggressive": "Aggressive"
 	}
 }

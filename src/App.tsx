@@ -6,10 +6,15 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
 import VideoEditor from "./components/video-editor/VideoEditor";
 import { ShortcutsProvider } from "./contexts/ShortcutsContext";
+import { AuthGate } from "./features/auth/AuthGate";
+import { DesktopAuthDialog } from "./features/auth/DesktopAuthDialog";
+import { TrialExpiredGate } from "./features/auth/TrialExpiredGate";
+import { useAuthSession } from "./features/auth/useAuthSession";
 import { loadAllCustomFonts } from "./lib/customFonts";
 
 export default function App() {
 	const [windowType, setWindowType] = useState("");
+	const authSession = useAuthSession();
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
@@ -21,7 +26,6 @@ export default function App() {
 			document.getElementById("root")?.style.setProperty("background", "transparent");
 		}
 
-		// Load custom fonts on app initialization
 		loadAllCustomFonts().catch((error) => {
 			console.error("Failed to load custom fonts:", error);
 		});
@@ -33,17 +37,50 @@ export default function App() {
 				return <LaunchWindow />;
 			case "source-selector":
 				return <SourceSelector />;
-			case "editor":
+			case "editor": {
+				if (authSession.state.status === "booting") {
+					return (
+						<div className="flex h-screen items-center justify-center bg-[#09090b] text-white">
+							<div className="flex flex-col items-center gap-3">
+								<div className="h-10 w-10 rounded-full border-2 border-white/15 border-t-[#34B27B] animate-spin" />
+								<div className="text-sm text-white/65">Auto Screen 시작 중입니다.</div>
+							</div>
+						</div>
+					);
+				}
+				if (
+					authSession.state.status === "signed_out" ||
+					authSession.state.status === "pending_browser_auth" ||
+					authSession.state.status === "session_expired"
+				) {
+					return <AuthGate state={authSession.state} actions={authSession.actions} />;
+				}
+
+				if (!authSession.access.canUseEditor) {
+					return (
+						<TrialExpiredGate
+							onUpgrade={authSession.actions.openPricing}
+							onSignOut={authSession.actions.signOut}
+						/>
+					);
+				}
+
 				return (
 					<ShortcutsProvider>
-						<VideoEditor />
+						<VideoEditor
+							accessPolicy={authSession.access}
+							onUpgrade={authSession.actions.openPricing}
+							onOpenLogin={authSession.actions.openLogin}
+							onOpenSignup={authSession.actions.openEmailSignup}
+						/>
 						<ShortcutsConfigDialog />
 					</ShortcutsProvider>
 				);
+			}
 			default:
 				return (
 					<div className="w-full h-full bg-background text-foreground">
-						<h1>Openscreen</h1>
+						<h1>Auto Screen</h1>
 					</div>
 				);
 		}
@@ -52,6 +89,7 @@ export default function App() {
 	return (
 		<TooltipProvider>
 			{content}
+			<DesktopAuthDialog ui={authSession.ui} actions={authSession.actions} />
 			<Toaster theme="dark" className="pointer-events-auto" />
 		</TooltipProvider>
 	);

@@ -1,0 +1,50 @@
+{
+	"buttons": {
+		"addZoom": "줌 추가 (Z)",
+		"suggestZooms": "커서 기반 줌 제안",
+		"addTrim": "트림 추가 (T)",
+		"addAnnotation": "주석 추가 (A)",
+		"addSpeed": "속도 구간 추가 (S)"
+	},
+	"hints": {
+		"pressZoom": "Z 키를 눌러 줌을 추가하세요",
+		"pressTrim": "T 키를 눌러 트림을 추가하세요",
+		"pressAnnotation": "A 키를 눌러 주석을 추가하세요",
+		"pressSpeed": "S 키를 눌러 속도 구간을 추가하세요"
+	},
+	"labels": {
+		"pan": "이동",
+		"zoom": "줌",
+		"zoomItem": "줌 {{index}}",
+		"trimItem": "트림 {{index}}",
+		"speedItem": "속도 {{index}}",
+		"annotationItem": "주석",
+		"imageItem": "이미지",
+		"emptyText": "빈 텍스트"
+	},
+	"emptyState": {
+		"noVideo": "불러온 비디오가 없습니다",
+		"dragAndDrop": "비디오를 드래그 앤 드롭해 편집을 시작하세요"
+	},
+	"errors": {
+		"cannotPlaceZoom": "여기에 줌을 배치할 수 없습니다",
+		"zoomExistsAtLocation": "해당 위치에 이미 줌이 있거나 공간이 부족합니다.",
+		"zoomSuggestionUnavailable": "줌 제안 기능을 사용할 수 없습니다",
+		"noCursorTelemetry": "커서 텔레메트리가 없습니다",
+		"noCursorTelemetryDescription": "먼저 화면 녹화를 해야 커서 기반 제안을 만들 수 있습니다.",
+		"noUsableTelemetry": "사용 가능한 커서 데이터가 없습니다",
+		"noUsableTelemetryDescription": "이 녹화에는 충분한 커서 이동 데이터가 없습니다.",
+		"noDwellMoments": "뚜렷한 커서 정지 지점을 찾지 못했습니다",
+		"noDwellMomentsDescription": "중요한 동작에서 커서를 조금 더 천천히 멈춘 녹화를 시도해 보세요.",
+		"noAutoZoomSlots": "자동 줌 슬롯이 없습니다",
+		"noAutoZoomSlotsDescription": "감지된 지점이 기존 줌 구간과 겹칩니다.",
+		"cannotPlaceTrim": "여기에 트림을 배치할 수 없습니다",
+		"trimExistsAtLocation": "해당 위치에 이미 트림이 있거나 공간이 부족합니다.",
+		"cannotPlaceSpeed": "여기에 속도 구간을 배치할 수 없습니다",
+		"speedExistsAtLocation": "해당 위치에 이미 속도 구간이 있거나 공간이 부족합니다."
+	},
+	"success": {
+		"addedZoomSuggestions": "커서 기반 줌 제안 {{count}}개를 추가했습니다",
+		"addedZoomSuggestionsPlural": "커서 기반 줌 제안 {{count}}개를 추가했습니다"
+	}
+}

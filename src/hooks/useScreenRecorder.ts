@@ -2,6 +2,7 @@ import { fixWebmDuration } from "@fix-webm-duration/fix";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useScopedT } from "@/contexts/I18nContext";
+import type { InteractionClickSample, InteractionKeySample } from "@/lib/recordingSession";
 import { requestCameraAccess } from "@/lib/requestCameraAccess";
 
 const TARGET_FRAME_RATE = 60;
@@ -110,6 +111,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const allowAutoFinalize = useRef(false);
 	const discardRecordingId = useRef<number | null>(null);
 	const restarting = useRef(false);
+	const interactionStartTime = useRef<number>(0);
+	const clickSamples = useRef<InteractionClickSample[]>([]);
+	const keySamples = useRef<InteractionKeySample[]>([]);
 
 	const getRecordingDurationMs = useCallback(() => {
 		const segmentDuration =
@@ -254,6 +258,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 								}
 							: undefined,
 						createdAt: activeRecordingId,
+						interactions: {
+							version: 1,
+							clicks: clickSamples.current,
+							keys: keySamples.current,
+						},
 					});
 
 					if (!result.success) {
@@ -364,6 +373,38 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			teardownMedia();
 		};
 	}, [teardownMedia]);
+
+	useEffect(() => {
+		if (!recording) {
+			return;
+		}
+
+		const handlePointerDown = (event: PointerEvent) => {
+			const elapsed = Date.now() - interactionStartTime.current;
+			const width = window.innerWidth || 1;
+			const height = window.innerHeight || 1;
+			clickSamples.current.push({
+				timeMs: Math.max(0, elapsed),
+				cx: Math.max(0, Math.min(1, event.clientX / width)),
+				cy: Math.max(0, Math.min(1, event.clientY / height)),
+			});
+		};
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (!event.key || event.key.length > 32) return;
+			keySamples.current.push({
+				timeMs: Math.max(0, Date.now() - interactionStartTime.current),
+				key: event.key,
+			});
+		};
+
+		window.addEventListener("pointerdown", handlePointerDown, true);
+		window.addEventListener("keydown", handleKeyDown, true);
+		return () => {
+			window.removeEventListener("pointerdown", handlePointerDown, true);
+			window.removeEventListener("keydown", handleKeyDown, true);
+		};
+	}, [recording]);
 
 	const startRecording = async () => {
 		try {
@@ -547,6 +588,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			}
 
 			recordingId.current = Date.now();
+			interactionStartTime.current = Date.now();
+			clickSamples.current = [];
+			keySamples.current = [];
 			accumulatedDurationMs.current = 0;
 			segmentStartedAt.current = Date.now();
 			allowAutoFinalize.current = true;

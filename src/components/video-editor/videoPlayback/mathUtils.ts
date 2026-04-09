@@ -62,6 +62,18 @@ export function easeOutScreenStudio(t: number) {
 	return cubicBezier(0.16, 1, 0.3, 1, t);
 }
 
+/**
+ * Critically-damped spring easing.
+ * Faster pickup than cubic easing, but without overshoot.
+ */
+export function springEasing(t: number) {
+	const x = clamp01(t);
+	const omega = 6.5;
+	const raw = 1 - (1 + omega * x) * Math.exp(-omega * x);
+	const endValue = 1 - (1 + omega) * Math.exp(-omega);
+	return clamp01(raw / endValue);
+}
+
 export function smoothStep(t: number) {
 	const clamped = clamp01(t);
 	return clamped * clamped * (3 - 2 * clamped);

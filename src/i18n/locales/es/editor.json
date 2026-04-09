@@ -1,4 +1,23 @@
 {
+	"newRecording": {
+		"title": "Volver al grabador",
+		"description": "Tu sesión actual ha sido guardada.",
+		"cancel": "Cancelar",
+		"confirm": "Confirmar"
+	},
+	"startScreen": {
+		"title": "¿Qué quieres empezar?",
+		"description": "Haz que el primer paso sea obvio: empieza grabando la pantalla o importa un video para editar.",
+		"record": {
+			"title": "Iniciar grabación de pantalla",
+			"description": "Graba tu pantalla primero y sigue editando en cuanto termines."
+		},
+		"import": {
+			"title": "Importar archivo de video",
+			"description": "Trae un video existente y empieza a recortar o editar de inmediato."
+		},
+		"openProject": "Abrir archivo de proyecto"
+	},
 	"errors": {
 		"noVideoLoaded": "No hay video cargado",
 		"videoNotReady": "El video no está listo",
@@ -31,5 +50,10 @@
 		"microphoneDenied": "Acceso al micrófono denegado. La grabación continuará sin audio.",
 		"cameraDenied": "Acceso a la cámara denegado. La grabación continuará sin cámara web.",
 		"permissionDenied": "Permiso de grabación denegado. Por favor permite la grabación de pantalla."
+	},
+	"header": {
+		"settings": "Ajustes",
+		"showSettings": "Mostrar ajustes",
+		"hideSettings": "Ocultar ajustes"
 	}
 }

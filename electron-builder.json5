@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.siddharthvaddem.openscreen",
+  "appId": "com.autoscreen.desktop",
   "asar": true,
-  "productName": "Openscreen",
+  "productName": "Auto Screen",
   "npmRebuild": true,
   "buildDependenciesFromSource": true,
   "compression": "normal",
@@ -26,7 +26,15 @@
       "to": "assets/wallpapers"
     }
   ],
-  "publish": [{"provider": "github"}],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "siddharthvaddem",
+      "repo": "openscreen",
+      "releaseType": "release",
+      "tagNamePrefix": "v"
+    }
+  ],
 
   "mac": {
     "hardenedRuntime": false,
@@ -34,31 +42,46 @@
       {
         "target": "dmg",
         "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
       }
     ],
     "icon": "icons/icons/mac/icon.icns",
-    "artifactName": "${productName}-Mac-${arch}-${version}-Installer.${ext}",
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
     "extendInfo": {
-      "NSAudioCaptureUsageDescription": "OpenScreen needs audio capture permission to record system audio.",
-      "NSMicrophoneUsageDescription": "OpenScreen needs microphone access to record voice audio.",
-      "NSCameraUsageDescription": "OpenScreen needs camera access to record webcam video.",
+      "NSAudioCaptureUsageDescription": "Auto Screen needs audio capture permission to record system audio.",
+      "NSMicrophoneUsageDescription": "Auto Screen needs microphone access to record voice audio.",
+      "NSCameraUsageDescription": "Auto Screen needs camera access to record webcam video.",
       "NSCameraUseContinuityCameraDeviceType": true,
       "com.apple.security.device.audio-input": true
     }
   },
   "linux": {
     "target": [
-      "AppImage"
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      }
     ],
     "icon": "icons/icons/png",
-    "artifactName": "${productName}-Linux-${version}.${ext}",
+    "artifactName": "${productName}-${version}-linux-x64.${ext}",
     "category": "AudioVideo"
   },
   "win": {
     "target": [
-      "nsis"
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
     ],
-    "icon": "icons/icons/win/icon.ico"
+    "icon": "icons/icons/win/icon.ico",
+    "artifactName": "${productName}-${version}-win-x64.${ext}"
   },
   "nsis": {
     "oneClick": false,

@@ -8,6 +8,14 @@
 			"manual": "Manual",
 			"auto": "Auto",
 			"autoDescription": "La cámara sigue la posición del cursor grabado"
+		},
+		"presets": {
+			"title": "Estilo de zoom",
+			"subtle": "Sutil",
+			"light": "Ligero",
+			"moderate": "Moderado",
+			"strong": "Fuerte",
+			"dramatic": "Dramático"
 		}
 	},
 	"speed": {
@@ -42,13 +50,16 @@
 		"image": "Imagen",
 		"color": "Color",
 		"gradient": "Degradado",
+		"remove": "Quitar fondo",
+		"removeDescription": "Muestra solo la pantalla ocupando todo el marco.",
 		"uploadCustom": "Subir personalizado",
 		"gradientLabel": "Degradado {{index}}"
 	},
 	"crop": {
 		"title": "Recortar",
 		"cropVideo": "Recortar video",
-		"dragInstruction": "Arrastra cada lado para ajustar el área de recorte",
+		"dragInstruction": "Solo se conservará el área dentro del recuadro verde. Mueve el recuadro o arrastra cada lado para elegir qué mantener.",
+		"cancelHint": "Si haces clic en X o fuera del cuadro, se cancela. Pulsa Listo para aplicar.",
 		"ratio": "Proporción",
 		"free": "Libre",
 		"done": "Listo",
@@ -64,14 +75,25 @@
 		"gifDescription": "Imagen animada para compartir"
 	},
 	"exportQuality": {
-		"title": "Calidad de exportación",
+		"title": "Preajuste de exportación",
 		"low": "Baja",
 		"medium": "Media",
-		"high": "Alta"
+		"high": "Alta",
+		"presetDescription": "Elige un preajuste de calidad para exportaciones pulidas.",
+		"social": "Social",
+		"balanced": "Equilibrado",
+		"archive": "Archivo"
 	},
 	"gifSettings": {
 		"frameRate": "Velocidad de cuadros del GIF",
+		"frameRateHelp": "Fotogramas por segundo",
 		"size": "Tamaño del GIF",
+		"sizeHelp": "Resolución de salida",
+		"sizePreset": {
+			"medium": "Estándar",
+			"large": "Alta res.",
+			"original": "Original"
+		},
 		"loop": "Repetir GIF"
 	},
 	"project": {
@@ -156,6 +178,50 @@
 		"errorLoadFailed": "No se pudo cargar la fuente. Por favor verifica que la URL de Google Fonts sea correcta."
 	},
 	"language": {
-		"title": "Idioma"
+		"title": "Idioma",
+		"description": "Elige el idioma que se usará en toda la app.",
+		"select": "Seleccionar idioma"
+	},
+	"editMode": {
+		"title": "Modo de edición",
+		"description": "Ajusta manualmente o genera un primer borrador automático.",
+		"manual": "Manual",
+		"auto": "Auto"
+	},
+	"autoEdit": {
+		"title": "Edición automática",
+		"description": "Elige unos ajustes básicos y genera una primera propuesta.",
+		"style": "Estilo de edición",
+		"focus": "Comportamiento del enfoque",
+		"pause": "Compresión de pausas",
+		"background": "Tratamiento del fondo",
+		"apply": "Aplicar edición automática",
+		"hint": "Después puedes volver al modo manual para ajustar cada región.",
+		"styles": {
+			"calm": "Suave",
+			"balanced": "Estándar",
+			"emphasis": "Intenso"
+		},
+		"focusOptions": {
+			"cursor": "Seguir cursor",
+			"activity": "Zona activa"
+		},
+		"pauseOptions": {
+			"off": "Off",
+			"light": "Ligero",
+			"balanced": "Equilibrado",
+			"aggressive": "Fuerte"
+		},
+		"backgroundOptions": {
+			"keep": "Mantener actual",
+			"remove": "Quitar fondo"
+		}
+	},
+	"smartSpeed": {
+		"title": "Velocidad inteligente",
+		"description": "Comprime automáticamente pausas largas y momentos de duda.",
+		"light": "Ligero",
+		"balanced": "Equilibrado",
+		"aggressive": "Agresivo"
 	}
 }

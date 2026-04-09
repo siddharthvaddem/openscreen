@@ -3,6 +3,8 @@ import type { CursorTelemetryPoint, ZoomFocus } from "../types";
 export const MIN_DWELL_DURATION_MS = 450;
 export const MAX_DWELL_DURATION_MS = 2600;
 export const DWELL_MOVE_THRESHOLD = 0.02;
+export const DWELL_MERGE_GAP_MS = 1500;
+export const DWELL_MERGE_DISTANCE_THRESHOLD = 0.08;
 
 export interface ZoomDwellCandidate {
 	centerTimeMs: number;
@@ -77,5 +79,47 @@ export function detectZoomDwellCandidates(samples: CursorTelemetryPoint[]): Zoom
 	}
 	pushRunIfDwell(runStart, samples.length);
 
-	return dwellCandidates;
+	if (dwellCandidates.length <= 1) {
+		return dwellCandidates;
+	}
+
+	const mergedCandidates: ZoomDwellCandidate[] = [];
+	for (const candidate of dwellCandidates) {
+		const previous = mergedCandidates[mergedCandidates.length - 1];
+		if (!previous) {
+			mergedCandidates.push(candidate);
+			continue;
+		}
+
+		const timeGap = candidate.centerTimeMs - previous.centerTimeMs;
+		const focusDistance = Math.hypot(
+			candidate.focus.cx - previous.focus.cx,
+			candidate.focus.cy - previous.focus.cy,
+		);
+
+		if (timeGap <= DWELL_MERGE_GAP_MS && focusDistance <= DWELL_MERGE_DISTANCE_THRESHOLD) {
+			const totalStrength = previous.strength + candidate.strength;
+			mergedCandidates[mergedCandidates.length - 1] = {
+				centerTimeMs: Math.round(
+					(previous.centerTimeMs * previous.strength +
+						candidate.centerTimeMs * candidate.strength) /
+						totalStrength,
+				),
+				focus: {
+					cx:
+						(previous.focus.cx * previous.strength + candidate.focus.cx * candidate.strength) /
+						totalStrength,
+					cy:
+						(previous.focus.cy * previous.strength + candidate.focus.cy * candidate.strength) /
+						totalStrength,
+				},
+				strength: totalStrength,
+			};
+			continue;
+		}
+
+		mergedCandidates.push(candidate);
+	}
+
+	return mergedCandidates;
 }

@@ -15,6 +15,8 @@ import type { ExportConfig, ExportProgress, ExportResult } from "./types";
 
 const ENCODER_STALL_TIMEOUT_MS = 15_000;
 const ENCODER_FLUSH_TIMEOUT_MS = 20_000;
+const AUDIO_PROCESS_TIMEOUT_MS = 60_000;
+const MUXER_FINALIZE_TIMEOUT_MS = 30_000;
 
 interface VideoExporterConfig extends ExportConfig {
 	videoUrl: string;
@@ -38,6 +40,7 @@ interface VideoExporterConfig extends ExportConfig {
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
+	interactionClicks?: Array<{ timeMs: number; cx: number; cy: number }>;
 	onProgress?: (progress: ExportProgress) => void;
 }
 
@@ -143,6 +146,7 @@ export class VideoExporter {
 				previewWidth: this.config.previewWidth,
 				previewHeight: this.config.previewHeight,
 				cursorTelemetry: this.config.cursorTelemetry,
+				interactionClicks: this.config.interactionClicks,
 			});
 			this.renderer = renderer;
 			await renderer.initialize();
@@ -324,6 +328,38 @@ export class VideoExporter {
 
 			await Promise.all(this.muxingPromises);
 
+			if (hasAudio && !this.cancelled) {
+				const demuxer = streamingDecoder.getDemuxer();
+				if (demuxer) {
+					console.log("[VideoExporter] Processing audio track...");
+					this.audioProcessor = new AudioProcessor();
+					this.reportProgress({
+						currentFrame: totalFrames,
+						totalFrames,
+						percentage: 100,
+						estimatedTimeRemaining: 0,
+						phase: "audio",
+					});
+					try {
+						await this.withTimeout(
+							this.audioProcessor.process(
+								demuxer,
+								muxer,
+								this.config.videoUrl,
+								this.config.trimRegions,
+								this.config.speedRegions,
+								readEndSec,
+							),
+							AUDIO_PROCESS_TIMEOUT_MS,
+							"Audio processing took too long during export. Finishing without audio.",
+						);
+					} catch (error) {
+						const normalizedError = error instanceof Error ? error : new Error(String(error));
+						console.warn("[VideoExporter] Audio processing fallback:", normalizedError.message);
+					}
+				}
+			}
+
 			this.reportProgress({
 				currentFrame: totalFrames,
 				totalFrames,
@@ -332,23 +368,11 @@ export class VideoExporter {
 				phase: "finalizing",
 			});
 
-			if (hasAudio && !this.cancelled) {
-				const demuxer = streamingDecoder.getDemuxer();
-				if (demuxer) {
-					console.log("[VideoExporter] Processing audio track...");
-					this.audioProcessor = new AudioProcessor();
-					await this.audioProcessor.process(
-						demuxer,
-						muxer,
-						this.config.videoUrl,
-						this.config.trimRegions,
-						this.config.speedRegions,
-						readEndSec,
-					);
-				}
-			}
-
-			const blob = await muxer.finalize();
+			const blob = await this.withTimeout(
+				muxer.finalize(),
+				MUXER_FINALIZE_TIMEOUT_MS,
+				"Finalizing the exported video took too long.",
+			);
 			return { success: true, blob };
 		} finally {
 			stopWebcamDecode = true;

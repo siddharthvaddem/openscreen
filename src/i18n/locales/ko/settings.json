@@ -1,0 +1,227 @@
+{
+	"zoom": {
+		"level": "줌 레벨",
+		"selectRegion": "조정할 줌 구간을 선택하세요",
+		"deleteZoom": "줌 삭제",
+		"focusMode": {
+			"title": "포커스 모드",
+			"manual": "수동",
+			"auto": "자동",
+			"autoDescription": "기록된 커서 위치를 따라갑니다"
+		},
+		"presets": {
+			"title": "줌 느낌",
+			"subtle": "은은함",
+			"light": "가볍게",
+			"moderate": "표준",
+			"strong": "강하게",
+			"dramatic": "드라마틱"
+		}
+	},
+	"speed": {
+		"playbackSpeed": "재생 속도",
+		"selectRegion": "조정할 속도 구간을 선택하세요",
+		"deleteRegion": "속도 구간 삭제",
+		"customPlaybackSpeed": "사용자 지정 재생 속도",
+		"maxSpeedError": "속도는 16×보다 높을 수 없습니다"
+	},
+	"trim": {
+		"deleteRegion": "트림 구간 삭제"
+	},
+	"layout": {
+		"title": "레이아웃",
+		"preset": "프리셋",
+		"selectPreset": "프리셋 선택",
+		"pictureInPicture": "PIP",
+		"verticalStack": "세로 스택",
+		"webcamShape": "카메라 모양"
+	},
+	"effects": {
+		"title": "비디오 효과",
+		"blurBg": "배경 블러",
+		"motionBlur": "모션 블러",
+		"off": "끔",
+		"shadow": "그림자",
+		"roundness": "라운드",
+		"padding": "패딩"
+	},
+	"background": {
+		"title": "배경",
+		"image": "이미지",
+		"color": "색상",
+		"gradient": "그라디언트",
+		"remove": "배경 제거",
+		"removeDescription": "배경 없이 화면만 꽉 차게 표시합니다.",
+		"uploadCustom": "사용자 이미지 업로드",
+		"gradientLabel": "그라디언트 {{index}}"
+	},
+	"crop": {
+		"title": "크롭",
+		"cropVideo": "비디오 크롭",
+		"dragInstruction": "초록 박스 안쪽만 남고, 바깥쪽은 잘립니다. 박스를 이동하거나 각 면을 드래그해 남길 영역을 조정하세요.",
+		"cancelHint": "X 버튼이나 바깥 영역을 누르면 취소되고, 완료를 눌러야 적용됩니다.",
+		"ratio": "비율",
+		"free": "자유",
+		"done": "완료",
+		"lockAspectRatio": "비율 고정",
+		"unlockAspectRatio": "비율 고정 해제"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "MP4 비디오",
+		"mp4Description": "고화질 비디오 파일",
+		"gifAnimation": "GIF 애니메이션",
+		"gifDescription": "공유용 애니메이션 이미지"
+	},
+	"exportQuality": {
+		"title": "출력 프리셋",
+		"low": "낮음",
+		"medium": "중간",
+		"high": "높음",
+		"presetDescription": "보기 좋은 결과를 위한 품질 프리셋을 선택하세요.",
+		"social": "가볍게",
+		"balanced": "표준",
+		"archive": "최고 화질"
+	},
+	"gifSettings": {
+		"frameRate": "GIF 프레임레이트",
+		"frameRateHelp": "초당 프레임 수",
+		"size": "GIF 크기",
+		"sizeHelp": "해상도 크기",
+		"sizePreset": {
+			"medium": "표준",
+			"large": "고화질",
+			"original": "원본"
+		},
+		"loop": "GIF 반복"
+	},
+	"project": {
+		"save": "프로젝트 저장",
+		"load": "프로젝트 불러오기"
+	},
+	"export": {
+		"videoButton": "비디오 내보내기",
+		"gifButton": "GIF 내보내기",
+		"chooseSaveLocation": "저장 위치 선택"
+	},
+	"links": {
+		"reportBug": "버그 제보",
+		"starOnGithub": "GitHub 보기"
+	},
+	"imageUpload": {
+		"invalidFileType": "지원하지 않는 파일 형식입니다",
+		"jpgOnly": "JPG 또는 JPEG 파일만 업로드해 주세요.",
+		"uploadSuccess": "사용자 이미지 업로드 완료!",
+		"failedToUpload": "이미지 업로드 실패",
+		"errorReading": "파일을 읽는 중 오류가 발생했습니다."
+	},
+	"annotation": {
+		"title": "주석 설정",
+		"active": "활성",
+		"typeText": "텍스트",
+		"typeImage": "이미지",
+		"typeArrow": "화살표",
+		"textContent": "텍스트 내용",
+		"textPlaceholder": "텍스트를 입력하세요...",
+		"fontStyle": "폰트 스타일",
+		"selectStyle": "스타일 선택",
+		"size": "크기",
+		"customFonts": "커스텀 폰트",
+		"textColor": "텍스트 색상",
+		"background": "배경",
+		"none": "없음",
+		"color": "색상",
+		"clearBackground": "배경 제거",
+		"uploadImage": "이미지 업로드",
+		"supportedFormats": "지원 형식: JPG, PNG, GIF, WebP",
+		"arrowDirection": "화살표 방향",
+		"strokeWidth": "선 두께: {{width}}px",
+		"arrowColor": "화살표 색상",
+		"deleteAnnotation": "주석 삭제",
+		"shortcutsAndTips": "단축키 & 팁",
+		"tipMovePlayhead": "재생 헤드를 겹치는 주석 구간으로 이동한 뒤 항목을 선택하세요.",
+		"tipTabCycle": "Tab 키로 겹치는 항목을 순환할 수 있습니다.",
+		"tipShiftTabCycle": "Shift+Tab으로 역방향 순환할 수 있습니다.",
+		"invalidImageType": "지원하지 않는 파일 형식입니다",
+		"imageFormatsOnly": "JPG, PNG, GIF, WebP 파일만 업로드해 주세요.",
+		"imageUploadSuccess": "이미지 업로드 완료!",
+		"failedImageUpload": "이미지 업로드 실패"
+	},
+	"fontStyles": {
+		"classic": "클래식",
+		"editor": "에디터",
+		"strong": "강조",
+		"typewriter": "타자기",
+		"deco": "데코",
+		"simple": "심플",
+		"modern": "모던",
+		"clean": "클린"
+	},
+	"customFont": {
+		"dialogTitle": "Google Font 추가",
+		"urlLabel": "Google Fonts Import URL",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "Google Fonts에서 폰트를 선택한 뒤 “Get font”에서 @import URL을 복사하세요",
+		"nameLabel": "표시 이름",
+		"namePlaceholder": "내 커스텀 폰트",
+		"nameHelp": "폰트 선택기에서 보일 이름입니다",
+		"addButton": "폰트 추가",
+		"addingButton": "추가 중...",
+		"errorEmptyUrl": "Google Fonts import URL을 입력해 주세요",
+		"errorInvalidUrl": "올바른 Google Fonts URL을 입력해 주세요",
+		"errorEmptyName": "폰트 이름을 입력해 주세요",
+		"errorExtractFailed": "URL에서 폰트 패밀리를 추출하지 못했습니다",
+		"successMessage": "폰트 \"{{fontName}}\" 추가 완료",
+		"failedToAdd": "폰트 추가 실패",
+		"errorTimeout": "폰트 로딩 시간이 너무 오래 걸립니다. URL을 확인해 주세요.",
+		"errorLoadFailed": "폰트를 불러오지 못했습니다. Google Fonts URL을 확인해 주세요."
+	},
+	"language": {
+		"title": "언어",
+		"description": "앱 전체에서 사용할 언어를 선택하세요",
+		"select": "언어 선택"
+	},
+	"editMode": {
+		"title": "편집 모드",
+		"description": "직접 조정하거나 자동으로 초안을 만들 수 있습니다.",
+		"manual": "수동 모드",
+		"auto": "자동 모드"
+	},
+	"autoEdit": {
+		"title": "자동 편집",
+		"description": "기본 방향만 고르면 줌과 속도 구간 초안을 만들어줍니다.",
+		"style": "편집 스타일",
+		"focus": "포커스 방식",
+		"pause": "멈춤 압축",
+		"background": "배경 처리",
+		"apply": "자동 편집 적용",
+		"hint": "적용 후에는 수동 모드로 돌아가서 세부 구간을 직접 다듬을 수 있습니다.",
+		"styles": {
+			"calm": "차분하게",
+			"balanced": "표준",
+			"emphasis": "강조"
+		},
+		"focusOptions": {
+			"cursor": "커서 따라가기",
+			"activity": "활동 영역 중심"
+		},
+		"pauseOptions": {
+			"off": "끄기",
+			"light": "약하게",
+			"balanced": "균형",
+			"aggressive": "강하게"
+		},
+		"backgroundOptions": {
+			"keep": "현재 유지",
+			"remove": "배경 제거"
+		}
+	},
+	"smartSpeed": {
+		"title": "Smart Speed",
+		"description": "긴 멈춤과 망설임 구간을 자동으로 압축합니다.",
+		"light": "약하게",
+		"balanced": "균형",
+		"aggressive": "강하게"
+	}
+}

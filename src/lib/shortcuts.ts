@@ -123,12 +123,34 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
 	playPause: "Play / Pause",
 };
 
+function normalizeBindingKey(value: string): string {
+	return value.length === 1 ? value.toLowerCase() : value.toLowerCase();
+}
+
+function keyFromCode(code: string): string | null {
+	const keyMatch = code.match(/^Key([A-Z])$/);
+	if (keyMatch) {
+		return keyMatch[1]?.toLowerCase() ?? null;
+	}
+
+	const digitMatch = code.match(/^Digit([0-9])$/);
+	if (digitMatch) {
+		return digitMatch[1] ?? null;
+	}
+
+	return null;
+}
+
+export function getBindingKeyFromKeyboardEvent(event: Pick<KeyboardEvent, "key" | "code">): string {
+	return keyFromCode(event.code) ?? normalizeBindingKey(event.key);
+}
+
 export function matchesShortcut(
 	e: KeyboardEvent,
 	binding: ShortcutBinding,
 	isMacPlatform: boolean,
 ): boolean {
-	if (e.key.toLowerCase() !== binding.key.toLowerCase()) return false;
+	if (getBindingKeyFromKeyboardEvent(e) !== normalizeBindingKey(binding.key)) return false;
 
 	const primaryMod = isMacPlatform ? e.metaKey : e.ctrlKey;
 	if (primaryMod !== !!binding.ctrl) return false;

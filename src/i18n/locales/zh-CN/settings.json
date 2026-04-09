@@ -8,6 +8,14 @@
 			"manual": "手动",
 			"auto": "自动",
 			"autoDescription": "摄像头跟随录制时的光标位置"
+		},
+		"presets": {
+			"title": "缩放风格",
+			"subtle": "轻微",
+			"light": "轻度",
+			"moderate": "标准",
+			"strong": "强烈",
+			"dramatic": "戏剧化"
 		}
 	},
 	"speed": {
@@ -42,13 +50,16 @@
 		"image": "图片",
 		"color": "颜色",
 		"gradient": "渐变",
+		"remove": "移除背景",
+		"removeDescription": "不使用背景，让屏幕内容尽量铺满画面。",
 		"uploadCustom": "上传自定义",
 		"gradientLabel": "渐变 {{index}}"
 	},
 	"crop": {
 		"title": "裁剪",
 		"cropVideo": "裁剪视频",
-		"dragInstruction": "拖动每一侧来调整裁剪区域",
+		"dragInstruction": "只会保留绿色框内的区域。移动绿色框或拖动四边来选择要保留的内容。",
+		"cancelHint": "点击右上角 X 或外部区域会取消裁剪，按“完成”才会应用。",
 		"ratio": "比例",
 		"free": "自由",
 		"done": "完成",
@@ -64,14 +75,25 @@
 		"gifDescription": "可分享的动态图片"
 	},
 	"exportQuality": {
-		"title": "导出质量",
+		"title": "导出预设",
 		"low": "低",
 		"medium": "中",
-		"high": "高"
+		"high": "高",
+		"presetDescription": "选择一个质量预设以获得更精致的导出效果。",
+		"social": "社交",
+		"balanced": "平衡",
+		"archive": "归档"
 	},
 	"gifSettings": {
 		"frameRate": "GIF 帧率",
+		"frameRateHelp": "每秒帧数",
 		"size": "GIF 尺寸",
+		"sizeHelp": "输出分辨率",
+		"sizePreset": {
+			"medium": "标准",
+			"large": "高清",
+			"original": "原始"
+		},
 		"loop": "循环 GIF"
 	},
 	"project": {
@@ -156,6 +178,50 @@
 		"errorLoadFailed": "无法加载该字体。请确认 Google Fonts URL 是否正确。"
 	},
 	"language": {
-		"title": "语言"
+		"title": "语言",
+		"description": "选择整个应用使用的语言。",
+		"select": "选择语言"
+	},
+	"editMode": {
+		"title": "编辑模式",
+		"description": "可以手动微调，也可以先自动生成初稿。",
+		"manual": "手动模式",
+		"auto": "自动模式"
+	},
+	"autoEdit": {
+		"title": "自动编辑",
+		"description": "先选几个基础方向，再自动生成缩放和速度草稿。",
+		"style": "编辑风格",
+		"focus": "对焦方式",
+		"pause": "停顿压缩",
+		"background": "背景处理",
+		"apply": "应用自动编辑",
+		"hint": "应用后仍可切回手动模式继续微调每个区段。",
+		"styles": {
+			"calm": "平稳",
+			"balanced": "标准",
+			"emphasis": "强调"
+		},
+		"focusOptions": {
+			"cursor": "跟随光标",
+			"activity": "活动区域居中"
+		},
+		"pauseOptions": {
+			"off": "关闭",
+			"light": "轻度",
+			"balanced": "平衡",
+			"aggressive": "强烈"
+		},
+		"backgroundOptions": {
+			"keep": "保持当前",
+			"remove": "移除背景"
+		}
+	},
+	"smartSpeed": {
+		"title": "智能加速",
+		"description": "自动压缩长时间停顿和犹豫片段。",
+		"light": "轻度",
+		"balanced": "平衡",
+		"aggressive": "激进"
 	}
 }
