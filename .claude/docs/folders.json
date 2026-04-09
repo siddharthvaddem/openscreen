@@ -1,0 +1,847 @@
+{
+  "folders": {
+    "src/lib/exporter": {
+      "description": "This directory implements the client-side export pipeline for video and GIF outputs: streaming demux/decode, deterministic offscreen composition, audio processing, encoding and muxing into final Blobs. It centralizes platform-sensitive work (WebCodecs, WebDemuxer WASM, WebGL/Pixi offscreen composition, gif.js workers and MP4 muxing) and provides typed contracts used by the renderer/editor to produce pixel\u2011accurate exports.",
+      "key_behaviors": [
+        "Stream-decoding source media into frame-accurate VideoFrame objects (resampling VFR\u2192CFR) to feed the export pipeline",
+        "Deterministic offscreen composition of each export frame (backgrounds, main video, webcam overlay, annotations, masks, shadows, cursor behavior) using Pixi/WebGL then CPU readback",
+        "Encoding composed frames via WebCodecs VideoEncoder (and gif.js workers for GIFs), and muxing encoded audio/video into final Blob output",
+        "Robust resource, lifecycle and error handling: queues for backpressure, explicit VideoFrame closing, timeouts and cleanup paths to avoid deadlocks and leaks",
+        "Cross-platform compatibility workarounds (Linux/Wayland GPU readback, AV1 codec normalization) and integration tests that run in real browser environments"
+      ],
+      "insights": [
+        {
+          "category": "Cross-platform GPU issues",
+          "title": "GPU\u21922D readback failures on some Linux/Wayland setups",
+          "problem": "Directly drawing a WebGL canvas into a 2D canvas or passing a canvas into a VideoFrame produced empty/green frames on EGL/Ozone Wayland systems.",
+          "root_cause": "Platform-specific failures in the GL shared-image / drawImage path (no error thrown; silent rendering failure on Linux/Wayland drivers).",
+          "solution": "Use a dedicated raster canvas and perform explicit CPU-side readback of WebGL output into ImageData before creating VideoFrame or drawing into 2D contexts; keep the raster canvas and explicit readback code paths in place."
+        },
+        {
+          "category": "Codec compatibility",
+          "title": "Bare AV1 codec strings break WebCodecs",
+          "problem": "WebDemuxer sometimes yields a bare codec identifier like \"av01\" which VideoDecoder rejects or fails to instantiate.",
+          "root_cause": "WebCodecs requires fully parameterized AV1 codec strings (profile/levels) while demuxer metadata can be minimal.",
+          "solution": "Normalize/build a fully parameterized AV1 codec string before passing to WebCodecs (implement codec-string normalization / buildAV1CodecString logic)."
+        },
+        {
+          "category": "Resource & lifecycle management",
+          "title": "VideoFrame leaks and deadlocks during export",
+          "problem": "Export paths could deadlock or leak VideoFrame objects when errors/cancellations occur or when webcam decoding producers/consumers fall out of sync.",
+          "root_cause": "Ad-hoc frame handoff lacked a single responsibility for backpressure, error propagation and guaranteed close semantics.",
+          "solution": "Use the AsyncVideoFrameQueue abstraction to manage producer/consumer backpressure, propagate failures, and ensure frames are closed on error/cleanup; exporters must drain/close decoders and queues in all code paths."
+        },
+        {
+          "category": "Deterministic rendering parity",
+          "title": "Export visuals must match editor preview",
+          "problem": "Annotations, cursor-follow behavior, webcam sizing, gradients, rounded masks and blur could render differently in exports versus the editor preview.",
+          "root_cause": "Renderer and export rendering paths diverged: missing telemetry/cursor parameters, differing gradient/annotation parsing, and inconsistent webcam size handling.",
+          "solution": "Thread cursor telemetry and webcamSizePreset through exporter and FrameRenderer; provide deterministic Canvas2D annotation rendering, and use the same gradient parsing utilities and layout geometry computations used by the editor."
+        },
+        {
+          "category": "Operational robustness",
+          "title": "Hangs when loading/parsing remote/local sources",
+          "problem": "Loading source bytes (remote or via electronAPI) or demuxer parsing could hang indefinitely and stall export jobs.",
+          "root_cause": "Missing timeouts and unbounded waits in source loading/parsing paths.",
+          "solution": "Add timeouts and failure handling around source fetch/load and demuxer parsing to fail-fast and surface actionable errors to callers."
+        },
+        {
+          "category": "Public API / types surface",
+          "title": "Export types/constants drifted across modules",
+          "problem": "GIF presets and new ExportQuality types were changed in types.ts but not consistently re-exported or consumed, causing tests and callers to break.",
+          "root_cause": "Barrel index and tests were not updated in lockstep with types/constants changes.",
+          "solution": "Keep exporter index re-exports aligned with types.ts and ensure GIF preset constants and types used in tests and callers remain in sync; consumers expect consistent exported types from this folder's index."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "src/lib/exporter/frameRenderer.ts",
+          "why": "Core deterministic offscreen compositor that reproduces editor visuals per-frame and implements GPU\u2192CPU readback/workarounds needed for export correctness."
+        },
+        {
+          "path": "src/lib/exporter/streamingDecoder.ts",
+          "why": "Implements forward-pass demux + WebCodecs decode and VFR\u2192CFR resampling; it's the primary source of VideoFrame objects for exporters and contains codec normalization and timeout logic."
+        },
+        {
+          "path": "src/lib/exporter/videoExporter.ts",
+          "why": "High-level orchestrator for MP4 exports: coordinates decoding, frame rendering, encoding, audio processing and muxing; central to long-running deterministic exports."
+        },
+        {
+          "path": "src/lib/exporter/gifExporter.ts",
+          "why": "Gif export orchestrator that streams decodes, uses FrameRenderer and gif.js workers; contains output-dimension logic shared with UI and tests."
+        },
+        {
+          "path": "src/lib/exporter/asyncVideoFrameQueue.ts",
+          "why": "Provides the producer/consumer queue abstraction that enforces backpressure, failure propagation and guaranteed cleanup for VideoFrame handoffs across the pipeline."
+        }
+      ],
+      "construct_relationships": [
+        "FrameRenderer composes inputs (main decoded VideoFrame, optional webcam frames, background gradients/images, and annotations) and exposes rendered ImageData/canvas used by VideoExporter and GifExporter to create new VideoFrame instances for encoding.",
+        "StreamingVideoDecoder streams demuxed chunks into WebCodecs VideoDecoder and emits decoded VideoFrame objects consumed by exporters; it performs VFR\u2192CFR resampling to match target framerate requested by exporters.",
+        "AsyncVideoFrameQueue bridges webcam/frame producers and renderer consumers, providing backpressure and ensuring frames are closed on errors.",
+        "AnnotationRenderer is used by FrameRenderer to draw text, image and arrow annotations onto the export canvas deterministically (Canvas2D path rather than DOM).",
+        "AudioProcessor decodes/ renders/encodes audio respecting trim/speed regions and hands encoded audio chunks to the VideoMuxer used by VideoExporter.",
+        "VideoExporter initializes a VideoEncoder, receives encoded chunks and forwards them to VideoMuxer; muxer.finalize produces the final MP4 Blob returned to callers.",
+        "GifExporter uses StreamingVideoDecoder and FrameRenderer like VideoExporter but encodes frames via gif.js worker pipeline instead of WebCodecs, and relies on calculateOutputDimensions from gifExporter.ts and GIF_SIZE_PRESETS from types.ts."
+      ],
+      "notable_relationships": [
+        "This folder depends on platform/browser APIs (WebCodecs, WebDemuxer WASM, WebAudio, OffscreenCanvas/Pixi/WebGL) whose runtime behavior varies across OS and browser; changes may break Linux/EGL paths or browser integration tests.",
+        "Electron/main process and electronAPI are used for local file loading in tests and can influence timeouts/paths in streamingDecoder (local vs remote loading differences).",
+        "index.ts re-exports types/constants expected by UI and tests; type or constant changes here ripple into renderer UI code and unit/integration tests.",
+        "Integration tests (gifExporter.browser.test.ts, videoExporter.browser.test.ts) require real browser environments and the Playwright/Vitest CI steps \u2014 edits that affect runtime assumptions must be validated by running these tests.",
+        "Third-party worker dependencies (gif.js worker URL, mediabunny muxer) are part of the pipeline surface and can introduce cross-module coupling if their URLs or APIs change."
+      ],
+      "recommendations": [
+        "Preserve and respect the explicit GPU\u2192CPU readback and raster-canvas workarounds\u2014do not remove the raster path; validate on Linux/Wayland if changing canvas\u2192VideoFrame handoff.",
+        "Ensure every produced VideoFrame is closed in all normal, cancelled and error paths; maintain AsyncVideoFrameQueue semantics for backpressure and cleanup.",
+        "When modifying decode paths, keep AV1 codec normalization (buildAV1CodecString) and typed-array view handling for extradata to avoid WebCodecs or demuxer parsing regressions.",
+        "Maintain timeouts around source loading/demuxing and ensure errors propagate so export callers can abort; update tests if timeouts change.",
+        "Thread webcamSizePreset and cursor telemetry through exporter->FrameRenderer call paths when any pipeline signatures change to avoid visual divergence from the editor.",
+        "If changing exported types/constants (GIF presets, ExportQuality), update index.ts re-exports and adjust unit/integration tests that assert dimensions or presets.",
+        "Run the exporter integration tests in a real browser environment (npm run test:browser:install && npm run test:browser) and unit tests after edits; CI relies on these tests for export correctness.",
+        "Be mindful of resources held by WebAssembly demuxer, WebCodecs decoders/encoders, and Pixi/WebGL contexts\u2014ensure proper cleanup to avoid leaks across repeated export runs."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "src/components/ui": {
+      "description": "This directory provides the app's atomic UI primitives and small composed controls (buttons, inputs, cards, dialogs, popovers, tooltips, toggles, selects, sliders, tabs, etc.). Most components are thin, styled wrappers around Radix UI primitives or simple DOM controls with consistent styling, variant systems, accessibility hooks and forwardRef support so the rest of the renderer can assemble a uniform, accessible UI surface. These primitives are reused across launch UI, HUD/editor windows and export flows, so changes here have wide visual and behavioral impact.",
+      "key_behaviors": [
+        "Provide consistent themed primitives (Button, Input, Card, Label) with class-variance-authority-based variant systems and forwardRef so higher-level components can compose them uniformly.",
+        "Wrap Radix primitives (Dialog, Popover, Tooltip, DropdownMenu, Select, Slider, Tabs, Accordion, Switch, ToggleGroup) to centralize app styling, animation and accessibility behavior.",
+        "Coordinate interaction patterns between contextual overlays: Popover and Tooltip provide placement/animation controls; ContentClamp uses Popover to display full text on hover with debounced open/close behavior.",
+        "Propagate visual variant/size context from container components (ToggleGroup) down to constituent items so grouped controls share consistent appearance.",
+        "Expose minimal, low-overhead visual utilities (AudioLevelMeter, Toaster) intended for HUD and transient UI where performance, small footprint and non-invasive visuals matter."
+      ],
+      "insights": [
+        {
+          "category": "duplication",
+          "title": "Text truncation + hover-to-popover logic has been re-used",
+          "problem": "Multiple places need truncated inline text that reveals full content on hover/focus, and that logic was duplicated across launch UI before centralization.",
+          "root_cause": "Truncation + popover semantics are specific to small inline contexts (different timing, no heavy styling) and previously implemented ad-hoc in each consumer.",
+          "solution": "ContentClamp centralizes truncation + popover behavior and exposes options (hover debounce, animation toggle) so consumers reuse consistent semantics and avoid visual/UX regressions."
+        },
+        {
+          "category": "animation_control",
+          "title": "Some overlay consumers require no animations or an arrow element",
+          "problem": "A global Popover primitive that always applied animations prevented certain callers (e.g., ContentClamp) from rendering non-animated, arrow-bearing overlays that need immediate appearance without motion.",
+          "root_cause": "The initial Popover wrapper enforced a single animation behavior and omitted exposing the arrow element and animation toggles.",
+          "solution": "Popover primitive now exposes PopoverArrow and an option to disable animations so callers that need instant, lightweight overlays can opt out without forking behavior."
+        },
+        {
+          "category": "styling_contract",
+          "title": "Centralized variant systems are a consumer contract",
+          "problem": "Multiple components (Toggle, ToggleGroup, Button) rely on shared variant definitions (toggleVariants/buttonVariants) to achieve consistent visuals across grouped and standalone usage.",
+          "root_cause": "Visual consistency is implemented through shared variant definitions rather than ad-hoc class names in each consumer.",
+          "solution": "Maintain stable variant shape/name/props and forward them via context where groups need to inject them; consumers expect these variant APIs and sizes to remain compatible."
+        },
+        {
+          "category": "accessibility",
+          "title": "Radix wrappers must preserve keyboard/ARIA semantics",
+          "problem": "These components are lightweight wrappers around Radix primitives; changing props, structure or ARIA handling can silently break keyboard navigation or screen reader behaviors.",
+          "root_cause": "Accessibility is largely delegated to Radix; wrapper code often adds styling and optional props but must not remove or alter required attributes or event handling.",
+          "solution": "Wrapper components should continue forwarding relevant props, ref, and aria attributes to underlying Radix primitives and preserve keyboard focus/interaction behavior."
+        },
+        {
+          "category": "performance",
+          "title": "HUD/mini UIs require low-overhead render behavior",
+          "problem": "Components used in the HUD or overlay (AudioLevelMeter, small Popovers) must remain lightweight and avoid heavy animations or expensive layout work to prevent jank in always-on windows.",
+          "root_cause": "Overlay windows have continuous updates (audio meter) or run in constrained contexts where animation/layout thrashing is noticeable.",
+          "solution": "Keep these primitives small, expose options to disable animations, and avoid layout-dependent effects that trigger frequent reflows in tight update loops."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "src/components/ui/popover.tsx",
+          "why": "Central Popover primitive used by ContentClamp and many contextual overlays; exposes animation toggle and PopoverArrow which downstream components depend on."
+        },
+        {
+          "path": "src/components/ui/content-clamp.tsx",
+          "why": "Encapsulates truncation + hover popover behavior; consumers across launch UI rely on its exact timing and non-animated presentation."
+        },
+        {
+          "path": "src/components/ui/toggle.tsx",
+          "why": "Defines toggleVariants and Toggle which are part of the visual contract consumed by ToggleGroup and other controls; variant API stability is important."
+        },
+        {
+          "path": "src/components/ui/toggle-group.tsx",
+          "why": "Injects variant/size context into child toggle items and composes multi-toggle behavior; changes here affect grouped toggle appearance and interaction."
+        },
+        {
+          "path": "src/components/ui/button.tsx",
+          "why": "Button variant system centralizes many style options used widely across the app; forwardRef and class-variance-authority usage is a pattern replicated elsewhere."
+        }
+      ],
+      "construct_relationships": [
+        "ContentClamp uses Popover primitives (PopoverContent, PopoverArrow) and relies on Popover exposing a disable-animations option to present immediate, lightweight overlays.",
+        "ToggleGroup provides variant/size via React context to Toggle items; Toggle reads toggleVariants so grouped and standalone toggles share the same visual contract.",
+        "Most overlay primitives (Popover, Tooltip, Dialog, DropdownMenu, Select) are thin Radix wrappers that forward props/ref and apply app styling; they share animation and class naming conventions.",
+        "Button and Toggle/ToggleGroup use class-variance-authority-driven variant definitions (buttonVariants/toggleVariants) to maintain consistent sizes and visual states across components.",
+        "AudioLevelMeter and Toaster are small, independent primitives expected to be used in HUD/editor contexts where size, timing, and styling must not draw undue emphasis or cause layout thrash."
+      ],
+      "notable_relationships": [
+        "These UI primitives are consumed by renderer-level components (launch UI, HUD overlay, VideoEditor) across different electron windows; visual/behavioral regressions here will affect multiple windows and editing/recording flows.",
+        "Radix UI versions and props are implicitly part of the contract; upgrading Radix or changing prop forwarding could change keyboard/ARIA behavior used by higher-level features.",
+        "Styling relies on Tailwind/class-variance-authority conventions used elsewhere in the app; renaming or removing variant keys can break many consumers that assume specific variant names and sizes.",
+        "Popover/Tooltip animation toggles affect tests and visual timing \u2014 e2e/browser tests that assert popover/tooltips may rely on the ability to disable animations for deterministic behavior."
+      ],
+      "recommendations": [
+        "When editing wrappers, preserve forwarding of ref and all passthrough props (including aria- attributes and event handlers) to underlying Radix primitives to avoid breaking accessibility and keyboard interactions.",
+        "Do not remove or rename variant keys or change the shape of exported variant objects (buttonVariants, toggleVariants) without updating all consumers; treat those variant APIs as stable contracts.",
+        "Maintain explicit options to disable animations and expose PopoverArrow for popovers used by ContentClamp and HUD contexts; changes to default animation behavior can break consumers and tests.",
+        "Keep small HUD-facing components (AudioLevelMeter, ContentClamp popovers) lightweight \u2014 avoid layout-heavy changes, CSS that forces reflow, or added animation by default.",
+        "After edits, run the renderer unit and browser tests (npm run test, npm run test:browser) and visually verify HUD/overlay windows and representative dialogs/popovers to catch regressions in timing, focus, and styling."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "src/lib": {
+      "description": "The src/lib subtree contains shared utilities, deterministic export machinery, layout math and render helpers used by the renderer/editor and export pipelines. It centralizes platform-sensitive work (WebCodecs/WebDemuxer, Pixi/WebGL CPU readback, audio processing), deterministic composition (composite layout, annotation rendering), and small UX utilities (shortcuts, fonts, asset path resolution) that other parts of the app rely on for correct runtime behavior and export parity.",
+      "key_behaviors": [
+        "Deterministic offscreen composition and frame production: decode source(s) -> compute layout -> composite via FrameRenderer -> encode/mux into final Blob.",
+        "Robust, streaming decode pipeline that resamples VFR -> CFR and forwards cloned VideoFrame objects to renderers/encoders while minimizing memory.",
+        "Cross-platform GPU/CPU readback and fallback logic to avoid silent export failures (especially on Linux/Wayland/EGL).",
+        "Preservation of editor visual parity in exports: webcam sizing presets, cursor telemetry, annotation rendering and background gradients are threaded from UI to export code.",
+        "Resource lifecycle and backpressure management: async queues and explicit close/cleanup paths ensure frames, decoders and encoders are freed on success, error or cancellation."
+      ],
+      "insights": [
+        {
+          "category": "Export rendering parity",
+          "title": "Webcam sizing must be propagated to all renderers",
+          "problem": "Editor preview and export frames could differ because webcam size preset wasn't forwarded through exporter/renderer stacks.",
+          "root_cause": "New numeric webcamSizePreset semantics replaced old size presets but FrameRenderer, GifExporter and VideoExporter were not initially updated to accept/forward the parameter.",
+          "solution": "Ensure webcamSizePreset is accepted and forwarded through exporter -> frame renderer so composed frames during export match the editor's preview and tests that assert size bounds remain valid."
+        },
+        {
+          "category": "Cross-platform GPU fallback",
+          "title": "GPU\u21922D drawImage failures cause green/empty frames on some Linux systems",
+          "problem": "On certain Linux/Wayland EGL/Ozone configurations, drawing a WebGL canvas into a 2D canvas can silently fail, producing empty/green frames in exported media.",
+          "root_cause": "Reliance on GPU-shared image paths and assuming drawImage(webglCanvas) always works across platforms.",
+          "solution": "Use an explicit CPU-side raster canvas/readback path (separate raster canvas) and perform robust readback before VideoFrame creation; include that fallback logic and verify on Linux environments."
+        },
+        {
+          "category": "Decoder robustness",
+          "title": "AV1 codec and extradata parsing can break WebCodecs initialization",
+          "problem": "WebDemuxer may return bare codec strings (e.g. \"av01\") or extradata in ArrayBufferView forms, which causes WebCodecs VideoDecoder failures or incorrect parsing.",
+          "root_cause": "WebCodecs expects fully parameterized codec strings and parsing code ignored typed-array views' byteOffset/byteLength.",
+          "solution": "Normalize/parameterize AV1 codec descriptors and use view-aware byte extraction for extradata to construct correct codec strings and initialization data before passing to WebCodecs."
+        },
+        {
+          "category": "Streaming reliability",
+          "title": "Decoder/demux hangs can stall exports indefinitely",
+          "problem": "Loading remote blobs or local files and demuxer parsing can hang under some conditions, stalling long-running export operations.",
+          "root_cause": "Missing timeouts around source loading and demuxer parsing; assumed synchronous/fast responses.",
+          "solution": "Apply explicit timeouts and fail-fast semantics for load/parse operations so export pipeline surfaces errors and cleans up resources instead of hanging."
+        },
+        {
+          "category": "Resource safety",
+          "title": "VideoFrame leaks and deadlocks in exporter queues",
+          "problem": "If errors occur or exports are cancelled, VideoFrame objects and decoder/encoder resources could leak or exporters could deadlock waiting on webcam frames.",
+          "root_cause": "Ad-hoc queueing and incomplete cleanup paths for frames and async consumers/producers.",
+          "solution": "Use a dedicated AsyncVideoFrameQueue abstraction with explicit fail/close semantics and ensure all code paths close/destroy frames, decoders and encoders on error, cancellation and normal completion."
+        },
+        {
+          "category": "Audio timeline parity",
+          "title": "Audio desync and pitch errors when applying speed regions",
+          "problem": "Applying speedRegions during export produced desynchronized audio or pitch-shifted output.",
+          "root_cause": "Export pipeline lacked a render path that both trimmed and preserved pitch when timeline speed edits were applied.",
+          "solution": "Provide a dedicated AudioProcessor that either performs fast trim-only re-encoding or a timeline-rendered, pitch-preserving audio render path, and integrate its outputs into the muxer."
+        },
+        {
+          "category": "Deterministic annotation rendering",
+          "title": "Exported annotation text overflow and wrapping mismatches",
+          "problem": "Annotation text in exported frames could overflow bounding boxes or wrap differently than the editor preview.",
+          "root_cause": "Export renderer used canvas-only text layout without matching the editor's wrapping/clip behavior.",
+          "solution": "Implement deterministic canvas text wrapping/clip logic for exports and ensure annotation render ordering and z-index match the editor so exported frames visually match preview."
+        },
+        {
+          "category": "API surface consistency",
+          "title": "Barrel exports must mirror new types and upstream API changes",
+          "problem": "New types (e.g. ExportQuality) added to exporter types were not re-exported from exporter/index.ts, causing inconsistent imports.",
+          "root_cause": "Barrel file not kept in sync with newly introduced/renamed types and exports.",
+          "solution": "Keep exporter index barrel consistent with exported classes/types used by other modules so imports remain stable across the codebase and tests."
+        },
+        {
+          "category": "Layout math changes",
+          "title": "Composite layout semantics changed to geometric-mean sizing",
+          "problem": "Tests and caller code depend on specific webcam size behaviors; older assumptions about fixed fractions could produce inconsistent perceived sizes across aspect ratios.",
+          "root_cause": "Sizing moved from fixed width/height fractions to a geometric-mean reference and numeric percent presets.",
+          "solution": "Consumers must expect geometric mean based sizing and clamped presets (10\u201350), and tests should assert numeric results consistent with the new formula and clamping policies."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "src/lib/exporter/frameRenderer.ts",
+          "why": "Core offscreen composition engine used by both GIF and video exporters; central to deterministic visual parity and platform-specific CPU readback logic."
+        },
+        {
+          "path": "src/lib/exporter/streamingDecoder.ts",
+          "why": "Streaming demux + WebCodecs decoder that supplies frame-accurate VideoFrame objects to the export pipeline and contains codec/parse/timeouts logic."
+        },
+        {
+          "path": "src/lib/exporter/videoExporter.ts",
+          "why": "High-level orchestrator that wires decoding, frame rendering, encoding, audio processing and muxing into final outputs; coordinates resource lifecycle and encoder retries."
+        },
+        {
+          "path": "src/lib/compositeLayout.ts",
+          "why": "Single source of truth for webcam+screen geometry used by editor preview and exporters; changes directly affect visual composition and tests."
+        },
+        {
+          "path": "src/lib/exporter/asyncVideoFrameQueue.ts",
+          "why": "Synchronization primitive that provides backpressure and failure semantics between decoders and renderers; important for preventing leaks and deadlocks in exporters."
+        }
+      ],
+      "construct_relationships": [
+        "VideoExporter and GifExporter both depend on StreamingVideoDecoder for decoded VideoFrame inputs and on FrameRenderer to produce composed canvases for encoding.",
+        "FrameRenderer depends on compositeLayout for layout geometry and uses annotationRenderer/gradientParser to draw annotations and backgrounds deterministically.",
+        "StreamingVideoDecoder supplies frames to AsyncVideoFrameQueue for webcam and main video flows; AsyncVideoFrameQueue guarantees backpressure and cleanup semantics consumed by renderers/encoders.",
+        "AudioProcessor integrates with VideoExporter and VideoMuxer to produce pitch-preserved or trimmed audio streams that are muxed with encoded video chunks.",
+        "exporter/index.ts re-exports FrameRenderer, GifExporter, VideoExporter and related types so editor UI and export UI import a single exporter API surface."
+      ],
+      "notable_relationships": [
+        "Preload/electron API and main process supply file bytes, base asset paths and platform context: exporter and assetPath modules rely on these upstream services when running in Electron versus dev server.",
+        "Renderer/editor UI (src/components/* and hooks/useScreenRecorder.ts) depend on src/lib exports to read recording sessions, compute preview layouts and request exports \u2014 changes here can break editor/export parity and UI assumptions.",
+        "Browser and CI test environments (Vitest/Playwright) exercise exporter code; some integration tests require a real browser environment and the built Electron main (e2e), so platform-specific fixes must be validated in CI and on Linux/macOS/Windows as appropriate.",
+        "Web-platform features and external WASM (WebDemuxer) and gif.js workers are external dependencies with platform-specific behaviors; changes must consider varying WebCodecs support and worker URLs in browser vs Electron."
+      ],
+      "recommendations": [
+        "When editing exporter or decoder code, preserve explicit resource cleanup: always close/destroy VideoFrame objects, decoders, encoders, muxers and ensure AsyncVideoFrameQueue fail/close paths are exercised.",
+        "Maintain and forward webcamSizePreset, cursor telemetry and other preview-deterministic inputs through exporter -> frame renderer to preserve visual parity with the editor; update tests accordingly if semantics change.",
+        "Keep platform fallbacks (CPU raster readback) and timeouts intact: validate on Linux/Wayland, macOS and Windows to avoid silent empty/green frames or hung exports.",
+        "Ensure codec initialization uses fully parameterized AV1 strings and view-aware extradata parsing; add/keep timeouts around source loading/demuxing to avoid long hangs.",
+        "Run the relevant unit and integration tests after edits: compositeLayout tests, streamingDecoder tests, gifExporter/browser integration, frameStepNavigation tests, and exporter unit tests; also run browser-based GIF integration and CI matrix where platform differences matter.",
+        "When modifying exported API shapes or types, update exporter/index.ts barrel exports so downstream modules/integration tests do not break.",
+        "Respect environments where window.electronAPI may be absent (dev server/browser tests) and avoid introducing hard Electron-only assumptions in shared lib modules.",
+        "Any change touching text/annotation rendering should be validated visually and via tests to ensure exported frames match editor rendering (wrapping, clipping, z-order)."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "src/i18n": {
+      "description": "This folder centralizes the app's internationalization assets and runtime helpers: a small configuration surface that declares supported locales and namespaces, and a loader that eagerly imports locale JSON resources and performs message lookup, interpolation and fallback. It matters because renderer UI components rely on these messages at runtime (and in tests) to render dialog text, editor labels, HUD strings and export-related messages consistently across locales.",
+      "key_behaviors": [
+        "Eagerly import and register locale JSON resource files into an in-memory messages map at startup/build time.",
+        "Look up translation keys by namespace+key with a fallback to the default locale when a key is missing for the requested locale.",
+        "Interpolate variables into message strings and provide localized human-readable names for locales.",
+        "Expose and persist locale configuration via a central DEFAULT_LOCALE/SUPPORTED_LOCALES and a storage key used by higher-level i18n contexts/UI."
+      ],
+      "insights": [
+        {
+          "category": "Configuration drift",
+          "title": "SUPPORTED_LOCALES must be updated when adding locale JSON files",
+          "problem": "New locale JSON files were added (e.g., Turkish, French) but the SUPPORTED_LOCALES constant may not reflect those files, causing the app to not advertise or use the new locales.",
+          "root_cause": "Locale addition is a two-step process: adding resource files and updating the central supported-locales configuration. That second step is easy to miss.",
+          "solution": "When adding or removing locales ensure SUPPORTED_LOCALES is updated to include the corresponding locale codes; confirm UI that enumerates locales reads this constant rather than scanning files at runtime."
+        },
+        {
+          "category": "Runtime fallback behavior",
+          "title": "Missing keys fall back to default locale",
+          "problem": "If a locale JSON omits keys present in the default locale, the UI will render the default-locale text silently, which may hide incomplete translations or create mixed-language UI.",
+          "root_cause": "Loader performs lookup with a fallback to DEFAULT_LOCALE rather than erroring or surfacing missing keys.",
+          "solution": "Be aware that adding or renaming translation keys can produce silent fallbacks; when changing keys or introducing new keys, verify translations exist for all SUPPORTED_LOCALES or accept mixed-language rendering as intended."
+        },
+        {
+          "category": "Message shape and interpolation",
+          "title": "Interpolation placeholders must match usage across codebase",
+          "problem": "Interpolation logic expects certain placeholder formats; mismatches between placeholder names in JSON and the interpolation calls in code will result in unfilled placeholders or errors in rendered strings.",
+          "root_cause": "The loader provides variable interpolation but cannot validate that all placeholders used by the UI are present in the locale strings.",
+          "solution": "When editing message strings or changing interpolation variable names, update all call sites that pass variables; confirm placeholder conventions remain consistent across locales to avoid runtime misrendering."
+        },
+        {
+          "category": "Build & bundling",
+          "title": "Locale JSONs are eagerly imported and included in bundles",
+          "problem": "Loader eagerly imports JSON resources; removing or renaming files or changing import paths can break bundling and produce runtime missing-resource errors.",
+          "root_cause": "The loader's eager import strategy bakes locale files into the built renderer bundle rather than lazily loading them.",
+          "solution": "When adding/removing/renaming locale files or changing namespace organization, ensure imports in the loader are updated and run build/test flows to confirm the files are included in production artifacts."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "src/i18n/config.ts",
+          "why": "Central source of truth for DEFAULT_LOCALE, SUPPORTED_LOCALES, i18n namespaces and the storage key that other parts of the app consult to enumerate and persist the user's locale choice."
+        },
+        {
+          "path": "src/i18n/loader.ts",
+          "why": "Runtime that imports locale JSONs, builds message maps, implements translate/getMessages/getLocaleName, interpolation, and fallback logic used by the app's i18n context and UI."
+        },
+        {
+          "path": "src/i18n/locales/en/common.json",
+          "why": "Primary common namespace for English; contains many action/playback/locale labels that are referenced across UI components and serve as the fallback content for missing translations."
+        },
+        {
+          "path": "src/i18n/locales/fr/common.json",
+          "why": "Representative of newly added French translations; changes here indicate locale additions that must be aligned with SUPPORTED_LOCALES and verified for completeness across namespaces."
+        },
+        {
+          "path": "src/i18n/locales/es/dialogs.json",
+          "why": "Dialog/export messages used in modal flows and export progress UI \u2014 these files are critical for user-facing flows and must remain in sync with keys referenced by dialog and export code."
+        }
+      ],
+      "construct_relationships": [
+        "config.ts defines DEFAULT_LOCALE, SUPPORTED_LOCALES and I18N_NAMESPACES which loader.ts uses to shape message maps and fallback lookups.",
+        "loader.ts eagerly imports locale JSON files (locales/<lang>/<namespace>.json) to build a messages map keyed by locale and namespace for translate/getMessages/getLocaleName functions.",
+        "UI components across the renderer call into the i18n context or translate helpers that expect the loader's lookup and interpolation semantics and rely on config.SUPPORTED_LOCALES to populate locale pickers.",
+        "The storage key declared in config.ts is used by higher-level i18n context or UI code to persist and restore the user's selected locale on startup."
+      ],
+      "notable_relationships": [
+        "Renderer code (components and hooks) depends on these locale resources at runtime; missing keys or unsupported locale configuration will directly affect dialogs, editor text, HUD labels, and export messages.",
+        "Build system (Vite) will bundle JSONs imported by loader.ts; any change to import patterns or file locations can impact the production artifact and E2E tests that rely on localized strings.",
+        "Tests and E2E flows may assert on specific localized text (export dialogs, error messages); changing message keys or text can break test expectations.",
+        "Locale persistence affects startup behavior: the storage key ties into app startup and user preferences modules, so renaming the key or changing persistence semantics impacts restored locale selection across sessions."
+      ],
+      "recommendations": [
+        "When adding/removing/renaming locale files, update SUPPORTED_LOCALES and confirm I18N_NAMESPACES align with the JSON namespace files; run build and browser/e2e tests to verify resources are included and used.",
+        "If changing translation keys or interpolation placeholders, search the renderer for uses of those keys and variable names to apply coordinated updates; validate via UI flows that render those messages.",
+        "Keep fallback behavior in mind: tests and UI may observe default-locale text for missing translations \u2014 verify whether fallback is acceptable or translations must be completed.",
+        "Do not change the storage key lightly; changes require migration or coordinated client-side updates because it controls persisted locale selection.",
+        "Because the loader eagerly imports JSONs, preserve import patterns or update the loader accordingly and re-run the build step to ensure JSONs are bundled into production artifacts."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "electron": {
+      "description": "This folder contains the Electron main-process entry, preload context-bridge, IPC handler registration, window factories, and small runtime support (i18n and ambient types) required to run the desktop host of the app. It is the authoritative place for OS-level concerns (files, permissions, windows, tray/menu, recordings directory and lifecycle) and for the secure surface exported to renderer code; changes here affect security, persistence and cross-process contracts with the renderer.",
+      "key_behaviors": [
+        "Expose a typed, minimal electronAPI to the renderer via the preload contextBridge that maps closely to ipcMain handlers.",
+        "Register and implement main-process IPC handlers that validate filesystem access, persist recording sessions/video files, manage current session state and cursor telemetry, and present OS dialogs.",
+        "Create and manage multiple BrowserWindow kinds (HUD overlay, editor, source selector) with platform-specific options and coordinate window lifecycle, tray/menu state and save-before-close flows.",
+        "Initialize and maintain application-level resources at startup (RECORDINGS_DIR), set up permission handlers (microphone/camera), and provide synchronous i18n lookups for main-process UI.",
+        "Guard dev vs production loading (VITE_DEV_SERVER_URL vs built index.html) and surface environment information to window creation and preload."
+      ],
+      "insights": [
+        {
+          "category": "Types / API Contract",
+          "title": "Preload and renderer type surface must match ipcMain handlers",
+          "problem": "Renderer code and other TS modules assumed methods on window.electronAPI that were not declared in the ambient types or not exposed by preload, producing type errors and runtime mismatches.",
+          "root_cause": "New IPC endpoints (startNewRecording, switchToHud, requestCameraAccess, readBinaryFile, getPlatform, etc.) were added in main/ipc but the preload exposure and electron-env.d.ts type declarations lagged behind.",
+          "solution": "Keep preload.exposeInMainWorld shape and electron-env.d.ts in sync with registered IPC handlers; any change to handler names/signatures needs a corresponding type declaration and preload surface update to preserve compile-time safety and runtime availability."
+        },
+        {
+          "category": "Security / Filesystem",
+          "title": "Path validation for file reads/writes is mandatory",
+          "problem": "Handlers originally accepted arbitrary paths for project loads, set-current-video-path and read-binary-file which allowed unvalidated file reads/writes and creation of recording sessions from unnormalized/unauthorized paths.",
+          "root_cause": "IPC handlers trusted renderer-supplied paths and did not consistently normalize or check containment within allowed directories or enforce a whitelist of acceptable extensions.",
+          "solution": "IPC handlers must canonicalize and approve file paths (isPathWithinDir, approveFilePath, approveReadableVideoPath) before performing filesystem operations; any edits must preserve or strengthen these checks to avoid path traversal and unauthorized file system access."
+        },
+        {
+          "category": "Lifecycle / Consistency",
+          "title": "Editor close/save-before-close is an asynchronous coordination point",
+          "problem": "Closing the editor to trigger a save-before-close used a force-close flag that immediately closed windows even when async save handlers were still in progress, risking inconsistent state.",
+          "root_cause": "Close flow relied on synchronous flags rather than awaiting completion of async persistence, and window lifecycle code didn't robustly coordinate the editor's save completion with the actual close operation.",
+          "solution": "Treat save-before-close as an async handshake: close flows must coordinate with editor window handlers and await or otherwise ensure persistence completion before finalizing window destruction; edits must consider this ordering to avoid races and state loss."
+        },
+        {
+          "category": "Permissions / Platform Differences",
+          "title": "Session permission handling must reflect camera and platform audio quirks",
+          "problem": "Session permission handlers omitted camera permission checks and platform-specific audio permission handling (macOS audio/workarounds), causing getUserMedia/camera and audio capture to be blocked or misprompted.",
+          "root_cause": "Permission list in the session handler was incomplete and platform-specific permission prompting/workarounds were not fully reflected in the main process flow.",
+          "solution": "Permission handlers and main process logic must include camera permission handling and platform-specific microphone/audio logic (macOS behaviors) and preserve any required prompting/workarounds so in-app media capture works reliably across platforms."
+        },
+        {
+          "category": "UI / Window Configuration",
+          "title": "HUD overlay sizing and platform-specific window options are tied to renderer UI",
+          "problem": "HUD overlay dimension choices caused clipping/overflow when the HUD UI changed (device selector grew), and macOS options must be applied conditionally.",
+          "root_cause": "Window factory used fixed HUD dimensions and earlier code omitted conditional platform spreads for macOS-only BrowserWindow options, causing layout and visual regressions on changed UI and on specific platforms.",
+          "solution": "Window creation logic must reflect the HUD/editor UI's sizing requirements and apply platform options only when relevant (isMac checks and conditional spreads); edits must keep window geometry and webPreferences aligned with renderer assumptions."
+        },
+        {
+          "category": "I18n / Localization",
+          "title": "Main-process i18n must mirror renderer locale sets",
+          "problem": "Main process i18n lacked French messages and didn't accept 'fr' as a locale, causing missing translations in main-process UI elements.",
+          "root_cause": "The main-process helper imported an incomplete whitelist of locale JSON files and did not include newly added locales used by the renderer.",
+          "solution": "Main i18n module must import renderer locale JSONs and maintain the same locale whitelist/supported set, falling back to English when keys are missing; ensure new locales added in renderer are included here."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "electron/main.ts",
+          "why": "App entry for Electron main process: bootstraps RECORDINGS_DIR, sets up tray/menu, permissions, window lifecycle and registers IPC handlers\u2014authoritative for startup and OS interactions."
+        },
+        {
+          "path": "electron/preload.ts",
+          "why": "Defines the secure contextBridge electronAPI surface consumed by renderer; must mirror ipcMain handlers and preserve typed promises/events used throughout the UI."
+        },
+        {
+          "path": "electron/ipc/handlers.ts",
+          "why": "Central registration and implementation of main-process RPC handlers that perform filesystem validation, recording session persistence, cursor telemetry sampling and OS/dialog operations."
+        },
+        {
+          "path": "electron/windows.ts",
+          "why": "Factory functions for HUD/editor/source-selector BrowserWindows with platform-specific options and dev/prod loading behavior; coordinates window placement and webPreferences used across the app."
+        },
+        {
+          "path": "electron/electron-env.d.ts",
+          "why": "Ambient TypeScript declarations for window.electronAPI, ProcessedDesktopSource and runtime env variables\u2014ties TypeScript types between main/preload/renderer and must remain in sync with IPC surface."
+        }
+      ],
+      "construct_relationships": [
+        "preload.ts exposes a window.electronAPI object whose methods map directly to ipcMain handlers registered in ipc/handlers.ts; signatures and types must align between these modules and electron-env.d.ts.",
+        "main.ts calls registerIpcHandlers (ipc/handlers.ts) and also uses windows.ts factory functions to create HUD/editor/source-selector windows; window lifecycle events (close, minimize) are mediated in main and affect IPC state (current recording session, unsaved changes).",
+        "ipc/handlers.ts uses RECORDINGS_DIR paths (concept originated/ensured by main.ts ensureRecordingsDir) to persist video binaries and RecordingSession manifests; path approval helpers (approveFilePath, isPathWithinDir) are the gatekeepers before filesystem operations.",
+        "i18n.ts is consumed by main.ts for localized strings in menus/dialogs; its JSON locale imports must remain consistent with renderer locale files to avoid translation gaps.",
+        "windows.ts loading logic branches on VITE_DEV_SERVER_URL / RENDERER_DIST and passes preload path / contextIsolation options that must match assumptions in preload.ts and renderer build outputs."
+      ],
+      "notable_relationships": [
+        "Renderer (src/) depends on window.electronAPI being present and typed correctly; changes in preload or ipc handler names/signatures directly impact renderer compilation and runtime.",
+        "E2E and Playwright tests rely on built main process artifacts (dist-electron/main.js) and the same IPC contract; modifications to startup or handler behavior can break browser/e2e tests or CI builds.",
+        "Development vs production bootstrapping: VITE_DEV_SERVER_URL toggles whether windows load dev server or built files\u2014changing load paths or preload paths affects hot-reload dev flow and packaged app behavior.",
+        "Platform-specific permission and UI behaviors (macOS audio/camera permissions, titleBarStyle/trafficLightPosition) are implemented in main and windows factories and affect cross-platform behavior; edits can cause regressions only on specific OSes.",
+        "The RECORDINGS_DIR lifecycle and path-approval logic are an upstream dependency of exporter/renderer persistence flows; any change here affects recording storage, project loading and export persistence across the app."
+      ],
+      "recommendations": [
+        "When editing IPC handlers or preload exposure: update electron-env.d.ts to keep type declarations in sync; run full TypeScript typecheck (npx tsc --noEmit) and rebuild renderer to catch mismatches.",
+        "Preserve or strengthen path canonicalization and approval checks (isPathWithinDir, approveFilePath, approveReadableVideoPath) to avoid introducing path traversal or unauthorized filesystem access; validate on both project load and set-current-video-path flows.",
+        "Any changes to editor close/save-before-close flows must account for async persistence; ensure the close handshake awaits or otherwise coordinates with renderer save completion to avoid race conditions.",
+        "If altering window geometry, HUD size or webPreferences, verify renderer HUD/editor UI dimensions and macOS-specific option application; test on relevant platforms (macOS/Windows/Linux) to detect layout or permission regressions.",
+        "Keep main-process i18n locale list synchronized with renderer locale JSONs; include fallbacks and test localized menus/dialogs for newly added locales.",
+        "Run unit tests, browser vitest suites and e2e Playwright tests (including build artifacts where required) after changes; CI uses specific Node version and build steps\u2014validate locally with npm ci and the same scripts as CI (test:browser:install, test:browser, build).",
+        "Avoid renaming IPC channels or methods without changing both sides (ipc/handlers.ts and preload.ts) and updating all renderer usages; search for event/channel names (e.g., 'hud-overlay-hide', save-before-close) to ensure consistent connectivity.",
+        "Maintain explicit webPreferences in BrowserWindow factories (preload path, contextIsolation, nodeIntegration) to preserve the security model; any change requires verifying renderer assumptions and tests that exercise functionality behind the contextBridge."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "src": {
+      "description": "The src folder contains the renderer-side React application and its UI/hook/library pieces that implement the recording HUD, source selection, the full video editor, playback/rendering via PixiJS, timeline editing, export UI, and client-side recording orchestration. It is the main UI surface: components here coordinate user interactions, local media capture/processing, project serialization, and calls out to the Electron main process via the contextBridge (window.electronAPI), so changes here must preserve IPC contracts, data shapes, and real-time playback/export invariants.",
+      "key_behaviors": [
+        "Window-type driven renderer bootstrap: App chooses HUD, Source Selector, or Editor entry UI and performs global initialization (fonts, backgrounds, transparency).",
+        "Recording lifecycle management: HUD and hooks manage start/pause/resume/stop/restart/cancel flows, media mixing (system audio + mic), and persistence via electron API.",
+        "Source selection flow: fetch desktop capture sources, render selectable thumbnails, and send selection to main process.",
+        "Editor orchestration: load/normalize project or recording session, manage undo/redo history, timeline editing (zoom/trim/speed/annotation), preview playback via PixiJS, and export initiation/monitoring.",
+        "Export/render pipeline integration: editor coordinates with exporter subsystems (multi-phase GIF/MP4), surfaces progress/errors to the user, and invokes reveal/save IPC actions."
+      ],
+      "insights": [
+        {
+          "category": "Accessibility & Focus",
+          "title": "Focusable elements must exist in dynamic HUD panels",
+          "problem": "When the webcam panel expands but no camera devices exist, keyboard users had no focusable control in that area, breaking keyboard navigation and accessibility.",
+          "root_cause": "Conditional rendering of device panels left regions without tabbable elements when device lists were empty.",
+          "solution": "Ensure each interactive panel always contains at least one focusable/control element (e.g., a placeholder button or link) when visible; when removing or moving elements, preserve keyboard focus order and focusable fallbacks."
+        },
+        {
+          "category": "Recording lifecycle & cancellation",
+          "title": "Cancel/discard must reliably prevent persistence and auto-finalize",
+          "problem": "Users had no reliable way to cancel an in-progress recording; auto-finalize logic could persist a partial/undesired recording after cancel or pause/resume edge cases produced wrong durations.",
+          "root_cause": "Recording state and auto-finalize logic relied on recorder.state and segmented duration calculations that didn't account for pause/resume and cancellation flags.",
+          "solution": "Maintain explicit cancel/discard state through the recording lifecycle and ensure finalize logic checks that state; compute durations from recorded segments rather than recorder.state when pause/resume exists, and make cancel idempotent so persistence is skipped when discard is requested."
+        },
+        {
+          "category": "Export UX & multi-phase progress",
+          "title": "Exports (especially GIF) are multi-phase and need explicit UI phases",
+          "problem": "The export UI assumed a single percentage progress model; GIF export includes separate phases (render frames, then compile) and earlier UI could reset/lose exported path too early.",
+          "root_cause": "Simplified progress model in ExportDialog and tight coupling of exportedFilePath lifecycle to export completion.",
+          "solution": "Treat export as multi-phase in UI models: surface phase-specific progress, retain exportedFilePath until user action or explicit cleanup, and provide reveal-in-folder action only when path is stable. When wiring exporters, expose phase markers and percent values so UI can map them consistently."
+        },
+        {
+          "category": "Project schema & backwards compatibility",
+          "title": "Project file schema changed; normalization is required for legacy files",
+          "problem": "Project schema evolved (version bump, videoPath -> media object with screen/webcam), and naive loads or snapshots produced type/validation errors and incorrect unsaved-change detection.",
+          "root_cause": "Multiple legacy project shapes remain on disk; save/load routines and snapshot diffing expected canonical shapes without forcing normalization.",
+          "solution": "Centralize normalization/validation at load and before saving: convert legacy fields into canonical media objects, clamp numeric fields, and ensure createProjectSnapshot always receives normalized editor state. Maintain stable versioning and migration pathways so other modules can assume a single canonical shape."
+        },
+        {
+          "category": "Playback synchronization & renderer defaults",
+          "title": "Pixi playback and webcam overlay must stay in sync and share transform params",
+          "problem": "Webcam overlay could drift relative to main video when speed regions are applied; motion blur default mismatches caused preview/export differences.",
+          "root_cause": "Playback logic handled main video and webcam elements separately and exported defaults (e.g., motionBlurEnabled) differed from preview defaults; webcam size preset value changes introduced inconsistent numeric expectations across layout code.",
+          "solution": "Ensure VideoPlayback synchronizes playbackRate/seek/play/pause across all source elements and that layout math consumes the same numeric webcam size preset type everywhere. Keep preview/export default flags aligned (e.g., motionBlur) or explicitly document differences so export is deterministic."
+        },
+        {
+          "category": "Timeline interactions & performance",
+          "title": "High-frequency drag/resize must avoid React churn and respect neighbor clamping",
+          "problem": "Dragging/resizing timeline items caused janky re-renders and edits could be rejected without helpful feedback; tooltip/feedback needed to be high-performance.",
+          "root_cause": "High-frequency events were routed through React state and there was no dedicated, low-overhead UI path for live drag feedback; clamping/snapping logic ran on every intermediate event with heavy computations.",
+          "solution": "Keep live drag/resize UI on direct DOM updates or isolated fast-path rendering and only emit final values via React on drag end. Centralize neighbor clamping rules in the timeline wrapper so that drag feedback and final validation use identical logic to avoid confusing rollbacks."
+        },
+        {
+          "category": "API contract & async formatting",
+          "title": "Shortcuts and IPC calls rely on async formatting and presence of electronAPI",
+          "problem": "Some UI assumed synchronous formatting of shortcut labels and always-available electronAPI, causing problems in pure-browser dev/test environments and requiring asynchronous component patterns.",
+          "root_cause": "FormatShortcut moved to async and some components called it synchronously; renderer components also directly call window.electronAPI without defensive guards.",
+          "solution": "Treat formatting utilities as potentially async in components that render shortcut labels and guard electronAPI calls with feature-detection/fallback paths; when editing code that consumes these contracts, preserve async handling and fallbacks for non-Electron contexts."
+        },
+        {
+          "category": "Component API drift",
+          "title": "Prop signature and enum type changes must be propagated",
+          "problem": "CropControl and webcam size presets underwent signature/type changes (aspectRatio removed; webcam preset from enum->numeric), breaking callers and layout consumers.",
+          "root_cause": "Incremental refactors modified component props and shared types without updating all callers or the layout/export pipelines that depended on previous shapes.",
+          "solution": "When a component or type changes, update all call sites and derived utilities (layout utils, exporter inputs) to consume the new signature. Treat these changes as cross-cutting: audit usages in editor, playback, exporter, settings, and persistence code to ensure consistent assumptions about shape and units."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "src/App.tsx",
+          "why": "Renderer entry that selects window mode (HUD, SourceSelector, Editor) and performs global initialization (fonts, backgrounds, transparency) which affects all UI behavior."
+        },
+        {
+          "path": "src/components/video-editor/VideoEditor.tsx",
+          "why": "Central coordinator for editor state: loads projects/sessions, manages undo/redo, triggers exports, and mediates IPC interactions for saving and switching windows."
+        },
+        {
+          "path": "src/components/video-editor/VideoPlayback.tsx",
+          "why": "Contains PixiJS setup and the runtime playback/rendering logic (main video + webcam overlay, transforms, speed/trim handling) relied on by preview and exporter."
+        },
+        {
+          "path": "src/hooks/useScreenRecorder.ts",
+          "why": "Encapsulates the recording lifecycle, media merging and persistence; changes here affect HUD behavior, finalize/cancel logic, and artifact generation."
+        },
+        {
+          "path": "src/components/video-editor/projectPersistence.ts",
+          "why": "Normalizes and serializes project files and media paths; it is the canonical place for schema migration and must be consulted when saving/loading projects or changing project data shapes."
+        }
+      ],
+      "construct_relationships": [
+        "VideoEditor uses useEditorHistory to manage undo/redo checkpoints and coalesced live updates.",
+        "VideoEditor composes VideoPlayback for preview rendering; VideoPlayback relies on layoutUtils.layoutVideoContent to compute PIXI transforms and masks.",
+        "TimelineWrapper provides domain clamping/snapping rules consumed by TimelineEditor and Item components; Item uses dnd-timeline hooks wired by TimelineWrapper.",
+        "LaunchWindow and SourceSelector invoke window.electronAPI (preload) to request sources, start recordings, open files and switch to Editor; useScreenRecorder finalizes and persists recordings via electronAPI.",
+        "ExportDialog is driven by export pipeline state produced by VideoEditor when it orchestrates src/lib exporter routines; exportedFilePath is revealed via electronAPI reveal-in-folder."
+      ],
+      "notable_relationships": [
+        "Renderer components rely on electron preload contextBridge (window.electronAPI) for filesystem, source selection, recording control and reveal-in-folder \u2014 edits must preserve IPC names/semantics expected by the main process handlers.",
+        "Export and playback features depend on src/lib utilities (exporter, muxer, layout math) \u2014 changes to playback props or layout math must remain compatible with exporter input expectations for deterministic export parity.",
+        "i18n assets and async formatting utilities are consumed across UI (shortcuts help, export messages); changing keys or formatting behavior affects many components and tests.",
+        "E2E and browser tests expect certain files (built dist-electron/main.js) and renderer behaviors \u2014 edits that affect IPC or build-time assumptions can break CI/playwright tests.",
+        "Project file versioning and path handling interacts with filesystem differences across platforms (file:// URL transformation and Windows UNC handling), so persistence changes have cross-OS impact."
+      ],
+      "recommendations": [
+        "Preserve IPC surface: do not rename or remove window.electronAPI methods or change return shapes without updating preload/main IPC handlers and consumers across components.",
+        "Audit and update all call sites when modifying public component props or shared types (CropControl, webcam size preset, VideoPlayback API, formatShortcut) \u2014 these changes are cross-cutting across editor, settings, playback, and exporter.",
+        "When modifying project persistence or schema, update normalization/migration in projectPersistence.ts and ensure createProjectSnapshot receives normalized in-memory state to keep unsaved-change detection stable.",
+        "Respect real-time constraints: keep high-frequency drag/resize and playback loops off the main React render path (use refs/direct DOM updates or fast-path renderers like Pixi) and ensure finalization emits React state updates only at boundaries.",
+        "Maintain accessibility/focus fallbacks when adding/removing interactive panels; ensure keyboard focus order and tabbable elements are present even when device lists are empty.",
+        "When changing recording logic, ensure finalize/cancel idempotency and recompute durations from recorded segments to avoid pause/resume edge-case bugs; also validate media merging assumptions for audio tracks.",
+        "Run the full local test/build matrix after changes: biome lint, TypeScript typecheck (npx tsc --noEmit), unit/browser tests (npm run test, npm run test:browser:install && npm run test:browser), and vite build to catch integration issues with exporter and PIXI code.",
+        "Guard renderer code that may run in non-Electron contexts (vite dev server or browser tests) with electronAPI feature detection and preserve async formatting patterns used by shortcuts and i18n consumers."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "public": {
+      "description": "This folder holds static assets that are packaged and served to the renderer at runtime. Its primary role is to ship a compiled WebAssembly demuxer binary that the app's media decoding and export pipelines instantiate to parse media streams efficiently, so its presence, path, and integrity directly affect export/decoding functionality.",
+      "key_behaviors": [
+        "Served as a static public asset (root-relative URL) to renderer processes and dev server.",
+        "Fetched and instantiated (via WebAssembly APIs) by media/exporter/decoder modules during export or playback initialization.",
+        "Packaged into production build outputs (dist/distro installers) and must be available with correct MIME/CORS behavior for instantiate/streaming APIs.",
+        "Treated as a binary artifact: updates replace the compiled module and may require coordinated changes in consumers."
+      ],
+      "insights": [
+        {
+          "category": "Packaging & Distribution",
+          "title": "WASM must be present in production builds",
+          "problem": "If the WASM file is missing from the packaged app or from the dist output, media decoding/export will fail at runtime.",
+          "root_cause": "Static public assets are sometimes excluded from build pipelines or installer packaging steps if not referenced correctly or if build configuration excludes the public path.",
+          "solution": "Ensure build and packaging steps include public/wasm/web-demuxer.wasm and validate its presence in the final dist and installer payloads; tests that exercise export should be run against built artifacts to catch omissions."
+        },
+        {
+          "category": "Path resolution & runtime loading",
+          "title": "Loader expects a known public path and network-accessible URL",
+          "problem": "Incorrect path resolution (dev vs production, Vite dev server base, or Electron file:// paths) causes failed fetch/instantiate calls.",
+          "root_cause": "Consumers typically fetch '/wasm/web-demuxer.wasm' or compute a path via asset helpers; differences between dev server roots and packaged app file locations break those assumptions.",
+          "solution": "When modifying code that computes asset paths or moving assets, update all consumers and verify both dev and packaged runtime paths. Validate loader behavior for both Vite dev server and file://-based Electron environments."
+        },
+        {
+          "category": "Initialization & Performance",
+          "title": "WASM instantiation expectations",
+          "problem": "Consumers may assume streaming instantiation or synchronous availability; failing to account for async instantiation can cause race conditions or degraded performance.",
+          "root_cause": "WASM is a compiled binary that must be fetched and instantiated asynchronously; some environments support instantiateStreaming while others do not.",
+          "solution": "Consumers must handle both instantiateStreaming and fallback instantiation paths, and should be tested to ensure startup flows that depend on the demuxer tolerate async init or provide sensible fallbacks."
+        },
+        {
+          "category": "Security & Integrity",
+          "title": "Binary integrity and execution environment",
+          "problem": "A corrupted or tampered WASM binary can cause runtime errors or security risks; content serving (MIME/CORS) may prevent instantiation.",
+          "root_cause": "Binaries delivered as static assets can be altered during packaging/publishing, or served with incorrect headers preventing instantiateStreaming.",
+          "solution": "Treat the file as a guarded binary artifact: verify build-time inclusion, ensure correct server MIME/CORS headers for production contexts, and consider integrity checks in consumers if the runtime requires high assurance."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "public/wasm/web-demuxer.wasm",
+          "why": "Compiled WebAssembly demuxer used by the renderer's media decoding and export pipelines; must be present, reachable, and correct for export/decoding to work."
+        }
+      ],
+      "construct_relationships": [
+        "Renderer exporter/decoder modules (e.g., streamingDecoder, videoExporter, gifExporter) fetch and instantiate public/wasm/web-demuxer.wasm at runtime to parse media streams.",
+        "Asset path helpers in the renderer (assetPath or similar) resolve the public root to produce the URL used to fetch the WASM file; mismatches break loading.",
+        "Build/packaging pipeline (Vite, electron-builder) places the public folder contents into the final dist/installer bundles, making the WASM available to Electron/renderer processes via file:// or app:// URLs."
+      ],
+      "notable_relationships": [
+        "Dev vs Production: Vite dev server serves public/wasm/web-demuxer.wasm at a root-relative URL, while packaged Electron apps access the file via file:// or bundled resource locations\u2014both must remain consistent.",
+        "CI/Build: The WASM must be included in build artifacts produced by the CI and build workflows (vite build, electron-builder) so Playwright/Vitest e2e and export tests run against real demuxer behavior.",
+        "Tests: Browser and E2E tests that exercise export functionality depend on the WASM being present in test fixtures or built outputs; missing binary causes test failures."
+      ],
+      "recommendations": [
+        "When editing or relocating files, ensure any change preserves the public path and packaging inclusion so consumers can fetch the WASM in both dev and packaged environments.",
+        "After modifying or replacing the WASM binary, verify consumers' instantiation code still works (instantiateStreaming vs fallback) and run export/playback tests in both dev server and packaged app contexts.",
+        "Check build outputs and installer payloads to confirm the WASM file is present and has correct permissions; validate MIME/CORS behavior where applicable.",
+        "Be aware that this is a compiled artifact\u2014do not attempt to read/modify it as source. Coordinate any ABI/behavioral changes with the modules that consume it so they remain compatible."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    "tests": {
+      "description": "This folder contains end-to-end tests that validate the full Electron app runtime (main + preload + renderer) in a CI-like headless environment. These tests exercise real application flows \u2014 launching the built main process, loading test assets, invoking UI-driven export flows, and verifying produced artifacts \u2014 so they act as integration-level guards against changes that break cross-process behavior or CI execution assumptions.",
+      "key_behaviors": [
+        "Start a built Electron main process and connect to it using Playwright to drive renderer windows.",
+        "Inject or load a sample recording into the app and exercise the UI flow that opens the editor and triggers a GIF export.",
+        "Intercept the IPC-based save/export handshake between renderer and main to capture the produced bytes without relying on the host filesystem.",
+        "Validate produced binary artifacts (a GIF) for correctness to ensure exporter + renderer produce expected outputs in a headless CI environment.",
+        "Apply CI-specific environment/workarounds (software WebGL via SwiftShader) and guard against fast window lifecycle events that can close Playwright page contexts."
+      ],
+      "insights": [
+        {
+          "category": "Window lifecycle / test stability",
+          "title": "Playwright page context can be invalidated when HUD/editor windows close quickly",
+          "problem": "hudWindow.evaluate calls sometimes throw because the underlying Playwright page is closed earlier than the test expects after switching windows.",
+          "root_cause": "Editor/HUD window transitions in the app close renderer pages faster than the test's synchronous calls anticipate, terminating the Playwright page context mid-evaluation.",
+          "solution": "Tests must guard against closed page contexts (catch/handle evaluate failures) or sequence interactions to account for rapid window closes; test authors and code editors must be aware that changes to window lifecycle timings can break tests."
+        },
+        {
+          "category": "CI graphics compatibility",
+          "title": "Headless CI can produce invalid WebGL framebuffers unless software rendering is forced",
+          "problem": "PixiJS-based pixel reads used by the GIF export pipeline failed in CI, causing exports to hang or produce invalid output.",
+          "root_cause": "Hardware/driver differences in headless CI environments prevent reliable GPU-backed WebGL framebuffers; browser/Electron in CI requires a software GL fallback for deterministic framebuffer behavior.",
+          "solution": "CI tests force software WebGL (e.g., SwiftShader) to ensure stable framebuffers; maintain any flags or environment variables the tests set to enable software rendering in CI contexts."
+        },
+        {
+          "category": "Export pipeline integration",
+          "title": "End-to-end verification requires exercising renderer + main IPC",
+          "problem": "Unit tests alone cannot validate that the renderer exporter and the main process save/export IPC integration produce a valid file on disk.",
+          "root_cause": "The GIF export path spans renderer-only code (frame rendering, encoding) and main-side persistence via IPC; faults can occur only when both sides interact.",
+          "solution": "E2E tests load a sample recording, run the real export pipeline, and intercept the save IPC to capture output for validation; any edits that change IPC channel names, export flow, or file-signature expectations must preserve compatibility with these tests or update them accordingly."
+        },
+        {
+          "category": "Filesystem / artifact capture in CI",
+          "title": "Tests intercept save IPC to capture export instead of relying on filesystem",
+          "problem": "Directly reading files written to disk can be flaky or restricted in CI sandboxes; filesystem paths and timing can vary.",
+          "root_cause": "CI environments may not provide a stable location or consistent timing guarantees for file writes from the Electron main process.",
+          "solution": "The test intercepts the main-side save IPC to get the exported bytes in-process and validate them; maintain IPC hook compatibility and ensure any changes to save/export handlers continue to support interception semantics used by the tests."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "tests/e2e/gif-export.spec.ts",
+          "why": "Primary Playwright E2E test that launches the built Electron app, loads a sample video, triggers GIF export, intercepts save IPC, and asserts the resulting GIF is well-formed; encodes the folder's integration expectations and CI workarounds."
+        }
+      ],
+      "construct_relationships": [
+        "Playwright test launches the compiled Electron main (MAIN_JS) and attaches to renderer windows to drive UI interactions.",
+        "Test injects or places TEST_VIDEO into the app's recordings area, causing the renderer/editor to load that recording for export.",
+        "Exporter code in the renderer renders frames (PixiJS/WebGL) and encodes GIF data, then uses the preload/contextBridge IPC to request the main process to save the exported bytes.",
+        "The test intercepts the main-side save IPC handler to capture the exported bytes synchronously for validation, avoiding reliance on filesystem timing.",
+        "Rapid window switching from HUD -> Editor closes the Playwright page context; test interactions must account for the app closing or replacing renderer windows."
+      ],
+      "notable_relationships": [
+        "Relies on the built artifact path for the Electron main (dist-electron/main.js or configured MAIN_JS), so the test depends on successful build outputs produced by CI/build steps.",
+        "Depends on IPC channel names and payload shapes exposed by preload/main (save/export handlers); any change to these channels in main/preload must be reflected in the test.",
+        "Tightly coupled to the renderer export pipeline (PixiJS/WebGL behaviors) and therefore to environment flags that enable software GL (SwiftShader) for CI; changes to rendering stack or how frames are read can break the test.",
+        "Uses a sample test video asset; moving or renaming that asset, or changing how recordings are discovered/loaded, will affect the test."
+      ],
+      "recommendations": [
+        "When editing code that affects window creation, switching, or close timing (HUD/editor flows), verify E2E tests because Playwright can observe closed page contexts and fail if windows close faster or with different lifecycles.",
+        "Do not rename or change payload formats or channel names of IPC handlers used for exporting/saving without updating this test's interception points; maintain backward-compatible handler behavior or update tests accordingly.",
+        "If changing the export pipeline (frame rendering, PixiJS usage, or encoder outputs), run the e2e GIF export test in an environment that matches CI (software WebGL forced) to validate produced artifacts.",
+        "Ensure CI/build produces the expected MAIN_JS artifact path and that test setup steps (forcing SwiftShader or equivalent) remain intact; changes to build output layout may require updating test launch paths.",
+        "Keep the sample TEST_VIDEO in place or update tests to locate the new path; tests assume a specific test asset is loadable into the app recordings area."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    },
+    ".": {
+      "description": "This repository root contains the full Electron + React desktop application: main-process runtime, preload context bridge, renderer UI (HUD, source selector, video editor) and export/serialization pipelines. It glues OS-level concerns (files, permissions, windows, tray) to a typed, sandboxed renderer API and provides project persistence and media export functionality; changes here affect cross-process contracts, persisted project schema, and platform-specific behavior.",
+      "key_behaviors": [
+        "Secure RPC surface: the preload contextBridge exposes a typed electronAPI that maps to ipcMain handlers in the main process; renderer code invokes these methods for filesystem, dialogs, recording lifecycle, and session state.",
+        "Window lifecycle and mode selection: the main process creates multiple BrowserWindow types (HUD overlay, source selector, editor); the renderer reads windowType to render the correct UI and the main process coordinates switching between windows (including switchToHud / switchToEditor flows).",
+        "Recording lifecycle and persistence: HUD + hooks start/pause/resume/stop/cancel recordings; main persists video binaries and RecordingSession manifests into RECORDINGS_DIR and validates/normalizes incoming media paths.",
+        "Editor orchestration and export: VideoEditor loads/normalizes projects via projectPersistence, drives playback (VideoPlayback), triggers export/gif pipelines, and relies on the main process to save exported files and reveal them in the OS.",
+        "Cross-platform and platform-specific handling: code contains macOS-specific permission and window options, Linux/PipeWire considerations for audio capture, and explicit dev vs production loading behavior for VITE_DEV_SERVER_URL."
+      ],
+      "insights": [
+        {
+          "category": "Security & IPC Validation",
+          "title": "Prevent path traversal and unauthorized file access via IPC",
+          "problem": "IPC handlers historically accepted arbitrary file paths (project/video imports and read-binary-file) and set current video paths without normalization, enabling reads/writes outside expected directories or creation of unsafe paths.",
+          "root_cause": "Renderer-originated file path inputs were forwarded to main without sufficient normalization/whitelisting and project load did not validate referenced media paths.",
+          "solution": "Maintain and respect centralized path approval/normalization utilities (approveFilePath, isPathWithinDir, isPathAllowed, approveReadableVideoPath) in ipc handlers; any change touching project load, set-current-video-path, readBinaryFile, or storeRecordedSession must preserve validation checks and path normalization to avoid directory traversal and unauthorized access."
+        },
+        {
+          "category": "API Contract & Types",
+          "title": "Preload, ipc handlers and ambient types must stay in sync",
+          "problem": "New IPC methods (e.g., startNewRecording, getPlatform, requestCameraAccess) were added but their typings in electron-env.d.ts or exposure in preload.ts lagged, causing type errors or missing runtime APIs in renderer.",
+          "root_cause": "The contextBridge surface and ambient TypeScript declarations are separate artifacts that can fall out of sync when adding new main-process handlers or renderer consumers.",
+          "solution": "Treat electron/preload.ts, electron/ipc/handlers.ts and electron/electron-env.d.ts as a single contract; any addition/removal of electronAPI methods requires coordinated updates across these files so renderer types and runtime exposure remain aligned."
+        },
+        {
+          "category": "Window Lifecycle & Save-before-close",
+          "title": "Window switching and save-before-close must coordinate async saves and force-close behavior",
+          "problem": "Editor close flow used a global force-flag that immediately closed windows while async save handlers were running, risking inconsistent state or lost saves when switching between editor and HUD.",
+          "root_cause": "Synchronous close flows assumed immediate completion of save actions; window lifecycle code did not await or coordinate async persistence before finalizing close/switch.",
+          "solution": "Ensure main process window lifecycle (create/switch/close) coordinates with renderer save hooks (onRequestSaveBeforeClose) and that any forced close path does not preempt asynchronous save/persist operations. Preserve the pattern used to prompt and wait for renderer save commits when editing window-close flows."
+        },
+        {
+          "category": "Project Persistence & Backward Compatibility",
+          "title": "Project schema normalization and path resolution are required when loading legacy projects",
+          "problem": "Project files changed schema (version bump where videoPath => media object with screenVideoPath/webcamVideoPath); earlier loads could set current recording session from project JSON without validating referenced media paths or normalizing legacy formats.",
+          "root_cause": "Project file format evolution introduced new fields and structures; loading code assumed new schema or directly trusted file paths embedded in project JSON.",
+          "solution": "Rely on projectPersistence normalize/validate utilities (validateProjectData, resolveProjectMedia, toFileUrl/fromFileUrl, createProjectSnapshot) whenever parsing or saving projects. Maintain version-aware loading that migrates legacy fields to the canonical in-memory shape and validates media file accessibility before setting current recording session."
+        },
+        {
+          "category": "Playback & Export Consistency",
+          "title": "Webcam overlay and speed/trim regions must remain synchronized between preview and exporter",
+          "problem": "Webcam overlay could drift relative to main video when speedRegions are applied; motionBlur defaults and webcam size presets were not consistently propagated causing mismatches between preview and exported output.",
+          "root_cause": "Playback component and exporter pipeline did not share all runtime parameters (webcamSizePreset, speed synchronization, motionBlur settings) in a single source of truth; defaults differed between preview and export code paths.",
+          "solution": "When editing playback/export logic, preserve explicit propagation of webcamSizePreset, playbackRate/speed-region handling, and motionBlurEnabled flags from editor state into VideoPlayback and exporter modules so preview and export render consistently."
+        },
+        {
+          "category": "UI Layout & Platform Differences",
+          "title": "HUD/SourceSelector sizes and keyboard focus must account for updated UI and accessibility",
+          "problem": "HUD and source selector panels were clipped/overflowed after UI redesigns; keyboard focus was missing in webcam panel when no devices existed, and default tab selection on Linux could be non-intuitive.",
+          "root_cause": "Window factory sizes and component layout assumptions (full-height vs absolute positioning) diverged from new UI content height and behavior; accessibility focus management and default tab logic were not updated alongside UI changes.",
+          "solution": "Keep window size/positioning in electron/windows.ts aligned with the HUD and SourceSelector UI dimensions; ensure renderer components provide focusable fallbacks for empty states and sensible defaults for platform-specific source lists (e.g., default to windows when no screen sources exist)."
+        }
+      ],
+      "key_files": [
+        {
+          "path": "electron/main.ts",
+          "why": "Central app lifecycle, recordings directory bootstrapping, window creation/switching, menu/tray and coordination for save-before-close and permissions \u2014 edits here affect process-level behavior and security."
+        },
+        {
+          "path": "electron/preload.ts",
+          "why": "Defines the renderer-facing electronAPI surface; must mirror ipc handlers and TypeScript ambient declarations to keep runtime and compile-time contracts aligned."
+        },
+        {
+          "path": "electron/ipc/handlers.ts",
+          "why": "Implements filesystem access, recording session persistence, dialog gating, and cursor telemetry; this is the authoritative place for path validation and main-side business rules invoked by the renderer."
+        },
+        {
+          "path": "src/components/video-editor/VideoEditor.tsx",
+          "why": "Orchestrates project load/save, editor state initialization, export flows and coordination with main (unsaved state), and propagates features like webcamSizePreset \u2014 changes impact editor-export-preview consistency."
+        },
+        {
+          "path": "src/components/video-editor/VideoPlayback.tsx",
+          "why": "Per-frame rendering and synchronization of video + webcam overlays (PixiJS), speed/trim application and playback state that must stay consistent with exporter and UI state."
+        }
+      ],
+      "construct_relationships": [
+        "electron/preload.ts exposes window.electronAPI methods that invoke ipcMain handlers registered in electron/ipc/handlers.ts; the shape must match electron/electron-env.d.ts ambient types used by the renderer.",
+        "electron/main.ts uses electron/windows.ts factories to create HUD, editor and source-selector BrowserWindows; the renderer reads windowType from the page URL (App.tsx) to render the corresponding root UI.",
+        "Renderer VideoEditor uses electronAPI (preload) to load/save projects and to start exports; projectPersistence normalizes project JSON and is relied upon by VideoEditor before invoking IPC to persist files.",
+        "VideoPlayback consumes editor state (webcamSizePreset, speedRegions, motionBlur flags) and must stay synchronized with exporter pipeline (src/lib/exporter/*) to ensure exported artifacts match preview.",
+        "Playwright tests depend on built artifacts produced by the build process (dist-electron/main.js and public assets) and drive the app end-to-end, exercising main + preload + renderer interactions."
+      ],
+      "notable_relationships": [
+        "public/ assets (including WASM demuxer) are consumed by exporter/decoder modules; build/packaging must include these assets for export/playback to function in CI and packaged apps.",
+        "tests/e2e and Playwright config launch the built main process (dist-electron/main.js) \u2014 changes to main process entry, preload API, or packaging can break CI e2e unless builds and test install steps are updated.",
+        "CI and build workflows assume a pinned Node/npm engine (Node 22), VITE_DEV_SERVER_URL dev behavior, and electron-builder native dependency installation; local environment mismatches can produce different runtime behavior.",
+        "Localization: electron/i18n.ts is used by the main process and must mirror the renderer's JSON locales; adding locales requires coordinating messages in both places for consistent UI text in dialogs/menus."
+      ],
+      "recommendations": [
+        "Keep main/preload/ambient type declarations synchronized: when adding/removing IPC methods update electron/ipc/handlers.ts, electron/preload.ts and electron/electron-env.d.ts together.",
+        "Preserve and exercise path-approval and normalization logic in ipc handlers whenever modifying file I/O, project load/save, set-current-video-path or readBinaryFile flows to avoid traversal or unauthorized access.",
+        "When altering window creation, HUD sizes, or source selector layout, update electron/windows.ts sizing options to match UI dimensions and run renderer UI to verify no clipping or focus regressions.",
+        "When editing editor/playback/export code, ensure webcamSizePreset, playbackRate/speedRegions, and motionBlur flags are consistently propagated between VideoEditor, VideoPlayback and exporter modules so preview and exported outputs match.",
+        "Run the full verification set after cross-cutting changes: biome lint, TypeScript typecheck (npx tsc --noEmit), unit/browser tests (npm run test and npm run test:browser:install && npm run test:browser), and Playwright e2e against a built main process (CI build steps) to catch contract or packaging regressions.",
+        "Respect platform-specific permission and packaging behaviors (macOS microphone/camera prompts, PipeWire on Linux, VITE_DEV_SERVER_URL dev vs production paths) when modifying code that touches permissions, audio capture, or file packaging."
+      ],
+      "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+    }
+  },
+  "metadata": {
+    "generated_at": "2026-04-08T13:27:25Z",
+    "total_folders": 9,
+    "generated_at_commit": "e7d5f51740dda13b90c5662bcf5ec8c4fa144311"
+  }
+}
