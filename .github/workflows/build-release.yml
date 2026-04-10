@@ -2,7 +2,7 @@ name: Build & Release DemoFlow
 
 on:
   release:
-    types: [created]   # Triggers when you publish a new GitHub Release
+    types: [created]
 
 jobs:
   build-windows:
@@ -20,20 +20,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows (NSIS installer)
+      - name: Build Windows
         run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows artifact
-        uses: actions/upload-release-asset@v1
+      - name: Upload Windows build to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Windows-Setup-${{ github.event.release.tag_name }}.exe
-          asset_name: DemoFlow-Windows-Setup-${{ github.event.release.tag_name }}.exe
-          asset_content_type: application/octet-stream
 
   build-mac:
     runs-on: macos-latest
@@ -50,30 +47,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS (DMG)
+      - name: Build macOS
         run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Mac x64 artifact
-        uses: actions/upload-release-asset@v1
+      - name: Upload Mac builds to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Mac-x64-${{ github.event.release.tag_name }}-Installer.dmg
-          asset_name: DemoFlow-Mac-x64-${{ github.event.release.tag_name }}-Installer.dmg
-          asset_content_type: application/octet-stream
-
-      - name: Upload Mac arm64 artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Mac-arm64-${{ github.event.release.tag_name }}-Installer.dmg
-          asset_name: DemoFlow-Mac-arm64-${{ github.event.release.tag_name }}-Installer.dmg
-          asset_content_type: application/octet-stream
 
   build-linux:
     runs-on: ubuntu-latest
@@ -95,17 +79,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rpm fakeroot dpkg
 
-      - name: Build Linux (AppImage)
+      - name: Build Linux
         run: npm run build:linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Linux artifact
-        uses: actions/upload-release-asset@v1
+      - name: Upload Linux build to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Linux-${{ github.event.release.tag_name }}.AppImage
-          asset_name: DemoFlow-Linux-${{ github.event.release.tag_name }}.AppImage
-          asset_content_type: application/octet-stream
