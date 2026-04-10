@@ -71,6 +71,18 @@ export const FIXED_SHORTCUTS: FixedShortcut[] = [
 		display: "→",
 		bindings: [{ key: "arrowright" }],
 	},
+	{
+		i18nKey: "largeFrameBack",
+		label: "Large Frame Back",
+		display: "Shift + ←",
+		bindings: [{ key: "arrowleft", shift: true }],
+	},
+	{
+		i18nKey: "largeFrameForward",
+		label: "Large Frame Forward",
+		display: "Shift + →",
+		bindings: [{ key: "arrowright", shift: true }],
+	},
 ];
 
 export type ShortcutConflict =

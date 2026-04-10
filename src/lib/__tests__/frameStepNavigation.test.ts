@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFrameStepTime, FRAME_DURATION_SEC } from "@/lib/frameStep";
+import {
+	computeFrameStepTime,
+	FRAME_DURATION_SEC,
+	LARGE_FRAME_DURATION_SEC,
+} from "@/lib/frameStep";
 
 describe("computeFrameStepTime", () => {
 	const duration = 10;
@@ -38,5 +42,15 @@ describe("computeFrameStepTime", () => {
 	it("handles duration of 0 gracefully", () => {
 		expect(computeFrameStepTime(0, 0, "forward")).toBe(0);
 		expect(computeFrameStepTime(0, 0, "backward")).toBe(0);
+	});
+
+	it("moves forward by a large step when isFast is true", () => {
+		const result = computeFrameStepTime(5, duration, "forward", true);
+		expect(result).toBeCloseTo(5 + LARGE_FRAME_DURATION_SEC, 10);
+	});
+
+	it("moves backward by a large step when isFast is true", () => {
+		const result = computeFrameStepTime(5, duration, "backward", true);
+		expect(result).toBeCloseTo(5 - LARGE_FRAME_DURATION_SEC, 10);
 	});
 });
