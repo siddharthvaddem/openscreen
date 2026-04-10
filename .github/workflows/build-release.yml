@@ -1,0 +1,111 @@
+name: Build & Release DemoFlow
+
+on:
+  release:
+    types: [created]   # Triggers when you publish a new GitHub Release
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows (NSIS installer)
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Windows-Setup-${{ github.event.release.tag_name }}.exe
+          asset_name: DemoFlow-Windows-Setup-${{ github.event.release.tag_name }}.exe
+          asset_content_type: application/octet-stream
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS (DMG)
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Mac x64 artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Mac-x64-${{ github.event.release.tag_name }}-Installer.dmg
+          asset_name: DemoFlow-Mac-x64-${{ github.event.release.tag_name }}-Installer.dmg
+          asset_content_type: application/octet-stream
+
+      - name: Upload Mac arm64 artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Mac-arm64-${{ github.event.release.tag_name }}-Installer.dmg
+          asset_name: DemoFlow-Mac-arm64-${{ github.event.release.tag_name }}-Installer.dmg
+          asset_content_type: application/octet-stream
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg
+
+      - name: Build Linux (AppImage)
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release/${{ github.event.release.tag_name }}/DemoFlow-Linux-${{ github.event.release.tag_name }}.AppImage
+          asset_name: DemoFlow-Linux-${{ github.event.release.tag_name }}.AppImage
+          asset_content_type: application/octet-stream

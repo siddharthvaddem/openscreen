@@ -57,12 +57,12 @@
 		"saveGif": "Enregistrer le GIF exporté",
 		"saveVideo": "Enregistrer la vidéo exportée",
 		"selectVideo": "Sélectionner un fichier vidéo",
-		"saveProject": "Enregistrer le projet OpenScreen",
-		"openProject": "Ouvrir un projet OpenScreen",
+		"saveProject": "Enregistrer le projet DemoFlow",
+		"openProject": "Ouvrir un projet DemoFlow",
 		"gifImage": "Image GIF",
 		"mp4Video": "Vidéo MP4",
 		"videoFiles": "Fichiers vidéo",
-		"openscreenProject": "Projet OpenScreen",
+		"openscreenProject": "Projet DemoFlow",
 		"allFiles": "Tous les fichiers"
 	}
 }

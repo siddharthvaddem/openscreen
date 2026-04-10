@@ -59,12 +59,12 @@
 		"saveGif": "保存导出的 GIF",
 		"saveVideo": "保存导出的视频",
 		"selectVideo": "选择视频文件",
-		"saveProject": "保存 OpenScreen 项目",
-		"openProject": "打开 OpenScreen 项目",
+		"saveProject": "保存 DemoFlow 项目",
+		"openProject": "打开 DemoFlow 项目",
 		"gifImage": "GIF 图片",
 		"mp4Video": "MP4 视频",
 		"videoFiles": "视频文件",
-		"openscreenProject": "OpenScreen 项目",
+		"openscreenProject": "DemoFlow 项目",
 		"allFiles": "所有文件"
 	}
 }

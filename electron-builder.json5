@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.siddharthvaddem.openscreen",
+  "appId": "com.demoflow.app",
   "asar": true,
-  "productName": "Openscreen",
+  "productName": "DemoFlow",
   "npmRebuild": true,
   "buildDependenciesFromSource": true,
   "compression": "normal",
@@ -39,9 +39,9 @@
     "icon": "icons/icons/mac/icon.icns",
     "artifactName": "${productName}-Mac-${arch}-${version}-Installer.${ext}",
     "extendInfo": {
-      "NSAudioCaptureUsageDescription": "OpenScreen needs audio capture permission to record system audio.",
-      "NSMicrophoneUsageDescription": "OpenScreen needs microphone access to record voice audio.",
-      "NSCameraUsageDescription": "OpenScreen needs camera access to record webcam video.",
+      "NSAudioCaptureUsageDescription": "DemoFlow needs audio capture permission to record system audio.",
+      "NSMicrophoneUsageDescription": "DemoFlow needs microphone access to record voice audio.",
+      "NSCameraUsageDescription": "DemoFlow needs camera access to record webcam video.",
       "NSCameraUseContinuityCameraDeviceType": true,
       "com.apple.security.device.audio-input": true
     }
@@ -58,10 +58,14 @@
     "target": [
       "nsis"
     ],
-    "icon": "icons/icons/win/icon.ico"
+    "icon": "icons/icons/win/icon.ico",
+    "artifactName": "${productName}-Windows-Setup-${version}.${ext}"
   },
   "nsis": {
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "icons/icons/win/icon.ico",
+    "uninstallerIcon": "icons/icons/win/icon.ico",
+    "installerHeader": "icons/icons/win/icon.ico"
   }
 }

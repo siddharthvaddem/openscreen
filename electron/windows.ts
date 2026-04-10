@@ -90,7 +90,7 @@ export function createEditorWindow(): BrowserWindow {
 		resizable: true,
 		alwaysOnTop: false,
 		skipTaskbar: false,
-		title: "OpenScreen",
+		title: "DemoFlow",
 		backgroundColor: "#000000",
 		show: !HEADLESS,
 		webPreferences: {
