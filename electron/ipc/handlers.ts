@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import {
 	app,
 	BrowserWindow,
@@ -25,6 +27,10 @@ const PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 const RECORDING_SESSION_SUFFIX = ".session.json";
 const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+const MACOS_SCREEN_CAPTURE_SETTINGS_URL =
+	"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
+const APP_BUNDLE_ID = "com.siddharthvaddem.openscreen";
+const execFileAsync = promisify(execFile);
 
 /**
  * Paths explicitly approved by the user via file picker dialogs or project loads.
@@ -424,6 +430,58 @@ export function registerIpcHandlers(
 				success: false,
 				granted: false,
 				status: "unknown",
+				error: String(error),
+			};
+		}
+	});
+
+	ipcMain.handle("get-screen-access-status", () => {
+		if (process.platform !== "darwin") {
+			return { success: true, status: "granted" };
+		}
+
+		try {
+			return {
+				success: true,
+				status: systemPreferences.getMediaAccessStatus("screen"),
+			};
+		} catch (error) {
+			console.error("Failed to read screen recording access status:", error);
+			return {
+				success: false,
+				status: "unknown",
+				error: String(error),
+			};
+		}
+	});
+
+	ipcMain.handle("open-screen-capture-settings", async () => {
+		if (process.platform !== "darwin") {
+			return { success: false, error: "Screen capture settings are only available on macOS." };
+		}
+
+		try {
+			await shell.openExternal(MACOS_SCREEN_CAPTURE_SETTINGS_URL);
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to open Screen Recording settings:", error);
+			return { success: false, error: String(error) };
+		}
+	});
+
+	ipcMain.handle("reset-screen-capture-permission", async () => {
+		if (process.platform !== "darwin") {
+			return { success: false, error: "Screen capture reset is only available on macOS." };
+		}
+
+		try {
+			const bundleId = APP_BUNDLE_ID;
+			await execFileAsync("tccutil", ["reset", "ScreenCapture", bundleId]);
+			return { success: true, bundleId };
+		} catch (error) {
+			console.error("Failed to reset Screen Recording permission:", error);
+			return {
+				success: false,
 				error: String(error),
 			};
 		}

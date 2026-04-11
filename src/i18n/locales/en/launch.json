@@ -28,7 +28,29 @@
 		"loading": "Loading sources...",
 		"screens": "Screens ({{count}})",
 		"windows": "Windows ({{count}})",
-		"defaultSourceName": "Screen"
+		"defaultSourceName": "Screen",
+		"empty": {
+			"title": "No screens or windows available",
+			"description": "OpenScreen could not find any capture sources yet. Retry after your desktop finishes loading or after you reconnect your display."
+		},
+		"permissionBlocked": {
+			"title": "Screen Recording access is blocked",
+			"description": "macOS is blocking OpenScreen from listing capture sources. Open System Settings, enable OpenScreen under Screen Recording, then retry."
+		},
+		"permissionMissing": {
+			"title": "Screen Recording permission is still missing",
+			"description": "OpenScreen needs macOS Screen Recording access before it can list screens and windows. Open System Settings, grant the permission, then retry."
+		},
+		"permissionStale": {
+			"title": "Screen Recording permission looks stale",
+			"description": "macOS says OpenScreen is allowed, but it still returns zero capture sources. This usually happens after upgrading from an older build. Reset the Screen Recording permission, then retry to trigger a fresh macOS prompt."
+		},
+		"actions": {
+			"retry": "Retry",
+			"openSettings": "Open Settings",
+			"resetPermission": "Reset Permission",
+			"resetting": "Resetting..."
+		}
 	},
 	"recording": {
 		"selectSource": "Please select a source to record"

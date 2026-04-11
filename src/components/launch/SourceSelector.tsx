@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MdCheck } from "react-icons/md";
 import { useScopedT } from "@/contexts/I18nContext";
+import { isMac as getIsMac } from "@/utils/platformUtils";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import styles from "./SourceSelector.module.css";
+import { getSourceSelectorRecoveryState, type ScreenAccessStatus } from "./sourceSelectorRecovery";
 
 interface DesktopSource {
 	id: string;
@@ -19,43 +21,139 @@ export function SourceSelector() {
 	const [sources, setSources] = useState<DesktopSource[]>([]);
 	const [selectedSource, setSelectedSource] = useState<DesktopSource | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [isMac, setIsMac] = useState(false);
+	const [screenAccessStatus, setScreenAccessStatus] = useState<ScreenAccessStatus>("unknown");
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [isResettingPermission, setIsResettingPermission] = useState(false);
+
+	const fetchSources = useCallback(async () => {
+		setLoading(true);
+		setLoadError(null);
+		try {
+			const macPlatform = await getIsMac();
+			const screenStatusResult = await window.electronAPI.getScreenAccessStatus();
+
+			setIsMac(macPlatform);
+			setScreenAccessStatus((screenStatusResult.status || "unknown") as ScreenAccessStatus);
+			const rawSources = await window.electronAPI.getSources({
+				types: ["screen", "window"],
+				thumbnailSize: { width: 320, height: 180 },
+				fetchWindowIcons: true,
+			});
+			setSources(
+				rawSources.map((source) => ({
+					id: source.id,
+					name:
+						source.id.startsWith("window:") && source.name.includes(" — ")
+							? source.name.split(" — ")[1] || source.name
+							: source.name,
+					thumbnail: source.thumbnail,
+					display_id: source.display_id,
+					appIcon: source.appIcon,
+				})),
+			);
+		} catch (error) {
+			console.error("Error loading sources:", error);
+			setSources([]);
+			setLoadError(error instanceof Error ? error.message : String(error));
+		} finally {
+			setLoading(false);
+		}
+	}, []);
 
 	useEffect(() => {
-		async function fetchSources() {
-			setLoading(true);
-			try {
-				const rawSources = await window.electronAPI.getSources({
-					types: ["screen", "window"],
-					thumbnailSize: { width: 320, height: 180 },
-					fetchWindowIcons: true,
-				});
-				setSources(
-					rawSources.map((source) => ({
-						id: source.id,
-						name:
-							source.id.startsWith("window:") && source.name.includes(" — ")
-								? source.name.split(" — ")[1] || source.name
-								: source.name,
-						thumbnail: source.thumbnail,
-						display_id: source.display_id,
-						appIcon: source.appIcon,
-					})),
-				);
-			} catch (error) {
-				console.error("Error loading sources:", error);
-			} finally {
-				setLoading(false);
-			}
-		}
-		fetchSources();
-	}, []);
+		void fetchSources();
+	}, [fetchSources]);
 
 	const screenSources = sources.filter((s) => s.id.startsWith("screen:"));
 	const windowSources = sources.filter((s) => s.id.startsWith("window:"));
+	const recoveryState = useMemo(
+		() =>
+			getSourceSelectorRecoveryState({
+				isMac,
+				sourceCount: sources.length,
+				screenAccessStatus,
+			}),
+		[isMac, screenAccessStatus, sources.length],
+	);
 
 	const handleSourceSelect = (source: DesktopSource) => setSelectedSource(source);
 	const handleShare = async () => {
 		if (selectedSource) await window.electronAPI.selectSource(selectedSource);
+	};
+	const handleOpenScreenSettings = async () => {
+		await window.electronAPI.openScreenCaptureSettings();
+	};
+	const handleResetPermission = async () => {
+		setIsResettingPermission(true);
+		try {
+			await window.electronAPI.resetScreenCapturePermission();
+			await fetchSources();
+		} finally {
+			setIsResettingPermission(false);
+		}
+	};
+
+	const renderRecoveryState = () => {
+		if (recoveryState === "none") {
+			return null;
+		}
+
+		let title = t("sourceSelector.empty.title");
+		let description = t("sourceSelector.empty.description");
+
+		if (recoveryState === "screen-permission-blocked") {
+			title = t("sourceSelector.permissionBlocked.title");
+			description = t("sourceSelector.permissionBlocked.description");
+		} else if (recoveryState === "screen-permission-stale") {
+			title = t("sourceSelector.permissionStale.title");
+			description = t("sourceSelector.permissionStale.description");
+		} else if (recoveryState === "screen-permission-missing") {
+			title = t("sourceSelector.permissionMissing.title");
+			description = t("sourceSelector.permissionMissing.description");
+		}
+
+		return (
+			<div className="h-full flex items-center justify-center px-3">
+				<div className="max-w-sm w-full rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left">
+					<div className="text-sm font-medium text-white">{title}</div>
+					<p className="mt-2 text-xs leading-5 text-zinc-400">{description}</p>
+					{loadError && <p className="mt-2 text-[11px] text-amber-300">{loadError}</p>}
+					<div className="mt-4 flex flex-wrap gap-2">
+						<Button
+							type="button"
+							variant="secondary"
+							onClick={() => void fetchSources()}
+							className="text-xs"
+						>
+							{t("sourceSelector.actions.retry")}
+						</Button>
+						{isMac && (
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => void handleOpenScreenSettings()}
+								className="text-xs text-zinc-300 hover:text-white"
+							>
+								{t("sourceSelector.actions.openSettings")}
+							</Button>
+						)}
+						{isMac && recoveryState === "screen-permission-stale" && (
+							<Button
+								type="button"
+								onClick={() => void handleResetPermission()}
+								disabled={isResettingPermission}
+								className="text-xs bg-[#34B27B] text-white hover:bg-[#34B27B]/80 disabled:opacity-50"
+							>
+								{isResettingPermission
+									? t("sourceSelector.actions.resetting")
+									: t("sourceSelector.actions.resetPermission")}
+							</Button>
+						)}
+					</div>
+				</div>
+			</div>
+		);
 	};
 
 	if (loading) {
@@ -126,20 +224,26 @@ export function SourceSelector() {
 						</TabsTrigger>
 					</TabsList>
 					<div className="flex-1 min-h-0">
-						<TabsContent value="screens" className="h-full mt-0">
-							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
-							>
-								{screenSources.map(renderSourceCard)}
-							</div>
-						</TabsContent>
-						<TabsContent value="windows" className="h-full mt-0">
-							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
-							>
-								{windowSources.map(renderSourceCard)}
-							</div>
-						</TabsContent>
+						{sources.length === 0 ? (
+							renderRecoveryState()
+						) : (
+							<>
+								<TabsContent value="screens" className="h-full mt-0">
+									<div
+										className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
+									>
+										{screenSources.map(renderSourceCard)}
+									</div>
+								</TabsContent>
+								<TabsContent value="windows" className="h-full mt-0">
+									<div
+										className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
+									>
+										{windowSources.map(renderSourceCard)}
+									</div>
+								</TabsContent>
+							</>
+						)}
 					</div>
 				</Tabs>
 			</div>

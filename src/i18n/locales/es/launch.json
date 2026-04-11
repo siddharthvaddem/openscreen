@@ -28,7 +28,29 @@
 		"loading": "Cargando fuentes...",
 		"screens": "Pantallas ({{count}})",
 		"windows": "Ventanas ({{count}})",
-		"defaultSourceName": "Pantalla"
+		"defaultSourceName": "Pantalla",
+		"empty": {
+			"title": "No hay pantallas ni ventanas disponibles",
+			"description": "OpenScreen todavía no pudo encontrar fuentes de captura. Inténtalo de nuevo cuando tu escritorio termine de cargarse o después de reconectar la pantalla."
+		},
+		"permissionBlocked": {
+			"title": "El acceso a Grabación de Pantalla está bloqueado",
+			"description": "macOS está bloqueando a OpenScreen para listar las fuentes de captura. Abre Ajustes del Sistema, habilita OpenScreen en Grabación de Pantalla y vuelve a intentarlo."
+		},
+		"permissionMissing": {
+			"title": "Falta el permiso de Grabación de Pantalla",
+			"description": "OpenScreen necesita el permiso de Grabación de Pantalla de macOS antes de poder listar pantallas y ventanas. Abre Ajustes del Sistema, concede el permiso y vuelve a intentarlo."
+		},
+		"permissionStale": {
+			"title": "El permiso de Grabación de Pantalla parece obsoleto",
+			"description": "macOS dice que OpenScreen tiene permiso, pero aun así devuelve cero fuentes de captura. Esto suele pasar después de actualizar desde una versión anterior. Restablece el permiso y vuelve a intentarlo para forzar un nuevo aviso de macOS."
+		},
+		"actions": {
+			"retry": "Reintentar",
+			"openSettings": "Abrir ajustes",
+			"resetPermission": "Restablecer permiso",
+			"resetting": "Restableciendo..."
+		}
 	},
 	"recording": {
 		"selectSource": "Por favor selecciona una fuente para grabar"

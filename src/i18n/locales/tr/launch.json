@@ -39,7 +39,29 @@
 		"loading": "Kaynaklar yükleniyor...",
 		"screens": "Ekranlar ({{count}})",
 		"windows": "Pencereler ({{count}})",
-		"defaultSourceName": "Ekran"
+		"defaultSourceName": "Ekran",
+		"empty": {
+			"title": "Kayıt için ekran veya pencere bulunamadı",
+			"description": "OpenScreen henüz hiçbir kayıt kaynağı bulamadı. Masaüstünüz tamamen yüklendikten veya ekran bağlantınızı yeniden kurduktan sonra tekrar deneyin."
+		},
+		"permissionBlocked": {
+			"title": "Ekran Kaydı izni engellenmiş",
+			"description": "macOS, OpenScreen'in kayıt kaynaklarını listelemesini engelliyor. Sistem Ayarları'nı açın, Ekran Kaydı altında OpenScreen'e izin verin, sonra tekrar deneyin."
+		},
+		"permissionMissing": {
+			"title": "Ekran Kaydı izni hâlâ verilmemiş",
+			"description": "OpenScreen'in ekranları ve pencereleri listeleyebilmesi için macOS Ekran Kaydı iznine ihtiyacı var. Sistem Ayarları'nı açın, izni verin, sonra tekrar deneyin."
+		},
+		"permissionStale": {
+			"title": "Ekran Kaydı izni bozulmuş görünüyor",
+			"description": "macOS, OpenScreen için izin verilmiş görünüyor ama yine de hiç kayıt kaynağı dönmüyor. Bu genelde eski bir sürümden yükseltme yaptıktan sonra olur. İzni sıfırlayın ve macOS'un yeni izni istemesi için tekrar deneyin."
+		},
+		"actions": {
+			"retry": "Tekrar dene",
+			"openSettings": "Ayarları aç",
+			"resetPermission": "İzni sıfırla",
+			"resetting": "Sıfırlanıyor..."
+		}
 	},
 	"recording": {
 		"selectSource": "Lütfen kayıt için bir kaynak seçin"

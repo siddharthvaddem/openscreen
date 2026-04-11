@@ -36,6 +36,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	requestCameraAccess: () => {
 		return ipcRenderer.invoke("request-camera-access");
 	},
+	getScreenAccessStatus: () => {
+		return ipcRenderer.invoke("get-screen-access-status");
+	},
+	openScreenCaptureSettings: () => {
+		return ipcRenderer.invoke("open-screen-capture-settings");
+	},
+	resetScreenCapturePermission: () => {
+		return ipcRenderer.invoke("reset-screen-capture-permission");
+	},
 
 	storeRecordedVideo: (videoData: ArrayBuffer, fileName: string) => {
 		return ipcRenderer.invoke("store-recorded-video", videoData, fileName);

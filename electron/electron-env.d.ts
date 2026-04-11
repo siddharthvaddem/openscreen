@@ -37,6 +37,17 @@ interface Window {
 			status: string;
 			error?: string;
 		}>;
+		getScreenAccessStatus: () => Promise<{
+			success: boolean;
+			status: string;
+			error?: string;
+		}>;
+		openScreenCaptureSettings: () => Promise<{ success: boolean; error?: string }>;
+		resetScreenCapturePermission: () => Promise<{
+			success: boolean;
+			bundleId?: string;
+			error?: string;
+		}>;
 		getAssetBasePath: () => Promise<string | null>;
 		storeRecordedVideo: (
 			videoData: ArrayBuffer,

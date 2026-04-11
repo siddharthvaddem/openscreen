@@ -28,7 +28,29 @@
 		"loading": "Chargement des sources...",
 		"screens": "Écrans ({{count}})",
 		"windows": "Fenêtres ({{count}})",
-		"defaultSourceName": "Écran"
+		"defaultSourceName": "Écran",
+		"empty": {
+			"title": "Aucun écran ou fenêtre disponible",
+			"description": "OpenScreen n'a trouvé aucune source de capture pour le moment. Réessayez une fois votre bureau entièrement chargé ou après avoir reconnecté votre écran."
+		},
+		"permissionBlocked": {
+			"title": "L'accès à l'enregistrement de l'écran est bloqué",
+			"description": "macOS empêche OpenScreen de lister les sources de capture. Ouvrez Réglages Système, activez OpenScreen dans Enregistrement de l'écran, puis réessayez."
+		},
+		"permissionMissing": {
+			"title": "L'autorisation d'enregistrement de l'écran manque encore",
+			"description": "OpenScreen a besoin de l'autorisation macOS Enregistrement de l'écran avant de pouvoir lister les écrans et les fenêtres. Ouvrez Réglages Système, accordez l'autorisation, puis réessayez."
+		},
+		"permissionStale": {
+			"title": "L'autorisation d'enregistrement de l'écran semble obsolète",
+			"description": "macOS indique qu'OpenScreen est autorisé, mais il renvoie quand même zéro source de capture. Cela arrive souvent après une mise à jour depuis une ancienne version. Réinitialisez l'autorisation puis réessayez pour déclencher une nouvelle demande macOS."
+		},
+		"actions": {
+			"retry": "Réessayer",
+			"openSettings": "Ouvrir les réglages",
+			"resetPermission": "Réinitialiser l'autorisation",
+			"resetting": "Réinitialisation..."
+		}
 	},
 	"recording": {
 		"selectSource": "Veuillez sélectionner une source à enregistrer"

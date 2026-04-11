@@ -28,7 +28,29 @@
 		"loading": "正在加载源...",
 		"screens": "屏幕 ({{count}})",
 		"windows": "窗口 ({{count}})",
-		"defaultSourceName": "屏幕"
+		"defaultSourceName": "屏幕",
+		"empty": {
+			"title": "没有可用的屏幕或窗口",
+			"description": "OpenScreen 还没有找到任何可录制的来源。请在桌面完全加载完成后，或重新连接显示器后再试一次。"
+		},
+		"permissionBlocked": {
+			"title": "屏幕录制权限已被阻止",
+			"description": "macOS 正在阻止 OpenScreen 列出可录制来源。请打开系统设置，在“屏幕录制”中启用 OpenScreen，然后重试。"
+		},
+		"permissionMissing": {
+			"title": "仍然缺少屏幕录制权限",
+			"description": "OpenScreen 需要先获得 macOS 的屏幕录制权限，才能列出屏幕和窗口。请打开系统设置，授予权限后再重试。"
+		},
+		"permissionStale": {
+			"title": "屏幕录制权限看起来已失效",
+			"description": "macOS 显示 OpenScreen 已被允许，但仍然返回 0 个可录制来源。这通常发生在从旧版本升级之后。请重置该权限，然后重试以触发新的 macOS 授权提示。"
+		},
+		"actions": {
+			"retry": "重试",
+			"openSettings": "打开设置",
+			"resetPermission": "重置权限",
+			"resetting": "正在重置..."
+		}
 	},
 	"recording": {
 		"selectSource": "请选择要录制的源"
