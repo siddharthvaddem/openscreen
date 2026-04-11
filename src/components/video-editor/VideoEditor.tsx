@@ -14,8 +14,8 @@ import {
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
-import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
-import { getLocaleName } from "@/i18n/loader";
+import { type Locale } from "@/i18n/config";
+import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
 import {
 	calculateOutputDimensions,
 	type ExportFormat,
@@ -154,6 +154,7 @@ export default function VideoEditor() {
 	const { shortcuts, isMac } = useShortcuts();
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
+	const availableLocales = getAvailableLocales();
 	const { locale, setLocale } = useI18n();
 
 	const nextAnnotationIdRef = useRef(1);
@@ -1707,7 +1708,7 @@ export default function VideoEditor() {
 							className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
 							style={{ color: "inherit" }}
 						>
-							{SUPPORTED_LOCALES.map((loc) => (
+							{availableLocales.map((loc) => (
 								<option key={loc} value={loc} className="bg-[#09090b] text-white">
 									{getLocaleName(loc)}
 								</option>

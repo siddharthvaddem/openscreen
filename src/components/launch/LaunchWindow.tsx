@@ -1,5 +1,6 @@
-import { ChevronDown, Languages } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronDown, Languages } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { BsPauseCircle, BsPlayCircle, BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
 import { FaFolderOpen } from "react-icons/fa6";
@@ -18,9 +19,7 @@ import {
 } from "react-icons/md";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
-import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
-import { getLocaleName } from "@/i18n/loader";
-import { isMac as getIsMac } from "@/utils/platformUtils";
+import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
 import { useAudioLevelMeter } from "../../hooks/useAudioLevelMeter";
 import { useCameraDevices } from "../../hooks/useCameraDevices";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
@@ -28,6 +27,7 @@ import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { requestCameraAccess } from "../../lib/requestCameraAccess";
 import { formatTimePadded } from "../../utils/timeUtils";
 import { AudioLevelMeter } from "../ui/audio-level-meter";
+import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 import styles from "./LaunchWindow.module.css";
 
@@ -67,17 +67,26 @@ const hudGroupClasses =
 const hudIconBtnClasses =
 	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer text-white hover:bg-white/10 hover:scale-[1.08] active:scale-95";
 
+const hudAuxIconBtnClasses =
+	"flex items-center justify-center p-1.5 rounded-full transition-colors duration-150 text-white/55 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed";
+
 const windowBtnClasses =
 	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-white/[0.08]";
 
+const hudSidebarClasses = "ml-0.5 pl-1.5 border-l border-white/10 flex items-center gap-0.5";
+
 export function LaunchWindow() {
 	const t = useScopedT("launch");
-	const { locale, setLocale } = useI18n();
-	const [isMac, setIsMac] = useState(false);
-
-	useEffect(() => {
-		getIsMac().then(setIsMac);
-	}, []);
+	const availableLocales = getAvailableLocales();
+	const {
+		locale,
+		setLocale,
+		systemLocaleSuggestion,
+		acceptSystemLocaleSuggestion,
+		dismissSystemLocaleSuggestion,
+		resolveSystemLocaleSuggestion,
+	} = useI18n();
+	const suggestedLanguageName = systemLocaleSuggestion ? getLocaleName(systemLocaleSuggestion) : "";
 
 	const {
 		recording,
@@ -109,6 +118,18 @@ export function LaunchWindow() {
 	const [isWebcamHovered, setIsWebcamHovered] = useState(false);
 	const [isWebcamFocused, setIsWebcamFocused] = useState(false);
 	const webcamExpanded = isWebcamHovered || isWebcamFocused;
+	const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+	const languageTriggerRef = useRef<HTMLButtonElement | null>(null);
+	const languageMenuPanelRef = useRef<HTMLDivElement | null>(null);
+	const [languageMenuStyle, setLanguageMenuStyle] = useState<{
+		right: number;
+		top: number;
+		maxHeight: number;
+	}>({
+		right: 12,
+		top: 12,
+		maxHeight: 240,
+	});
 
 	const {
 		devices: micDevices,
@@ -161,6 +182,71 @@ export function LaunchWindow() {
 			console.warn("Failed to trigger camera access request during development:", error);
 		});
 	}, []);
+
+	useEffect(() => {
+		if (!isLanguageMenuOpen) return;
+
+		const handlePointerDown = (event: PointerEvent) => {
+			const target = event.target as Node;
+			const clickedTrigger = languageTriggerRef.current?.contains(target);
+			const clickedMenu = languageMenuPanelRef.current?.contains(target);
+			if (!clickedTrigger && !clickedMenu) {
+				setIsLanguageMenuOpen(false);
+			}
+		};
+
+		const handleEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsLanguageMenuOpen(false);
+			}
+		};
+
+		window.addEventListener("pointerdown", handlePointerDown);
+		window.addEventListener("keydown", handleEscape);
+
+		return () => {
+			window.removeEventListener("pointerdown", handlePointerDown);
+			window.removeEventListener("keydown", handleEscape);
+		};
+	}, [isLanguageMenuOpen]);
+
+	useEffect(() => {
+		if (!isLanguageMenuOpen || !languageTriggerRef.current) return;
+
+		const updatePosition = () => {
+			if (!languageTriggerRef.current) return;
+			const rect = languageTriggerRef.current.getBoundingClientRect();
+			const gap = 8;
+			const viewportPadding = 8;
+			const availableHeight = Math.max(80, rect.top - viewportPadding - gap);
+			const top = Math.max(viewportPadding, rect.top - gap - availableHeight);
+
+			setLanguageMenuStyle({
+				right: Math.max(viewportPadding, window.innerWidth - rect.right),
+				top,
+				maxHeight: availableHeight,
+			});
+		};
+
+		updatePosition();
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+
+		return () => {
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+		};
+	}, [isLanguageMenuOpen]);
+
+	useEffect(() => {
+		if (!isLanguageMenuOpen || !languageMenuPanelRef.current) return;
+		const id = requestAnimationFrame(() => {
+			if (languageMenuPanelRef.current) {
+				languageMenuPanelRef.current.scrollTop = 0;
+			}
+		});
+		return () => cancelAnimationFrame(id);
+	}, [isLanguageMenuOpen]);
 
 	const [selectedSource, setSelectedSource] = useState("Screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
@@ -228,25 +314,42 @@ export function LaunchWindow() {
 	};
 
 	return (
-		<div className={`w-screen h-screen bg-transparent ${styles.electronDrag}`}>
-			{/* Language switcher — top-left, beside traffic lights */}
-			<div
-				className={`fixed top-2 flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${isMac ? "left-[72px]" : "left-2"} ${styles.electronNoDrag}`}
-			>
-				<Languages size={14} />
-				<select
-					value={locale}
-					onChange={(e) => setLocale(e.target.value as Locale)}
-					className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
-					style={{ color: "inherit" }}
+		<div className={`w-screen h-screen overflow-hidden bg-transparent ${styles.electronDrag}`}>
+			{systemLocaleSuggestion && (
+				<div
+					className={`fixed top-8 left-1/2 z-30 w-[calc(100vw-1rem)] max-w-[520px] -translate-x-1/2 rounded-xl border border-white/15 bg-[rgba(20,20,28,0.95)] p-3 shadow-2xl backdrop-blur-xl text-white animate-in fade-in-0 zoom-in-95 duration-200 ${styles.electronNoDrag}`}
 				>
-					{SUPPORTED_LOCALES.map((loc) => (
-						<option key={loc} value={loc} className="bg-[#1c1c24] text-white">
-							{getLocaleName(loc)}
-						</option>
-					))}
-				</select>
-			</div>
+					<div className="text-[13px] font-semibold text-white">
+						{t("systemLanguagePrompt.title")}
+					</div>
+					<div className="mt-1 text-[11px] leading-relaxed text-white/75">
+						{t("systemLanguagePrompt.description", {
+							language: suggestedLanguageName,
+						})}
+					</div>
+					<div className="mt-3 flex items-center justify-end gap-2">
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={dismissSystemLocaleSuggestion}
+							className="h-7 text-xs text-white/80 hover:bg-white/10 hover:text-white"
+						>
+							{t("systemLanguagePrompt.keepDefault")}
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							onClick={acceptSystemLocaleSuggestion}
+							className="h-7 text-xs bg-white text-[#10121b] hover:bg-white/90"
+						>
+							{t("systemLanguagePrompt.switch", {
+								language: suggestedLanguageName,
+							})}
+						</Button>
+					</div>
+				</div>
+			)}
 
 			{/* Device selectors — fixed above HUD bar, viewport-relative, never clipped */}
 			{(showMicControls || showWebcamControls) && (
@@ -433,104 +536,151 @@ export function LaunchWindow() {
 
 				{/* Record/Stop group */}
 				<button
-					className={`flex items-center gap-0.5 rounded-full p-2 transition-colors duration-150 ${styles.electronNoDrag} ${
+					className={`flex items-center justify-center rounded-full p-2 transition-[min-width,background-color] duration-150 ${recording ? "min-w-[78px]" : "min-w-[36px]"} ${styles.electronNoDrag} ${
 						recording
 							? paused
 								? "bg-amber-500/10 hover:bg-amber-500/15"
-								: "animate-record-pulse bg-red-500/10"
+								: "bg-red-500/12 hover:bg-red-500/16"
 							: "bg-white/5 hover:bg-white/[0.08]"
 					}`}
 					onClick={toggleRecording}
 					disabled={!hasSelectedSource && !recording}
 					style={{ flex: "0 0 auto" }}
 				>
-					{recording ? (
-						<>
-							{getIcon("stop", paused ? "text-amber-400" : "text-red-400")}
+					<div className={`flex items-center justify-center ${recording ? "gap-1.5" : ""}`}>
+						{recording
+							? getIcon("stop", paused ? "text-amber-400" : "text-red-400")
+							: getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")}
+						{recording && (
 							<span
-								className={`${paused ? "text-amber-400" : "text-red-400"} text-xs font-semibold tabular-nums`}
+								className={`${paused ? "text-amber-400" : "text-red-400"} inline-block w-[34px] text-left text-xs font-semibold tabular-nums`}
 							>
 								{formatTimePadded(elapsedSeconds)}
 							</span>
-						</>
-					) : (
-						getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")
-					)}
+						)}
+					</div>
 				</button>
 
 				{recording && (
-					<Tooltip content={paused ? t("tooltips.resumeRecording") : t("tooltips.pauseRecording")}>
-						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={togglePaused}
+					<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>
+						<Tooltip
+							content={paused ? t("tooltips.resumeRecording") : t("tooltips.pauseRecording")}
 						>
-							{getIcon(paused ? "resume" : "pause", paused ? "text-amber-400" : "text-white/60")}
-						</button>
-					</Tooltip>
+							<button className={hudAuxIconBtnClasses} onClick={togglePaused}>
+								{getIcon(paused ? "resume" : "pause", paused ? "text-amber-400" : "text-white/60")}
+							</button>
+						</Tooltip>
+						<Tooltip content={t("tooltips.restartRecording")}>
+							<button className={hudAuxIconBtnClasses} onClick={restartRecording}>
+								{getIcon("restart", "text-white/60")}
+							</button>
+						</Tooltip>
+						<Tooltip content={t("tooltips.cancelRecording")}>
+							<button className={hudAuxIconBtnClasses} onClick={cancelRecording}>
+								{getIcon("cancel", "text-white/60")}
+							</button>
+						</Tooltip>
+					</div>
 				)}
 
-				{/* Restart recording */}
-				{recording && (
-					<Tooltip content={t("tooltips.restartRecording")}>
-						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={restartRecording}
-						>
-							{getIcon("restart", "text-white/60")}
-						</button>
-					</Tooltip>
+				{!recording && (
+					<>
+						{/* Open video file */}
+						<Tooltip content={t("tooltips.openVideoFile")}>
+							<button
+								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+								onClick={openVideoFile}
+							>
+								{getIcon("videoFile", "text-white/60")}
+							</button>
+						</Tooltip>
+
+						{/* Open project */}
+						<Tooltip content={t("tooltips.openProject")}>
+							<button
+								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+								onClick={openProjectFile}
+							>
+								{getIcon("folder", "text-white/60")}
+							</button>
+						</Tooltip>
+					</>
 				)}
 
-				{/* Cancel recording */}
-				{recording && (
-					<Tooltip content={t("tooltips.cancelRecording")}>
+				{/* Right sidebar controls */}
+				<div className={`${hudSidebarClasses} ${styles.electronNoDrag}`}>
+					<div className={`${styles.languageMenuContainer} ${styles.electronNoDrag}`}>
 						<button
-							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-							onClick={cancelRecording}
+							ref={languageTriggerRef}
+							type="button"
+							aria-label={t("language")}
+							aria-expanded={isLanguageMenuOpen}
+							aria-haspopup="menu"
+							onClick={() => setIsLanguageMenuOpen((open) => !open)}
+							className={`h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
 						>
-							{getIcon("cancel", "text-white/60")}
+							<div className="flex w-full items-center justify-center">
+								<Languages size={13} className="text-white/75" />
+							</div>
 						</button>
-					</Tooltip>
-				)}
+					</div>
 
-				{/* Open video file */}
-				<Tooltip content={t("tooltips.openVideoFile")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openVideoFile}
-						disabled={recording}
-					>
-						{getIcon("videoFile", "text-white/60")}
-					</button>
-				</Tooltip>
+					{isLanguageMenuOpen
+						? createPortal(
+								<div
+									ref={languageMenuPanelRef}
+									role="menu"
+									className={`${styles.languageMenuPanel} ${styles.languageMenuScroll} ${styles.electronNoDrag}`}
+									style={
+										{
+											WebkitAppRegion: "no-drag",
+											pointerEvents: "auto",
+											right: `${languageMenuStyle.right}px`,
+											top: `${languageMenuStyle.top}px`,
+											maxHeight: `${languageMenuStyle.maxHeight}px`,
+										} as React.CSSProperties
+									}
+									onPointerDown={(event) => event.stopPropagation()}
+								>
+									{availableLocales.map((loc) => (
+										<button
+											key={loc}
+											type="button"
+											role="menuitemradio"
+											aria-checked={loc === locale}
+											onClick={() => {
+												setLocale(loc);
+												resolveSystemLocaleSuggestion();
+												setIsLanguageMenuOpen(false);
+											}}
+											className={`${styles.languageMenuItem} ${loc === locale ? styles.languageMenuItemActive : ""}`}
+										>
+											<span className="truncate">{getLocaleName(loc)}</span>
+											{loc === locale ? <Check size={11} className="text-white/85" /> : null}
+										</button>
+									))}
+								</div>,
+								document.body,
+							)
+						: null}
 
-				{/* Open project */}
-				<Tooltip content={t("tooltips.openProject")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openProjectFile}
-						disabled={recording}
-					>
-						{getIcon("folder", "text-white/60")}
-					</button>
-				</Tooltip>
-
-				{/* Window controls */}
-				<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>
-					<button
-						className={windowBtnClasses}
-						title={t("tooltips.hideHUD")}
-						onClick={sendHudOverlayHide}
-					>
-						{getIcon("minimize", "text-white")}
-					</button>
-					<button
-						className={windowBtnClasses}
-						title={t("tooltips.closeApp")}
-						onClick={sendHudOverlayClose}
-					>
-						{getIcon("close", "text-white")}
-					</button>
+					{/* Window controls */}
+					<div className="flex items-center gap-0.5">
+						<button
+							className={windowBtnClasses}
+							title={t("tooltips.hideHUD")}
+							onClick={sendHudOverlayHide}
+						>
+							{getIcon("minimize", "text-white")}
+						</button>
+						<button
+							className={windowBtnClasses}
+							title={t("tooltips.closeApp")}
+							onClick={sendHudOverlayClose}
+						>
+							{getIcon("close", "text-white")}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
