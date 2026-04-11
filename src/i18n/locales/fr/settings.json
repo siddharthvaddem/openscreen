@@ -67,6 +67,9 @@
 		"medium": "Moyenne",
 		"high": "Haute"
 	},
+	"mp4Settings": {
+		"frameRate": "Fréquence d'images"
+	},
 	"gifSettings": {
 		"frameRate": "Fréquence d'images GIF",
 		"size": "Taille du GIF",

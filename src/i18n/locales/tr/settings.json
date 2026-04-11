@@ -67,6 +67,9 @@
 		"medium": "Orta",
 		"high": "Yüksek"
 	},
+	"mp4Settings": {
+		"frameRate": "Kare Hızı"
+	},
 	"gifSettings": {
 		"frameRate": "GIF Kare Hızı",
 		"size": "GIF Boyutu",

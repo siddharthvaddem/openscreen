@@ -36,8 +36,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { getAssetPath } from "@/lib/assetPath";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
-import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
-import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
+import type {
+	ExportFormat,
+	ExportQuality,
+	GifFrameRate,
+	GifSizePreset,
+	Mp4FrameRate,
+} from "@/lib/exporter";
+import { GIF_FRAME_RATES, GIF_SIZE_PRESETS, MP4_FRAME_RATES } from "@/lib/exporter";
 import { cn } from "@/lib/utils";
 import { type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import { getTestId } from "@/utils/getTestId";
@@ -188,6 +194,8 @@ interface SettingsPanelProps {
 	// Export format settings
 	exportFormat?: ExportFormat;
 	onExportFormatChange?: (format: ExportFormat) => void;
+	mp4FrameRate?: Mp4FrameRate;
+	onMp4FrameRateChange?: (rate: Mp4FrameRate) => void;
 	gifFrameRate?: GifFrameRate;
 	onGifFrameRateChange?: (rate: GifFrameRate) => void;
 	gifLoop?: boolean;
@@ -268,6 +276,8 @@ export function SettingsPanel({
 	onExportQualityChange,
 	exportFormat = "mp4",
 	onExportFormatChange,
+	mp4FrameRate = 60,
+	onMp4FrameRateChange,
 	gifFrameRate = 15,
 	onGifFrameRateChange,
 	gifLoop = true,
@@ -1306,40 +1316,58 @@ export function SettingsPanel({
 				</div>
 
 				{exportFormat === "mp4" && (
-					<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
-						<button
-							onClick={() => onExportQualityChange?.("medium")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "medium"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.low")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("good")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "good"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.medium")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("source")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "source"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.high")}
-						</button>
+					<div className="mb-3 space-y-1.5">
+						<div className="bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+							<button
+								onClick={() => onExportQualityChange?.("medium")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "medium"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.low")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("good")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "good"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.medium")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("source")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "source"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.high")}
+							</button>
+						</div>
+						<div className="bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+							{MP4_FRAME_RATES.map((rate) => (
+								<button
+									key={rate.value}
+									onClick={() => onMp4FrameRateChange?.(rate.value)}
+									className={cn(
+										"rounded-md transition-all text-[10px] font-medium",
+										mp4FrameRate === rate.value
+											? "bg-white text-black"
+											: "text-slate-400 hover:text-slate-200",
+									)}
+								>
+									{rate.value}
+								</button>
+							))}
+						</div>
 					</div>
 				)}
 

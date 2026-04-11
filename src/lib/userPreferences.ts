@@ -1,4 +1,4 @@
-import type { ExportFormat, ExportQuality } from "@/lib/exporter";
+import type { ExportFormat, ExportQuality, Mp4FrameRate } from "@/lib/exporter";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
 const PREFS_KEY = "openscreen_user_preferences";
@@ -23,6 +23,8 @@ export interface UserPreferences {
 	exportQuality: ExportQuality;
 	/** Default export format */
 	exportFormat: ExportFormat;
+	/** Default MP4 frame rate */
+	mp4FrameRate: Mp4FrameRate;
 }
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -30,6 +32,7 @@ const DEFAULT_PREFS: UserPreferences = {
 	aspectRatio: "16:9",
 	exportQuality: "good",
 	exportFormat: "mp4",
+	mp4FrameRate: 60,
 };
 
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
@@ -76,6 +79,10 @@ export function loadUserPreferences(): UserPreferences {
 			raw.exportFormat === "gif" || raw.exportFormat === "mp4"
 				? (raw.exportFormat as ExportFormat)
 				: DEFAULT_PREFS.exportFormat,
+		mp4FrameRate:
+			raw.mp4FrameRate === 24 || raw.mp4FrameRate === 30 || raw.mp4FrameRate === 60
+				? (raw.mp4FrameRate as Mp4FrameRate)
+				: DEFAULT_PREFS.mp4FrameRate,
 	};
 }
 

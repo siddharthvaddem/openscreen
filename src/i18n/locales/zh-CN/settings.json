@@ -70,6 +70,9 @@
 		"medium": "中",
 		"high": "高"
 	},
+	"mp4Settings": {
+		"frameRate": "帧率"
+	},
 	"gifSettings": {
 		"frameRate": "GIF 帧率",
 		"size": "GIF 尺寸",

@@ -26,6 +26,7 @@ import {
 	GifExporter,
 	type GifFrameRate,
 	type GifSizePreset,
+	type Mp4FrameRate,
 	VideoExporter,
 } from "@/lib/exporter";
 import { computeFrameStepTime } from "@/lib/frameStep";
@@ -129,6 +130,7 @@ export default function VideoEditor() {
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+	const [mp4FrameRate, setMp4FrameRate] = useState<Mp4FrameRate>(60);
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
 	const [gifLoop, setGifLoop] = useState(true);
 	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>("medium");
@@ -221,6 +223,7 @@ export default function VideoEditor() {
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
+			setMp4FrameRate(normalizedEditor.mp4FrameRate);
 			setGifFrameRate(normalizedEditor.gifFrameRate);
 			setGifLoop(normalizedEditor.gifLoop);
 			setGifSizePreset(normalizedEditor.gifSizePreset);
@@ -287,6 +290,7 @@ export default function VideoEditor() {
 			webcamPosition,
 			exportQuality,
 			exportFormat,
+			mp4FrameRate,
 			gifFrameRate,
 			gifLoop,
 			gifSizePreset,
@@ -307,10 +311,10 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
-		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
+		mp4FrameRate,
 		gifFrameRate,
 		gifLoop,
 		gifSizePreset,
@@ -392,14 +396,15 @@ export default function VideoEditor() {
 		});
 		setExportQuality(prefs.exportQuality);
 		setExportFormat(prefs.exportFormat);
+		setMp4FrameRate(prefs.mp4FrameRate);
 		setPrefsHydrated(true);
 	}, [updateState]);
 
 	// Auto-save user preferences when settings change
 	useEffect(() => {
 		if (!prefsHydrated) return;
-		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat });
-	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat]);
+		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat, mp4FrameRate });
+	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat, mp4FrameRate]);
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
@@ -432,6 +437,7 @@ export default function VideoEditor() {
 				webcamPosition,
 				exportQuality,
 				exportFormat,
+				mp4FrameRate,
 				gifFrameRate,
 				gifLoop,
 				gifSizePreset,
@@ -488,6 +494,7 @@ export default function VideoEditor() {
 			webcamPosition,
 			exportQuality,
 			exportFormat,
+			mp4FrameRate,
 			gifFrameRate,
 			gifLoop,
 			gifSizePreset,
@@ -1339,7 +1346,7 @@ export default function VideoEditor() {
 						webcamVideoUrl: webcamVideoPath || undefined,
 						width: exportWidth,
 						height: exportHeight,
-						frameRate: 60,
+						frameRate: mp4FrameRate,
 						bitrate,
 						codec: "avc1.640033",
 						wallpaper,
@@ -1430,6 +1437,7 @@ export default function VideoEditor() {
 			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
+			mp4FrameRate,
 			handleExportSaved,
 			cursorTelemetry,
 		],
@@ -1809,6 +1817,8 @@ export default function VideoEditor() {
 						onExportQualityChange={setExportQuality}
 						exportFormat={exportFormat}
 						onExportFormatChange={setExportFormat}
+						mp4FrameRate={mp4FrameRate}
+						onMp4FrameRateChange={setMp4FrameRate}
 						gifFrameRate={gifFrameRate}
 						onGifFrameRateChange={setGifFrameRate}
 						gifLoop={gifLoop}

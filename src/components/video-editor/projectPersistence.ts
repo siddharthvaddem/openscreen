@@ -1,4 +1,10 @@
-import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
+import type {
+	ExportFormat,
+	ExportQuality,
+	GifFrameRate,
+	GifSizePreset,
+	Mp4FrameRate,
+} from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { ASPECT_RATIOS, type AspectRatio } from "@/utils/aspectRatioUtils";
@@ -56,6 +62,7 @@ export interface ProjectEditorState {
 	webcamPosition: WebcamPosition | null;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
+	mp4FrameRate: Mp4FrameRate;
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
@@ -384,6 +391,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 				? editor.exportQuality
 				: "good",
 		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
+		mp4FrameRate:
+			editor.mp4FrameRate === 24 || editor.mp4FrameRate === 30 || editor.mp4FrameRate === 60
+				? editor.mp4FrameRate
+				: 60,
 		gifFrameRate:
 			editor.gifFrameRate === 15 ||
 			editor.gifFrameRate === 20 ||
