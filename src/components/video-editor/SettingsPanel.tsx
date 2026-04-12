@@ -1443,11 +1443,7 @@ export function SettingsPanel({
 							</button>
 							<button
 								onClick={() => {
-									if (customResolution) {
-										onExportQualityChange?.("custom");
-									} else {
-										onCustomExportModalChange?.(true);
-									}
+									onCustomExportModalChange?.(true);
 								}}
 								className={cn(
 									"rounded-md transition-all text-[10px] font-medium flex items-center justify-center gap-1",
@@ -1569,7 +1565,7 @@ export function SettingsPanel({
 				</div>
 			</div>
 
-			{customExportModalOpen && (
+			{customExportModalOpen && onCustomExportModalChange && onCustomResolutionChange && (
 				<CustomExportModal
 					open={customExportModalOpen}
 					onOpenChange={onCustomExportModalChange}
