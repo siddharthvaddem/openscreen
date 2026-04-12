@@ -99,9 +99,15 @@ shortcutsCommand
 				return;
 			}
 
+			// DEFAULT_SHORTCUTS stores the spacebar as " " (see shortcuts.ts:playPause).
+			// Accept "space" as a convenience alias so the binding actually matches
+			// at runtime instead of silently persisting as the literal word.
+			const rawKey = typeof opts.key === "string" ? opts.key : "";
+			const normalizedKey = rawKey.toLowerCase() === "space" ? " " : rawKey;
+
 			const config = loadShortcuts();
 			config[opts.action as keyof ShortcutsConfig] = {
-				key: opts.key,
+				key: normalizedKey,
 				...(opts.ctrl ? { ctrl: true } : {}),
 				...(opts.shift ? { shift: true } : {}),
 				...(opts.alt ? { alt: true } : {}),

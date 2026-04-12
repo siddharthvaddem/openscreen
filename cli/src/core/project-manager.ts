@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AspectRatio } from "../../../src/shared/aspect-ratios";
-import type {
-	ExportFormat,
-	ExportQuality,
-	GifFrameRate,
-	GifSizePreset,
+import { ASPECT_RATIOS, type AspectRatio } from "../../../src/shared/aspect-ratios";
+import {
+	type ExportFormat,
+	type ExportQuality,
+	type GifFrameRate,
+	type GifSizePreset,
+	VALID_GIF_FRAME_RATES,
 } from "../../../src/shared/export-types";
 import {
 	createProjectData,
@@ -14,7 +15,6 @@ import {
 	PROJECT_VERSION,
 	type ProjectEditorState,
 	resolveProjectMedia,
-	validateProjectData,
 	WALLPAPER_PATHS,
 } from "../../../src/shared/project-schema";
 import type { ProjectMedia } from "../../../src/shared/recording-session";
@@ -67,17 +67,30 @@ export function loadProject(projectPath: string): EditorProjectData {
 		throw new Error(`Invalid JSON in project file: ${absPath}`);
 	}
 
-	if (!validateProjectData(parsed)) {
-		throw new Error(`Invalid project data in: ${absPath}`);
+	// Inline the shared validateProjectData checks so we can surface *which*
+	// field failed (CLI users need actionable errors) and reuse the media we
+	// resolve here instead of calling resolveProjectMedia twice.
+	if (!parsed || typeof parsed !== "object") {
+		throw new Error(`Invalid project data in ${absPath}: expected a JSON object`);
+	}
+	const project = parsed as Partial<EditorProjectData>;
+	if (typeof project.version !== "number") {
+		throw new Error(`Invalid project data in ${absPath}: missing or invalid 'version' field`);
+	}
+	const media = resolveProjectMedia(project);
+	if (!media) {
+		throw new Error(
+			`Invalid project data in ${absPath}: missing screen video reference (expected 'media.screenVideoPath' or legacy 'videoPath')`,
+		);
+	}
+	if (!project.editor || typeof project.editor !== "object") {
+		throw new Error(`Invalid project data in ${absPath}: missing 'editor' section`);
 	}
 
-	// Materialize media from legacy videoPath if needed
-	const media = resolveProjectMedia(parsed);
-
 	return {
-		...parsed,
-		...(media ? { media } : {}),
-		editor: normalizeProjectEditor(parsed.editor),
+		...(project as EditorProjectData),
+		media,
+		editor: normalizeProjectEditor(project.editor),
 	};
 }
 
@@ -137,7 +150,63 @@ export function createProject(
 	return project;
 }
 
+const VALID_EXPORT_QUALITIES: ReadonlyArray<ExportQuality> = ["medium", "good", "source"];
+const VALID_EXPORT_FORMATS: ReadonlyArray<ExportFormat> = ["mp4", "gif"];
+const VALID_GIF_SIZE_PRESETS: ReadonlyArray<GifSizePreset> = ["medium", "large", "original"];
+
+// CLI-layer validation. normalizeProjectEditor silently clamps out-of-range
+// values (sensible for the GUI, but surprising on the command line — a user
+// who passes --padding 200 should see an error instead of getting 100). Reject
+// invalid inputs up-front so the failure is visible at the edit call site.
+function validateEditOptions(edits: EditProjectOptions): void {
+	if (edits.padding !== undefined) {
+		if (!Number.isFinite(edits.padding) || edits.padding < 0 || edits.padding > 100) {
+			throw new Error(`Invalid padding: ${edits.padding}. Must be between 0 and 100.`);
+		}
+	}
+	if (edits.motionBlurAmount !== undefined) {
+		if (
+			!Number.isFinite(edits.motionBlurAmount) ||
+			edits.motionBlurAmount < 0 ||
+			edits.motionBlurAmount > 1
+		) {
+			throw new Error(
+				`Invalid motion blur amount: ${edits.motionBlurAmount}. Must be between 0 and 1.`,
+			);
+		}
+	}
+	if (edits.aspectRatio !== undefined && !ASPECT_RATIOS.includes(edits.aspectRatio)) {
+		throw new Error(
+			`Invalid aspect ratio: ${edits.aspectRatio}. Valid values: ${ASPECT_RATIOS.join(", ")}.`,
+		);
+	}
+	if (edits.exportQuality !== undefined && !VALID_EXPORT_QUALITIES.includes(edits.exportQuality)) {
+		throw new Error(
+			`Invalid export quality: ${edits.exportQuality}. Valid values: ${VALID_EXPORT_QUALITIES.join(", ")}.`,
+		);
+	}
+	if (edits.exportFormat !== undefined && !VALID_EXPORT_FORMATS.includes(edits.exportFormat)) {
+		throw new Error(
+			`Invalid export format: ${edits.exportFormat}. Valid values: ${VALID_EXPORT_FORMATS.join(", ")}.`,
+		);
+	}
+	if (
+		edits.gifFrameRate !== undefined &&
+		!VALID_GIF_FRAME_RATES.includes(edits.gifFrameRate as GifFrameRate)
+	) {
+		throw new Error(
+			`Invalid GIF frame rate: ${edits.gifFrameRate}. Valid values: ${VALID_GIF_FRAME_RATES.join(", ")}.`,
+		);
+	}
+	if (edits.gifSizePreset !== undefined && !VALID_GIF_SIZE_PRESETS.includes(edits.gifSizePreset)) {
+		throw new Error(
+			`Invalid GIF size preset: ${edits.gifSizePreset}. Valid values: ${VALID_GIF_SIZE_PRESETS.join(", ")}.`,
+		);
+	}
+}
+
 export function editProject(projectPath: string, edits: EditProjectOptions): EditorProjectData {
+	validateEditOptions(edits);
 	const project = loadProject(projectPath);
 
 	const updatedEditor: ProjectEditorState = { ...project.editor };

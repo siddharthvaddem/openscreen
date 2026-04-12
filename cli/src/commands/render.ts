@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { isValidGifFrameRate } from "../../../src/shared/export-types";
 import { runExport } from "../core/electron-bridge";
 import { outputError } from "../output";
 
@@ -23,7 +24,6 @@ export const renderCommand = new Command("render")
 	});
 
 const VALID_GIF_PRESETS = ["medium", "large", "original"] as const;
-const VALID_GIF_FRAME_RATES = [15, 20, 25, 30] as const;
 
 export const gifCommand = new Command("gif")
 	.description("Render project as animated GIF")
@@ -31,15 +31,14 @@ export const gifCommand = new Command("gif")
 	.requiredOption("--output <path>", "Output GIF file path")
 	.option("--frame-rate <fps>", "GIF frame rate (15, 20, 25, 30)", "15")
 	.option("--size-preset <s>", "GIF size (medium, large, original)", "medium")
-	.option("--loop", "Loop GIF", true)
+	.option("--loop", "Force GIF to loop (overrides project setting)")
+	.option("--no-loop", "Force GIF not to loop (overrides project setting)")
 	.option("--overwrite", "Overwrite existing output file")
 	.action(async (opts) => {
 		try {
 			const frameRate = Number.parseInt(opts.frameRate, 10);
-			if (!VALID_GIF_FRAME_RATES.includes(frameRate as (typeof VALID_GIF_FRAME_RATES)[number])) {
-				outputError(
-					`Invalid frame rate: ${opts.frameRate}. Valid values: ${VALID_GIF_FRAME_RATES.join(", ")}`,
-				);
+			if (!isValidGifFrameRate(frameRate)) {
+				outputError(`Invalid frame rate: ${opts.frameRate}. Valid values: 15, 20, 25, 30`);
 				return;
 			}
 			if (!VALID_GIF_PRESETS.includes(opts.sizePreset)) {

@@ -95,6 +95,9 @@ export async function runExport(options: ExportOptions): Promise<void> {
 			outputText(`Exporting ${format.toUpperCase()} to ${absOutput}...`);
 		}
 
+		// --no-sandbox + HEADLESS env are required so Electron can start without a
+		// display/user namespace (CI, containers, detached CLI invocations). Do not
+		// remove without a replacement sandbox strategy.
 		const args = [
 			mainJs,
 			"--cli-export",
@@ -116,48 +119,62 @@ export async function runExport(options: ExportOptions): Promise<void> {
 			});
 
 			let lastError: string | null = null;
+			let stdoutBuffer = "";
+
+			const handleCliLine = (line: string) => {
+				if (!line) return;
+				let msg: CliMessage;
+				try {
+					msg = JSON.parse(line);
+				} catch {
+					return;
+				}
+				if (!msg.__cli) return;
+
+				switch (msg.type) {
+					case "progress": {
+						const totalFrames = (msg.data.totalFrames as number) ?? 100;
+						const currentFrame = (msg.data.currentFrame as number) ?? 0;
+						const phase = msg.data.phase as string | undefined;
+						outputProgress(currentFrame, totalFrames, phase);
+						break;
+					}
+					case "status":
+						if (!isJsonMode()) {
+							outputText((msg.data.message as string) ?? "");
+						}
+						break;
+					case "done":
+						if (isJsonMode()) {
+							process.stdout.write(
+								`${JSON.stringify({
+									success: true,
+									path: msg.data.path,
+									format: msg.data.format,
+									size: msg.data.size,
+								})}\n`,
+							);
+						} else {
+							outputText(`\nExport complete: ${msg.data.path}`);
+						}
+						break;
+					case "error":
+						lastError = (msg.data.message as string) ?? "Unknown export error";
+						break;
+				}
+			};
 
 			child.stdout?.on("data", (chunk: Buffer) => {
-				const lines = chunk.toString().split("\n").filter(Boolean);
-				for (const line of lines) {
-					try {
-						const msg: CliMessage = JSON.parse(line);
-						if (!msg.__cli) continue;
-
-						switch (msg.type) {
-							case "progress": {
-								const totalFrames = (msg.data.totalFrames as number) ?? 100;
-								const currentFrame = (msg.data.currentFrame as number) ?? 0;
-								const phase = msg.data.phase as string | undefined;
-								outputProgress(currentFrame, totalFrames, phase);
-								break;
-							}
-							case "status":
-								if (!isJsonMode()) {
-									outputText((msg.data.message as string) ?? "");
-								}
-								break;
-							case "done":
-								if (isJsonMode()) {
-									process.stdout.write(
-										`${JSON.stringify({
-											success: true,
-											path: msg.data.path,
-											format: msg.data.format,
-											size: msg.data.size,
-										})}\n`,
-									);
-								} else {
-									outputText(`\nExport complete: ${msg.data.path}`);
-								}
-								break;
-							case "error":
-								lastError = (msg.data.message as string) ?? "Unknown export error";
-								break;
-						}
-					} catch {
-						// Not a JSON line, skip
-					}
+				// Stdout chunk boundaries are arbitrary — a single JSON message may
+				// span chunks. Keep a carryover buffer and only parse up to the last
+				// newline; any trailing partial line waits for the next chunk.
+				stdoutBuffer += chunk.toString();
+				let newlineIdx = stdoutBuffer.indexOf("\n");
+				while (newlineIdx !== -1) {
+					const line = stdoutBuffer.slice(0, newlineIdx);
+					stdoutBuffer = stdoutBuffer.slice(newlineIdx + 1);
+					handleCliLine(line);
+					newlineIdx = stdoutBuffer.indexOf("\n");
 				}
 			});
 
@@ -170,6 +187,11 @@ export async function runExport(options: ExportOptions): Promise<void> {
 			});
 
 			child.on("close", (code) => {
+				// Flush any trailing line the child wrote without a terminating \n.
+				if (stdoutBuffer.length > 0) {
+					handleCliLine(stdoutBuffer);
+					stdoutBuffer = "";
+				}
 				if (code === 0) {
 					resolve();
 				} else {
