@@ -53,6 +53,7 @@ export interface ProjectEditorState {
 	backgroundMusicRegions: TrimRegion[];
 	backgroundMusicVolume: number;
 	audioHooks: AudioHooksConfig;
+	hookSoundLayers: Record<AudioHookType, string[]>;
 	audioHooksVolume: number;
 	shadowIntensity: number;
 	showBlur: boolean;
@@ -134,6 +135,41 @@ function normalizeAudioHooks(value: unknown): AudioHooksConfig {
 		annotation:
 			typeof raw.annotation === "boolean" ? raw.annotation : DEFAULT_AUDIO_HOOKS.annotation,
 		blur: typeof raw.blur === "boolean" ? raw.blur : DEFAULT_AUDIO_HOOKS.blur,
+	};
+}
+
+function normalizeHookSoundLayers(value: unknown): Record<AudioHookType, string[]> {
+	const defaults: Record<AudioHookType, string[]> = {
+		zoom: [],
+		trim: [],
+		speed: [],
+		annotation: [],
+		blur: [],
+	};
+
+	if (!value || typeof value !== "object") {
+		return defaults;
+	}
+
+	const raw = value as Partial<Record<AudioHookType, unknown>>;
+	return {
+		zoom: Array.isArray(raw.zoom)
+			? raw.zoom.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+			: [],
+		trim: Array.isArray(raw.trim)
+			? raw.trim.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+			: [],
+		speed: Array.isArray(raw.speed)
+			? raw.speed.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+			: [],
+		annotation: Array.isArray(raw.annotation)
+			? raw.annotation.filter(
+					(entry): entry is string => typeof entry === "string" && entry.length > 0,
+				)
+			: [],
+		blur: Array.isArray(raw.blur)
+			? raw.blur.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+			: [],
 	};
 }
 
@@ -513,6 +549,9 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			? clamp((editor as { backgroundMusicVolume: number }).backgroundMusicVolume, 0, 1)
 			: 0.35,
 		audioHooks: normalizeAudioHooks((editor as { audioHooks?: unknown }).audioHooks),
+		hookSoundLayers: normalizeHookSoundLayers(
+			(editor as { hookSoundLayers?: unknown }).hookSoundLayers,
+		),
 		audioHooksVolume: isFiniteNumber((editor as { audioHooksVolume?: unknown }).audioHooksVolume)
 			? clamp((editor as { audioHooksVolume: number }).audioHooksVolume, 0, 1)
 			: 0.35,

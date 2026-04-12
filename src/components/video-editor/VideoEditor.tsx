@@ -307,6 +307,7 @@ export default function VideoEditor() {
 			setGifFrameRate(normalizedEditor.gifFrameRate);
 			setGifLoop(normalizedEditor.gifLoop);
 			setGifSizePreset(normalizedEditor.gifSizePreset);
+			setHookSoundLayers(normalizedEditor.hookSoundLayers);
 
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
@@ -369,6 +370,7 @@ export default function VideoEditor() {
 			backgroundMusicRegions,
 			backgroundMusicVolume,
 			audioHooks,
+			hookSoundLayers,
 			audioHooksVolume,
 			shadowIntensity,
 			showBlur,
@@ -398,6 +400,7 @@ export default function VideoEditor() {
 		backgroundMusicRegions,
 		backgroundMusicVolume,
 		audioHooks,
+		hookSoundLayers,
 		audioHooksVolume,
 		shadowIntensity,
 		showBlur,
@@ -524,6 +527,7 @@ export default function VideoEditor() {
 				backgroundMusicRegions,
 				backgroundMusicVolume,
 				audioHooks,
+				hookSoundLayers,
 				audioHooksVolume,
 				shadowIntensity,
 				showBlur,
@@ -586,6 +590,7 @@ export default function VideoEditor() {
 			backgroundMusicRegions,
 			backgroundMusicVolume,
 			audioHooks,
+			hookSoundLayers,
 			audioHooksVolume,
 			shadowIntensity,
 			showBlur,

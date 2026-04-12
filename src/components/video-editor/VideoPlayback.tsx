@@ -1199,6 +1199,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				return;
 			}
 
+			const backgroundDuration = backgroundMusic.duration;
+			const hasValidDuration = Number.isFinite(backgroundDuration) && backgroundDuration > 0;
+			const loopedCurrentTime = hasValidDuration
+				? ((currentTime % backgroundDuration) + backgroundDuration) % backgroundDuration
+				: currentTime;
+
 			const isInRegion =
 				backgroundMusicRegions.length === 0 ||
 				backgroundMusicRegions.some(
@@ -1209,14 +1215,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 			if (!isPlaying) {
 				backgroundMusic.pause();
-				if (Math.abs(backgroundMusic.currentTime - currentTime) > 0.05) {
-					backgroundMusic.currentTime = currentTime;
+				if (Math.abs(backgroundMusic.currentTime - loopedCurrentTime) > 0.05) {
+					backgroundMusic.currentTime = loopedCurrentTime;
 				}
 				return;
 			}
 
-			if (Math.abs(backgroundMusic.currentTime - currentTime) > 0.2) {
-				backgroundMusic.currentTime = currentTime;
+			if (Math.abs(backgroundMusic.currentTime - loopedCurrentTime) > 0.2) {
+				backgroundMusic.currentTime = loopedCurrentTime;
 			}
 
 			backgroundMusic.play().catch(() => {
