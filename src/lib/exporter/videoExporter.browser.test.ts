@@ -1,14 +1,48 @@
-import { describe, expect, it } from "vitest";
-import sampleVideoUrl from "../../../tests/fixtures/sample.webm?url";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ExportProgress } from "./types";
 import { VideoExporter } from "./videoExporter";
 
+const sampleVideoPath = path.resolve(process.cwd(), "tests/fixtures/sample.webm");
+
+const windowWithElectron = window as Window & {
+	electronAPI?: {
+		readBinaryFile?: (
+			path: string,
+		) => Promise<{ success: boolean; data?: Uint8Array; path?: string; message?: string }>;
+	};
+};
+
+const originalElectronAPI = windowWithElectron.electronAPI;
+const browserWorkerAvailable = typeof Worker !== "undefined";
+
+beforeAll(() => {
+	windowWithElectron.electronAPI = {
+		...windowWithElectron.electronAPI,
+		readBinaryFile: async (path: string) => {
+			if (path !== sampleVideoPath) {
+				return { success: false, message: "Unexpected fixture path" };
+			}
+
+			const buffer = await readFile(path);
+			return { success: true, data: new Uint8Array(buffer), path };
+		},
+	};
+});
+
+afterAll(() => {
+	windowWithElectron.electronAPI = originalElectronAPI;
+});
+
 describe("VideoExporter (real browser)", () => {
-	it("exports a valid MP4 blob from a real video", async () => {
+	const testIfBrowserWorker = browserWorkerAvailable ? it : it.skip;
+
+	testIfBrowserWorker("exports a valid MP4 blob from a real video", async () => {
 		const progressEvents: ExportProgress[] = [];
 
 		const exporter = new VideoExporter({
-			videoUrl: sampleVideoUrl,
+			videoUrl: sampleVideoPath,
 			width: 320,
 			height: 180,
 			frameRate: 15,

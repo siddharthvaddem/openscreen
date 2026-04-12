@@ -1,7 +1,7 @@
 import { WebDemuxer } from "web-demuxer";
 import type {
-	AudioHookType,
 	AudioHooksConfig,
+	AudioHookType,
 	HookRegion,
 	SpeedRegion,
 	TrimRegion,
@@ -314,6 +314,10 @@ export class AudioProcessor {
 				return;
 			}
 
+			if (audioHooksVolume <= 0) {
+				return;
+			}
+
 			const fileUrls = hookSoundLayers?.[hook] ?? [];
 			if (fileUrls.length > 0) {
 				fileUrls.forEach((fileUrl) => {
@@ -321,7 +325,7 @@ export class AudioProcessor {
 					media.preload = "auto";
 					const node = audioContext.createMediaElementSource(media);
 					const gain = audioContext.createGain();
-					gain.gain.value = Math.min(1, Math.max(0.01, audioHooksVolume));
+					gain.gain.value = Math.min(1, Math.max(0, audioHooksVolume));
 					node.connect(gain);
 					gain.connect(destinationNode);
 					const entry = { media, node, gain };
@@ -346,7 +350,10 @@ export class AudioProcessor {
 			const oscillator = audioContext.createOscillator();
 			const gain = audioContext.createGain();
 			const now = audioContext.currentTime;
-			const peak = Math.min(0.22, Math.max(0.01, audioHooksVolume * 0.22));
+			const peak = Math.min(0.22, Math.max(0, audioHooksVolume * 0.22));
+			if (peak <= 0) {
+				return;
+			}
 			const duration = HOOK_DURATIONS[hook] ?? 0.07;
 
 			oscillator.type = hook === "zoom" || hook === "annotation" ? "triangle" : "sine";
@@ -368,11 +375,15 @@ export class AudioProcessor {
 				return;
 			}
 
+			if (audioHooksVolume <= 0) {
+				return;
+			}
+
 			const media = new Audio(region.soundUrl);
 			media.preload = "auto";
 			const node = audioContext.createMediaElementSource(media);
 			const gain = audioContext.createGain();
-			gain.gain.value = Math.min(1, Math.max(0.01, audioHooksVolume));
+			gain.gain.value = Math.min(1, Math.max(0, audioHooksVolume));
 			node.connect(gain);
 			gain.connect(destinationNode);
 			const entry = { media, node, gain, endTimeMs: region.endMs };
@@ -451,8 +462,7 @@ export class AudioProcessor {
 					}
 
 					const currentTimeMs = sourceMedia.currentTime * 1000;
-					const crossed = (timeMs: number) =>
-						timeMs > previousTimeMs && timeMs <= currentTimeMs;
+					const crossed = (timeMs: number) => timeMs > previousTimeMs && timeMs <= currentTimeMs;
 
 					if (backgroundGainNode) {
 						backgroundGainNode.gain.value = isBackgroundActiveAt(currentTimeMs)
@@ -498,6 +508,12 @@ export class AudioProcessor {
 							return;
 						}
 						sourceMedia.currentTime = skipToTime;
+						if (backgroundMedia) {
+							const targetBackgroundTime = backgroundMedia.duration
+								? skipToTime % backgroundMedia.duration
+								: skipToTime;
+							backgroundMedia.currentTime = targetBackgroundTime;
+						}
 						previousTimeMs = activeTrimRegion.endMs;
 					} else {
 						const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions);

@@ -16,6 +16,7 @@ import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
+import { getAssetPath } from "@/lib/assetPath";
 import {
 	calculateOutputDimensions,
 	type ExportFormat,
@@ -28,7 +29,6 @@ import {
 	type GifSizePreset,
 	VideoExporter,
 } from "@/lib/exporter";
-import { getAssetPath } from "@/lib/assetPath";
 import { computeFrameStepTime } from "@/lib/frameStep";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { matchesShortcut } from "@/lib/shortcuts";
@@ -54,11 +54,10 @@ import {
 import { SettingsPanel } from "./SettingsPanel";
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
-	type AudioHookType,
 	type AnnotationRegion,
+	type AudioHookType,
 	type BlurData,
 	type CursorTelemetryPoint,
-	type HookRegion,
 	clampFocusToDepth,
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
@@ -68,6 +67,7 @@ import {
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
 	type FigureData,
+	type HookRegion,
 	type PlaybackSpeed,
 	type SpeedRegion,
 	type TrimRegion,
@@ -204,14 +204,34 @@ export default function VideoEditor() {
 		[annotationRegions],
 	);
 
-	const resolveAudioSourceUrl = useCallback((value: string | null | undefined): string | undefined => {
-		if (!value) {
-			return undefined;
+	const resolveAudioSourceUrl = useCallback(
+		(value: string | null | undefined): string | undefined => {
+			if (!value) {
+				return undefined;
+			}
+			if (/^(file|https?):\/\//i.test(value) || value.startsWith("/")) {
+				return value;
+			}
+			return toFileUrl(value);
+		},
+		[],
+	);
+
+	const resolveLibraryTrackUrl = useCallback(async (trackUrl: string): Promise<string> => {
+		if (/^(file|https?):\/\//i.test(trackUrl)) {
+			return trackUrl;
 		}
-		if (/^(file|https?):\/\//i.test(value) || value.startsWith("/")) {
-			return value;
+
+		if (trackUrl.startsWith("/audio/")) {
+			return trackUrl;
 		}
-		return toFileUrl(value);
+
+		if (trackUrl.startsWith("/")) {
+			const relativePath = trackUrl.replace(/^\/+/, "");
+			return getAssetPath(relativePath);
+		}
+
+		return trackUrl;
 	}, []);
 
 	const currentProjectMedia = useMemo<ProjectMedia | null>(() => {
@@ -393,7 +413,6 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
-		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -796,8 +815,7 @@ export default function VideoEditor() {
 	const handleMusicTrackSelect = useCallback(
 		async (trackUrl: string) => {
 			try {
-				const relativePath = trackUrl.replace(/^\/+/, "");
-				const resolvedAssetPath = await getAssetPath(relativePath);
+				const resolvedAssetPath = await resolveLibraryTrackUrl(trackUrl);
 				const fullDurationMs = Math.max(1000, Math.round(durationRef.current * 1000));
 				pushState((prev) => ({
 					backgroundMusicPath: resolvedAssetPath,
@@ -810,25 +828,21 @@ export default function VideoEditor() {
 										startMs: 0,
 										endMs: fullDurationMs,
 									},
-							  ],
+								],
 				}));
 			} catch {
 				toast.error("Failed to load bundled track");
 			}
 		},
-		[pushState],
+		[pushState, resolveLibraryTrackUrl],
 	);
 
-	const resolveHookTrackSourceUrl = useCallback(async (trackUrl: string) => {
-		if (/^(file|https?):\/\//i.test(trackUrl)) {
-			return trackUrl;
-		}
-		if (trackUrl.startsWith("/")) {
-			const relativePath = trackUrl.replace(/^\/+/, "");
-			return getAssetPath(relativePath);
-		}
-		return trackUrl;
-	}, []);
+	const resolveHookTrackSourceUrl = useCallback(
+		async (trackUrl: string) => {
+			return resolveLibraryTrackUrl(trackUrl);
+		},
+		[resolveLibraryTrackUrl],
+	);
 
 	const resolveAudioDurationMs = useCallback(async (audioUrl: string): Promise<number> => {
 		return await new Promise((resolve) => {
@@ -862,8 +876,7 @@ export default function VideoEditor() {
 	const handleHookTrackAdd = useCallback(
 		async (hook: AudioHookType, trackUrl: string) => {
 			try {
-				const relativePath = trackUrl.replace(/^\/+/, "");
-				const resolvedAssetPath = await getAssetPath(relativePath);
+				const resolvedAssetPath = await resolveLibraryTrackUrl(trackUrl);
 				setHookSoundLayers((prev) => {
 					const existing = prev[hook] ?? [];
 					if (existing.includes(resolvedAssetPath)) {
@@ -878,7 +891,7 @@ export default function VideoEditor() {
 				toast.error("Failed to add hook sound");
 			}
 		},
-		[],
+		[resolveLibraryTrackUrl],
 	);
 
 	const handleHookTrackRemove = useCallback((hook: AudioHookType, trackUrl: string) => {
@@ -932,10 +945,10 @@ export default function VideoEditor() {
 				hookRegions: prev.hookRegions.map((region) =>
 					region.id === id
 						? {
-							...region,
-							startMs: Math.round(span.start),
-							endMs: Math.round(span.end),
-						}
+								...region,
+								startMs: Math.round(span.start),
+								endMs: Math.round(span.end),
+							}
 						: region,
 				),
 			}));
@@ -2451,9 +2464,7 @@ export default function VideoEditor() {
 											onBlurDataChange={handleBlurDataPreviewChange}
 											onBlurDataCommit={commitState}
 											cursorTelemetry={cursorTelemetry}
-											backgroundMusicPath={
-												resolveAudioSourceUrl(backgroundMusicPath)
-											}
+											backgroundMusicPath={resolveAudioSourceUrl(backgroundMusicPath)}
 											backgroundMusicRegions={backgroundMusicRegions}
 											backgroundMusicVolume={backgroundMusicVolume}
 										/>
