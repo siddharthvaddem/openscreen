@@ -68,9 +68,9 @@ export default function Item({
 				? glassStyles.glassAmber
 				: isHook
 					? glassStyles.glassBlue
-				: isMusic
-					? glassStyles.glassBlue
-					: glassStyles.glassYellow;
+					: isMusic
+						? glassStyles.glassBlue
+						: glassStyles.glassYellow;
 
 	const endCapColor = isZoom
 		? "#21916A"
@@ -80,9 +80,9 @@ export default function Item({
 				? "#d97706"
 				: isHook
 					? "#06b6d4"
-				: isMusic
-					? "#38bdf8"
-					: "#B4A046";
+					: isMusic
+						? "#38bdf8"
+						: "#B4A046";
 
 	const timeLabel = useMemo(
 		() => `${formatMs(span.start)} – ${formatMs(span.end)}`,

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type {
-	AudioHooksConfig,
 	AnnotationRegion,
+	AudioHooksConfig,
 	CropRegion,
 	HookRegion,
 	SpeedRegion,

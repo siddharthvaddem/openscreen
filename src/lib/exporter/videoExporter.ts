@@ -1,6 +1,6 @@
 import type {
-	AudioHooksConfig,
 	AnnotationRegion,
+	AudioHooksConfig,
 	CropRegion,
 	HookRegion,
 	SpeedRegion,

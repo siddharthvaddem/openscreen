@@ -37,10 +37,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { getAssetPath } from "@/lib/assetPath";
+import { AUDIO_LIBRARY } from "@/lib/audioLibrary";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
-import { AUDIO_LIBRARY } from "@/lib/audioLibrary";
 import { cn } from "@/lib/utils";
 import { type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import { getTestId } from "@/utils/getTestId";
@@ -49,10 +49,10 @@ import { BlurSettingsPanel } from "./BlurSettingsPanel";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
-	AudioHookType,
-	AudioHooksConfig,
 	AnnotationRegion,
 	AnnotationType,
+	AudioHooksConfig,
+	AudioHookType,
 	BlurData,
 	CropRegion,
 	FigureData,
@@ -1395,8 +1395,12 @@ export function SettingsPanel({
 															<Music className="w-4 h-4 text-white/90" />
 														</div>
 														<div className="min-w-0">
-															<div className="text-[11px] font-medium text-slate-100 truncate">{track.name}</div>
-															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">music</div>
+															<div className="text-[11px] font-medium text-slate-100 truncate">
+																{track.name}
+															</div>
+															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">
+																music
+															</div>
 														</div>
 													</div>
 													<div className="flex items-center gap-2">
@@ -1430,7 +1434,9 @@ export function SettingsPanel({
 										)}
 									>
 										<div className="flex items-center justify-between mb-1">
-											<div className="text-[10px] font-medium text-slate-300">{t("audio.volume")}</div>
+											<div className="text-[10px] font-medium text-slate-300">
+												{t("audio.volume")}
+											</div>
 											<span className="text-[10px] text-slate-500 font-mono">
 												{Math.round(backgroundMusicVolume * 100)}%
 											</span>
@@ -1525,13 +1531,17 @@ export function SettingsPanel({
 										</div>
 										{(hookSoundLayers[selectedHookTarget] ?? []).length > 0 && (
 											<div className="space-y-1.5">
-												<div className="text-[11px] text-slate-400">{t("audio.hooks.assigned")}</div>
+												<div className="text-[11px] text-slate-400">
+													{t("audio.hooks.assigned")}
+												</div>
 												{(hookSoundLayers[selectedHookTarget] ?? []).map((url) => (
 													<div
 														key={`${selectedHookTarget}-${url}`}
 														className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-black/25 border border-white/10"
 													>
-														<div className="text-[11px] text-slate-200 truncate">{url.split("/").pop()}</div>
+														<div className="text-[11px] text-slate-200 truncate">
+															{url.split("/").pop()}
+														</div>
 														<Button
 															size="sm"
 															variant="outline"
@@ -1552,21 +1562,24 @@ export function SettingsPanel({
 														"flex items-center justify-between gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all bg-black/25",
 														previewingHookTrackId === track.id &&
 															"border-[#34B27B]/70 shadow-[0_0_0_1px_rgba(52,178,123,0.25)]",
-														previewingHookTrackId !== track.id && "border-white/10 hover:border-white/20",
+														previewingHookTrackId !== track.id &&
+															"border-white/10 hover:border-white/20",
 													)}
 													onClick={() => {
 														void handleHookLibraryPreview(track.id, track.url);
 													}}
 												>
 													<div className="flex items-start gap-2 min-w-0">
-														<div
-															className="w-8 h-8 rounded-md border border-white/15 bg-black/30 flex items-center justify-center"
-														>
+														<div className="w-8 h-8 rounded-md border border-white/15 bg-black/30 flex items-center justify-center">
 															<Sparkles className="w-3.5 h-3.5 text-white/80" />
 														</div>
 														<div className="min-w-0">
-															<div className="text-[11px] font-medium text-slate-100 truncate">{track.name}</div>
-															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">hook</div>
+															<div className="text-[11px] font-medium text-slate-100 truncate">
+																{track.name}
+															</div>
+															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">
+																hook
+															</div>
 														</div>
 													</div>
 													<div className="flex items-center gap-1">

@@ -3,16 +3,15 @@ import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import {
+	type AnnotationRegion,
 	type AudioHooksConfig,
 	type AudioHookType,
-	type AnnotationRegion,
 	type CropRegion,
-	type HookRegion,
 	clampPlaybackSpeed,
-	DEFAULT_AUDIO_HOOKS,
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
+	DEFAULT_AUDIO_HOOKS,
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_FREEHAND_POINTS,
 	DEFAULT_BLUR_INTENSITY,
@@ -24,6 +23,7 @@ import {
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
 	DEFAULT_ZOOM_DEPTH,
+	type HookRegion,
 	MAX_BLUR_INTENSITY,
 	MAX_PLAYBACK_SPEED,
 	MIN_BLUR_INTENSITY,
@@ -132,9 +132,7 @@ function normalizeAudioHooks(value: unknown): AudioHooksConfig {
 		trim: typeof raw.trim === "boolean" ? raw.trim : DEFAULT_AUDIO_HOOKS.trim,
 		speed: typeof raw.speed === "boolean" ? raw.speed : DEFAULT_AUDIO_HOOKS.speed,
 		annotation:
-			typeof raw.annotation === "boolean"
-				? raw.annotation
-				: DEFAULT_AUDIO_HOOKS.annotation,
+			typeof raw.annotation === "boolean" ? raw.annotation : DEFAULT_AUDIO_HOOKS.annotation,
 		blur: typeof raw.blur === "boolean" ? raw.blur : DEFAULT_AUDIO_HOOKS.blur,
 	};
 }
@@ -306,7 +304,9 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		(editor as { backgroundMusicRegions?: unknown }).backgroundMusicRegions,
 	)
 		? ((editor as { backgroundMusicRegions?: unknown }).backgroundMusicRegions as unknown[])
-				.filter((region): region is TrimRegion => Boolean(region && typeof (region as TrimRegion).id === "string"))
+				.filter((region): region is TrimRegion =>
+					Boolean(region && typeof (region as TrimRegion).id === "string"),
+				)
 				.map((region) => {
 					const rawStart = isFiniteNumber(region.startMs) ? Math.round(region.startMs) : 0;
 					const rawEnd = isFiniteNumber(region.endMs) ? Math.round(region.endMs) : rawStart + 1000;

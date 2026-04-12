@@ -1185,7 +1185,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		useEffect(() => {
 			const backgroundMusic = backgroundMusicRef.current;
-			if (!backgroundMusic) {
+			if (!backgroundMusic || !backgroundMusicPath) {
 				return;
 			}
 
@@ -1205,9 +1205,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					(region) => currentTime * 1000 >= region.startMs && currentTime * 1000 < region.endMs,
 				);
 
-			backgroundMusic.volume = isInRegion
-				? Math.min(1, Math.max(0, backgroundMusicVolume))
-				: 0;
+			backgroundMusic.volume = isInRegion ? Math.min(1, Math.max(0, backgroundMusicVolume)) : 0;
 
 			if (!isPlaying) {
 				backgroundMusic.pause();
