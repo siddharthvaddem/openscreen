@@ -35,6 +35,15 @@
 		"roundness": "Arrondi",
 		"padding": "Marge"
 	},
+	"audio": {
+		"title": "Audio",
+		"backgroundMusic": "Musique de fond",
+		"upload": "Téléverser un audio",
+		"replace": "Remplacer l'audio",
+		"remove": "Supprimer l'audio",
+		"noFileSelected": "Aucun fichier audio sélectionné",
+		"volume": "Volume de la musique"
+	},
 	"background": {
 		"title": "Arrière-plan",
 		"image": "Image",

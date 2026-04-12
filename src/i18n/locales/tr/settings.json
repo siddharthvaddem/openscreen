@@ -164,6 +164,12 @@
 	},
 	"audio": {
 		"title": "Ses",
+		"backgroundMusic": "Arka plan müziği",
+		"upload": "Ses yükle",
+		"replace": "Sesi değiştir",
+		"remove": "Sesi kaldır",
+		"noFileSelected": "Ses dosyası seçilmedi",
+		"volume": "Müzik sesi",
 		"noiseReduction": "Gürültü Azaltma",
 		"level": "Seviye",
 		"nrLevel": {

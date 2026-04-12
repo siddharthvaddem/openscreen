@@ -3,9 +3,13 @@ import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import {
+	type AudioHooksConfig,
+	type AudioHookType,
 	type AnnotationRegion,
 	type CropRegion,
+	type HookRegion,
 	clampPlaybackSpeed,
+	DEFAULT_AUDIO_HOOKS,
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
@@ -45,6 +49,11 @@ export const PROJECT_VERSION = 2;
 
 export interface ProjectEditorState {
 	wallpaper: string;
+	backgroundMusicPath: string | null;
+	backgroundMusicRegions: TrimRegion[];
+	backgroundMusicVolume: number;
+	audioHooks: AudioHooksConfig;
+	audioHooksVolume: number;
 	shadowIntensity: number;
 	showBlur: boolean;
 	motionBlurAmount: number;
@@ -55,6 +64,7 @@ export interface ProjectEditorState {
 	trimRegions: TrimRegion[];
 	speedRegions: SpeedRegion[];
 	annotationRegions: AnnotationRegion[];
+	hookRegions: HookRegion[];
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape: WebcamMaskShape;
@@ -100,6 +110,33 @@ function computeNormalizedWebcamLayoutPreset(
 
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+	if (typeof value !== "string") {
+		return null;
+	}
+
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeAudioHooks(value: unknown): AudioHooksConfig {
+	if (!value || typeof value !== "object") {
+		return { ...DEFAULT_AUDIO_HOOKS };
+	}
+
+	const raw = value as Partial<AudioHooksConfig>;
+	return {
+		zoom: typeof raw.zoom === "boolean" ? raw.zoom : DEFAULT_AUDIO_HOOKS.zoom,
+		trim: typeof raw.trim === "boolean" ? raw.trim : DEFAULT_AUDIO_HOOKS.trim,
+		speed: typeof raw.speed === "boolean" ? raw.speed : DEFAULT_AUDIO_HOOKS.speed,
+		annotation:
+			typeof raw.annotation === "boolean"
+				? raw.annotation
+				: DEFAULT_AUDIO_HOOKS.annotation,
+		blur: typeof raw.blur === "boolean" ? raw.blur : DEFAULT_AUDIO_HOOKS.blur,
+	};
 }
 
 function isFileUrl(value: string): boolean {
@@ -265,6 +302,57 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 				})
 		: [];
 
+	const normalizedBackgroundMusicRegions: TrimRegion[] = Array.isArray(
+		(editor as { backgroundMusicRegions?: unknown }).backgroundMusicRegions,
+	)
+		? ((editor as { backgroundMusicRegions?: unknown }).backgroundMusicRegions as unknown[])
+				.filter((region): region is TrimRegion => Boolean(region && typeof (region as TrimRegion).id === "string"))
+				.map((region) => {
+					const rawStart = isFiniteNumber(region.startMs) ? Math.round(region.startMs) : 0;
+					const rawEnd = isFiniteNumber(region.endMs) ? Math.round(region.endMs) : rawStart + 1000;
+					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
+					const endMs = Math.max(startMs + 1, rawEnd);
+					return {
+						id: region.id,
+						startMs,
+						endMs,
+					};
+				})
+		: [];
+
+	const normalizedHookRegions: HookRegion[] = Array.isArray(
+		(editor as { hookRegions?: unknown }).hookRegions,
+	)
+		? ((editor as { hookRegions?: unknown }).hookRegions as unknown[])
+				.filter((region): region is HookRegion =>
+					Boolean(region && typeof (region as HookRegion).id === "string"),
+				)
+				.map((region) => {
+					const rawStart = isFiniteNumber(region.startMs) ? Math.round(region.startMs) : 0;
+					const rawEnd = isFiniteNumber(region.endMs) ? Math.round(region.endMs) : rawStart + 1200;
+					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
+					const endMs = Math.max(startMs + 1, rawEnd);
+					const hookType =
+						region.hookType === "zoom" ||
+						region.hookType === "trim" ||
+						region.hookType === "speed" ||
+						region.hookType === "annotation" ||
+						region.hookType === "blur"
+							? (region.hookType as AudioHookType)
+							: undefined;
+
+					return {
+						id: region.id,
+						startMs,
+						endMs,
+						soundUrl: typeof region.soundUrl === "string" ? region.soundUrl : "",
+						label: typeof region.label === "string" ? region.label : undefined,
+						hookType,
+					};
+				})
+				.filter((region) => region.soundUrl.length > 0)
+		: [];
+
 	const normalizedSpeedRegions: SpeedRegion[] = Array.isArray(editor.speedRegions)
 		? editor.speedRegions
 				.filter((region): region is SpeedRegion => Boolean(region && typeof region.id === "string"))
@@ -415,6 +503,19 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 
 	return {
 		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
+		backgroundMusicPath: normalizeOptionalString(
+			(editor as { backgroundMusicPath?: unknown }).backgroundMusicPath,
+		),
+		backgroundMusicRegions: normalizedBackgroundMusicRegions,
+		backgroundMusicVolume: isFiniteNumber(
+			(editor as { backgroundMusicVolume?: unknown }).backgroundMusicVolume,
+		)
+			? clamp((editor as { backgroundMusicVolume: number }).backgroundMusicVolume, 0, 1)
+			: 0.35,
+		audioHooks: normalizeAudioHooks((editor as { audioHooks?: unknown }).audioHooks),
+		audioHooksVolume: isFiniteNumber((editor as { audioHooksVolume?: unknown }).audioHooksVolume)
+			? clamp((editor as { audioHooksVolume: number }).audioHooksVolume, 0, 1)
+			: 0.35,
 		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
 		showBlur: typeof editor.showBlur === "boolean" ? editor.showBlur : false,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)
@@ -436,6 +537,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		trimRegions: normalizedTrimRegions,
 		speedRegions: normalizedSpeedRegions,
 		annotationRegions: normalizedAnnotationRegions,
+		hookRegions: normalizedHookRegions,
 		aspectRatio: normalizedAspectRatio,
 		webcamLayoutPreset: normalizedWebcamLayoutPreset,
 		webcamMaskShape:

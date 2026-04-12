@@ -46,6 +46,15 @@
 		"roundness": "Redondez",
 		"padding": "Relleno"
 	},
+	"audio": {
+		"title": "Audio",
+		"backgroundMusic": "Música de fondo",
+		"upload": "Subir audio",
+		"replace": "Reemplazar audio",
+		"remove": "Quitar audio",
+		"noFileSelected": "No se ha seleccionado ningún archivo de audio",
+		"volume": "Volumen de la música"
+	},
 	"background": {
 		"title": "Fondo",
 		"image": "Imagen",

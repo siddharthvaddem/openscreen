@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import type {
+	AudioHooksConfig,
 	AnnotationRegion,
 	CropRegion,
+	HookRegion,
 	SpeedRegion,
 	TrimRegion,
 	WebcamLayoutPreset,
@@ -11,6 +13,7 @@ import type {
 	ZoomRegion,
 } from "@/components/video-editor/types";
 import {
+	DEFAULT_AUDIO_HOOKS,
 	DEFAULT_CROP_REGION,
 	DEFAULT_WEBCAM_LAYOUT_PRESET,
 	DEFAULT_WEBCAM_MASK_SHAPE,
@@ -26,6 +29,12 @@ export interface EditorState {
 	trimRegions: TrimRegion[];
 	speedRegions: SpeedRegion[];
 	annotationRegions: AnnotationRegion[];
+	hookRegions: HookRegion[];
+	backgroundMusicPath: string | null;
+	backgroundMusicRegions: TrimRegion[];
+	backgroundMusicVolume: number;
+	audioHooks: AudioHooksConfig;
+	audioHooksVolume: number;
 	cropRegion: CropRegion;
 	wallpaper: string;
 	shadowIntensity: number;
@@ -45,6 +54,12 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	trimRegions: [],
 	speedRegions: [],
 	annotationRegions: [],
+	hookRegions: [],
+	backgroundMusicPath: null,
+	backgroundMusicRegions: [],
+	backgroundMusicVolume: 0.35,
+	audioHooks: { ...DEFAULT_AUDIO_HOOKS },
+	audioHooksVolume: 0.35,
 	cropRegion: DEFAULT_CROP_REGION,
 	wallpaper: "/wallpapers/wallpaper1.jpg",
 	shadowIntensity: 0,

@@ -5,14 +5,16 @@
 		"addTrim": "Add Trim (T)",
 		"addAnnotation": "Add Annotation (A)",
 		"addBlur": "Add Blur (B)",
-		"addSpeed": "Add Speed (S)"
+		"addSpeed": "Add Speed (S)",
+		"addMusic": "Add Music Region"
 	},
 	"hints": {
 		"pressZoom": "Press Z to add zoom",
 		"pressTrim": "Press T to add trim",
 		"pressAnnotation": "Press A to add annotation",
 		"pressBlur": "Press B to add blur region",
-		"pressSpeed": "Press S to add speed"
+		"pressSpeed": "Press S to add speed",
+		"pressMusic": "Use + to add music regions"
 	},
 	"labels": {
 		"pan": "Pan",
@@ -20,6 +22,7 @@
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Trim {{index}}",
 		"speedItem": "Speed {{index}}",
+		"musicItem": "Music {{index}}",
 		"annotationItem": "Annotation",
 		"blurItem": "Blur {{index}}",
 		"imageItem": "Image",
@@ -44,7 +47,9 @@
 		"cannotPlaceTrim": "Cannot place trim here",
 		"trimExistsAtLocation": "Trim already exists at this location or not enough space available.",
 		"cannotPlaceSpeed": "Cannot place speed here",
-		"speedExistsAtLocation": "Speed region already exists at this location or not enough space available."
+		"speedExistsAtLocation": "Speed region already exists at this location or not enough space available.",
+		"cannotPlaceMusic": "Cannot place music here",
+		"musicExistsAtLocation": "Music region already exists at this location or not enough space available."
 	},
 	"success": {
 		"addedZoomSuggestions": "Added {{count}} cursor-based zoom suggestion",

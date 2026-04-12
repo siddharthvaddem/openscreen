@@ -1,6 +1,8 @@
 import type {
+	AudioHooksConfig,
 	AnnotationRegion,
 	CropRegion,
+	HookRegion,
 	SpeedRegion,
 	TrimRegion,
 	WebcamLayoutPreset,
@@ -16,10 +18,18 @@ import type { ExportConfig, ExportProgress, ExportResult } from "./types";
 
 const ENCODER_STALL_TIMEOUT_MS = 15_000;
 const ENCODER_FLUSH_TIMEOUT_MS = 20_000;
+const HOOK_TRIGGER_LEAD_MS = 140;
 
 interface VideoExporterConfig extends ExportConfig {
 	videoUrl: string;
 	webcamVideoUrl?: string;
+	backgroundAudioUrl?: string;
+	backgroundAudioRegions?: TrimRegion[];
+	backgroundAudioVolume?: number;
+	audioHooks?: AudioHooksConfig;
+	audioHooksVolume?: number;
+	hookSoundLayers?: Partial<Record<keyof AudioHooksConfig, string[]>>;
+	hookRegions?: HookRegion[];
 	wallpaper: string;
 	zoomRegions: ZoomRegion[];
 	trimRegions?: TrimRegion[];
@@ -152,7 +162,11 @@ export class VideoExporter {
 
 			await this.initializeEncoder(encoderPreference);
 
-			const hasAudio = videoInfo.hasAudio;
+			const hasAudio =
+				videoInfo.hasAudio ||
+				Boolean(this.config.backgroundAudioUrl) ||
+				Boolean(this.config.audioHooks && Object.values(this.config.audioHooks).some(Boolean)) ||
+				Boolean(this.config.hookRegions && this.config.hookRegions.length > 0);
 			const muxer = new VideoMuxer(this.config, hasAudio);
 			this.muxer = muxer;
 			await muxer.initialize();
@@ -346,6 +360,30 @@ export class VideoExporter {
 						this.config.videoUrl,
 						this.config.trimRegions,
 						this.config.speedRegions,
+						this.config.backgroundAudioUrl,
+						this.config.backgroundAudioRegions,
+						this.config.backgroundAudioVolume,
+						this.config.audioHooks,
+						this.config.audioHooksVolume,
+						this.config.hookSoundLayers,
+						this.config.hookRegions,
+						{
+							zoom: this.config.zoomRegions.map((region) =>
+								Math.max(0, region.startMs - HOOK_TRIGGER_LEAD_MS),
+							),
+							trim: (this.config.trimRegions ?? []).map((region) =>
+								Math.max(0, region.startMs - HOOK_TRIGGER_LEAD_MS),
+							),
+							speed: (this.config.speedRegions ?? []).map((region) =>
+								Math.max(0, region.startMs - HOOK_TRIGGER_LEAD_MS),
+							),
+							annotation: (this.config.annotationRegions ?? [])
+								.filter((region) => region.type !== "blur")
+								.map((region) => Math.max(0, region.startMs - HOOK_TRIGGER_LEAD_MS)),
+							blur: (this.config.annotationRegions ?? [])
+								.filter((region) => region.type === "blur")
+								.map((region) => Math.max(0, region.startMs - HOOK_TRIGGER_LEAD_MS)),
+						},
 						readEndSec,
 					);
 				}

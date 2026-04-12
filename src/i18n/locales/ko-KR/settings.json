@@ -38,6 +38,15 @@
 		"roundness": "모서리 둥글기",
 		"padding": "여백"
 	},
+	"audio": {
+		"title": "오디오",
+		"backgroundMusic": "배경 음악",
+		"upload": "오디오 업로드",
+		"replace": "오디오 교체",
+		"remove": "오디오 제거",
+		"noFileSelected": "선택된 오디오 파일이 없습니다",
+		"volume": "음악 볼륨"
+	},
 	"background": {
 		"title": "배경",
 		"image": "이미지",
