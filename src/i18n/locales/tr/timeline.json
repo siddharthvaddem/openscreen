@@ -20,10 +20,26 @@
 		"zoomItem": "Yakınlaştırma {{index}}",
 		"trimItem": "Kırpma {{index}}",
 		"speedItem": "Hız {{index}}",
+		"hookItem": "Hook {{index}}",
 		"annotationItem": "Açıklama",
 		"imageItem": "Görüntü",
 		"emptyText": "Boş metin",
-		"blurItem": "Bulanık {{index}}"
+		"blurItem": "Bulanık {{index}}",
+		"musicItem": "Müzik {{index}}"
+	},
+	"controls": {
+		"toggleRowsTitle": "Zaman çizelgesi satırlarını göster veya gizle",
+		"tracks": "Parçalar",
+		"timelineVisibility": "Zaman çizelgesi görünürlüğü"
+	},
+	"rows": {
+		"zoom": "Yakınlaştır",
+		"trim": "Kırp",
+		"annotation": "Açıklama",
+		"blur": "Bulanıklık",
+		"speed": "Hız",
+		"hook": "Hook",
+		"music": "Müzik"
 	},
 	"emptyState": {
 		"noVideo": "Video Yüklenmedi",
@@ -44,7 +60,9 @@
 		"cannotPlaceTrim": "Buraya kırpma yerleştirilemiyor",
 		"trimExistsAtLocation": "Bu konumda zaten bir kırpma var veya yeterli alan yok.",
 		"cannotPlaceSpeed": "Buraya hız yerleştirilemiyor",
-		"speedExistsAtLocation": "Bu konumda zaten bir hız bölgesi var veya yeterli alan yok."
+		"speedExistsAtLocation": "Bu konumda zaten bir hız bölgesi var veya yeterli alan yok.",
+		"cannotPlaceMusic": "Buraya müzik yerleştirilemiyor",
+		"musicExistsAtLocation": "Bu konumda zaten bir müzik bölgesi var veya yeterli alan yok."
 	},
 	"success": {
 		"addedZoomSuggestions": "{{count}} imleç tabanlı yakınlaştırma önerisi eklendi",

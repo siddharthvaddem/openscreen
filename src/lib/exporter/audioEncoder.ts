@@ -463,6 +463,8 @@ export class AudioProcessor {
 
 					const currentTimeMs = sourceMedia.currentTime * 1000;
 					const crossed = (timeMs: number) => timeMs > previousTimeMs && timeMs <= currentTimeMs;
+					const crossedPlayable = (timeMs: number) =>
+						crossed(timeMs) && !this.isInTrimRegion(timeMs, trimRegions);
 
 					if (backgroundGainNode) {
 						backgroundGainNode.gain.value = isBackgroundActiveAt(currentTimeMs)
@@ -484,7 +486,7 @@ export class AudioProcessor {
 								return;
 							}
 							const events = hookEventTimes[hook] ?? [];
-							if (events.some((timeMs) => crossed(timeMs))) {
+							if (events.some((timeMs) => crossedPlayable(timeMs))) {
 								playHookSound(hook);
 							}
 						});
@@ -492,7 +494,7 @@ export class AudioProcessor {
 
 					if (hasHookClipRegions) {
 						sortedHookRegions.forEach((region) => {
-							if (crossed(region.startMs)) {
+							if (crossedPlayable(region.startMs)) {
 								playHookClipRegion(region);
 							}
 						});

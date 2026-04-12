@@ -20,10 +20,26 @@
 		"zoomItem": "缩放 {{index}}",
 		"trimItem": "剪辑 {{index}}",
 		"speedItem": "速度 {{index}}",
+		"hookItem": "Hook {{index}}",
 		"annotationItem": "标注",
 		"imageItem": "图片",
 		"emptyText": "空文本",
-		"blurItem": "模糊 {{index}}"
+		"blurItem": "模糊 {{index}}",
+		"musicItem": "音乐 {{index}}"
+	},
+	"controls": {
+		"toggleRowsTitle": "显示或隐藏时间轴行",
+		"tracks": "轨道",
+		"timelineVisibility": "时间轴可见性"
+	},
+	"rows": {
+		"zoom": "缩放",
+		"trim": "裁剪",
+		"annotation": "注释",
+		"blur": "模糊",
+		"speed": "速度",
+		"hook": "Hook",
+		"music": "音乐"
 	},
 	"emptyState": {
 		"noVideo": "未加载视频",
@@ -44,7 +60,9 @@
 		"cannotPlaceTrim": "无法在此处放置剪辑",
 		"trimExistsAtLocation": "此位置已存在剪辑或没有足够的空间。",
 		"cannotPlaceSpeed": "无法在此处放置速度",
-		"speedExistsAtLocation": "此位置已存在速度区域或没有足够的空间。"
+		"speedExistsAtLocation": "此位置已存在速度区域或没有足够的空间。",
+		"cannotPlaceMusic": "无法在此处放置音乐",
+		"musicExistsAtLocation": "此位置已存在音乐区域或没有足够的空间。"
 	},
 	"success": {
 		"addedZoomSuggestions": "已添加 {{count}} 个基于光标的缩放建议",

@@ -20,10 +20,26 @@
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Coupe {{index}}",
 		"speedItem": "Vitesse {{index}}",
+		"hookItem": "Hook {{index}}",
 		"annotationItem": "Annotation",
 		"imageItem": "Image",
 		"emptyText": "Texte vide",
-		"blurItem": "Flou {{index}}"
+		"blurItem": "Flou {{index}}",
+		"musicItem": "Musique {{index}}"
+	},
+	"controls": {
+		"toggleRowsTitle": "Afficher ou masquer les lignes de la timeline",
+		"tracks": "Pistes",
+		"timelineVisibility": "Visibilité de la timeline"
+	},
+	"rows": {
+		"zoom": "Zoom",
+		"trim": "Découpe",
+		"annotation": "Annotation",
+		"blur": "Flou",
+		"speed": "Vitesse",
+		"hook": "Hook",
+		"music": "Musique"
 	},
 	"emptyState": {
 		"noVideo": "Aucune vidéo chargée",
@@ -44,7 +60,9 @@
 		"cannotPlaceTrim": "Impossible de placer la coupe ici",
 		"trimExistsAtLocation": "Une coupe existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant.",
 		"cannotPlaceSpeed": "Impossible de placer la vitesse ici",
-		"speedExistsAtLocation": "Une région de vitesse existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant."
+		"speedExistsAtLocation": "Une région de vitesse existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant.",
+		"cannotPlaceMusic": "Impossible de placer la musique ici",
+		"musicExistsAtLocation": "Une région de musique existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant."
 	},
 	"success": {
 		"addedZoomSuggestions": "{{count}} suggestion de zoom basée sur le curseur ajoutée",

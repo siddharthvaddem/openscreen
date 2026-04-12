@@ -22,11 +22,26 @@
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Trim {{index}}",
 		"speedItem": "Speed {{index}}",
+		"hookItem": "Hook {{index}}",
 		"musicItem": "Music {{index}}",
 		"annotationItem": "Annotation",
 		"blurItem": "Blur {{index}}",
 		"imageItem": "Image",
 		"emptyText": "Empty text"
+	},
+	"controls": {
+		"toggleRowsTitle": "Show or hide timeline rows",
+		"tracks": "Tracks",
+		"timelineVisibility": "Timeline visibility"
+	},
+	"rows": {
+		"zoom": "Zoom",
+		"trim": "Trim",
+		"annotation": "Annotation",
+		"blur": "Blur",
+		"speed": "Speed",
+		"hook": "Hook",
+		"music": "Music"
 	},
 	"emptyState": {
 		"noVideo": "No Video Loaded",

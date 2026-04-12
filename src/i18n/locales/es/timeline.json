@@ -20,10 +20,26 @@
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Recorte {{index}}",
 		"speedItem": "Velocidad {{index}}",
+		"hookItem": "Hook {{index}}",
 		"annotationItem": "Anotación",
 		"imageItem": "Imagen",
 		"emptyText": "Texto vacío",
-		"blurItem": "Desenfoque {{index}}"
+		"blurItem": "Desenfoque {{index}}",
+		"musicItem": "Música {{index}}"
+	},
+	"controls": {
+		"toggleRowsTitle": "Mostrar u ocultar filas de la línea de tiempo",
+		"tracks": "Pistas",
+		"timelineVisibility": "Visibilidad de la línea de tiempo"
+	},
+	"rows": {
+		"zoom": "Zoom",
+		"trim": "Recorte",
+		"annotation": "Anotación",
+		"blur": "Desenfoque",
+		"speed": "Velocidad",
+		"hook": "Hook",
+		"music": "Música"
 	},
 	"emptyState": {
 		"noVideo": "No hay video cargado",
@@ -44,7 +60,9 @@
 		"cannotPlaceTrim": "No se puede colocar el recorte aquí",
 		"trimExistsAtLocation": "Ya existe un recorte en esta ubicación o no hay suficiente espacio disponible.",
 		"cannotPlaceSpeed": "No se puede colocar la velocidad aquí",
-		"speedExistsAtLocation": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio disponible."
+		"speedExistsAtLocation": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio disponible.",
+		"cannotPlaceMusic": "No se puede colocar la música aquí",
+		"musicExistsAtLocation": "Ya existe una región de música en esta ubicación o no hay suficiente espacio disponible."
 	},
 	"success": {
 		"addedZoomSuggestions": "Se agregó {{count}} sugerencia de zoom basada en el cursor",

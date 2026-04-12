@@ -968,13 +968,13 @@ export default function TimelineEditor({
 
 	const rowVisibilityOptions = useMemo(
 		() => [
-			{ key: "zoom" as const, label: "Zoom" },
-			{ key: "trim" as const, label: "Trim" },
-			{ key: "annotation" as const, label: "Annotation" },
-			{ key: "blur" as const, label: "Blur" },
-			{ key: "speed" as const, label: "Speed" },
-			{ key: "hook" as const, label: "Hook" },
-			{ key: "music" as const, label: "Music" },
+			{ key: "zoom" as const, labelKey: "rows.zoom" },
+			{ key: "trim" as const, labelKey: "rows.trim" },
+			{ key: "annotation" as const, labelKey: "rows.annotation" },
+			{ key: "blur" as const, labelKey: "rows.blur" },
+			{ key: "speed" as const, labelKey: "rows.speed" },
+			{ key: "hook" as const, labelKey: "rows.hook" },
+			{ key: "music" as const, labelKey: "rows.music" },
 		],
 		[],
 	);
@@ -1670,7 +1670,7 @@ export default function TimelineEditor({
 			id: region.id,
 			rowId: HOOK_ROW_ID,
 			span: { start: region.startMs, end: region.endMs },
-			label: region.label || `Hook ${index + 1}`,
+			label: region.label || t("labels.hookItem", { index: String(index + 1) }),
 			variant: "hook",
 		}));
 
@@ -1839,15 +1839,17 @@ export default function TimelineEditor({
 								variant="ghost"
 								size="sm"
 								className="h-7 px-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all gap-1"
-								title="Show or hide timeline rows"
+								title={t("controls.toggleRowsTitle")}
 							>
 								<SlidersHorizontal className="w-3 h-3" />
-								<span className="font-medium">Tracks</span>
+								<span className="font-medium">{t("controls.tracks")}</span>
 								<ChevronDown className="w-3 h-3" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 w-48">
-							<DropdownMenuLabel className="text-slate-300">Timeline visibility</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-slate-300">
+								{t("controls.timelineVisibility")}
+							</DropdownMenuLabel>
 							<DropdownMenuSeparator className="bg-white/10" />
 							{rowVisibilityOptions.map((option) => (
 								<DropdownMenuCheckboxItem
@@ -1861,7 +1863,7 @@ export default function TimelineEditor({
 									}}
 									className="text-slate-300 hover:text-white focus:text-white data-[highlighted]:text-white hover:bg-white/10 focus:bg-white/10 data-[highlighted]:bg-white/10 data-[disabled]:opacity-50"
 								>
-									{option.label}
+									{t(option.labelKey)}
 								</DropdownMenuCheckboxItem>
 							))}
 						</DropdownMenuContent>
