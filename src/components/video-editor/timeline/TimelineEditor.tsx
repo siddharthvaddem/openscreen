@@ -8,6 +8,7 @@ import {
 	Music2,
 	Plus,
 	Scissors,
+	SlidersHorizontal,
 	WandSparkles,
 	ZoomIn,
 } from "lucide-react";
@@ -17,8 +18,11 @@ import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useScopedT } from "@/contexts/I18nContext";
@@ -50,9 +54,24 @@ const BLUR_ROW_ID = "row-blur";
 const SPEED_ROW_ID = "row-speed";
 const HOOK_ROW_ID = "row-hook";
 const MUSIC_ROW_ID = "row-music";
+const TIMELINE_ROW_VISIBILITY_STORAGE_KEY = "timeline-row-visibility";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 const SUGGESTION_SPACING_MS = 1800;
+
+type TimelineRowKey = "zoom" | "trim" | "annotation" | "blur" | "speed" | "hook" | "music";
+
+type TimelineRowVisibility = Record<TimelineRowKey, boolean>;
+
+const DEFAULT_ROW_VISIBILITY: TimelineRowVisibility = {
+	zoom: true,
+	trim: true,
+	annotation: true,
+	blur: true,
+	speed: true,
+	hook: true,
+	music: true,
+};
 
 interface TimelineEditorProps {
 	videoDuration: number;
@@ -559,6 +578,7 @@ function Timeline({
 	selectedSpeedId,
 	selectedHookId,
 	selectedMusicId,
+	rowVisibility,
 	keyframes = [],
 }: {
 	items: TimelineRenderItem[];
@@ -580,6 +600,7 @@ function Timeline({
 	selectedSpeedId?: string | null;
 	selectedHookId?: string | null;
 	selectedMusicId?: string | null;
+	rowVisibility: TimelineRowVisibility;
 	keyframes?: { id: string; time: number }[];
 }) {
 	const t = useScopedT("timeline");
@@ -702,123 +723,141 @@ function Timeline({
 				keyframes={keyframes}
 			/>
 
-			<Row id={ZOOM_ROW_ID} isEmpty={zoomItems.length === 0} hint={t("hints.pressZoom")}>
-				{zoomItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedZoomId}
-						onSelect={() => onSelectZoom?.(item.id)}
-						zoomDepth={item.zoomDepth}
-						variant="zoom"
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.zoom && (
+				<Row id={ZOOM_ROW_ID} isEmpty={zoomItems.length === 0} hint={t("hints.pressZoom")}>
+					{zoomItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedZoomId}
+							onSelect={() => onSelectZoom?.(item.id)}
+							zoomDepth={item.zoomDepth}
+							variant="zoom"
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row id={TRIM_ROW_ID} isEmpty={trimItems.length === 0} hint={t("hints.pressTrim")}>
-				{trimItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedTrimId}
-						onSelect={() => onSelectTrim?.(item.id)}
-						variant="trim"
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.trim && (
+				<Row id={TRIM_ROW_ID} isEmpty={trimItems.length === 0} hint={t("hints.pressTrim")}>
+					{trimItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedTrimId}
+							onSelect={() => onSelectTrim?.(item.id)}
+							variant="trim"
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row
-				id={ANNOTATION_ROW_ID}
-				isEmpty={annotationItems.length === 0}
-				hint={t("hints.pressAnnotation")}
-			>
-				{annotationItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedAnnotationId}
-						onSelect={() => onSelectAnnotation?.(item.id)}
-						variant="annotation"
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.annotation && (
+				<Row
+					id={ANNOTATION_ROW_ID}
+					isEmpty={annotationItems.length === 0}
+					hint={t("hints.pressAnnotation")}
+				>
+					{annotationItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedAnnotationId}
+							onSelect={() => onSelectAnnotation?.(item.id)}
+							variant="annotation"
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row id={BLUR_ROW_ID} isEmpty={blurItems.length === 0} hint={t("hints.pressBlur")}>
-				{blurItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedBlurId}
-						onSelect={() => onSelectBlur?.(item.id)}
-						variant={item.variant}
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.blur && (
+				<Row id={BLUR_ROW_ID} isEmpty={blurItems.length === 0} hint={t("hints.pressBlur")}>
+					{blurItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedBlurId}
+							onSelect={() => onSelectBlur?.(item.id)}
+							variant={item.variant}
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row id={SPEED_ROW_ID} isEmpty={speedItems.length === 0} hint={t("hints.pressSpeed")}>
-				{speedItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedSpeedId}
-						onSelect={() => onSelectSpeed?.(item.id)}
-						variant="speed"
-						speedValue={item.speedValue}
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.speed && (
+				<Row id={SPEED_ROW_ID} isEmpty={speedItems.length === 0} hint={t("hints.pressSpeed")}>
+					{speedItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedSpeedId}
+							onSelect={() => onSelectSpeed?.(item.id)}
+							variant="speed"
+							speedValue={item.speedValue}
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row id={HOOK_ROW_ID} isEmpty={hookItems.length === 0} hint="Use hook sounds from Audio settings">
-				{hookItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedHookId}
-						onSelect={() => onSelectHook?.(item.id)}
-						variant="hook"
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.hook && (
+				<Row
+					id={HOOK_ROW_ID}
+					isEmpty={hookItems.length === 0}
+					hint="Use hook sounds from Audio settings"
+				>
+					{hookItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedHookId}
+							onSelect={() => onSelectHook?.(item.id)}
+							variant="hook"
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 
-			<Row id={MUSIC_ROW_ID} isEmpty={musicItems.length === 0} hint={t("hints.pressMusic")}>
-				{musicItems.map((item) => (
-					<Item
-						id={item.id}
-						key={item.id}
-						rowId={item.rowId}
-						span={item.span}
-						isSelected={item.id === selectedMusicId}
-						onSelect={() => onSelectMusic?.(item.id)}
-						variant="music"
-					>
-						{item.label}
-					</Item>
-				))}
-			</Row>
+			{rowVisibility.music && (
+				<Row id={MUSIC_ROW_ID} isEmpty={musicItems.length === 0} hint={t("hints.pressMusic")}>
+					{musicItems.map((item) => (
+						<Item
+							id={item.id}
+							key={item.id}
+							rowId={item.rowId}
+							span={item.span}
+							isSelected={item.id === selectedMusicId}
+							onSelect={() => onSelectMusic?.(item.id)}
+							variant="music"
+						>
+							{item.label}
+						</Item>
+					))}
+				</Row>
+			)}
 		</div>
 	);
 }
@@ -889,12 +928,71 @@ export default function TimelineEditor({
 	const [range, setRange] = useState<Range>(() => createInitialRange(totalMs));
 	const [keyframes, setKeyframes] = useState<{ id: string; time: number }[]>([]);
 	const [selectedKeyframeId, setSelectedKeyframeId] = useState<string | null>(null);
+	const [rowVisibility, setRowVisibility] = useState<TimelineRowVisibility>(DEFAULT_ROW_VISIBILITY);
 	const [scrollLabels, setScrollLabels] = useState({
 		pan: "Scroll",
 		zoom: "Ctrl + Scroll",
 	});
 	const timelineContainerRef = useRef<HTMLDivElement>(null);
 	const { shortcuts: keyShortcuts, isMac } = useShortcuts();
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		try {
+			const raw = window.localStorage.getItem(TIMELINE_ROW_VISIBILITY_STORAGE_KEY);
+			if (!raw) {
+				return;
+			}
+
+			const parsed = JSON.parse(raw) as Partial<TimelineRowVisibility>;
+			setRowVisibility({
+				...DEFAULT_ROW_VISIBILITY,
+				...parsed,
+				music: true,
+			});
+		} catch {
+			setRowVisibility(DEFAULT_ROW_VISIBILITY);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		window.localStorage.setItem(TIMELINE_ROW_VISIBILITY_STORAGE_KEY, JSON.stringify(rowVisibility));
+	}, [rowVisibility]);
+
+	const rowVisibilityOptions = useMemo(
+		() => [
+			{ key: "zoom" as const, label: "Zoom" },
+			{ key: "trim" as const, label: "Trim" },
+			{ key: "annotation" as const, label: "Annotation" },
+			{ key: "blur" as const, label: "Blur" },
+			{ key: "speed" as const, label: "Speed" },
+			{ key: "hook" as const, label: "Hook" },
+			{ key: "music" as const, label: "Music" },
+		],
+		[],
+	);
+
+	const toggleRowVisibility = useCallback((key: TimelineRowKey, checked: boolean) => {
+		if (key === "music") {
+			return;
+		}
+
+		setRowVisibility((previous) => {
+			const next = { ...previous, [key]: checked };
+			const visibleCount = Object.values(next).filter(Boolean).length;
+			if (visibleCount === 0) {
+				return previous;
+			}
+			return next;
+		});
+	}, []);
 
 	useEffect(() => {
 		formatShortcut(["mod", "Scroll"]).then((zoom) => {
@@ -1494,7 +1592,6 @@ export default function TimelineEditor({
 		selectedHookId,
 		selectedMusicId,
 		annotationRegions,
-		blurRegions,
 		currentTime,
 		onSelectAnnotation,
 		keyShortcuts,
@@ -1742,6 +1839,40 @@ export default function TimelineEditor({
 								variant="ghost"
 								size="sm"
 								className="h-7 px-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all gap-1"
+								title="Show or hide timeline rows"
+							>
+								<SlidersHorizontal className="w-3 h-3" />
+								<span className="font-medium">Tracks</span>
+								<ChevronDown className="w-3 h-3" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 w-48">
+							<DropdownMenuLabel className="text-slate-300">Timeline visibility</DropdownMenuLabel>
+							<DropdownMenuSeparator className="bg-white/10" />
+							{rowVisibilityOptions.map((option) => (
+								<DropdownMenuCheckboxItem
+									key={option.key}
+									checked={rowVisibility[option.key]}
+									disabled={option.key === "music"}
+									onCheckedChange={(checked) => {
+										if (typeof checked === "boolean") {
+											toggleRowVisibility(option.key, checked);
+										}
+									}}
+									className="text-slate-300 hover:text-white focus:text-white data-[highlighted]:text-white hover:bg-white/10 focus:bg-white/10 data-[highlighted]:bg-white/10 data-[disabled]:opacity-50"
+								>
+									{option.label}
+								</DropdownMenuCheckboxItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+					<div className="w-[1px] h-4 bg-white/10" />
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 px-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all gap-1"
 							>
 								<span className="font-medium">{getAspectRatioLabel(aspectRatio)}</span>
 								<ChevronDown className="w-3 h-3" />
@@ -1752,7 +1883,7 @@ export default function TimelineEditor({
 								<DropdownMenuItem
 									key={ratio}
 									onClick={() => onAspectRatioChange(ratio)}
-									className="text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer flex items-center justify-between gap-3"
+									className="text-slate-300 hover:text-white focus:text-white data-[highlighted]:text-white hover:bg-white/10 focus:bg-white/10 data-[highlighted]:bg-white/10 cursor-pointer flex items-center justify-between gap-3"
 								>
 									<span>{getAspectRatioLabel(ratio)}</span>
 									{aspectRatio === ratio && <Check className="w-3 h-3 text-[#34B27B]" />}
@@ -1822,6 +1953,7 @@ export default function TimelineEditor({
 						selectedSpeedId={selectedSpeedId}
 						selectedHookId={selectedHookId}
 						selectedMusicId={selectedMusicId}
+						rowVisibility={rowVisibility}
 						keyframes={keyframes}
 					/>
 				</TimelineWrapper>
