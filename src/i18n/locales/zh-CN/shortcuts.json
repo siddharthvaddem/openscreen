@@ -32,6 +32,8 @@
 		"panTimeline": "平移时间轴",
 		"zoomTimeline": "缩放时间轴",
 		"frameBack": "上一帧",
-		"frameForward": "下一帧"
+		"frameForward": "下一帧",
+		"largeFrameBack": "大幅上一帧",
+		"largeFrameForward": "大幅下一帧"
 	}
 }

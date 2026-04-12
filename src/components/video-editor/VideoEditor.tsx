@@ -1162,12 +1162,11 @@ export default function VideoEditor() {
 				return;
 			}
 
-			// Frame-step navigation (arrow keys, no modifiers)
+			// Frame-step navigation (arrow keys, optional Shift)
 			if (
 				(e.key === "ArrowLeft" || e.key === "ArrowRight") &&
 				!e.ctrlKey &&
 				!e.metaKey &&
-				!e.shiftKey &&
 				!e.altKey
 			) {
 				const target = e.target;
@@ -1191,6 +1190,7 @@ export default function VideoEditor() {
 					video.currentTime,
 					Number.isFinite(video.duration) ? video.duration : durationRef.current,
 					direction,
+					e.shiftKey,
 				);
 				video.currentTime = newTime;
 				return;

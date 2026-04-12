@@ -32,6 +32,8 @@
 		"panTimeline": "Panoramique de la timeline",
 		"zoomTimeline": "Zoom de la timeline",
 		"frameBack": "Image précédente",
-		"frameForward": "Image suivante"
+		"frameForward": "Image suivante",
+		"largeFrameBack": "Grand saut en arrière",
+		"largeFrameForward": "Grand saut en avant"
 	}
 }
