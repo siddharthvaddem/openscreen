@@ -81,6 +81,26 @@ System audio capture relies on Electron's [desktopCapturer](https://www.electron
 - **Windows**: Works out of the box.
 - **Linux**: Needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not support system audio (mic should still work).
 
+## CLI & Agent Interface
+
+OpenScreen also ships with a command-line interface designed to be driven either by a human or by an AI agent — create projects, add zoom/trim/speed/annotation regions, and render MP4s or GIFs without opening the GUI. It's inspired by [Remotion's approach](https://github.com/remotion-dev/remotion): a CLI as the primary agent surface, an [AgentSkills](https://agentskills.io) directory (`cli/skills/`) teaching agents how to use it, and a lightweight MCP server for documentation discovery.
+
+```bash
+# Install the CLI on PATH from a local clone
+git clone https://github.com/siddharthvaddem/openscreen.git
+cd openscreen
+npm install
+npm run build-vite   # one-time, needed for `render` / `gif`
+npm link             # exposes `openscreen` globally
+
+# Then from anywhere
+openscreen --json project info --project demo.openscreen
+openscreen --json zoom add --project demo.openscreen --start 2000 --end 5000 --depth 3
+openscreen render --project demo.openscreen --output demo.mp4 --overwrite
+```
+
+Full setup, command reference, JSON output contract, and agent-integration guide: **[`cli/README.md`](./cli/README.md)**. The intended workflow is: record in the OpenScreen app, hand the resulting `.openscreen` file to an agent, and get back a polished MP4 — see the [agent skills](./cli/skills/SKILL.md) for the rules the agent reads.
+
 ## Built with
 - Electron
 - React

@@ -34,6 +34,9 @@
 		"cli:typecheck": "tsc -p cli/tsconfig.json",
 		"mcp-server": "tsx cli/src/mcp-server.ts"
 	},
+	"bin": {
+		"openscreen": "cli/bin/openscreen.mjs"
+	},
 	"dependencies": {
 		"@fix-webm-duration/fix": "^1.0.1",
 		"@modelcontextprotocol/sdk": "^1.29.0",
