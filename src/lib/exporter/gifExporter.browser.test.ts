@@ -1,39 +1,9 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import sampleVideoUrl from "../../../tests/fixtures/sample.webm?url";
 import { GifExporter } from "./gifExporter";
 import type { ExportProgress } from "./types";
 
-const sampleVideoPath = path.resolve(process.cwd(), "tests/fixtures/sample.webm");
-
-const windowWithElectron = window as Window & {
-	electronAPI?: {
-		readBinaryFile?: (
-			path: string,
-		) => Promise<{ success: boolean; data?: Uint8Array; path?: string; message?: string }>;
-	};
-};
-
-const originalElectronAPI = windowWithElectron.electronAPI;
 const browserWorkerAvailable = typeof Worker !== "undefined";
-
-beforeAll(() => {
-	windowWithElectron.electronAPI = {
-		...windowWithElectron.electronAPI,
-		readBinaryFile: async (path: string) => {
-			if (path !== sampleVideoPath) {
-				return { success: false, message: "Unexpected fixture path" };
-			}
-
-			const buffer = await readFile(path);
-			return { success: true, data: new Uint8Array(buffer), path };
-		},
-	};
-});
-
-afterAll(() => {
-	windowWithElectron.electronAPI = originalElectronAPI;
-});
 
 describe("GifExporter (real browser)", () => {
 	const testIfBrowserWorker = browserWorkerAvailable ? it : it.skip;
@@ -42,7 +12,7 @@ describe("GifExporter (real browser)", () => {
 		const progressEvents: ExportProgress[] = [];
 
 		const exporter = new GifExporter({
-			videoUrl: sampleVideoPath,
+			videoUrl: sampleVideoUrl,
 			width: 320,
 			height: 180,
 			frameRate: 15,
