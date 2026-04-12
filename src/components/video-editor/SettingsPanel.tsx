@@ -7,6 +7,7 @@ import {
 	Image,
 	Lock,
 	Palette,
+	Settings2,
 	Sparkles,
 	Star,
 	Trash2,
@@ -36,7 +37,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { getAssetPath } from "@/lib/assetPath";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
-import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
+import type {
+	CustomResolution,
+	ExportFormat,
+	ExportQuality,
+	GifFrameRate,
+	GifSizePreset,
+} from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
 import { cn } from "@/lib/utils";
 import { type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
@@ -44,6 +51,7 @@ import { getTestId } from "@/utils/getTestId";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { BlurSettingsPanel } from "./BlurSettingsPanel";
 import { CropControl } from "./CropControl";
+import { CustomExportModal } from "./CustomExportModal";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
 	AnnotationRegion,
@@ -197,6 +205,10 @@ interface SettingsPanelProps {
 	gifSizePreset?: GifSizePreset;
 	onGifSizePresetChange?: (preset: GifSizePreset) => void;
 	gifOutputDimensions?: { width: number; height: number };
+	customResolution?: CustomResolution | null;
+	onCustomResolutionChange?: (resolution: CustomResolution | null) => void;
+	customExportModalOpen?: boolean;
+	onCustomExportModalChange?: (open: boolean) => void;
 	onExport?: () => void;
 	unsavedExport?: {
 		arrayBuffer: ArrayBuffer;
@@ -292,6 +304,10 @@ export function SettingsPanel({
 	gifSizePreset = "medium",
 	onGifSizePresetChange,
 	gifOutputDimensions = { width: 1280, height: 720 },
+	customResolution = null,
+	onCustomResolutionChange,
+	customExportModalOpen = false,
+	onCustomExportModalChange,
 	onExport,
 	unsavedExport,
 	onSaveUnsavedExport,
@@ -1381,40 +1397,74 @@ export function SettingsPanel({
 				</div>
 
 				{exportFormat === "mp4" && (
-					<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
-						<button
-							onClick={() => onExportQualityChange?.("medium")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "medium"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.low")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("good")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "good"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.medium")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("source")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "source"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.high")}
-						</button>
+					<div className="mb-3 space-y-2">
+						<div className="bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-4 h-7 rounded-lg">
+							<button
+								onClick={() => {
+									onExportQualityChange?.("medium");
+									onCustomResolutionChange?.(null);
+								}}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "medium"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.low")}
+							</button>
+							<button
+								onClick={() => {
+									onExportQualityChange?.("good");
+									onCustomResolutionChange?.(null);
+								}}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "good"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.medium")}
+							</button>
+							<button
+								onClick={() => {
+									onExportQualityChange?.("source");
+									onCustomResolutionChange?.(null);
+								}}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "source"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.high")}
+							</button>
+							<button
+								onClick={() => {
+									if (customResolution) {
+										onExportQualityChange?.("custom");
+									} else {
+										onCustomExportModalChange?.(true);
+									}
+								}}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium flex items-center justify-center gap-1",
+									exportQuality === "custom"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								<Settings2 className="w-3 h-3" />
+								{t("exportQuality.custom")}
+							</button>
+						</div>
+						{exportQuality === "custom" && customResolution && (
+							<div className="text-[10px] text-slate-400 text-center">
+								{customResolution.width} × {customResolution.height}
+							</div>
+						)}
 					</div>
 				)}
 
@@ -1518,6 +1568,18 @@ export function SettingsPanel({
 					</button>
 				</div>
 			</div>
+
+			{customExportModalOpen && (
+				<CustomExportModal
+					open={customExportModalOpen}
+					onOpenChange={onCustomExportModalChange}
+					customResolution={customResolution}
+					onCustomResolutionChange={onCustomResolutionChange}
+					onExportQualityChange={
+						((quality: "custom") => onExportQualityChange?.(quality)) as (quality: "custom") => void
+					}
+				/>
+			)}
 		</div>
 	);
 }

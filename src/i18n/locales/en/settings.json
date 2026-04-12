@@ -76,7 +76,8 @@
 		"title": "Export Quality",
 		"low": "Low",
 		"medium": "Medium",
-		"high": "High"
+		"high": "High",
+		"custom": "Custom"
 	},
 	"gifSettings": {
 		"frameRate": "GIF Frame Rate",

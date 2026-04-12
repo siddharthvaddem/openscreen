@@ -3,6 +3,7 @@ export { calculateOutputDimensions, GifExporter } from "./gifExporter";
 export { VideoMuxer } from "./muxer";
 export { StreamingVideoDecoder } from "./streamingDecoder";
 export type {
+	CustomResolution,
 	ExportConfig,
 	ExportFormat,
 	ExportProgress,

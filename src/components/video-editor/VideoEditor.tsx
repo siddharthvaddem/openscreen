@@ -17,6 +17,7 @@ import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
 import {
+	type CustomResolution,
 	calculateOutputDimensions,
 	type ExportFormat,
 	type ExportProgress,
@@ -132,6 +133,8 @@ export default function VideoEditor() {
 	const [showExportDialog, setShowExportDialog] = useState(false);
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
+	const [customResolution, setCustomResolution] = useState<CustomResolution | null>(null);
+	const [showCustomExportModal, setShowCustomExportModal] = useState(false);
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
 	const [gifLoop, setGifLoop] = useState(true);
@@ -1457,8 +1460,24 @@ export default function VideoEditor() {
 						} else if (totalPixels > 2560 * 1440) {
 							bitrate = 80_000_000;
 						}
+					} else if (quality === "custom" && customResolution) {
+						// Use custom resolution
+						exportWidth = Math.floor(customResolution.width / 2) * 2;
+						exportHeight = Math.floor(customResolution.height / 2) * 2;
+
+						// Adjust bitrate based on custom resolution
+						const totalPixels = exportWidth * exportHeight;
+						if (totalPixels <= 1280 * 720) {
+							bitrate = 10_000_000;
+						} else if (totalPixels <= 1920 * 1080) {
+							bitrate = 20_000_000;
+						} else if (totalPixels <= 2560 * 1440) {
+							bitrate = 30_000_000;
+						} else {
+							bitrate = 50_000_000;
+						}
 					} else {
-						// Use quality-based target resolution
+						// Use quality-based target resolution (medium or good/source)
 						const targetHeight = quality === "medium" ? 720 : 1080;
 
 						// Calculate dimensions maintaining aspect ratio
@@ -1964,6 +1983,10 @@ export default function VideoEditor() {
 						videoElement={videoPlaybackRef.current?.video || null}
 						exportQuality={exportQuality}
 						onExportQualityChange={setExportQuality}
+						customResolution={customResolution}
+						onCustomResolutionChange={setCustomResolution}
+						customExportModalOpen={showCustomExportModal}
+						onCustomExportModalChange={setShowCustomExportModal}
 						exportFormat={exportFormat}
 						onExportFormatChange={setExportFormat}
 						gifFrameRate={gifFrameRate}
