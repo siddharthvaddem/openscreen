@@ -179,9 +179,12 @@ export async function runExport(options: ExportOptions): Promise<void> {
 			});
 
 			child.stderr?.on("data", (chunk: Buffer) => {
-				// Electron often prints non-error noise to stderr, ignore most of it
+				// Electron often prints non-error noise to stderr, ignore most of
+				// it and only surface lines that look like actual errors. Match
+				// case-insensitively since Chromium/Electron/GPU drivers aren't
+				// consistent about capitalization ("error:", "ERROR:", "Error:").
 				const text = chunk.toString();
-				if (text.includes("ERROR") || text.includes("Error")) {
+				if (/\b(error|fail|fatal)\b/i.test(text)) {
 					lastError = text.trim();
 				}
 			});

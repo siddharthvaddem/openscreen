@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { parseFloatArg, parseIntArg } from "../cli-parsers";
 import { addSpeedRegion, listSpeedRegions, removeSpeedRegion } from "../core/region-manager";
 import { outputError, outputList, outputSuccess } from "../output";
 
@@ -8,12 +9,12 @@ speedCommand
 	.command("add")
 	.description("Add a speed region")
 	.requiredOption("--project <path>", "Path to .openscreen project file")
-	.requiredOption("--start <ms>", "Start time in milliseconds", parseInt)
-	.requiredOption("--end <ms>", "End time in milliseconds", parseInt)
+	.requiredOption("--start <ms>", "Start time in milliseconds", parseIntArg("--start"))
+	.requiredOption("--end <ms>", "End time in milliseconds", parseIntArg("--end"))
 	.requiredOption(
 		"--speed <value>",
 		"Playback speed (0.25, 0.5, 0.75, 1.25, 1.5, 1.75, 2)",
-		parseFloat,
+		parseFloatArg("--speed"),
 	)
 	.action((opts) => {
 		try {

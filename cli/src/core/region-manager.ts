@@ -209,7 +209,10 @@ export function addAnnotationRegion(
 			height: opts.height ?? DEFAULT_ANNOTATION_SIZE.height,
 		},
 		style,
-		zIndex: project.editor.annotationRegions.length + 1,
+		// Base zIndex on the max existing value, not length, so removing a
+		// middle annotation and adding a new one can't produce two regions
+		// with the same zIndex.
+		zIndex: project.editor.annotationRegions.reduce((max, r) => Math.max(max, r.zIndex), 0) + 1,
 		figureData,
 	};
 

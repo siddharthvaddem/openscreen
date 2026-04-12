@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import {
-	DEFAULT_SHORTCUTS,
 	formatBinding,
 	mergeWithDefaults,
 	SHORTCUT_ACTIONS,
@@ -39,17 +38,43 @@ function getShortcutsPath(): string {
 	return path.join(getUserDataDir(APP_NAMES[0]), "shortcuts.json");
 }
 
+// Strict load: surfaces read/parse failures so `shortcuts get` can't silently
+// lie about which bindings are active. Callers that need a self-healing
+// fallback (e.g. `shortcuts set` overwriting a corrupt file) should use
+// `loadShortcutsOrDefaults()` instead.
 function loadShortcuts(): ShortcutsConfig {
 	const filePath = getShortcutsPath();
-	try {
-		if (fs.existsSync(filePath)) {
-			const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-			return mergeWithDefaults(raw);
-		}
-	} catch {
-		// Fall through to defaults
+	if (!fs.existsSync(filePath)) {
+		return mergeWithDefaults({});
 	}
-	return { ...DEFAULT_SHORTCUTS };
+	let raw: string;
+	try {
+		raw = fs.readFileSync(filePath, "utf-8");
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		throw new Error(`Failed to read shortcuts file ${filePath}: ${msg}`);
+	}
+	try {
+		return mergeWithDefaults(JSON.parse(raw) as Partial<ShortcutsConfig>);
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		throw new Error(`Invalid JSON in shortcuts file ${filePath}: ${msg}`);
+	}
+}
+
+// Self-healing load for write paths: if the existing file is corrupt we
+// fall back to defaults (logging a warning) so the user can still run
+// `shortcuts set` to overwrite the broken file with valid bindings instead
+// of being stuck.
+function loadShortcutsOrDefaults(): ShortcutsConfig {
+	try {
+		return loadShortcuts();
+	} catch (e) {
+		process.stderr.write(
+			`Warning: ${e instanceof Error ? e.message : String(e)}. Starting from defaults.\n`,
+		);
+		return mergeWithDefaults({});
+	}
 }
 
 function saveShortcuts(config: ShortcutsConfig): void {
@@ -105,7 +130,7 @@ shortcutsCommand
 			const rawKey = typeof opts.key === "string" ? opts.key : "";
 			const normalizedKey = rawKey.toLowerCase() === "space" ? " " : rawKey;
 
-			const config = loadShortcuts();
+			const config = loadShortcutsOrDefaults();
 			config[opts.action as keyof ShortcutsConfig] = {
 				key: normalizedKey,
 				...(opts.ctrl ? { ctrl: true } : {}),

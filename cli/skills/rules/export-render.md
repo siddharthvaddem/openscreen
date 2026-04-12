@@ -23,14 +23,29 @@ The render command spawns OpenScreen's Electron renderer headlessly. It:
 3. Applies all effects (zooms, wallpaper, padding, shadows, annotations) via PixiJS
 4. Encodes to H.264 MP4 with audio
 
-Progress is reported as JSON lines when using `--json`:
-```json
-{"progress": 45, "current": 135, "total": 300}
-{"progress": 100, "current": 300, "total": 300, "phase": "finalizing"}
-{"success": true, "path": "/abs/path/demo.mp4", "format": "mp4", "size": 1076106}
-```
+Progress and the final result use **different streams** in `--json` mode so stdout stays parseable as a single JSON object:
 
-Agents should parse the `done` line (with `success: true`) as the terminal event and use `path`/`size`/`format` from it. The `phase` key is only present during the `finalizing` phase; during frame extraction it is absent. On failure, a single `{"error": "..."}` line is emitted to stderr and the process exits non-zero.
+- **stderr** — newline-delimited progress ticks, one per frame:
+  ```json
+  {"progress": 45, "current": 135, "total": 300}
+  {"progress": 100, "current": 300, "total": 300, "phase": "finalizing"}
+  ```
+- **stdout** — a single terminal envelope:
+  ```json
+  {"success": true, "path": "/abs/path/demo.mp4", "format": "mp4", "size": 1076106}
+  ```
+
+This means agents can pipe `openscreen --json render ... | jq .` and get exactly one parseable object on success, while still tailing progress via `2>`. The `phase` key is only present during the `finalizing` phase; during frame extraction it is absent.
+
+**On failure**, stdout is empty — the only signal is a single `{"error": "..."}` line on stderr plus a non-zero exit code. Agents that pipe only stdout through `jq` should also check the exit code (`$?`) and read stderr for the error envelope:
+
+```bash
+if ! openscreen --json render ... 1>/tmp/out 2>/tmp/err; then
+  jq -r '.error' </tmp/err
+  exit 1
+fi
+jq -r '.path' </tmp/out
+```
 
 ## Rendering to GIF
 

@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { parseFloatArg, parseIntArg } from "../cli-parsers";
 import {
 	addAnnotationRegion,
 	listAnnotationRegions,
@@ -14,13 +15,13 @@ annotateCommand
 	.requiredOption("--project <path>", "Path to .openscreen project file")
 	.requiredOption("--type <type>", "Annotation type (text, image, figure)")
 	.requiredOption("--content <text>", "Annotation content (text, image data URL, or label)")
-	.requiredOption("--start <ms>", "Start time in milliseconds", parseInt)
-	.requiredOption("--end <ms>", "End time in milliseconds", parseInt)
-	.option("--position-x <0-100>", "X position (0-100)", parseFloat)
-	.option("--position-y <0-100>", "Y position (0-100)", parseFloat)
-	.option("--width <n>", "Width (percent of viewport)", parseFloat)
-	.option("--height <n>", "Height (percent of viewport)", parseFloat)
-	.option("--font-size <px>", "Font size in pixels", parseInt)
+	.requiredOption("--start <ms>", "Start time in milliseconds", parseIntArg("--start"))
+	.requiredOption("--end <ms>", "End time in milliseconds", parseIntArg("--end"))
+	.option("--position-x <0-100>", "X position (0-100)", parseFloatArg("--position-x", 0, 100))
+	.option("--position-y <0-100>", "Y position (0-100)", parseFloatArg("--position-y", 0, 100))
+	.option("--width <n>", "Width (percent of viewport)", parseFloatArg("--width", 1, 200))
+	.option("--height <n>", "Height (percent of viewport)", parseFloatArg("--height", 1, 200))
+	.option("--font-size <px>", "Font size in pixels", parseIntArg("--font-size"))
 	.option("--color <hex>", "Text color (hex)")
 	.option("--bg-color <hex>", "Background color (hex)")
 	.option("--font-family <name>", "Font family")

@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { parseIntArg } from "../cli-parsers";
 import { addTrimRegion, listTrimRegions, removeTrimRegion } from "../core/region-manager";
 import { outputError, outputList, outputSuccess } from "../output";
 
@@ -8,8 +9,8 @@ trimCommand
 	.command("add")
 	.description("Add a trim region (section to cut out)")
 	.requiredOption("--project <path>", "Path to .openscreen project file")
-	.requiredOption("--start <ms>", "Start time in milliseconds", parseInt)
-	.requiredOption("--end <ms>", "End time in milliseconds", parseInt)
+	.requiredOption("--start <ms>", "Start time in milliseconds", parseIntArg("--start"))
+	.requiredOption("--end <ms>", "End time in milliseconds", parseIntArg("--end"))
 	.action((opts) => {
 		try {
 			const region = addTrimRegion(opts.project, {

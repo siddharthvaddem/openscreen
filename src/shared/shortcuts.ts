@@ -151,11 +151,13 @@ export function formatBinding(binding: ShortcutBinding, isMac: boolean): string 
 }
 
 export function mergeWithDefaults(partial: Partial<ShortcutsConfig>): ShortcutsConfig {
-	const merged = { ...DEFAULT_SHORTCUTS };
+	// Deep-clone each binding so mutating a merged value (e.g. from the
+	// settings UI) can't reach back into the shared DEFAULT_SHORTCUTS object
+	// and poison subsequent loads.
+	const merged = {} as ShortcutsConfig;
 	for (const action of SHORTCUT_ACTIONS) {
-		if (partial[action]) {
-			merged[action] = partial[action] as ShortcutBinding;
-		}
+		const source = partial[action] ?? DEFAULT_SHORTCUTS[action];
+		merged[action] = { ...source };
 	}
 	return merged;
 }

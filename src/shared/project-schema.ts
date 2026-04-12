@@ -175,8 +175,14 @@ export function fromFileUrl(fileUrl: string): string {
 }
 
 export function deriveNextId(prefix: string, ids: string[]): number {
+	// Escape regex metacharacters in the prefix. The function is only called
+	// with trusted literals today ("zoom", "trim", etc.), but the escape keeps
+	// it safe if a future caller passes a dynamic value and also silences the
+	// ReDoS static-analysis warning.
+	const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const pattern = new RegExp(`^${escaped}-(\\d+)$`);
 	const max = ids.reduce((acc, id) => {
-		const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
+		const match = id.match(pattern);
 		if (!match) return acc;
 		const value = Number(match[1]);
 		return Number.isFinite(value) ? Math.max(acc, value) : acc;
@@ -250,6 +256,14 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							cy: clamp(isFiniteNumber(region.focus?.cy) ? region.focus.cy : 0.5, 0, 1),
 						},
 						focusMode: region.focusMode === "auto" ? "auto" : "manual",
+						// Preserve optional zoom-in/out transition durations so a
+						// load/normalize/save round-trip can't silently erase them.
+						...(isFiniteNumber(region.zoomInDurationMs)
+							? { zoomInDurationMs: Math.max(0, Math.round(region.zoomInDurationMs)) }
+							: {}),
+						...(isFiniteNumber(region.zoomOutDurationMs)
+							? { zoomOutDurationMs: Math.max(0, Math.round(region.zoomOutDurationMs)) }
+							: {}),
 					};
 				})
 		: [];
@@ -413,10 +427,15 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		? editor.cropRegion.height
 		: DEFAULT_CROP_REGION.height;
 
-	const cropX = clamp(rawCropX, 0, 1);
-	const cropY = clamp(rawCropY, 0, 1);
-	const cropWidth = clamp(rawCropWidth, 0.01, 1 - cropX);
-	const cropHeight = clamp(rawCropHeight, 0.01, 1 - cropY);
+	// Enforce a minimum crop size. Clamping x/y into [0, 1] directly would
+	// allow 1 through, and then clamp(width, 0.01, 1 - 1) collapses to
+	// clamp(..., 0.01, 0) = 0 — an impossible zero-sized box. Reserve
+	// MIN_CROP on the far edge so width/height are always at least MIN_CROP.
+	const MIN_CROP = 0.01;
+	const cropX = clamp(rawCropX, 0, 1 - MIN_CROP);
+	const cropY = clamp(rawCropY, 0, 1 - MIN_CROP);
+	const cropWidth = clamp(rawCropWidth, MIN_CROP, 1 - cropX);
+	const cropHeight = clamp(rawCropHeight, MIN_CROP, 1 - cropY);
 
 	return {
 		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],

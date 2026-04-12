@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { parseFloatArg, parseIntArg, parseIntInRange } from "../cli-parsers";
 import { addZoomRegion, listZoomRegions, removeZoomRegion } from "../core/region-manager";
 import { outputError, outputList, outputSuccess } from "../output";
 
@@ -8,11 +9,11 @@ zoomCommand
 	.command("add")
 	.description("Add a zoom region")
 	.requiredOption("--project <path>", "Path to .openscreen project file")
-	.requiredOption("--start <ms>", "Start time in milliseconds", parseInt)
-	.requiredOption("--end <ms>", "End time in milliseconds", parseInt)
-	.option("--depth <1-6>", "Zoom depth level (1-6)", parseInt)
-	.option("--focus-x <0-1>", "Focus center X (0-1)", parseFloat)
-	.option("--focus-y <0-1>", "Focus center Y (0-1)", parseFloat)
+	.requiredOption("--start <ms>", "Start time in milliseconds", parseIntArg("--start"))
+	.requiredOption("--end <ms>", "End time in milliseconds", parseIntArg("--end"))
+	.option("--depth <1-6>", "Zoom depth level (1-6)", parseIntInRange("--depth", 1, 6))
+	.option("--focus-x <0-1>", "Focus center X (0-1)", parseFloatArg("--focus-x", 0, 1))
+	.option("--focus-y <0-1>", "Focus center Y (0-1)", parseFloatArg("--focus-y", 0, 1))
 	.option("--focus-mode <mode>", "Focus mode (manual, auto)")
 	.action((opts) => {
 		try {

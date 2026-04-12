@@ -1,5 +1,6 @@
 import path from "node:path";
 import { Command } from "commander";
+import { parseBoolStrict, parseFloatArg, parseIntArg } from "../cli-parsers";
 import { createProject, editProject, inspectProject, loadProject } from "../core/project-manager";
 import { outputError, outputSuccess } from "../output";
 
@@ -12,13 +13,13 @@ projectCommand
 	.option("--webcam <path>", "Webcam video path")
 	.requiredOption("--output <path>", "Output .openscreen file path")
 	.option("--wallpaper <name>", "Wallpaper (wallpaper1-18 or hex color)")
-	.option("--padding <n>", "Padding (0-100)", parseFloat)
-	.option("--border-radius <n>", "Border radius", parseFloat)
+	.option("--padding <n>", "Padding (0-100)", parseFloatArg("--padding", 0, 100))
+	.option("--border-radius <n>", "Border radius", parseFloatArg("--border-radius", 0))
 	.option(
 		"--aspect-ratio <ratio>",
 		"Aspect ratio (16:9, 9:16, 1:1, 4:3, 4:5, 16:10, 10:16, native)",
 	)
-	.option("--shadow-intensity <n>", "Shadow intensity", parseFloat)
+	.option("--shadow-intensity <n>", "Shadow intensity", parseFloatArg("--shadow-intensity", 0))
 	.option("--export-quality <q>", "Export quality (medium, good, source)")
 	.option("--export-format <f>", "Export format (mp4, gif)")
 	.action((opts) => {
@@ -80,16 +81,20 @@ projectCommand
 	.description("Modify project settings")
 	.requiredOption("--project <path>", "Path to .openscreen project file")
 	.option("--wallpaper <name>", "Wallpaper")
-	.option("--padding <n>", "Padding (0-100)", parseFloat)
-	.option("--border-radius <n>", "Border radius", parseFloat)
-	.option("--shadow-intensity <n>", "Shadow intensity", parseFloat)
-	.option("--show-blur <bool>", "Show blur", parseBool)
-	.option("--motion-blur <n>", "Motion blur amount (0-1)", parseFloat)
+	.option("--padding <n>", "Padding (0-100)", parseFloatArg("--padding", 0, 100))
+	.option("--border-radius <n>", "Border radius", parseFloatArg("--border-radius", 0))
+	.option("--shadow-intensity <n>", "Shadow intensity", parseFloatArg("--shadow-intensity", 0))
+	.option("--show-blur <bool>", "Show blur", parseBoolStrict("--show-blur"))
+	.option("--motion-blur <n>", "Motion blur amount (0-1)", parseFloatArg("--motion-blur", 0, 1))
 	.option("--aspect-ratio <ratio>", "Aspect ratio")
 	.option("--export-quality <q>", "Export quality (medium, good, source)")
 	.option("--export-format <f>", "Export format (mp4, gif)")
-	.option("--gif-frame-rate <fps>", "GIF frame rate (15, 20, 25, 30)", parseInt)
-	.option("--gif-loop <bool>", "GIF loop", parseBool)
+	.option(
+		"--gif-frame-rate <fps>",
+		"GIF frame rate (15, 20, 25, 30)",
+		parseIntArg("--gif-frame-rate"),
+	)
+	.option("--gif-loop <bool>", "GIF loop", parseBoolStrict("--gif-loop"))
 	.option("--gif-size-preset <s>", "GIF size (medium, large, original)")
 	.action((opts) => {
 		try {
@@ -112,10 +117,6 @@ projectCommand
 			outputError(e instanceof Error ? e.message : String(e));
 		}
 	});
-
-function parseBool(value: string): boolean {
-	return value === "true" || value === "1" || value === "yes";
-}
 
 function formatProjectInfo(info: ReturnType<typeof inspectProject>): string {
 	const lines: string[] = [

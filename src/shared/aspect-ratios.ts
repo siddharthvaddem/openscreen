@@ -51,7 +51,11 @@ export function getNativeAspectRatioValue(
 ): number {
 	const cropW = cropRegion?.width ?? 1;
 	const cropH = cropRegion?.height ?? 1;
-	return (videoWidth * cropW) / (videoHeight * cropH);
+	// Fall back to 16:9 when the math is degenerate (no video loaded yet,
+	// zero-sized crop region). Callers treat the result as a hint and a
+	// non-finite value would poison downstream math.
+	const ratio = (videoWidth * cropW) / (videoHeight * cropH);
+	return Number.isFinite(ratio) && ratio > 0 ? ratio : 16 / 9;
 }
 
 export function getAspectRatioDimensions(

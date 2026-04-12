@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { deriveNextId } from "@/shared/project-schema";
+import { DEFAULT_SHORTCUTS, mergeWithDefaults } from "@/shared/shortcuts";
 import {
 	createProjectData,
 	createProjectSnapshot,
@@ -127,4 +129,95 @@ it("detects unsaved changes from differing snapshots", () => {
 	expect(hasProjectUnsavedChanges(null, null)).toBe(false);
 	expect(hasProjectUnsavedChanges("same", "same")).toBe(false);
 	expect(hasProjectUnsavedChanges("current", "baseline")).toBe(true);
+});
+
+describe("normalizeProjectEditor invariants", () => {
+	it("preserves zoomInDurationMs and zoomOutDurationMs on round-trip", () => {
+		const normalized = normalizeProjectEditor({
+			zoomRegions: [
+				{
+					id: "zoom-1",
+					startMs: 1000,
+					endMs: 5000,
+					depth: 3,
+					focus: { cx: 0.5, cy: 0.5 },
+					focusMode: "manual",
+					zoomInDurationMs: 400,
+					zoomOutDurationMs: 600,
+				},
+			],
+		});
+		expect(normalized.zoomRegions[0].zoomInDurationMs).toBe(400);
+		expect(normalized.zoomRegions[0].zoomOutDurationMs).toBe(600);
+	});
+
+	it("omits zoom durations when not provided (no injected zeroes)", () => {
+		const normalized = normalizeProjectEditor({
+			zoomRegions: [
+				{
+					id: "zoom-2",
+					startMs: 1000,
+					endMs: 5000,
+					depth: 3,
+					focus: { cx: 0.5, cy: 0.5 },
+					focusMode: "manual",
+				},
+			],
+		});
+		expect(normalized.zoomRegions[0].zoomInDurationMs).toBeUndefined();
+		expect(normalized.zoomRegions[0].zoomOutDurationMs).toBeUndefined();
+	});
+
+	it("enforces the MIN_CROP invariant even at x=1 / y=1", () => {
+		const normalized = normalizeProjectEditor({
+			cropRegion: { x: 1, y: 1, width: 1, height: 1 },
+		});
+		expect(normalized.cropRegion.x).toBeLessThan(1);
+		expect(normalized.cropRegion.y).toBeLessThan(1);
+		expect(normalized.cropRegion.width).toBeGreaterThanOrEqual(0.01);
+		expect(normalized.cropRegion.height).toBeGreaterThanOrEqual(0.01);
+	});
+
+	it("keeps a valid crop region unchanged", () => {
+		const normalized = normalizeProjectEditor({
+			cropRegion: { x: 0.1, y: 0.2, width: 0.8, height: 0.7 },
+		});
+		expect(normalized.cropRegion).toEqual({ x: 0.1, y: 0.2, width: 0.8, height: 0.7 });
+	});
+});
+
+describe("deriveNextId", () => {
+	it("returns 1 for an empty list", () => {
+		expect(deriveNextId("zoom", [])).toBe(1);
+	});
+
+	it("handles consecutive ids", () => {
+		expect(deriveNextId("zoom", ["zoom-1", "zoom-2", "zoom-3"])).toBe(4);
+	});
+
+	it("ignores ids that do not match the prefix", () => {
+		expect(deriveNextId("zoom", ["trim-5", "zoom-2", "speed-99"])).toBe(3);
+	});
+
+	it("escapes regex metacharacters in the prefix", () => {
+		// `.` would otherwise match any character, so "my.prefix-5" could match
+		// a prefix of "myxprefix". The escape ensures only literal dots match.
+		expect(deriveNextId("my.prefix", ["myxprefix-99", "my.prefix-2"])).toBe(3);
+	});
+});
+
+describe("mergeWithDefaults deep-clone isolation", () => {
+	it("returns bindings that are not references into DEFAULT_SHORTCUTS", () => {
+		const merged = mergeWithDefaults({});
+		merged.addZoom.key = "x";
+		expect(DEFAULT_SHORTCUTS.addZoom.key).toBe("z");
+	});
+
+	it("overrides with the partial value when provided", () => {
+		const merged = mergeWithDefaults({ addTrim: { key: "q" } });
+		expect(merged.addTrim.key).toBe("q");
+		// Other actions still come from defaults but as fresh objects.
+		expect(merged.addZoom.key).toBe("z");
+		expect(merged.addZoom).not.toBe(DEFAULT_SHORTCUTS.addZoom);
+	});
 });

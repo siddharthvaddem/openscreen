@@ -98,10 +98,22 @@ export function saveProject(projectPath: string, data: EditorProjectData): void 
 	const absPath = path.resolve(projectPath);
 	fs.mkdirSync(path.dirname(absPath), { recursive: true });
 
-	// Atomic write: write to temp file then rename
+	// Atomic write: write to a temp file then rename. If the rename fails
+	// (antivirus holding the file on Windows, a stale file lock, EACCES on
+	// the target, ENOSPC mid-rename, etc.), remove the orphaned .tmp before
+	// re-throwing so we don't leave litter in the project directory.
 	const tmpPath = `${absPath}.tmp`;
 	fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf-8");
-	fs.renameSync(tmpPath, absPath);
+	try {
+		fs.renameSync(tmpPath, absPath);
+	} catch (err) {
+		try {
+			fs.unlinkSync(tmpPath);
+		} catch {
+			/* best-effort cleanup; surface the original rename error below */
+		}
+		throw err;
+	}
 }
 
 // Translate wallpaper shortcuts (wallpaper1..wallpaper18) into the bundled

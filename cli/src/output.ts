@@ -55,34 +55,49 @@ export function outputList<T>(
 }
 
 export function outputTable(headers: string[], rows: string[][]): void {
+	// Guard against rows shorter than headers: the JSON branch previously
+	// produced objects with undefined values for missing columns, and the
+	// text branch could emit ragged rows. Pad with empty strings.
+	const normalizedRows = rows.map((row) => headers.map((_, i) => row[i] ?? ""));
+
 	if (jsonMode) {
-		const objects = rows.map((row) => Object.fromEntries(headers.map((h, i) => [h, row[i]])));
+		const objects = normalizedRows.map((row) =>
+			Object.fromEntries(headers.map((h, i) => [h, row[i]])),
+		);
 		outputJson(objects);
 		return;
 	}
 
-	if (rows.length === 0) {
+	if (normalizedRows.length === 0) {
 		outputText("(none)");
 		return;
 	}
 
-	const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] ?? "").length)));
+	const widths = headers.map((h, i) =>
+		Math.max(h.length, ...normalizedRows.map((r) => r[i].length)),
+	);
 
 	const header = headers.map((h, i) => h.padEnd(widths[i])).join("  ");
 	const separator = widths.map((w) => "─".repeat(w)).join("──");
 
 	outputText(header);
 	outputText(separator);
-	for (const row of rows) {
-		outputText(row.map((cell, i) => (cell || "").padEnd(widths[i])).join("  "));
+	for (const row of normalizedRows) {
+		outputText(row.map((cell, i) => cell.padEnd(widths[i])).join("  "));
 	}
 }
 
+// Progress is streamed as newline-delimited JSON to **stderr** in --json mode.
+// Keeping stdout clean of ticks means the final done/error envelope remains
+// the only thing on stdout — agents can `cmd --json | jq .` and get a single
+// parseable result, while still tailing progress via 2>.
 export function outputProgress(current: number, total: number, phase?: string): void {
 	const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
 
 	if (jsonMode) {
-		process.stdout.write(`${JSON.stringify({ progress: percentage, current, total, phase })}\n`);
+		if (!quietMode) {
+			process.stderr.write(`${JSON.stringify({ progress: percentage, current, total, phase })}\n`);
+		}
 		return;
 	}
 
