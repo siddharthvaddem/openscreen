@@ -4,7 +4,7 @@ import {
 	listAnnotationRegions,
 	removeAnnotationRegion,
 } from "../core/region-manager";
-import { outputError, outputSuccess, outputTable } from "../output";
+import { outputError, outputList, outputSuccess } from "../output";
 
 export const annotateCommand = new Command("annotate").description("Manage annotations");
 
@@ -67,9 +67,9 @@ annotateCommand
 	.action((opts) => {
 		try {
 			const regions = listAnnotationRegions(opts.project);
-			outputTable(
-				["ID", "Type", "Start (ms)", "End (ms)", "Position", "Content"],
-				regions.map((r) => [
+			outputList(regions, {
+				headers: ["ID", "Type", "Start (ms)", "End (ms)", "Position", "Content"],
+				rows: regions.map((r) => [
 					r.id,
 					r.type,
 					String(r.startMs),
@@ -77,7 +77,7 @@ annotateCommand
 					`(${r.position.x}, ${r.position.y})`,
 					(r.textContent || r.content || "").slice(0, 30),
 				]),
-			);
+			});
 		} catch (e) {
 			outputError(e instanceof Error ? e.message : String(e));
 		}

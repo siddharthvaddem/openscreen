@@ -25,8 +25,12 @@ The render command spawns OpenScreen's Electron renderer headlessly. It:
 
 Progress is reported as JSON lines when using `--json`:
 ```json
-{"progress": 45, "current": 135, "total": 300, "phase": "extracting"}
+{"progress": 45, "current": 135, "total": 300}
+{"progress": 100, "current": 300, "total": 300, "phase": "finalizing"}
+{"success": true, "path": "/abs/path/demo.mp4", "format": "mp4", "size": 1076106}
 ```
+
+Agents should parse the `done` line (with `success: true`) as the terminal event and use `path`/`size`/`format` from it. The `phase` key is only present during the `finalizing` phase; during frame extraction it is absent. On failure, a single `{"error": "..."}` line is emitted to stderr and the process exits non-zero.
 
 ## Rendering to GIF
 
@@ -36,14 +40,13 @@ openscreen gif \
   --output demo.gif \
   --frame-rate 15 \
   --size-preset medium \
-  --loop \
   --overwrite
 ```
 
 ### GIF settings
 - `--frame-rate` — 15 (balanced), 20 (smooth), 25 (very smooth), 30 (maximum)
 - `--size-preset` — medium (720p), large (1080p), original
-- `--loop` — loop the GIF (default: true)
+- `--loop` / `--no-loop` — override the project's loop setting. If neither is passed, the GIF uses the project's `editor.gifLoop` (default: loop). Pass `--no-loop` to force a non-looping GIF regardless of project state.
 
 ### GIF best practices
 - **15 FPS** is usually enough for UI demos

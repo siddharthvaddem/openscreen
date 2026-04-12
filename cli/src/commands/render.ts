@@ -60,29 +60,3 @@ export const gifCommand = new Command("gif")
 			outputError(e instanceof Error ? e.message : String(e));
 		}
 	});
-
-export const stillCommand = new Command("still")
-	.description("Capture a single frame as PNG or JPEG (requires built Electron app)")
-	.requiredOption("--project <path>", "Path to .openscreen project file")
-	.requiredOption("--output <path>", "Output image file path")
-	.option("--frame <ms>", "Timestamp in milliseconds", "0")
-	.option("--format <f>", "Image format (png, jpeg)", "png")
-	.option("--jpeg-quality <q>", "JPEG quality (1-100)", "90")
-	.option("--scale <n>", "Device scale factor", "1")
-	.option("--overwrite", "Overwrite existing output file")
-	.action((_opts) => {
-		outputError("The still command is not yet implemented. Use render for full video export.");
-	});
-
-export const framesCommand = new Command("frames")
-	.description("Export a sequence of frames as images (requires built Electron app)")
-	.requiredOption("--project <path>", "Path to .openscreen project file")
-	.requiredOption("--output-dir <dir>", "Output directory for frames")
-	.option("--start <ms>", "Start timestamp in milliseconds", "0")
-	.option("--end <ms>", "End timestamp (default: video end)")
-	.option("--every-nth <n>", "Export every Nth frame", "1")
-	.option("--format <f>", "Image format (png, jpeg)", "png")
-	.option("--overwrite", "Overwrite existing output files")
-	.action((_opts) => {
-		outputError("The frames command is not yet implemented. Use render for full video export.");
-	});

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { addTrimRegion, listTrimRegions, removeTrimRegion } from "../core/region-manager";
-import { outputError, outputSuccess, outputTable } from "../output";
+import { outputError, outputList, outputSuccess } from "../output";
 
 export const trimCommand = new Command("trim").description("Manage trim regions");
 
@@ -32,10 +32,10 @@ trimCommand
 	.action((opts) => {
 		try {
 			const regions = listTrimRegions(opts.project);
-			outputTable(
-				["ID", "Start (ms)", "End (ms)"],
-				regions.map((r) => [r.id, String(r.startMs), String(r.endMs)]),
-			);
+			outputList(regions, {
+				headers: ["ID", "Start (ms)", "End (ms)"],
+				rows: regions.map((r) => [r.id, String(r.startMs), String(r.endMs)]),
+			});
 		} catch (e) {
 			outputError(e instanceof Error ? e.message : String(e));
 		}

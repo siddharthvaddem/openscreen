@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { addSpeedRegion, listSpeedRegions, removeSpeedRegion } from "../core/region-manager";
-import { outputError, outputSuccess, outputTable } from "../output";
+import { outputError, outputList, outputSuccess } from "../output";
 
 export const speedCommand = new Command("speed").description("Manage speed regions");
 
@@ -38,10 +38,10 @@ speedCommand
 	.action((opts) => {
 		try {
 			const regions = listSpeedRegions(opts.project);
-			outputTable(
-				["ID", "Start (ms)", "End (ms)", "Speed"],
-				regions.map((r) => [r.id, String(r.startMs), String(r.endMs), `${r.speed}x`]),
-			);
+			outputList(regions, {
+				headers: ["ID", "Start (ms)", "End (ms)", "Speed"],
+				rows: regions.map((r) => [r.id, String(r.startMs), String(r.endMs), `${r.speed}x`]),
+			});
 		} catch (e) {
 			outputError(e instanceof Error ? e.message : String(e));
 		}

@@ -25,7 +25,10 @@ openscreen --json project create --video /new/path/recording.webm --output demo.
 The project file is missing required fields. It needs: `version`, `media` (or `videoPath`), and `editor`.
 
 ### Render commands fail with "requires Electron headless bridge"
-The `render`, `gif`, `still`, and `frames` commands need the Electron app installed. These commands are Phase 3 features.
+The `render` and `gif` commands spawn a headless Electron process from the repo's `node_modules/.bin/electron`. Run `npm run build-vite` first so `dist-electron/main.js` exists.
+
+### Render fails partway through: "Video decode ended early at X.Ys (needed Y.Ys)"
+A region (zoom/trim/speed/annotation) extends past the end of the underlying video. The CLI does not probe video duration at add time — it trusts the caller. Before adding regions with large timestamps, confirm the video is long enough (e.g. with `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 recording.webm`). Timestamps are in milliseconds and must fall within `[0, duration]`.
 
 ## Debugging tips
 
@@ -59,5 +62,5 @@ echo "Exit code: $?"
 ## Performance notes
 
 - CLI commands that manipulate project files (create, edit, zoom/trim/speed/annotate add/remove) are pure Node.js and run in milliseconds
-- Render, still, and frames commands spawn Electron headlessly — expect seconds to minutes depending on video length and quality
+- `render` and `gif` spawn Electron headlessly — expect seconds to minutes depending on video length and quality
 - Use `--quiet` to suppress progress output for faster piped workflows

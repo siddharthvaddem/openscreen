@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import { annotateCommand } from "./commands/annotate";
 import { projectCommand } from "./commands/project";
-import { framesCommand, gifCommand, renderCommand, stillCommand } from "./commands/render";
+import { gifCommand, renderCommand } from "./commands/render";
 import { shortcutsCommand } from "./commands/shortcuts";
 import { speedCommand } from "./commands/speed";
 import { trimCommand } from "./commands/trim";
@@ -38,7 +38,5 @@ program.addCommand(shortcutsCommand);
 // Rendering commands (Phase 3: Electron headless bridge)
 program.addCommand(renderCommand);
 program.addCommand(gifCommand);
-program.addCommand(stillCommand);
-program.addCommand(framesCommand);
 
 program.parse();

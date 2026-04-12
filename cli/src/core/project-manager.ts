@@ -104,6 +104,22 @@ export function saveProject(projectPath: string, data: EditorProjectData): void 
 	fs.renameSync(tmpPath, absPath);
 }
 
+// Translate wallpaper shortcuts (wallpaper1..wallpaper18) into the bundled
+// path the renderer expects (/wallpapers/wallpaperN.jpg). Hex colors, absolute
+// paths, and anything already matching a known wallpaper path pass through
+// unchanged so GUI-saved projects stay valid.
+function normalizeWallpaperInput(value: string): string {
+	const match = /^wallpaper(\d+)$/.exec(value);
+	if (!match) return value;
+	const index = Number.parseInt(match[1], 10);
+	if (!Number.isFinite(index) || index < 1 || index > WALLPAPER_PATHS.length) {
+		throw new Error(
+			`Invalid wallpaper shortcut: ${value}. Expected wallpaper1 through wallpaper${WALLPAPER_PATHS.length}, a hex color (#rrggbb), or an absolute path.`,
+		);
+	}
+	return WALLPAPER_PATHS[index - 1];
+}
+
 export function createProject(
 	options: CreateProjectOptions,
 	outputPath: string,
@@ -131,7 +147,8 @@ export function createProject(
 
 	const editorOverrides: Partial<ProjectEditorState> = {};
 
-	if (options.wallpaper !== undefined) editorOverrides.wallpaper = options.wallpaper;
+	if (options.wallpaper !== undefined)
+		editorOverrides.wallpaper = normalizeWallpaperInput(options.wallpaper);
 	if (options.padding !== undefined) editorOverrides.padding = options.padding;
 	if (options.borderRadius !== undefined) editorOverrides.borderRadius = options.borderRadius;
 	if (options.aspectRatio !== undefined) editorOverrides.aspectRatio = options.aspectRatio;
@@ -211,7 +228,8 @@ export function editProject(projectPath: string, edits: EditProjectOptions): Edi
 
 	const updatedEditor: ProjectEditorState = { ...project.editor };
 
-	if (edits.wallpaper !== undefined) updatedEditor.wallpaper = edits.wallpaper;
+	if (edits.wallpaper !== undefined)
+		updatedEditor.wallpaper = normalizeWallpaperInput(edits.wallpaper);
 	if (edits.padding !== undefined) updatedEditor.padding = edits.padding;
 	if (edits.borderRadius !== undefined) updatedEditor.borderRadius = edits.borderRadius;
 	if (edits.shadowIntensity !== undefined) updatedEditor.shadowIntensity = edits.shadowIntensity;

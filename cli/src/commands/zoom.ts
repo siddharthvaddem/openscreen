@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { addZoomRegion, listZoomRegions, removeZoomRegion } from "../core/region-manager";
-import { outputError, outputSuccess, outputTable } from "../output";
+import { outputError, outputList, outputSuccess } from "../output";
 
 export const zoomCommand = new Command("zoom").description("Manage zoom regions");
 
@@ -40,9 +40,9 @@ zoomCommand
 	.action((opts) => {
 		try {
 			const regions = listZoomRegions(opts.project);
-			outputTable(
-				["ID", "Start (ms)", "End (ms)", "Depth", "Focus X", "Focus Y", "Mode"],
-				regions.map((r) => [
+			outputList(regions, {
+				headers: ["ID", "Start (ms)", "End (ms)", "Depth", "Focus X", "Focus Y", "Mode"],
+				rows: regions.map((r) => [
 					r.id,
 					String(r.startMs),
 					String(r.endMs),
@@ -51,7 +51,7 @@ zoomCommand
 					r.focus.cy.toFixed(2),
 					r.focusMode ?? "manual",
 				]),
-			);
+			});
 		} catch (e) {
 			outputError(e instanceof Error ? e.message : String(e));
 		}

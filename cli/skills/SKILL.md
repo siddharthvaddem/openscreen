@@ -4,7 +4,7 @@ description: >-
   CLI for OpenScreen — screen recording and video editing.
   Create, inspect, and modify .openscreen project files.
   Add zoom/trim/speed effects and annotations.
-  Capture stills, export frame sequences, render to MP4 or GIF.
+  Render to MP4 or GIF.
 metadata:
   tags: [video, screen-recording, editing, export, cli]
 ---
@@ -58,9 +58,6 @@ Load ./rules/annotations.md
 
 ## When rendering or exporting
 Load ./rules/export-render.md
-
-## When capturing frames or stills
-Load ./rules/frames-stills.md
 
 ## When troubleshooting
 Load ./rules/troubleshooting.md

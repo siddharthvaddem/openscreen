@@ -40,6 +40,20 @@ export function outputSuccess(data: unknown, humanMessage: string): void {
 	}
 }
 
+// Preferred for list commands that have a raw object array: emits the raw
+// objects verbatim in --json mode (stable shape, matches `add` return types)
+// and renders a human table with the provided headers/rows in text mode.
+export function outputList<T>(
+	data: readonly T[],
+	textTable: { headers: string[]; rows: string[][] },
+): void {
+	if (jsonMode) {
+		outputJson(data);
+		return;
+	}
+	outputTable(textTable.headers, textTable.rows);
+}
+
 export function outputTable(headers: string[], rows: string[][]): void {
 	if (jsonMode) {
 		const objects = rows.map((row) => Object.fromEntries(headers.map((h, i) => [h, row[i]])));
