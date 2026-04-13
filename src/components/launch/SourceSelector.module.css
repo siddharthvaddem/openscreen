@@ -1,18 +1,18 @@
 .glassContainer {
-	background: linear-gradient(135deg, rgba(28, 28, 34, 0.92) 0%, rgba(18, 18, 22, 0.88) 100%);
+	background: var(--glass-surface);
 	backdrop-filter: blur(20px) saturate(160%);
 	-webkit-backdrop-filter: blur(20px) saturate(160%);
 	border-radius: 14px;
 	box-shadow:
 		0 4px 16px 0 rgba(0, 0, 0, 0.32),
 		0 1px 3px 0 rgba(0, 0, 0, 0.18) inset;
-	border: 1px solid rgba(60, 60, 80, 0.18);
+	border: 1px solid var(--glass-border);
 }
 
 .sourceCard {
 	border-radius: 12px;
-	background: linear-gradient(120deg, rgba(38, 38, 48, 0.98) 0%, rgba(24, 24, 32, 0.96) 100%);
-	border: 1px solid rgba(60, 60, 80, 0.22);
+	background: var(--glass-card);
+	border: 1px solid var(--glass-border);
 	box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
 	transition:
 		box-shadow 0.2s ease,
@@ -42,18 +42,18 @@
 .icon {
 	width: 13px;
 	height: 13px;
-	color: #c7d2fe;
+	color: var(--glass-icon);
 }
 
 .name {
 	font-size: 0.8rem;
-	color: #e4e4e7;
+	color: var(--glass-text);
 	font-weight: 500;
 	letter-spacing: 0.01em;
 }
 
 .cardText {
-	color: #a1a1aa;
+	color: var(--glass-text-muted);
 	font-size: 0.75rem;
 }
 
@@ -72,7 +72,7 @@
 /* scrollbar */
 .sourceGridScroll {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(52, 178, 123, 0.5) rgba(40, 40, 50, 0.6);
+	scrollbar-color: rgba(52, 178, 123, 0.5) var(--glass-scroll-track);
 }
 
 .sourceGridScroll::-webkit-scrollbar {
@@ -80,13 +80,13 @@
 }
 
 .sourceGridScroll::-webkit-scrollbar-track {
-	background: rgba(30, 30, 38, 0.5);
+	background: var(--glass-scroll-track);
 	border-radius: 4px;
 	margin: 4px 0;
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb {
-	background: rgba(80, 80, 100, 0.6);
+	background: var(--glass-scroll-thumb);
 	border-radius: 4px;
 }
 

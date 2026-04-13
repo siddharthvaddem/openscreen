@@ -66,7 +66,7 @@ export function SourceSelector() {
 			>
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#34B27B] mx-auto mb-2" />
-					<p className="text-xs text-zinc-400">{t("sourceSelector.loading")}</p>
+					<p className="text-xs editor-text-muted">{t("sourceSelector.loading")}</p>
 				</div>
 			</div>
 		);
@@ -111,16 +111,16 @@ export function SourceSelector() {
 					defaultValue={screenSources.length === 0 ? "windows" : "screens"}
 					className="flex-1 flex flex-col"
 				>
-					<TabsList className="grid grid-cols-2 mb-3 bg-white/5 rounded-full">
+					<TabsList className="grid grid-cols-2 mb-3 editor-panel-soft rounded-full">
 						<TabsTrigger
 							value="screens"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-full text-xs py-1 transition-all"
+							className="data-[state=active]:bg-background data-[state=active]:text-foreground editor-text-muted rounded-full text-xs py-1 transition-all"
 						>
 							{t("sourceSelector.screens", { count: String(screenSources.length) })}
 						</TabsTrigger>
 						<TabsTrigger
 							value="windows"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-full text-xs py-1 transition-all"
+							className="data-[state=active]:bg-background data-[state=active]:text-foreground editor-text-muted rounded-full text-xs py-1 transition-all"
 						>
 							{t("sourceSelector.windows", { count: String(windowSources.length) })}
 						</TabsTrigger>
@@ -147,14 +147,14 @@ export function SourceSelector() {
 				<Button
 					variant="ghost"
 					onClick={() => window.close()}
-					className="px-5 py-1 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+					className="px-5 py-1 text-xs editor-text-muted hover:text-foreground hover:bg-accent rounded-full"
 				>
 					{tc("actions.cancel")}
 				</Button>
 				<Button
 					onClick={handleShare}
 					disabled={!selectedSource}
-					className="px-5 py-1 text-xs bg-[#34B27B] text-white hover:bg-[#34B27B]/80 disabled:opacity-30 disabled:bg-zinc-700 rounded-full"
+					className="px-5 py-1 text-xs bg-[#34B27B] text-white hover:bg-[#34B27B]/80 disabled:opacity-30 disabled:bg-muted disabled:text-muted-foreground rounded-full"
 				>
 					{tc("actions.share")}
 				</Button>

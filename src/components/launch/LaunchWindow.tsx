@@ -62,13 +62,13 @@ function getIcon(name: IconName, className?: string) {
 }
 
 const hudGroupClasses =
-	"flex items-center gap-0.5 bg-white/5 rounded-full transition-colors duration-150 hover:bg-white/[0.08]";
+	"flex items-center gap-0.5 bg-background/70 text-foreground rounded-full transition-colors duration-150 hover:bg-accent";
 
 const hudIconBtnClasses =
-	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer text-white hover:bg-white/10 hover:scale-[1.08] active:scale-95";
+	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer text-foreground hover:bg-accent hover:scale-[1.08] active:scale-95";
 
 const windowBtnClasses =
-	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-white/[0.08]";
+	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-accent";
 
 export function LaunchWindow() {
 	const t = useScopedT("launch");
@@ -231,7 +231,7 @@ export function LaunchWindow() {
 		<div className={`w-screen h-screen bg-transparent ${styles.electronDrag}`}>
 			{/* Language switcher — top-left, beside traffic lights */}
 			<div
-				className={`fixed top-2 flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${isMac ? "left-[72px]" : "left-2"} ${styles.electronNoDrag}`}
+				className={`fixed top-2 flex items-center gap-1 px-2 py-1 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150 ${isMac ? "left-[72px]" : "left-2"} ${styles.electronNoDrag}`}
 			>
 				<Languages size={14} />
 				<select
@@ -241,7 +241,7 @@ export function LaunchWindow() {
 					style={{ color: "inherit" }}
 				>
 					{SUPPORTED_LOCALES.map((loc) => (
-						<option key={loc} value={loc} className="bg-[#1c1c24] text-white">
+						<option key={loc} value={loc} className="bg-popover text-foreground">
 							{getLocaleName(loc)}
 						</option>
 					))}
@@ -256,7 +256,7 @@ export function LaunchWindow() {
 					{/* Mic selector */}
 					{showMicControls && (
 						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!micExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
+							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] editor-panel backdrop-blur-[24px] rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!micExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
 							onMouseEnter={() => setIsMicHovered(true)}
 							onMouseLeave={() => setIsMicHovered(false)}
 							onFocus={() => setIsMicFocused(true)}
@@ -265,7 +265,7 @@ export function LaunchWindow() {
 						>
 							<div className="relative flex-1 min-w-0">
 								{!micExpanded && (
-									<div className="text-white/60 text-[10px] font-medium truncate">
+									<div className="editor-text-muted text-[10px] font-medium truncate">
 										{selectedMicLabel}
 									</div>
 								)}
@@ -275,10 +275,14 @@ export function LaunchWindow() {
 										setSelectedMicId(e.target.value);
 										setMicrophoneDeviceId(e.target.value);
 									}}
-									className={`w-full appearance-none bg-white/5 text-white text-[11px] rounded-lg pl-2 pr-6 py-1 border border-white/10 outline-none hover:bg-white/10 transition-colors cursor-pointer ${!micExpanded ? "sr-only" : ""}`}
+									className={`w-full appearance-none bg-background text-foreground text-[11px] rounded-lg pl-2 pr-6 py-1 border border-input outline-none hover:bg-accent transition-colors cursor-pointer ${!micExpanded ? "sr-only" : ""}`}
 								>
 									{micDevices.map((device) => (
-										<option key={device.deviceId} value={device.deviceId} className="bg-[#1c1c24]">
+										<option
+											key={device.deviceId}
+											value={device.deviceId}
+											className="bg-popover text-foreground"
+										>
 											{device.label}
 										</option>
 									))}
@@ -286,7 +290,7 @@ export function LaunchWindow() {
 								{micExpanded && (
 									<ChevronDown
 										size={12}
-										className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+										className="absolute right-1.5 top-1/2 -translate-y-1/2 editor-text-faint pointer-events-none"
 									/>
 								)}
 							</div>
@@ -300,7 +304,7 @@ export function LaunchWindow() {
 					{/* Webcam selector */}
 					{showWebcamControls && (
 						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!webcamExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
+							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] editor-panel backdrop-blur-[24px] rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!webcamExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
 							onMouseEnter={() => setIsWebcamHovered(true)}
 							onMouseLeave={() => setIsWebcamHovered(false)}
 							onFocus={() => setIsWebcamFocused(true)}
@@ -309,21 +313,21 @@ export function LaunchWindow() {
 						>
 							<div className="relative flex-1 min-w-0">
 								{!webcamExpanded && (
-									<div className="text-white/60 text-[10px] font-medium truncate">
+									<div className="editor-text-muted text-[10px] font-medium truncate">
 										{selectedCameraLabel}
 									</div>
 								)}
 								{webcamExpanded &&
 									(isCameraDevicesLoading ? (
-										<span className="text-white/40 text-[10px] italic">
+										<span className="editor-text-faint text-[10px] italic">
 											{t("webcam.searching")}
 										</span>
 									) : cameraDevicesError ? (
-										<span className="text-white/40 text-[10px] italic">
+										<span className="editor-text-faint text-[10px] italic">
 											{t("webcam.unavailable")}
 										</span>
 									) : cameraDevices.length === 0 ? (
-										<span className="text-white/40 text-[10px] italic">
+										<span className="editor-text-faint text-[10px] italic">
 											{t("webcam.noneFound")}
 										</span>
 									) : (
@@ -334,13 +338,13 @@ export function LaunchWindow() {
 													setSelectedCameraId(e.target.value);
 													setWebcamDeviceId(e.target.value);
 												}}
-												className="w-full appearance-none bg-white/5 text-white text-[11px] rounded-lg pl-2 pr-6 py-1 border border-white/10 outline-none hover:bg-white/10 transition-colors cursor-pointer"
+												className="w-full appearance-none bg-background text-foreground text-[11px] rounded-lg pl-2 pr-6 py-1 border border-input outline-none hover:bg-accent transition-colors cursor-pointer"
 											>
 												{cameraDevices.map((device) => (
 													<option
 														key={device.deviceId}
 														value={device.deviceId}
-														className="bg-[#1c1c24]"
+														className="bg-popover text-foreground"
 													>
 														{device.label}
 													</option>
@@ -348,7 +352,7 @@ export function LaunchWindow() {
 											</select>
 											<ChevronDown
 												size={12}
-												className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+												className="absolute right-1.5 top-1/2 -translate-y-1/2 editor-text-faint pointer-events-none"
 											/>
 										</>
 									))}
@@ -376,11 +380,11 @@ export function LaunchWindow() {
 
 			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
 			<div
-				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[16px] backdrop-saturate-[140%] border border-[rgba(80,80,120,0.25)]`}
+				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar editor-panel backdrop-blur-[16px] backdrop-saturate-[140%]`}
 			>
 				{/* Drag handle */}
 				<div className={`flex items-center px-1 ${styles.electronDrag}`}>
-					{getIcon("drag", "text-white/30")}
+					{getIcon("drag", "text-foreground/30")}
 				</div>
 
 				{/* Source selector */}
@@ -390,8 +394,10 @@ export function LaunchWindow() {
 					disabled={recording}
 					title={selectedSource}
 				>
-					{getIcon("monitor", "text-white/80")}
-					<span className="text-white/70 text-[11px] max-w-[72px] truncate">{selectedSource}</span>
+					{getIcon("monitor", "text-foreground/80")}
+					<span className="text-foreground/70 text-[11px] max-w-[72px] truncate">
+						{selectedSource}
+					</span>
 				</button>
 
 				{/* Audio controls group */}
@@ -406,7 +412,7 @@ export function LaunchWindow() {
 					>
 						{systemAudioEnabled
 							? getIcon("volumeOn", "text-green-400")
-							: getIcon("volumeOff", "text-white/40")}
+							: getIcon("volumeOff", "text-foreground/40")}
 					</button>
 					<button
 						className={`${hudIconBtnClasses} ${microphoneEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
@@ -416,7 +422,7 @@ export function LaunchWindow() {
 					>
 						{microphoneEnabled
 							? getIcon("micOn", "text-green-400")
-							: getIcon("micOff", "text-white/40")}
+							: getIcon("micOff", "text-foreground/40")}
 					</button>
 					<button
 						className={`${hudIconBtnClasses} ${webcamEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
@@ -427,18 +433,18 @@ export function LaunchWindow() {
 					>
 						{webcamEnabled
 							? getIcon("webcamOn", "text-green-400")
-							: getIcon("webcamOff", "text-white/40")}
+							: getIcon("webcamOff", "text-foreground/40")}
 					</button>
 				</div>
 
 				{/* Record/Stop group */}
 				<button
-					className={`flex items-center gap-0.5 rounded-full p-2 transition-colors duration-150 ${styles.electronNoDrag} ${
+					className={`flex w-[84px] items-center justify-center gap-1 rounded-full p-2 transition-colors duration-150 ${styles.electronNoDrag} ${
 						recording
 							? paused
 								? "bg-amber-500/10 hover:bg-amber-500/15"
 								: "animate-record-pulse bg-red-500/10"
-							: "bg-white/5 hover:bg-white/[0.08]"
+							: "bg-background/70 hover:bg-accent"
 					}`}
 					onClick={toggleRecording}
 					disabled={!hasSelectedSource && !recording}
@@ -448,13 +454,15 @@ export function LaunchWindow() {
 						<>
 							{getIcon("stop", paused ? "text-amber-400" : "text-red-400")}
 							<span
-								className={`${paused ? "text-amber-400" : "text-red-400"} text-xs font-semibold tabular-nums`}
+								className={`${paused ? "text-amber-400" : "text-red-400"} min-w-[42px] text-left text-xs font-semibold tabular-nums`}
 							>
 								{formatTimePadded(elapsedSeconds)}
 							</span>
 						</>
 					) : (
-						getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")
+						<span className="flex items-center justify-center w-full">
+							{getIcon("record", hasSelectedSource ? "text-foreground/80" : "text-foreground/30")}
+						</span>
 					)}
 				</button>
 
@@ -464,7 +472,10 @@ export function LaunchWindow() {
 							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
 							onClick={togglePaused}
 						>
-							{getIcon(paused ? "resume" : "pause", paused ? "text-amber-400" : "text-white/60")}
+							{getIcon(
+								paused ? "resume" : "pause",
+								paused ? "text-amber-400" : "text-foreground/60",
+							)}
 						</button>
 					</Tooltip>
 				)}
@@ -476,7 +487,7 @@ export function LaunchWindow() {
 							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
 							onClick={restartRecording}
 						>
-							{getIcon("restart", "text-white/60")}
+							{getIcon("restart", "text-foreground/60")}
 						</button>
 					</Tooltip>
 				)}
@@ -488,32 +499,34 @@ export function LaunchWindow() {
 							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
 							onClick={cancelRecording}
 						>
-							{getIcon("cancel", "text-white/60")}
+							{getIcon("cancel", "text-foreground/60")}
 						</button>
 					</Tooltip>
 				)}
 
-				{/* Open video file */}
-				<Tooltip content={t("tooltips.openVideoFile")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openVideoFile}
-						disabled={recording}
-					>
-						{getIcon("videoFile", "text-white/60")}
-					</button>
-				</Tooltip>
+				{!recording && (
+					<>
+						{/* Open video file */}
+						<Tooltip content={t("tooltips.openVideoFile")}>
+							<button
+								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+								onClick={openVideoFile}
+							>
+								{getIcon("videoFile", "text-foreground/60")}
+							</button>
+						</Tooltip>
 
-				{/* Open project */}
-				<Tooltip content={t("tooltips.openProject")}>
-					<button
-						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-						onClick={openProjectFile}
-						disabled={recording}
-					>
-						{getIcon("folder", "text-white/60")}
-					</button>
-				</Tooltip>
+						{/* Open project */}
+						<Tooltip content={t("tooltips.openProject")}>
+							<button
+								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+								onClick={openProjectFile}
+							>
+								{getIcon("folder", "text-foreground/60")}
+							</button>
+						</Tooltip>
+					</>
+				)}
 
 				{/* Window controls */}
 				<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>
@@ -522,14 +535,14 @@ export function LaunchWindow() {
 						title={t("tooltips.hideHUD")}
 						onClick={sendHudOverlayHide}
 					>
-						{getIcon("minimize", "text-white")}
+						{getIcon("minimize", "text-foreground")}
 					</button>
 					<button
 						className={windowBtnClasses}
 						title={t("tooltips.closeApp")}
 						onClick={sendHudOverlayClose}
 					>
-						{getIcon("close", "text-white")}
+						{getIcon("close", "text-foreground")}
 					</button>
 				</div>
 			</div>

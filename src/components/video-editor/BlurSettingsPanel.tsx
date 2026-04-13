@@ -33,10 +33,10 @@ export function BlurSettingsPanel({
 	];
 
 	return (
-		<div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
+		<div className="flex-[2] min-w-0 editor-panel rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
 			<div className="mb-6">
 				<div className="flex items-center justify-between mb-4">
-					<span className="text-sm font-medium text-slate-200">{t("annotation.blurShape")}</span>
+					<span className="text-sm font-medium editor-text">{t("annotation.blurShape")}</span>
 					<span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-1 rounded-full">
 						{t("annotation.active")}
 					</span>
@@ -64,7 +64,7 @@ export function BlurSettingsPanel({
 									"h-16 rounded-lg border flex flex-col items-center justify-center transition-all p-2 gap-1",
 									isActive
 										? "bg-[#34B27B] border-[#34B27B]"
-										: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20",
+										: "bg-background border-input hover:bg-accent hover:border-white/20",
 								)}
 							>
 								{shape.value === "rectangle" && (
@@ -91,12 +91,12 @@ export function BlurSettingsPanel({
 					})}
 				</div>
 
-				<div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
+				<div className="mt-4 p-3 rounded-lg bg-background border border-input">
 					<div className="flex items-center justify-between mb-2">
 						<span className="text-xs font-medium text-slate-300">
 							{t("annotation.blurIntensity")}
 						</span>
-						<span className="text-[10px] text-slate-400 font-mono">
+						<span className="text-[10px] editor-text-muted font-mono">
 							{Math.round(blurRegion.blurData?.intensity ?? DEFAULT_BLUR_DATA.intensity)}px
 						</span>
 					</div>
@@ -127,12 +127,12 @@ export function BlurSettingsPanel({
 					{t("annotation.deleteAnnotation")}
 				</Button>
 
-				<div className="mt-6 p-3 bg-white/5 rounded-lg border border-white/5">
+				<div className="mt-6 p-3 editor-panel-soft rounded-lg border editor-border">
 					<div className="flex items-center gap-2 mb-2 text-slate-300">
 						<Info className="w-3.5 h-3.5" />
 						<span className="text-xs font-medium">{t("annotation.shortcutsAndTips")}</span>
 					</div>
-					<ul className="text-[10px] text-slate-400 space-y-1.5 list-disc pl-3 leading-relaxed">
+					<ul className="text-[10px] editor-text-muted space-y-1.5 list-disc pl-3 leading-relaxed">
 						<li>{t("annotation.tipMovePlayhead")}</li>
 					</ul>
 				</div>

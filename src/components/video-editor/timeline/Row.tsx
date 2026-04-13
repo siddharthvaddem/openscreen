@@ -14,7 +14,7 @@ export default function Row({ id, children, label, hint, isEmpty, labelColor = "
 
 	return (
 		<div
-			className="border-b border-[#18181b] bg-[#18181b] relative"
+			className="border-b editor-border bg-background/70 relative"
 			style={{ ...rowWrapperStyle, minHeight: 48, marginBottom: 4 }}
 		>
 			{label && (
@@ -27,7 +27,7 @@ export default function Row({ id, children, label, hint, isEmpty, labelColor = "
 			)}
 			{isEmpty && hint && (
 				<div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
-					<span className="text-[11px] text-white/15 font-medium">{hint}</span>
+					<span className="text-[11px] text-foreground/20 font-medium">{hint}</span>
 				</div>
 			)}
 			<div ref={setNodeRef} style={rowStyle}>

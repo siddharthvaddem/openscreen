@@ -1,5 +1,5 @@
 import type { Span } from "dnd-timeline";
-import { FolderOpen, Languages, Save, Video } from "lucide-react";
+import { FolderOpen, Languages, Moon, Save, Sun, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
 import { getLocaleName } from "@/i18n/loader";
@@ -156,6 +157,7 @@ export default function VideoEditor() {
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
 	const { locale, setLocale } = useI18n();
+	const { theme, toggleTheme } = useTheme();
 
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
@@ -321,7 +323,6 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
-		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -1674,7 +1675,7 @@ export default function VideoEditor() {
 	}
 
 	return (
-		<div className="flex flex-col h-screen bg-[#09090b] text-slate-200 overflow-hidden selection:bg-[#34B27B]/30">
+		<div className="editor-shell flex flex-col h-screen overflow-hidden selection:bg-[#34B27B]/30">
 			<Dialog open={showNewRecordingDialog} onOpenChange={setShowNewRecordingDialog}>
 				<DialogContent
 					className="sm:max-w-[425px]"
@@ -1688,7 +1689,7 @@ export default function VideoEditor() {
 						<button
 							type="button"
 							onClick={() => setShowNewRecordingDialog(false)}
-							className="px-4 py-2 rounded-md bg-white/10 text-white hover:bg-white/20 text-sm font-medium transition-colors"
+							className="px-4 py-2 rounded-md editor-panel-soft editor-text hover:bg-accent text-sm font-medium transition-colors"
 						>
 							{t("newRecording.cancel")}
 						</button>
@@ -1704,7 +1705,7 @@ export default function VideoEditor() {
 			</Dialog>
 
 			<div
-				className="h-10 flex-shrink-0 bg-[#09090b]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 z-50"
+				className="h-10 flex-shrink-0 editor-toolbar backdrop-blur-md border-b flex items-center justify-between px-6 z-50"
 				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 			>
 				<div
@@ -1712,7 +1713,7 @@ export default function VideoEditor() {
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
 				>
 					<div
-						className={`flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 ${isMac ? "ml-14" : "ml-2"}`}
+						className={`flex items-center gap-1 px-2 py-1 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150 ${isMac ? "ml-14" : "ml-2"}`}
 					>
 						<Languages size={14} />
 						<select
@@ -1722,7 +1723,7 @@ export default function VideoEditor() {
 							style={{ color: "inherit" }}
 						>
 							{SUPPORTED_LOCALES.map((loc) => (
-								<option key={loc} value={loc} className="bg-[#09090b] text-white">
+								<option key={loc} value={loc} className="bg-popover text-foreground">
 									{getLocaleName(loc)}
 								</option>
 							))}
@@ -1730,8 +1731,16 @@ export default function VideoEditor() {
 					</div>
 					<button
 						type="button"
+						onClick={toggleTheme}
+						className="flex items-center justify-center p-1.5 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150"
+						title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+					>
+						{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+					</button>
+					<button
+						type="button"
 						onClick={() => setShowNewRecordingDialog(true)}
-						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
+						className="flex items-center gap-1 px-2 py-1 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150 text-[11px] font-medium"
 					>
 						<Video size={14} />
 						{t("newRecording.title")}
@@ -1739,7 +1748,7 @@ export default function VideoEditor() {
 					<button
 						type="button"
 						onClick={handleLoadProject}
-						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
+						className="flex items-center gap-1 px-2 py-1 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150 text-[11px] font-medium"
 					>
 						<FolderOpen size={14} />
 						{ts("project.load")}
@@ -1747,7 +1756,7 @@ export default function VideoEditor() {
 					<button
 						type="button"
 						onClick={handleSaveProject}
-						className="flex items-center gap-1 px-2 py-1 rounded-md text-white/50 hover:text-white/90 hover:bg-white/10 transition-all duration-150 text-[11px] font-medium"
+						className="flex items-center gap-1 px-2 py-1 rounded-md editor-text-muted hover:text-foreground hover:bg-accent transition-all duration-150 text-[11px] font-medium"
 					>
 						<Save size={14} />
 						{ts("project.save")}
@@ -1765,8 +1774,8 @@ export default function VideoEditor() {
 								ref={playerContainerRef}
 								className={
 									isFullscreen
-										? "fixed inset-0 z-[99999] w-full h-full flex flex-col items-center justify-center bg-[#09090b]"
-										: "w-full h-full flex flex-col items-center justify-center bg-black/40 rounded-2xl border border-white/5 shadow-2xl overflow-hidden relative"
+										? "fixed inset-0 z-[99999] w-full h-full flex flex-col items-center justify-center editor-shell"
+										: "w-full h-full flex flex-col items-center justify-center bg-background/70 rounded-2xl border editor-border shadow-2xl overflow-hidden relative"
 								}
 							>
 								{/* Video preview */}
@@ -1850,13 +1859,13 @@ export default function VideoEditor() {
 							</div>
 						</Panel>
 
-						<PanelResizeHandle className="bg-[#09090b]/80 hover:bg-[#09090b] transition-colors rounded-full flex items-center justify-center">
-							<div className="w-8 h-1 bg-white/20 rounded-full"></div>
+						<PanelResizeHandle className="editor-toolbar hover:bg-background transition-colors rounded-full flex items-center justify-center">
+							<div className="w-8 h-1 bg-foreground/20 rounded-full"></div>
 						</PanelResizeHandle>
 
 						{/* Timeline section */}
 						<Panel defaultSize={30} maxSize={60} minSize={30}>
-							<div className="h-full bg-[#09090b] rounded-2xl border border-white/5 shadow-lg overflow-hidden flex flex-col">
+							<div className="h-full editor-panel-strong rounded-2xl border editor-border shadow-lg overflow-hidden flex flex-col">
 								<TimelineEditor
 									videoDuration={duration}
 									currentTime={currentTime}

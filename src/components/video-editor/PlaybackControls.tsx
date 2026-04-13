@@ -38,15 +38,15 @@ export default function PlaybackControls({
 	const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
 	return (
-		<div className="flex items-center gap-2 px-1 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-xl transition-all duration-300 hover:bg-black/70 hover:border-white/20">
+		<div className="flex items-center gap-2 px-1 py-0.5 rounded-full bg-background/60 backdrop-blur-md border border-border shadow-xl transition-all duration-300 hover:bg-background/70 hover:border-border/80">
 			<Button
 				onClick={onTogglePlayPause}
 				size="icon"
 				className={cn(
-					"w-8 h-8 rounded-full transition-all duration-200 border border-white/10",
+					"w-8 h-8 rounded-full transition-all duration-200 border border-border",
 					isPlaying
-						? "bg-white/10 text-white hover:bg-white/20"
-						: "bg-white text-black hover:bg-white/90 hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.3)]",
+						? "bg-foreground/10 text-foreground hover:bg-foreground/20"
+						: "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 shadow-[0_0_15px_rgba(0,0,0,0.3)]",
 				)}
 				aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
 			>
@@ -57,14 +57,14 @@ export default function PlaybackControls({
 				)}
 			</Button>
 
-			<span className="text-[9px] font-medium text-slate-300 tabular-nums w-[30px] text-right">
+			<span className="text-[9px] font-medium text-muted-foreground tabular-nums w-[30px] text-right">
 				{formatTime(currentTime)}
 			</span>
 
 			<div className="flex-1 relative h-6 flex items-center group">
 				{/* Custom Track Background */}
-				<div className="absolute left-0 right-0 h-0.5 bg-white/10 rounded-full overflow-hidden">
-					<div className="h-full bg-[#34B27B] rounded-full" style={{ width: `${progress}%` }} />
+				<div className="absolute left-0 right-0 h-0.5 bg-foreground/10 rounded-full overflow-hidden">
+					<div className="h-full bg-primary rounded-full" style={{ width: `${progress}%` }} />
 				</div>
 
 				{/* Interactive Input */}
@@ -80,7 +80,7 @@ export default function PlaybackControls({
 
 				{/* Custom Thumb (visual only, follows progress) */}
 				<div
-					className="absolute w-2.5 h-2.5 bg-white rounded-full shadow-lg pointer-events-none group-hover:scale-125 transition-transform duration-100"
+					className="absolute w-2.5 h-2.5 bg-primary rounded-full shadow-lg pointer-events-none group-hover:scale-125 transition-transform duration-100"
 					style={{
 						left: `${progress}%`,
 						transform: "translateX(-50%)",
@@ -88,7 +88,7 @@ export default function PlaybackControls({
 				/>
 			</div>
 
-			<span className="text-[9px] font-medium text-slate-500 tabular-nums w-[30px]">
+			<span className="text-[9px] font-medium text-muted-foreground tabular-nums w-[30px]">
 				{formatTime(duration)}
 			</span>
 
@@ -96,7 +96,7 @@ export default function PlaybackControls({
 				<Button
 					onClick={onToggleFullscreen}
 					size="icon"
-					className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent hover:bg-white/10 text-white hover:border-white/10 shrink-0 shadow-none ml-0.5"
+					className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent hover:bg-foreground/10 text-foreground hover:border-foreground/10 shrink-0 shadow-none ml-0.5"
 					aria-label={isFullscreen ? t("playback.exitFullscreen") : t("playback.fullscreen")}
 				>
 					{isFullscreen ? (

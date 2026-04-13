@@ -29,6 +29,30 @@
 		--chart-4: 43 74% 66%;
 		--chart-5: 27 87% 67%;
 		--radius: 0.5rem;
+		--editor-shell: #f4f7fb;
+		--editor-panel: rgba(255, 255, 255, 0.94);
+		--editor-panel-strong: #ffffff;
+		--editor-panel-soft: rgba(241, 245, 249, 0.92);
+		--editor-panel-overlay: rgba(255, 255, 255, 0.78);
+		--editor-border: rgba(15, 23, 42, 0.1);
+		--editor-border-strong: rgba(15, 23, 42, 0.16);
+		--editor-text: #0f172a;
+		--editor-text-muted: #475569;
+		--editor-text-faint: #64748b;
+		--editor-text-strong: #020617;
+		--editor-hover: rgba(15, 23, 42, 0.06);
+		--editor-hover-strong: rgba(15, 23, 42, 0.1);
+		--editor-tooltip-bg: rgba(255, 255, 255, 0.96);
+		--editor-tooltip-border: rgba(15, 23, 42, 0.12);
+		--editor-tooltip-text: #0f172a;
+		--glass-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 244, 248, 0.92) 100%);
+		--glass-card: linear-gradient(120deg, rgba(255, 255, 255, 0.96) 0%, rgba(242, 246, 250, 0.94) 100%);
+		--glass-border: rgba(15, 23, 42, 0.1);
+		--glass-text: #0f172a;
+		--glass-text-muted: #64748b;
+		--glass-icon: #475569;
+		--glass-scroll-track: rgba(203, 213, 225, 0.65);
+		--glass-scroll-thumb: rgba(100, 116, 139, 0.45);
 	}
 	.dark {
 		--background: 20 14.3% 4.1%;
@@ -55,6 +79,30 @@
 		--chart-3: 30 80% 55%;
 		--chart-4: 280 65% 60%;
 		--chart-5: 340 75% 55%;
+		--editor-shell: #09090b;
+		--editor-panel: rgba(9, 9, 11, 0.96);
+		--editor-panel-strong: #09090b;
+		--editor-panel-soft: rgba(24, 24, 27, 0.94);
+		--editor-panel-overlay: rgba(9, 9, 11, 0.8);
+		--editor-border: rgba(255, 255, 255, 0.06);
+		--editor-border-strong: rgba(255, 255, 255, 0.12);
+		--editor-text: #e2e8f0;
+		--editor-text-muted: #94a3b8;
+		--editor-text-faint: #64748b;
+		--editor-text-strong: #f8fafc;
+		--editor-hover: rgba(255, 255, 255, 0.08);
+		--editor-hover-strong: rgba(255, 255, 255, 0.14);
+		--editor-tooltip-bg: rgba(9, 9, 11, 0.96);
+		--editor-tooltip-border: rgba(255, 255, 255, 0.12);
+		--editor-tooltip-text: rgba(255, 255, 255, 0.92);
+		--glass-surface: linear-gradient(135deg, rgba(28, 28, 34, 0.92) 0%, rgba(18, 18, 22, 0.88) 100%);
+		--glass-card: linear-gradient(120deg, rgba(38, 38, 48, 0.98) 0%, rgba(24, 24, 32, 0.96) 100%);
+		--glass-border: rgba(60, 60, 80, 0.22);
+		--glass-text: #e4e4e7;
+		--glass-text-muted: #a1a1aa;
+		--glass-icon: #c7d2fe;
+		--glass-scroll-track: rgba(30, 30, 38, 0.5);
+		--glass-scroll-thumb: rgba(80, 80, 100, 0.6);
 	}
 }
 
@@ -66,6 +114,81 @@
 		@apply bg-background text-foreground;
 		-webkit-user-select: none;
 		user-select: none;
+	}
+}
+
+@layer components {
+	.editor-shell {
+		background: var(--editor-shell);
+		color: var(--editor-text);
+	}
+
+	.editor-panel {
+		background: var(--editor-panel);
+		border: 1px solid var(--editor-border);
+		color: var(--editor-text);
+	}
+
+	.editor-panel-soft {
+		background: var(--editor-panel-soft);
+		border: 1px solid var(--editor-border);
+		color: var(--editor-text);
+	}
+
+	.editor-panel-strong {
+		background: var(--editor-panel-strong);
+		border: 1px solid var(--editor-border);
+		color: var(--editor-text);
+	}
+
+	.editor-toolbar {
+		background: var(--editor-panel-overlay);
+		border-color: var(--editor-border);
+		color: var(--editor-text);
+	}
+
+	.editor-border {
+		border-color: var(--editor-border);
+	}
+
+	.editor-border-strong {
+		border-color: var(--editor-border-strong);
+	}
+
+	.editor-text {
+		color: var(--editor-text);
+	}
+
+	.editor-text-strong {
+		color: var(--editor-text-strong);
+	}
+
+	.editor-text-muted {
+		color: var(--editor-text-muted);
+	}
+
+	.editor-text-faint {
+		color: var(--editor-text-faint);
+	}
+
+	.editor-hover:hover {
+		background: var(--editor-hover);
+	}
+
+	.editor-hover-strong:hover {
+		background: var(--editor-hover-strong);
+	}
+
+	.editor-tooltip {
+		background: var(--editor-tooltip-bg);
+		border: 1px solid var(--editor-tooltip-border);
+		color: var(--editor-tooltip-text);
+	}
+
+	.editor-kbd {
+		background: var(--editor-hover);
+		border: 1px solid var(--editor-border-strong);
+		color: #34b27b;
 	}
 }
 

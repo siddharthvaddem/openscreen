@@ -126,7 +126,7 @@ export function ShortcutsConfigDialog() {
 				if (!open) handleClose();
 			}}
 		>
-			<DialogContent className="bg-[#09090b] border-white/10 text-white max-w-[420px]">
+			<DialogContent className="editor-panel text-foreground max-w-[420px]">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2 text-sm">
 						<Keyboard className="w-4 h-4 text-[#34B27B]" />
@@ -135,7 +135,7 @@ export function ShortcutsConfigDialog() {
 				</DialogHeader>
 
 				<div className="space-y-0.5">
-					<p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">
+					<p className="text-[10px] editor-text-faint mb-2 uppercase tracking-wide font-semibold">
 						{t("configurable")}
 					</p>
 					{SHORTCUT_ACTIONS.map((action) => {
@@ -143,8 +143,8 @@ export function ShortcutsConfigDialog() {
 						const hasConflict = conflict?.forAction === action;
 						return (
 							<div key={action}>
-								<div className="flex items-center justify-between py-1.5 px-1 border-b border-white/5">
-									<span className="text-sm text-slate-300">{t(`actions.${action}`)}</span>
+								<div className="flex items-center justify-between py-1.5 px-1 border-b editor-border">
+									<span className="text-sm editor-text">{t(`actions.${action}`)}</span>
 									<button
 										type="button"
 										onClick={() => {
@@ -158,7 +158,7 @@ export function ShortcutsConfigDialog() {
 												? "bg-[#34B27B]/20 border-[#34B27B] text-[#34B27B] animate-pulse"
 												: hasConflict
 													? "bg-amber-500/10 border-amber-500/50 text-amber-400"
-													: "bg-white/5 border-white/10 text-slate-200 hover:border-[#34B27B]/50 hover:text-[#34B27B] cursor-pointer",
+													: "bg-background border-input editor-text hover:border-[#34B27B]/50 hover:text-[#34B27B] cursor-pointer",
 										].join(" ")}
 									>
 										{isCapturing ? t("pressKey") : formatBinding(draft[action], isMac)}
@@ -181,7 +181,7 @@ export function ShortcutsConfigDialog() {
 											<button
 												type="button"
 												onClick={handleCancelConflict}
-												className="px-2 py-0.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-slate-400 transition-colors"
+												className="px-2 py-0.5 bg-background hover:bg-accent border border-input rounded editor-text-muted transition-colors"
 											>
 												{tc("actions.cancel")}
 											</button>
@@ -194,31 +194,31 @@ export function ShortcutsConfigDialog() {
 				</div>
 
 				<div className="space-y-0.5 mt-2">
-					<p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">
+					<p className="text-[10px] editor-text-faint mb-2 uppercase tracking-wide font-semibold">
 						{t("fixed")}
 					</p>
 					{FIXED_SHORTCUTS.map(({ i18nKey, label, display }) => (
 						<div
 							key={i18nKey}
-							className="flex items-center justify-between py-1.5 px-1 border-b border-white/5 last:border-0"
+							className="flex items-center justify-between py-1.5 px-1 border-b editor-border last:border-0"
 						>
-							<span className="text-sm text-slate-400">
+							<span className="text-sm editor-text-muted">
 								{t(`fixedActions.${i18nKey}`, { defaultValue: label })}
 							</span>
-							<kbd className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs font-mono text-slate-400 min-w-[90px] text-center">
+							<kbd className="editor-kbd px-2 py-1 rounded text-xs font-mono min-w-[90px] text-center">
 								{display}
 							</kbd>
 						</div>
 					))}
 				</div>
 
-				<p className="text-[10px] text-slate-500 mt-1">{t("helpText")}</p>
+				<p className="text-[10px] editor-text-faint mt-1">{t("helpText")}</p>
 
 				<DialogFooter className="flex gap-2 sm:justify-between mt-2">
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-slate-400 hover:text-white gap-1.5"
+						className="editor-text-muted hover:text-foreground gap-1.5"
 						onClick={handleReset}
 					>
 						<RotateCcw className="w-3 h-3" />
