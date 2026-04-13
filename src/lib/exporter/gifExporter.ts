@@ -319,7 +319,7 @@ export class GifExporter {
 				this.gif!.render();
 			});
 
-			return { success: true, blob };
+			return { success: true, type: "blob", blob };
 		} catch (error) {
 			console.error("GIF Export error:", error);
 			return {

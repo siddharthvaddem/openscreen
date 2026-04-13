@@ -24,6 +24,11 @@
     {
       "from": "public/wallpapers",
       "to": "assets/wallpapers"
+    },
+    {
+      "from": "vendor/ffmpeg",
+      "to": "ffmpeg",
+      "filter": ["ffmpeg.exe", "ffprobe.exe", "ffmpeg", "ffprobe"]
     }
   ],
 

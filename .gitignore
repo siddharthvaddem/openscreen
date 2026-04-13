@@ -34,3 +34,10 @@ playwright-report/
 
 # Vitest browser mode screenshots
 __screenshots__/
+
+# Native downloads
+vendor/
+
+# AI workspaces
+.qwen
+.gemini

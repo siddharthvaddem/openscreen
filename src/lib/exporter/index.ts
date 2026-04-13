@@ -1,3 +1,4 @@
+export { FFmpegExporter } from "./ffmpegExporter";
 export { FrameRenderer } from "./frameRenderer";
 export { calculateOutputDimensions, GifExporter } from "./gifExporter";
 export { VideoMuxer } from "./muxer";

@@ -22,6 +22,7 @@ import {
 	type ExportProgress,
 	type ExportQuality,
 	type ExportSettings,
+	FFmpegExporter,
 	GIF_SIZE_PRESETS,
 	GifExporter,
 	type GifFrameRate,
@@ -159,7 +160,7 @@ export default function VideoEditor() {
 
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
-	const exporterRef = useRef<VideoExporter | null>(null);
+	const exporterRef = useRef<VideoExporter | FFmpegExporter | null>(null);
 
 	const annotationOnlyRegions = useMemo(
 		() => annotationRegions.filter((region) => region.type !== "blur"),
@@ -1377,7 +1378,7 @@ export default function VideoEditor() {
 					exporterRef.current = gifExporter as unknown as VideoExporter;
 					const result = await gifExporter.export();
 
-					if (result.success && result.blob) {
+					if (result.success && result.type === "blob") {
 						const arrayBuffer = await result.blob.arrayBuffer();
 						const timestamp = Date.now();
 						const fileName = `export-${timestamp}.gif`;
@@ -1394,29 +1395,26 @@ export default function VideoEditor() {
 							setExportError(saveResult.message || "Failed to save GIF");
 							toast.error(saveResult.message || "Failed to save GIF");
 						}
-					} else {
+					} else if (!result.success) {
 						setExportError(result.error || "GIF export failed");
 						toast.error(result.error || "GIF export failed");
 					}
 				} else {
-					// MP4 Export
+					// MP4 Export — try FFmpeg native path first, fall back to WebCodecs
 					const quality = settings.quality || exportQuality;
 					let exportWidth: number;
 					let exportHeight: number;
 					let bitrate: number;
 
 					if (quality === "source") {
-						// Use source resolution
 						exportWidth = sourceWidth;
 						exportHeight = sourceHeight;
 
 						if (aspectRatioValue === 1) {
-							// Square (1:1): use smaller dimension to avoid codec limits
 							const baseDimension = Math.floor(Math.min(sourceWidth, sourceHeight) / 2) * 2;
 							exportWidth = baseDimension;
 							exportHeight = baseDimension;
 						} else if (aspectRatioValue > 1) {
-							// Landscape: find largest even dimensions that exactly match aspect ratio
 							const baseWidth = Math.floor(sourceWidth / 2) * 2;
 							let found = false;
 							for (let w = baseWidth; w >= 100 && !found; w -= 2) {
@@ -1432,7 +1430,6 @@ export default function VideoEditor() {
 								exportHeight = Math.floor(baseWidth / aspectRatioValue / 2) * 2;
 							}
 						} else {
-							// Portrait: find largest even dimensions that exactly match aspect ratio
 							const baseHeight = Math.floor(sourceHeight / 2) * 2;
 							let found = false;
 							for (let h = baseHeight; h >= 100 && !found; h -= 2) {
@@ -1449,7 +1446,6 @@ export default function VideoEditor() {
 							}
 						}
 
-						// Calculate visually lossless bitrate matching screen recording optimization
 						const totalPixels = exportWidth * exportHeight;
 						bitrate = 30_000_000;
 						if (totalPixels > 1920 * 1080 && totalPixels <= 2560 * 1440) {
@@ -1458,14 +1454,10 @@ export default function VideoEditor() {
 							bitrate = 80_000_000;
 						}
 					} else {
-						// Use quality-based target resolution
 						const targetHeight = quality === "medium" ? 720 : 1080;
-
-						// Calculate dimensions maintaining aspect ratio
 						exportHeight = Math.floor(targetHeight / 2) * 2;
 						exportWidth = Math.floor((exportHeight * aspectRatioValue) / 2) * 2;
 
-						// Adjust bitrate for lower resolutions
 						const totalPixels = exportWidth * exportHeight;
 						if (totalPixels <= 1280 * 720) {
 							bitrate = 10_000_000;
@@ -1476,61 +1468,119 @@ export default function VideoEditor() {
 						}
 					}
 
-					const exporter = new VideoExporter({
-						videoUrl: videoPath,
-						webcamVideoUrl: webcamVideoPath || undefined,
-						width: exportWidth,
-						height: exportHeight,
-						frameRate: 60,
-						bitrate,
-						codec: "avc1.640033",
-						wallpaper,
-						zoomRegions,
-						trimRegions,
-						speedRegions,
-						showShadow: shadowIntensity > 0,
-						shadowIntensity,
-						showBlur,
-						motionBlurAmount,
-						borderRadius,
-						padding,
-						cropRegion,
-						annotationRegions,
-						webcamLayoutPreset,
-						webcamMaskShape,
-						webcamSizePreset,
-						webcamPosition,
-						previewWidth,
-						previewHeight,
-						cursorTelemetry,
-						onProgress: (progress: ExportProgress) => {
-							setExportProgress(progress);
-						},
-					});
+					// Check if FFmpeg native export is available
+					const ffmpegCheck = await FFmpegExporter.isAvailable();
 
-					exporterRef.current = exporter;
-					const result = await exporter.export();
+					if (ffmpegCheck.available) {
+						// ---- FFmpeg Native Export (fast) ----
+						console.log(
+							`[Export] Using FFmpeg native export with encoder: ${ffmpegCheck.bestEncoder}`,
+						);
 
-					if (result.success && result.blob) {
-						const arrayBuffer = await result.blob.arrayBuffer();
-						const timestamp = Date.now();
-						const fileName = `export-${timestamp}.mp4`;
+						const ffmpegExporter = new FFmpegExporter({
+							videoUrl: videoPath,
+							webcamVideoUrl: webcamVideoPath || undefined,
+							width: exportWidth,
+							height: exportHeight,
+							frameRate: 60,
+							bitrate,
+							wallpaper,
+							zoomRegions,
+							trimRegions,
+							speedRegions,
+							showShadow: shadowIntensity > 0,
+							shadowIntensity,
+							showBlur,
+							motionBlurAmount,
+							borderRadius,
+							padding,
+							cropRegion,
+							annotationRegions,
+							webcamLayoutPreset,
+							webcamMaskShape,
+							webcamSizePreset,
+							webcamPosition,
+							previewWidth,
+							previewHeight,
+							cursorTelemetry,
+							onProgress: (progress: ExportProgress) => {
+								setExportProgress(progress);
+							},
+						});
 
-						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
+						exporterRef.current = ffmpegExporter;
+						const result = await ffmpegExporter.export();
 
-						if (saveResult.canceled) {
-							setUnsavedExport({ arrayBuffer, fileName, format: "mp4" });
-							toast.info("Export canceled");
-						} else if (saveResult.success && saveResult.path) {
+						// FFmpeg writes directly to disk — handle the result
+						if (result.success && result.type === "native") {
 							setUnsavedExport(null);
-							handleExportSaved("Video", saveResult.path);
+							handleExportSaved("Video", result.path);
+						} else if (!result.success && result.error === "Export save canceled") {
+							toast.info("Export canceled");
 						} else {
-							setExportError(saveResult.message || "Failed to save video");
-							toast.error(saveResult.message || "Failed to save video");
+							setExportError(result.error || "FFmpeg export failed");
+							toast.error(result.error || "FFmpeg export failed");
 						}
 					} else {
-						setExportError(result.error || "Export failed");
-						toast.error(result.error || "Export failed");
+						// ---- WebCodecs Fallback (slower, no FFmpeg needed) ----
+						console.log("[Export] FFmpeg not available, using WebCodecs fallback");
+
+						const exporter = new VideoExporter({
+							videoUrl: videoPath,
+							webcamVideoUrl: webcamVideoPath || undefined,
+							width: exportWidth,
+							height: exportHeight,
+							frameRate: 60,
+							bitrate,
+							codec: "avc1.640033",
+							wallpaper,
+							zoomRegions,
+							trimRegions,
+							speedRegions,
+							showShadow: shadowIntensity > 0,
+							shadowIntensity,
+							showBlur,
+							motionBlurAmount,
+							borderRadius,
+							padding,
+							cropRegion,
+							annotationRegions,
+							webcamLayoutPreset,
+							webcamMaskShape,
+							webcamSizePreset,
+							webcamPosition,
+							previewWidth,
+							previewHeight,
+							cursorTelemetry,
+							onProgress: (progress: ExportProgress) => {
+								setExportProgress(progress);
+							},
+						});
+
+						exporterRef.current = exporter;
+						const result = await exporter.export();
+
+						if (result.success && result.type === "blob") {
+							const arrayBuffer = await result.blob.arrayBuffer();
+							const timestamp = Date.now();
+							const fileName = `export-${timestamp}.mp4`;
+
+							const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
+
+							if (saveResult.canceled) {
+								setUnsavedExport({ arrayBuffer, fileName, format: "mp4" });
+								toast.info("Export canceled");
+							} else if (saveResult.success && saveResult.path) {
+								setUnsavedExport(null);
+								handleExportSaved("Video", saveResult.path);
+							} else {
+								setExportError(saveResult.message || "Failed to save video");
+								toast.error(saveResult.message || "Failed to save video");
+							}
+						} else if (!result.success) {
+							setExportError(result.error || "Export failed");
+							toast.error(result.error || "Export failed");
+						}
 					}
 				}
 

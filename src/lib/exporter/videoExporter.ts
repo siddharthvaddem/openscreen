@@ -150,6 +150,10 @@ export class VideoExporter {
 			this.renderer = renderer;
 			await renderer.initialize();
 
+			// Detect OS here to figure out if we can use zero-copy GPU frames
+			const platform = window.electronAPI ? await window.electronAPI.getPlatform() : "win32";
+			const isLinux = platform === "linux";
+
 			await this.initializeEncoder(encoderPreference);
 
 			const hasAudio = videoInfo.hasAudio;
@@ -237,25 +241,31 @@ export class VideoExporter {
 
 						const canvas = renderer.getCanvas();
 
-						// Read raw pixels from the canvas instead of passing
-						// the canvas directly to VideoFrame. On some Linux
-						// systems the GPU shared-image path (EGL/Ozone) fails
-						// silently, producing empty frames.
-						const canvasCtx = canvas.getContext("2d")!;
-						const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
-						const exportFrame = new VideoFrame(imageData.data.buffer, {
-							format: "RGBA",
-							codedWidth: canvas.width,
-							codedHeight: canvas.height,
-							timestamp,
-							duration: frameDuration,
-							colorSpace: {
-								primaries: "bt709",
-								transfer: "iec61966-2-1",
-								matrix: "rgb",
-								fullRange: true,
-							},
-						});
+						// Use zero-copy GPU texturing on Windows/Mac to completely bypass CPU stalls.
+						// On some Linux systems the GPU shared-image path (EGL/Ozone) fails
+						// silently, producing empty frames, so we maintain the getImageData fallback.
+						let exportFrame: VideoFrame;
+
+						if (isLinux) {
+							const canvasCtx = canvas.getContext("2d")!;
+							const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
+							exportFrame = new VideoFrame(imageData.data.buffer, {
+								format: "RGBA",
+								codedWidth: canvas.width,
+								codedHeight: canvas.height,
+								timestamp,
+								duration: frameDuration,
+								colorSpace: {
+									primaries: "bt709",
+									transfer: "iec61966-2-1",
+									matrix: "rgb",
+									fullRange: true,
+								},
+							});
+						} else {
+							// Blazing fast zero-copy GPU path
+							exportFrame = new VideoFrame(canvas, { timestamp, duration: frameDuration });
+						}
 
 						while (
 							this.encoder &&
@@ -352,7 +362,15 @@ export class VideoExporter {
 			}
 
 			const blob = await muxer.finalize();
-			return { success: true, blob };
+			return { success: true, type: "blob", blob };
+		} catch (error) {
+			stopWebcamDecode = true;
+			webcamFrameQueue?.destroy();
+			webcamDecoder?.cancel();
+			if (webcamDecodePromise) {
+				await webcamDecodePromise.catch(() => undefined);
+			}
+			throw error;
 		} finally {
 			stopWebcamDecode = true;
 			webcamFrameQueue?.destroy();

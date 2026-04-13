@@ -142,4 +142,29 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("request-save-before-close", listener);
 		return () => ipcRenderer.removeListener("request-save-before-close", listener);
 	},
+
+	// ---- FFmpeg Native Export ----
+	ffmpegGetCapabilities: () => {
+		return ipcRenderer.invoke("ffmpeg-get-capabilities");
+	},
+	ffmpegExportStart: (config: {
+		width: number;
+		height: number;
+		frameRate: number;
+		encoder: string;
+		bitrate: number;
+		audioSourcePath?: string;
+		hasAudio?: boolean;
+	}) => {
+		return ipcRenderer.invoke("ffmpeg-export-start", config);
+	},
+	ffmpegExportFrame: (sessionId: string, frameData: ArrayBuffer) => {
+		return ipcRenderer.invoke("ffmpeg-export-frame", sessionId, frameData);
+	},
+	ffmpegExportFinish: (sessionId: string, fileName: string) => {
+		return ipcRenderer.invoke("ffmpeg-export-finish", sessionId, fileName);
+	},
+	ffmpegExportCancel: (sessionId: string) => {
+		return ipcRenderer.invoke("ffmpeg-export-cancel", sessionId);
+	},
 });

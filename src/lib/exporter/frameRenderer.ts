@@ -1,13 +1,14 @@
-import {
-	Application,
-	BlurFilter,
-	Container,
-	Graphics,
-	Sprite,
-	Texture,
-	type TextureSourceLike,
-} from "pixi.js";
-import { MotionBlurFilter } from "pixi-filters/motion-blur";
+/**
+ * Thin wrapper around frameRendererWorker.ts.
+ *
+ * Computes animation state (zoom, layout) on the main thread using existing
+ * helpers, then sends VideoFrames + pre-computed transform to a Web Worker
+ * that does all compositing via OffscreenCanvas + Canvas 2D (no Pixi.js).
+ *
+ * Public API is identical to the previous Pixi.js implementation so
+ * videoExporter.ts requires zero changes.
+ */
+
 import type {
 	AnnotationRegion,
 	CropRegion,
@@ -33,28 +34,91 @@ import {
 import { clampFocusToStage as clampFocusToStageUtil } from "@/components/video-editor/videoPlayback/focusUtils";
 import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
-	applyZoomTransform,
 	computeFocusFromTransform,
 	computeZoomTransform,
-	createMotionBlurState,
-	type MotionBlurState,
 } from "@/components/video-editor/videoPlayback/zoomTransform";
-import {
-	computeCompositeLayout,
-	getWebcamLayoutPresetDefinition,
-	type Size,
-	type StyledRenderRect,
-} from "@/lib/compositeLayout";
-import { drawCanvasClipPath } from "@/lib/webcamMaskShapes";
-import { renderAnnotations } from "./annotationRenderer";
-import {
-	getLinearGradientPoints,
-	getRadialGradientShape,
-	parseCssGradient,
-	resolveLinearGradientAngle,
-} from "./gradientParser";
+import { computeCompositeLayout, type Size, type StyledRenderRect } from "@/lib/compositeLayout";
 
-interface FrameRenderConfig {
+// ---------- Types matching the worker ----------
+
+interface WorkerZoomRegion {
+	id: string;
+	startMs: number;
+	endMs: number;
+	depth: number;
+	focus: { cx: number; cy: number };
+	focusMode?: "manual" | "auto";
+	zoomInDurationMs?: number;
+	zoomOutDurationMs?: number;
+}
+
+interface WorkerCropRegion {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+interface WorkerAnnotationRegion {
+	id: string;
+	startMs: number;
+	endMs: number;
+	type: "text" | "image" | "figure" | "blur";
+	content: string;
+	textContent?: string;
+	imageContent?: string;
+	position: { x: number; y: number };
+	size: { width: number; height: number };
+	style: {
+		color: string;
+		backgroundColor: string;
+		fontSize: number;
+		fontFamily: string;
+		fontWeight: "normal" | "bold";
+		fontStyle: "normal" | "italic";
+		textDecoration: "none" | "underline";
+		textAlign: "left" | "center" | "right";
+	};
+	zIndex: number;
+	figureData?: {
+		arrowDirection: string;
+		color: string;
+		strokeWidth: number;
+	};
+	blurData?: {
+		shape: "rectangle" | "oval" | "freehand";
+		intensity: number;
+		freehandPoints?: Array<{ x: number; y: number }>;
+	};
+}
+
+interface WorkerConfig {
+	width: number;
+	height: number;
+	wallpaper: string;
+	zoomRegions: WorkerZoomRegion[];
+	showShadow: boolean;
+	shadowIntensity: number;
+	showBlur: boolean;
+	motionBlurAmount: number;
+	borderRadius: number;
+	padding: number;
+	cropRegion: WorkerCropRegion;
+	videoWidth: number;
+	videoHeight: number;
+	webcamSize?: { width: number; height: number } | null;
+	webcamLayoutPreset?: "picture-in-picture" | "vertical-stack" | "dual-frame";
+	webcamMaskShape?: "rectangle" | "circle" | "square" | "rounded";
+	webcamSizePreset?: number;
+	webcamPosition?: { cx: number; cy: number } | null;
+	annotationRegions?: WorkerAnnotationRegion[];
+	previewWidth?: number;
+	previewHeight?: number;
+}
+
+// ---------- Public interface (unchanged) ----------
+
+export interface FrameRenderConfig {
 	width: number;
 	height: number;
 	wallpaper: string;
@@ -80,6 +144,8 @@ interface FrameRenderConfig {
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 }
 
+// ---------- Animation state (same as original) ----------
+
 interface AnimationState {
 	scale: number;
 	focusX: number;
@@ -99,31 +165,92 @@ interface LayoutCache {
 	webcamRect: StyledRenderRect | null;
 }
 
-// Renders video frames with all effects (background, zoom, crop, blur, shadow) to an offscreen canvas for export.
+// ---------- Worker messages ----------
+
+interface InitMessage {
+	type: "init";
+	config: WorkerConfig;
+	wallpaperBitmap?: ImageBitmap;
+}
+
+interface RenderMessage {
+	type: "render";
+	frame: VideoFrame;
+	timestamp: number;
+	webcamFrame?: VideoFrame | null;
+	zoomTransform: {
+		scale: number;
+		x: number;
+		y: number;
+		focusX: number;
+		focusY: number;
+		progress: number;
+	};
+	layoutInfo: {
+		stageWidth: number;
+		stageHeight: number;
+		videoWidth: number;
+		videoHeight: number;
+		baseScale: number;
+		baseOffsetX: number;
+		baseOffsetY: number;
+		maskX: number;
+		maskY: number;
+		maskWidth: number;
+		maskHeight: number;
+		scaledBorderRadius: number;
+		webcamRect?: {
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+			borderRadius: number;
+			maskShape: "rectangle" | "circle" | "square" | "rounded";
+		} | null;
+		screenCover: boolean;
+	};
+}
+
+interface DisposeMessage {
+	type: "dispose";
+}
+
+interface FrameReadyMessage {
+	type: "frame-ready";
+	bitmap: ImageBitmap;
+}
+
+interface ErrorMessage {
+	type: "error";
+	error: string;
+}
+
+interface ReadyMessage {
+	type: "ready";
+}
+
+type WorkerOutgoing = FrameReadyMessage | ErrorMessage | ReadyMessage;
+
+// ---------- FrameRenderer ----------
 
 export class FrameRenderer {
-	private app: Application | null = null;
-	private cameraContainer: Container | null = null;
-	private videoContainer: Container | null = null;
-	private videoSprite: Sprite | null = null;
-	private backgroundSprite: HTMLCanvasElement | null = null;
-	private maskGraphics: Graphics | null = null;
-	private blurFilter: BlurFilter | null = null;
-	private motionBlurFilter: MotionBlurFilter | null = null;
-	private shadowCanvas: HTMLCanvasElement | null = null;
-	private shadowCtx: CanvasRenderingContext2D | null = null;
-	private compositeCanvas: HTMLCanvasElement | null = null;
-	private compositeCtx: CanvasRenderingContext2D | null = null;
-	private rasterCanvas: HTMLCanvasElement | null = null;
-	private rasterCtx: CanvasRenderingContext2D | null = null;
+	private worker: Worker | null = null;
+	private proxyCanvas: HTMLCanvasElement | null = null;
+	private proxyCtx: CanvasRenderingContext2D | null = null;
 	private config: FrameRenderConfig;
 	private animationState: AnimationState;
 	private layoutCache: LayoutCache | null = null;
 	private currentVideoTime = 0;
-	private motionBlurState: MotionBlurState = createMotionBlurState();
 	private smoothedAutoFocus: { cx: number; cy: number } | null = null;
 	private prevAnimationTimeMs: number | null = null;
 	private prevTargetProgress = 0;
+	private readyPromise: Promise<void>;
+	private readyResolve!: () => void;
+	private pendingRender: {
+		resolve: () => void;
+		reject: (err: Error) => void;
+	} | null = null;
+	private disposed = false;
 
 	constructor(config: FrameRenderConfig) {
 		this.config = config;
@@ -136,214 +263,136 @@ export class FrameRenderer {
 			y: 0,
 			appliedScale: 1,
 		};
+		this.readyPromise = new Promise<void>((resolve) => {
+			this.readyResolve = resolve;
+		});
 	}
 
 	async initialize(): Promise<void> {
-		// Create canvas for rendering
-		const canvas = document.createElement("canvas");
-		canvas.width = this.config.width;
-		canvas.height = this.config.height;
+		// Create proxy canvas for getCanvas() compatibility
+		this.proxyCanvas = document.createElement("canvas");
+		this.proxyCanvas.width = this.config.width;
+		this.proxyCanvas.height = this.config.height;
+		this.proxyCtx = this.proxyCanvas.getContext("2d")!;
 
-		// Try to set colorSpace if supported (may not be available on all platforms)
-		try {
-			if (canvas && "colorSpace" in canvas) {
-				canvas.colorSpace = "srgb";
+		if (!this.proxyCtx) {
+			throw new Error("Failed to get 2D context for proxy canvas");
+		}
+
+		// Create worker — Vite bundles this automatically
+		// TODO: In production builds with certain Vite configs, worker
+		// bundling may need the `?worker` suffix. If the worker fails
+		// to load, switch to: `import FrameWorker from './frameRendererWorker?worker'`
+		const workerUrl = new URL("./frameRendererWorker.ts", import.meta.url);
+		this.worker = new Worker(workerUrl, { type: "module" });
+
+		this.worker.onmessage = (e: MessageEvent<WorkerOutgoing>) => {
+			this.handleWorkerMessage(e.data);
+		};
+
+		this.worker.onerror = (err: ErrorEvent) => {
+			console.error("[FrameRenderer] Worker error:", err.message);
+			if (this.pendingRender) {
+				this.pendingRender.reject(new Error(`Worker error: ${err.message}`));
+				this.pendingRender = null;
 			}
-		} catch (error) {
-			// Silently ignore colorSpace errors on platforms that don't support it
-			console.warn("[FrameRenderer] colorSpace not supported on this platform:", error);
-		}
+		};
 
-		// Initialize PixiJS with optimized settings for export performance
-		this.app = new Application();
-		await this.app.init({
-			canvas,
-			width: this.config.width,
-			height: this.config.height,
-			backgroundAlpha: 0,
-			antialias: true,
-			resolution: 1,
-			autoDensity: true,
-		});
-
-		// Setup containers
-		this.cameraContainer = new Container();
-		this.videoContainer = new Container();
-		this.app.stage.addChild(this.cameraContainer);
-		this.cameraContainer.addChild(this.videoContainer);
-
-		// Setup background (render separately, not in PixiJS)
-		await this.setupBackground();
-
-		// Setup blur filter for video container
-		this.blurFilter = new BlurFilter();
-		this.blurFilter.quality = 5;
-		this.blurFilter.resolution = this.app.renderer.resolution;
-		this.blurFilter.blur = 0;
-		this.motionBlurFilter = new MotionBlurFilter([0, 0], 5, 0);
-		this.videoContainer.filters = [this.blurFilter, this.motionBlurFilter];
-
-		// Setup composite canvas for final output with shadows
-		this.compositeCanvas = document.createElement("canvas");
-		this.compositeCanvas.width = this.config.width;
-		this.compositeCanvas.height = this.config.height;
-		this.compositeCtx = this.compositeCanvas.getContext("2d", {
-			willReadFrequently: false,
-		});
-
-		if (!this.compositeCtx) {
-			throw new Error("Failed to get 2D context for composite canvas");
-		}
-
-		this.rasterCanvas = document.createElement("canvas");
-		this.rasterCanvas.width = this.config.width;
-		this.rasterCanvas.height = this.config.height;
-		this.rasterCtx = this.rasterCanvas.getContext("2d");
-		if (!this.rasterCtx) {
-			throw new Error("Failed to get 2D context for raster canvas");
-		}
-
-		// Setup shadow canvas if needed
-		if (this.config.showShadow) {
-			this.shadowCanvas = document.createElement("canvas");
-			this.shadowCanvas.width = this.config.width;
-			this.shadowCanvas.height = this.config.height;
-			this.shadowCtx = this.shadowCanvas.getContext("2d", {
-				willReadFrequently: false,
-			});
-
-			if (!this.shadowCtx) {
-				throw new Error("Failed to get 2D context for shadow canvas");
-			}
-		}
-
-		// Setup mask
-		this.maskGraphics = new Graphics();
-		this.videoContainer.addChild(this.maskGraphics);
-		this.videoContainer.mask = this.maskGraphics;
-	}
-
-	private async setupBackground(): Promise<void> {
+		// Pre-load wallpaper for file:// URLs that the worker may not be able to fetch
+		let wallpaperBitmap: ImageBitmap | undefined;
 		const wallpaper = this.config.wallpaper;
-
-		// Create background canvas for separate rendering (not affected by zoom)
-		const bgCanvas = document.createElement("canvas");
-		bgCanvas.width = this.config.width;
-		bgCanvas.height = this.config.height;
-		const bgCtx = bgCanvas.getContext("2d")!;
-
 		try {
-			// Render background based on type
 			if (
 				wallpaper.startsWith("file://") ||
-				wallpaper.startsWith("data:") ||
-				wallpaper.startsWith("/") ||
-				wallpaper.startsWith("http")
+				(wallpaper.startsWith("/") && !wallpaper.startsWith("//"))
 			) {
-				// Image background
-				const img = new Image();
-				// Don't set crossOrigin for same-origin images to avoid CORS taint
-				// Only set it for cross-origin URLs
-				let imageUrl: string;
-				if (wallpaper.startsWith("http")) {
-					imageUrl = wallpaper;
-					if (!imageUrl.startsWith(window.location.origin)) {
-						img.crossOrigin = "anonymous";
-					}
-				} else if (wallpaper.startsWith("file://") || wallpaper.startsWith("data:")) {
-					imageUrl = wallpaper;
-				} else {
-					imageUrl = window.location.origin + wallpaper;
+				// Try to load via fetch and transfer as ImageBitmap
+				const response = await fetch(wallpaper);
+				if (response.ok) {
+					const blob = await response.blob();
+					wallpaperBitmap = await createImageBitmap(blob);
 				}
-
-				await new Promise<void>((resolve, reject) => {
-					img.onload = () => resolve();
-					img.onerror = (err) => {
-						console.error("[FrameRenderer] Failed to load background image:", imageUrl, err);
-						reject(new Error(`Failed to load background image: ${imageUrl}`));
-					};
-					img.src = imageUrl;
-				});
-
-				// Draw the image using cover and center positioning
-				const imgAspect = img.width / img.height;
-				const canvasAspect = this.config.width / this.config.height;
-
-				let drawWidth, drawHeight, drawX, drawY;
-
-				if (imgAspect > canvasAspect) {
-					drawHeight = this.config.height;
-					drawWidth = drawHeight * imgAspect;
-					drawX = (this.config.width - drawWidth) / 2;
-					drawY = 0;
-				} else {
-					drawWidth = this.config.width;
-					drawHeight = drawWidth / imgAspect;
-					drawX = 0;
-					drawY = (this.config.height - drawHeight) / 2;
+			} else if (wallpaper.startsWith("data:")) {
+				const response = await fetch(wallpaper);
+				if (response.ok) {
+					const blob = await response.blob();
+					wallpaperBitmap = await createImageBitmap(blob);
 				}
-
-				bgCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-			} else if (wallpaper.startsWith("#")) {
-				bgCtx.fillStyle = wallpaper;
-				bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-			} else if (
-				wallpaper.startsWith("linear-gradient") ||
-				wallpaper.startsWith("radial-gradient")
-			) {
-				const parsedGradient = parseCssGradient(wallpaper);
-				if (parsedGradient) {
-					const gradient =
-						parsedGradient.type === "linear"
-							? (() => {
-									const points = getLinearGradientPoints(
-										resolveLinearGradientAngle(parsedGradient.descriptor),
-										this.config.width,
-										this.config.height,
-									);
-
-									return bgCtx.createLinearGradient(points.x0, points.y0, points.x1, points.y1);
-								})()
-							: (() => {
-									const shape = getRadialGradientShape(
-										parsedGradient.descriptor,
-										this.config.width,
-										this.config.height,
-									);
-
-									return bgCtx.createRadialGradient(
-										shape.cx,
-										shape.cy,
-										0,
-										shape.cx,
-										shape.cy,
-										shape.radius,
-									);
-								})();
-
-					parsedGradient.stops.forEach((stop) => {
-						gradient.addColorStop(stop.offset, stop.color);
-					});
-
-					bgCtx.fillStyle = gradient;
-					bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-				} else {
-					console.warn("[FrameRenderer] Could not parse gradient, using black fallback");
-					bgCtx.fillStyle = "#000000";
-					bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-				}
-			} else {
-				bgCtx.fillStyle = wallpaper;
-				bgCtx.fillRect(0, 0, this.config.width, this.config.height);
 			}
-		} catch (error) {
-			console.error("[FrameRenderer] Error setting up background, using fallback:", error);
-			bgCtx.fillStyle = "#000000";
-			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+		} catch {
+			// Worker will attempt its own loading or fall back
 		}
 
-		// Store the background canvas for compositing
-		this.backgroundSprite = bgCanvas;
+		// Send init config
+		const workerConfig: WorkerConfig = {
+			width: this.config.width,
+			height: this.config.height,
+			wallpaper: this.config.wallpaper,
+			zoomRegions: this.config.zoomRegions.map((z) => ({ ...z })),
+			showShadow: this.config.showShadow,
+			shadowIntensity: this.config.shadowIntensity,
+			showBlur: this.config.showBlur,
+			motionBlurAmount: this.config.motionBlurAmount ?? 0,
+			borderRadius: this.config.borderRadius ?? 0,
+			padding: this.config.padding ?? 0,
+			cropRegion: { ...this.config.cropRegion },
+			videoWidth: this.config.videoWidth,
+			videoHeight: this.config.videoHeight,
+			webcamSize: this.config.webcamSize
+				? { width: this.config.webcamSize.width, height: this.config.webcamSize.height }
+				: null,
+			webcamLayoutPreset: this.config.webcamLayoutPreset,
+			webcamMaskShape: this.config.webcamMaskShape,
+			webcamSizePreset: this.config.webcamSizePreset,
+			webcamPosition: this.config.webcamPosition,
+			annotationRegions: this.config.annotationRegions?.map((a) => ({ ...a })),
+			previewWidth: this.config.previewWidth,
+			previewHeight: this.config.previewHeight,
+		};
+
+		const initMsg: InitMessage = {
+			type: "init",
+			config: workerConfig,
+			wallpaperBitmap,
+		};
+
+		const transferList: Transferable[] = [];
+		if (wallpaperBitmap) transferList.push(wallpaperBitmap as Transferable);
+
+		this.worker.postMessage(initMsg, transferList);
+
+		// Wait for worker to acknowledge ready
+		await this.readyPromise;
+	}
+
+	private handleWorkerMessage(msg: WorkerOutgoing): void {
+		switch (msg.type) {
+			case "ready":
+				this.readyResolve();
+				break;
+			case "frame-ready": {
+				// Draw bitmap onto proxy canvas
+				if (this.proxyCtx && this.proxyCanvas) {
+					this.proxyCtx.clearRect(0, 0, this.proxyCanvas.width, this.proxyCanvas.height);
+					this.proxyCtx.drawImage(msg.bitmap, 0, 0);
+				}
+				msg.bitmap.close();
+
+				if (this.pendingRender) {
+					this.pendingRender.resolve();
+					this.pendingRender = null;
+				}
+				break;
+			}
+			case "error": {
+				console.error("[FrameRenderer] Worker error:", msg.error);
+				if (this.pendingRender) {
+					this.pendingRender.reject(new Error(msg.error));
+					this.pendingRender = null;
+				}
+				break;
+			}
+		}
 	}
 
 	async renderFrame(
@@ -351,31 +400,21 @@ export class FrameRenderer {
 		timestamp: number,
 		webcamFrame?: VideoFrame | null,
 	): Promise<void> {
-		if (!this.app || !this.videoContainer || !this.cameraContainer) {
-			throw new Error("Renderer not initialized");
+		if (!this.worker || this.disposed) {
+			throw new Error("Renderer not initialized or disposed");
 		}
 
-		this.currentVideoTime = timestamp / 1000000;
+		// Wait for worker to be ready (first frame may arrive before init ack)
+		await this.readyPromise;
 
-		// Create or update video sprite from VideoFrame
-		if (!this.videoSprite) {
-			const texture = Texture.from(videoFrame as unknown as TextureSourceLike);
-			this.videoSprite = new Sprite(texture);
-			this.videoContainer.addChild(this.videoSprite);
-		} else {
-			// Destroy old texture to avoid memory leaks, then create new one
-			const oldTexture = this.videoSprite.texture;
-			const newTexture = Texture.from(videoFrame as unknown as TextureSourceLike);
-			this.videoSprite.texture = newTexture;
-			oldTexture.destroy(true);
-		}
+		this.currentVideoTime = timestamp / 1_000_000;
+		const timeMs = this.currentVideoTime * 1000;
 
-		// Apply layout
+		// Update layout (same logic as original updateLayout)
 		this.updateLayout(webcamFrame);
 
-		const timeMs = this.currentVideoTime * 1000;
+		// Compute animation state (same as original updateAnimationState)
 		const TICKS_PER_FRAME = 1;
-
 		let maxMotionIntensity = 0;
 		for (let i = 0; i < TICKS_PER_FRAME; i++) {
 			const motionIntensity = this.updateAnimationState(timeMs);
@@ -387,63 +426,98 @@ export class FrameRenderer {
 			throw new Error("Layout cache not initialized");
 		}
 
-		// Apply transform once with maximum motion intensity from all ticks
-		applyZoomTransform({
-			cameraContainer: this.cameraContainer,
-			blurFilter: this.blurFilter,
-			motionBlurFilter: this.motionBlurFilter,
+		// Compute zoom transform using the same math as computeZoomTransform
+		const transform = computeZoomTransform({
 			stageSize: layoutCache.stageSize,
 			baseMask: layoutCache.maskRect,
 			zoomScale: this.animationState.scale,
 			zoomProgress: this.animationState.progress,
 			focusX: this.animationState.focusX,
 			focusY: this.animationState.focusY,
-			motionIntensity: maxMotionIntensity,
-			isPlaying: true,
-			motionBlurAmount: this.config.motionBlurAmount ?? 0,
-			motionBlurState: this.motionBlurState,
-			frameTimeMs: timeMs,
 		});
 
-		// Render the PixiJS stage to its canvas (video only, transparent background)
-		this.app.renderer.render(this.app.stage);
+		// Scale border radius (same logic as original updateLayout)
+		const previewWidth = this.config.previewWidth || 1920;
+		const previewHeight = this.config.previewHeight || 1080;
+		const canvasScaleFactor = Math.min(
+			this.config.width / previewWidth,
+			this.config.height / previewHeight,
+		);
+		const borderRadius = this.config.borderRadius ?? 0;
+		const scaledBorderRadius =
+			layoutCache.webcamRect != null
+				? 0 // screenBorderRadius was stored separately; we use mask border
+				: borderRadius * canvasScaleFactor;
 
-		// Composite with shadows to final output canvas
-		this.compositeWithShadows(webcamFrame);
+		// Build layout info for worker
+		const layoutInfo = {
+			stageWidth: layoutCache.stageSize.width,
+			stageHeight: layoutCache.stageSize.height,
+			videoWidth: layoutCache.videoSize.width,
+			videoHeight: layoutCache.videoSize.height,
+			baseScale: layoutCache.baseScale,
+			baseOffsetX: layoutCache.baseOffset.x,
+			baseOffsetY: layoutCache.baseOffset.y,
+			maskX: layoutCache.maskRect.x,
+			maskY: layoutCache.maskRect.y,
+			maskWidth: layoutCache.maskRect.width,
+			maskHeight: layoutCache.maskRect.height,
+			scaledBorderRadius,
+			webcamRect: layoutCache.webcamRect
+				? {
+						x: layoutCache.webcamRect.x,
+						y: layoutCache.webcamRect.y,
+						width: layoutCache.webcamRect.width,
+						height: layoutCache.webcamRect.height,
+						borderRadius: layoutCache.webcamRect.borderRadius,
+						maskShape: layoutCache.webcamRect.maskShape ?? "rectangle",
+					}
+				: null,
+			screenCover: this.config.webcamLayoutPreset === "vertical-stack",
+		};
 
-		// Render annotations on top if present
-		if (
-			this.config.annotationRegions &&
-			this.config.annotationRegions.length > 0 &&
-			this.compositeCtx
-		) {
-			// Calculate scale factor based on export vs preview dimensions
-			const previewWidth = this.config.previewWidth || 1920;
-			const previewHeight = this.config.previewHeight || 1080;
-			const scaleX = this.config.width / previewWidth;
-			const scaleY = this.config.height / previewHeight;
-			const scaleFactor = (scaleX + scaleY) / 2;
+		// Create render message
+		const renderMsg: RenderMessage = {
+			type: "render",
+			frame: videoFrame,
+			timestamp,
+			webcamFrame: webcamFrame || null,
+			zoomTransform: {
+				scale: transform.scale,
+				x: transform.x,
+				y: transform.y,
+				focusX: this.animationState.focusX,
+				focusY: this.animationState.focusY,
+				progress: this.animationState.progress,
+			},
+			layoutInfo,
+		};
 
-			await renderAnnotations(
-				this.compositeCtx,
-				this.config.annotationRegions,
-				this.config.width,
-				this.config.height,
-				timeMs,
-				scaleFactor,
-			);
+		// Create a promise that resolves when worker sends back the composited frame
+		const renderPromise = new Promise<void>((resolve, reject) => {
+			this.pendingRender = { resolve, reject };
+		});
+
+		// Transfer frames to worker (zero-copy)
+		const transferList: Transferable[] = [videoFrame as unknown as Transferable];
+		if (webcamFrame) {
+			transferList.push(webcamFrame as unknown as Transferable);
 		}
+
+		this.worker.postMessage(renderMsg, transferList);
+
+		// Wait for worker to finish compositing
+		await renderPromise;
 	}
 
-	private updateLayout(webcamFrame?: VideoFrame | null): void {
-		if (!this.app || !this.videoSprite || !this.maskGraphics || !this.videoContainer) return;
+	// ---------- Animation state (same logic as original) ----------
 
+	private updateLayout(webcamFrame?: VideoFrame | null): void {
 		const { width, height } = this.config;
 		const { cropRegion, borderRadius = 0, padding = 0 } = this.config;
 		const videoWidth = this.config.videoWidth;
 		const videoHeight = this.config.videoHeight;
 
-		// Calculate cropped video dimensions
 		const cropStartX = cropRegion.x;
 		const cropStartY = cropRegion.y;
 		const cropEndX = cropRegion.x + cropRegion.width;
@@ -452,13 +526,11 @@ export class FrameRenderer {
 		const croppedVideoWidth = videoWidth * (cropEndX - cropStartX);
 		const croppedVideoHeight = videoHeight * (cropEndY - cropStartY);
 
-		// Calculate scale to fit in viewport
-		// Padding is a percentage (0-100), where 50% ~ 0.8 scale
-		// Vertical stack ignores padding — it's full-bleed
 		const effectivePadding = this.config.webcamLayoutPreset === "vertical-stack" ? 0 : padding;
 		const paddingScale = 1.0 - (effectivePadding / 100) * 0.4;
 		const viewportWidth = width * paddingScale;
 		const viewportHeight = height * paddingScale;
+
 		const compositeLayout = computeCompositeLayout({
 			canvasSize: { width, height },
 			maxContentSize: { width: viewportWidth, height: viewportHeight },
@@ -473,7 +545,6 @@ export class FrameRenderer {
 
 		const screenRect = compositeLayout.screenRect;
 
-		// Cover mode: scale to fill the rect (may crop), otherwise fit-to-width
 		let scale: number;
 		if (compositeLayout.screenCover) {
 			scale = Math.max(
@@ -484,26 +555,6 @@ export class FrameRenderer {
 			scale = screenRect.width / croppedVideoWidth;
 		}
 
-		// Position video sprite
-		this.videoSprite.width = videoWidth * scale;
-		this.videoSprite.height = videoHeight * scale;
-
-		// Center the cropped region within the screenRect
-		const croppedDisplayWidth = croppedVideoWidth * scale;
-		const croppedDisplayHeight = croppedVideoHeight * scale;
-		const coverOffsetX = (screenRect.width - croppedDisplayWidth) / 2;
-		const coverOffsetY = (screenRect.height - croppedDisplayHeight) / 2;
-
-		const cropPixelX = cropStartX * videoWidth * scale;
-		const cropPixelY = cropStartY * videoHeight * scale;
-		this.videoSprite.x = -cropPixelX + coverOffsetX;
-		this.videoSprite.y = -cropPixelY + coverOffsetY;
-
-		// Position video container
-		this.videoContainer.x = screenRect.x;
-		this.videoContainer.y = screenRect.y;
-
-		// scale border radius by export/preview canvas ratio
 		const previewWidth = this.config.previewWidth || 1920;
 		const previewHeight = this.config.previewHeight || 1080;
 		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
@@ -514,10 +565,6 @@ export class FrameRenderer {
 					? 0
 					: borderRadius * canvasScaleFactor;
 
-		this.maskGraphics.clear();
-		this.maskGraphics.roundRect(0, 0, screenRect.width, screenRect.height, scaledBorderRadius);
-		this.maskGraphics.fill({ color: 0xffffff });
-
 		// Cache layout info
 		this.layoutCache = {
 			stageSize: { width, height },
@@ -525,7 +572,9 @@ export class FrameRenderer {
 			baseScale: scale,
 			baseOffset: { x: compositeLayout.screenRect.x, y: compositeLayout.screenRect.y },
 			maskRect: compositeLayout.screenRect,
-			webcamRect: compositeLayout.webcamRect,
+			webcamRect: compositeLayout.webcamRect
+				? { ...compositeLayout.webcamRect, borderRadius: scaledBorderRadius }
+				: null,
 		};
 	}
 
@@ -538,7 +587,7 @@ export class FrameRenderer {
 	}
 
 	private updateAnimationState(timeMs: number): number {
-		if (!this.cameraContainer || !this.layoutCache) return 0;
+		if (!this.layoutCache) return 0;
 
 		const { region, strength, blendedScale, transition } = findDominantRegion(
 			this.config.zoomRegions,
@@ -559,14 +608,12 @@ export class FrameRenderer {
 			targetFocus = regionFocus;
 			targetProgress = strength;
 
-			// Apply adaptive smoothing for auto-follow mode
 			if (region.focusMode === "auto" && !transition) {
 				const raw = targetFocus;
 				const dtMs = this.prevAnimationTimeMs != null ? timeMs - this.prevAnimationTimeMs : 0;
 				const framesElapsed = dtMs > 0 ? dtMs / (1000 / 60) : 1;
 				const isZoomingIn = targetProgress < 0.999 && targetProgress >= this.prevTargetProgress;
 				if (targetProgress >= 0.999) {
-					// Full zoom: adaptive smoothing — moves faster when far, decelerates when close
 					const prev = this.smoothedAutoFocus ?? raw;
 					const baseFactor = adaptiveSmoothFactor(
 						raw,
@@ -580,11 +627,8 @@ export class FrameRenderer {
 					this.smoothedAutoFocus = smoothed;
 					targetFocus = smoothed;
 				} else if (isZoomingIn) {
-					// Zoom-in: track cursor directly so zoom always aims at current cursor
-					// position; keep ref in sync to avoid snap when full-zoom begins
 					this.smoothedAutoFocus = raw;
 				} else {
-					// Zoom-out: keep smoothing for continuity — avoids snap at zoom-out start
 					const prev = this.smoothedAutoFocus ?? raw;
 					const baseFactor = adaptiveSmoothFactor(
 						raw,
@@ -642,7 +686,6 @@ export class FrameRenderer {
 		}
 
 		const state = this.animationState;
-
 		const prevScale = state.appliedScale;
 		const prevX = state.x;
 		const prevY = state.y;
@@ -687,183 +730,22 @@ export class FrameRenderer {
 		);
 	}
 
-	// On Linux/Wayland the implicit GPU→2D texture-sharing path
-	// used by drawImage(webglCanvas) can fail silently (EGL/Ozone),
-	// producing green/empty frames. Explicit gl.readPixels always
-	// copies from GPU to CPU memory, bypassing that path.
-	private readbackVideoCanvas(): HTMLCanvasElement {
-		const glCanvas = this.app!.canvas as HTMLCanvasElement;
-		const gl =
-			(glCanvas.getContext("webgl2") as WebGL2RenderingContext | null) ??
-			(glCanvas.getContext("webgl") as WebGLRenderingContext | null);
-
-		if (!gl || !this.rasterCanvas || !this.rasterCtx) {
-			return glCanvas;
-		}
-
-		const w = glCanvas.width;
-		const h = glCanvas.height;
-		const buf = new Uint8Array(w * h * 4);
-		gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-
-		// readPixels returns rows bottom-to-top; flip vertically
-		const rowSize = w * 4;
-		const temp = new Uint8Array(rowSize);
-		for (let top = 0, bot = h - 1; top < bot; top++, bot--) {
-			const tOff = top * rowSize;
-			const bOff = bot * rowSize;
-			temp.set(buf.subarray(tOff, tOff + rowSize));
-			buf.copyWithin(tOff, bOff, bOff + rowSize);
-			buf.set(temp, bOff);
-		}
-
-		const imageData = new ImageData(new Uint8ClampedArray(buf.buffer), w, h);
-		this.rasterCtx.putImageData(imageData, 0, 0);
-
-		return this.rasterCanvas;
-	}
-
-	private compositeWithShadows(webcamFrame?: VideoFrame | null): void {
-		if (!this.compositeCanvas || !this.compositeCtx || !this.app) return;
-
-		const videoCanvas = this.readbackVideoCanvas();
-		const ctx = this.compositeCtx;
-		const w = this.compositeCanvas.width;
-		const h = this.compositeCanvas.height;
-
-		// Clear composite canvas
-		ctx.clearRect(0, 0, w, h);
-
-		// Step 1: Draw background layer (with optional blur, not affected by zoom)
-		if (this.backgroundSprite) {
-			const bgCanvas = this.backgroundSprite;
-
-			if (this.config.showBlur) {
-				ctx.save();
-				ctx.filter = "blur(6px)"; // Canvas blur is weaker than CSS
-				ctx.drawImage(bgCanvas, 0, 0, w, h);
-				ctx.restore();
-			} else {
-				ctx.drawImage(bgCanvas, 0, 0, w, h);
-			}
-		} else {
-			console.warn("[FrameRenderer] No background sprite found during compositing!");
-		}
-
-		// Draw video layer with shadows on top of background
-		if (
-			this.config.showShadow &&
-			this.config.shadowIntensity > 0 &&
-			this.shadowCanvas &&
-			this.shadowCtx
-		) {
-			const shadowCtx = this.shadowCtx;
-			shadowCtx.clearRect(0, 0, w, h);
-			shadowCtx.save();
-
-			// Calculate shadow parameters based on intensity (0-1)
-			const intensity = this.config.shadowIntensity;
-			const baseBlur1 = 48 * intensity;
-			const baseBlur2 = 16 * intensity;
-			const baseBlur3 = 8 * intensity;
-			const baseAlpha1 = 0.7 * intensity;
-			const baseAlpha2 = 0.5 * intensity;
-			const baseAlpha3 = 0.3 * intensity;
-			const baseOffset = 12 * intensity;
-
-			shadowCtx.filter = `drop-shadow(0 ${baseOffset}px ${baseBlur1}px rgba(0,0,0,${baseAlpha1})) drop-shadow(0 ${baseOffset / 3}px ${baseBlur2}px rgba(0,0,0,${baseAlpha2})) drop-shadow(0 ${baseOffset / 6}px ${baseBlur3}px rgba(0,0,0,${baseAlpha3}))`;
-			shadowCtx.drawImage(videoCanvas, 0, 0, w, h);
-			shadowCtx.restore();
-			ctx.drawImage(this.shadowCanvas, 0, 0, w, h);
-		} else {
-			ctx.drawImage(videoCanvas, 0, 0, w, h);
-		}
-
-		const webcamRect = this.layoutCache?.webcamRect ?? null;
-		if (webcamFrame && webcamRect) {
-			const preset = getWebcamLayoutPresetDefinition(this.config.webcamLayoutPreset);
-			const shape = webcamRect.maskShape ?? this.config.webcamMaskShape ?? "rectangle";
-			const sourceWidth =
-				("displayWidth" in webcamFrame && webcamFrame.displayWidth > 0
-					? webcamFrame.displayWidth
-					: webcamFrame.codedWidth) || webcamRect.width;
-			const sourceHeight =
-				("displayHeight" in webcamFrame && webcamFrame.displayHeight > 0
-					? webcamFrame.displayHeight
-					: webcamFrame.codedHeight) || webcamRect.height;
-			const sourceAspect = sourceWidth / sourceHeight;
-			const targetAspect = webcamRect.width / webcamRect.height;
-			const sourceCropWidth =
-				sourceAspect > targetAspect ? Math.round(sourceHeight * targetAspect) : sourceWidth;
-			const sourceCropHeight =
-				sourceAspect > targetAspect ? sourceHeight : Math.round(sourceWidth / targetAspect);
-			const sourceCropX = Math.max(0, Math.round((sourceWidth - sourceCropWidth) / 2));
-			const sourceCropY = Math.max(0, Math.round((sourceHeight - sourceCropHeight) / 2));
-			ctx.save();
-			drawCanvasClipPath(
-				ctx,
-				webcamRect.x,
-				webcamRect.y,
-				webcamRect.width,
-				webcamRect.height,
-				shape,
-				webcamRect.borderRadius,
-			);
-			if (preset.shadow) {
-				ctx.shadowColor = preset.shadow.color;
-				ctx.shadowBlur = preset.shadow.blur;
-				ctx.shadowOffsetX = preset.shadow.offsetX;
-				ctx.shadowOffsetY = preset.shadow.offsetY;
-			}
-			ctx.fillStyle = "#000000";
-			ctx.fill();
-			ctx.clip();
-			ctx.drawImage(
-				webcamFrame as unknown as CanvasImageSource,
-				sourceCropX,
-				sourceCropY,
-				sourceCropWidth,
-				sourceCropHeight,
-				webcamRect.x,
-				webcamRect.y,
-				webcamRect.width,
-				webcamRect.height,
-			);
-			ctx.restore();
-		}
-	}
-
 	getCanvas(): HTMLCanvasElement {
-		if (!this.compositeCanvas) {
+		if (!this.proxyCanvas) {
 			throw new Error("Renderer not initialized");
 		}
-		return this.compositeCanvas;
+		return this.proxyCanvas;
 	}
 
 	destroy(): void {
-		if (this.videoSprite) {
-			this.videoSprite.destroy();
-			this.videoSprite = null;
+		this.disposed = true;
+		if (this.worker) {
+			this.worker.postMessage({ type: "dispose" } as DisposeMessage);
+			this.worker.terminate();
+			this.worker = null;
 		}
-		this.backgroundSprite = null;
-		if (this.app) {
-			this.app.destroy(true, {
-				children: true,
-				texture: true,
-				textureSource: true,
-			});
-			this.app = null;
-		}
-		this.cameraContainer = null;
-		this.videoContainer = null;
-		this.maskGraphics = null;
-		this.blurFilter = null;
-		this.motionBlurFilter = null;
-		this.shadowCanvas = null;
-		this.shadowCtx = null;
-		this.compositeCanvas = null;
-		this.compositeCtx = null;
-		this.rasterCanvas = null;
-		this.rasterCtx = null;
+		this.proxyCanvas = null;
+		this.proxyCtx = null;
+		this.layoutCache = null;
 	}
 }

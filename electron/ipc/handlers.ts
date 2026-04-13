@@ -1,3 +1,4 @@
+import { type ChildProcess, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,6 +19,7 @@ import {
 	type RecordingSession,
 	type StoreRecordedSessionInput,
 } from "../../src/lib/recordingSession";
+import { buildFFmpegArgs, getFFmpegCapabilities, getFFmpegPath } from "../ffmpeg/ffmpegManager";
 import { mainT } from "../i18n";
 import { RECORDINGS_DIR } from "../main";
 
@@ -946,6 +948,284 @@ export function registerIpcHandlers(
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to save shortcuts:", error);
+			return { success: false, error: String(error) };
+		}
+	});
+
+	// ---- Security Check for Native APIs ----
+	function isTrustedSender(event: Electron.IpcMainInvokeEvent): boolean {
+		try {
+			// In Electron 30+, senderFrame contains the actual frame URL
+			const urlStr = event.senderFrame?.url || event.sender.getURL();
+			if (!urlStr) return false;
+			const url = new URL(urlStr);
+			return (
+				url.protocol === "file:" || url.hostname === "localhost" || url.hostname === "127.0.0.1"
+			);
+		} catch {
+			return false;
+		}
+	}
+
+	// ---- FFmpeg Native Export Handlers ----
+
+	const ffmpegSessions = new Map<
+		string,
+		{
+			process: ChildProcess;
+			outputPath: string;
+			frameCount: number;
+			startedAt: number;
+			finished: boolean;
+			exitPromise: Promise<{ code: number | null; signal: string | null }>;
+		}
+	>();
+
+	ipcMain.handle("ffmpeg-get-capabilities", async (event) => {
+		if (!isTrustedSender(event)) {
+			console.error("[Security] Blocked unauthorized FFmpeg capabilities request");
+			return { available: false, encoders: [], bestEncoder: null, path: null };
+		}
+		try {
+			return await getFFmpegCapabilities();
+		} catch (error) {
+			console.error("[FFmpeg] Failed to get capabilities:", error);
+			return { available: false, encoders: [], bestEncoder: null, path: null };
+		}
+	});
+
+	ipcMain.handle(
+		"ffmpeg-export-start",
+		async (
+			event,
+			config: {
+				width: number;
+				height: number;
+				frameRate: number;
+				encoder: string;
+				bitrate: number;
+				audioSourcePath?: string;
+				hasAudio?: boolean;
+			},
+		) => {
+			// Ensure only trusted local code can spawn arbitrary shell binaries
+			if (!isTrustedSender(event)) {
+				return { success: false, error: "Unauthorized caller" };
+			}
+
+			try {
+				const ffmpegPath = getFFmpegPath();
+				if (!ffmpegPath) {
+					return { success: false, error: "FFmpeg not found" };
+				}
+
+				// Create temp output file
+				const sessionId = `ffmpeg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+				const tempDir = path.join(app.getPath("temp"), "openscreen-export");
+				await fs.mkdir(tempDir, { recursive: true });
+				const outputPath = path.join(tempDir, `${sessionId}.mp4`);
+
+				// Resolve audio source path if it's a file:// URL
+				let resolvedAudioPath = config.audioSourcePath;
+				if (resolvedAudioPath && /^file:\/\//i.test(resolvedAudioPath)) {
+					try {
+						resolvedAudioPath = fileURLToPath(resolvedAudioPath);
+					} catch {
+						// Keep original path
+					}
+				}
+
+				// Verify audio source exists
+				let hasAudio = config.hasAudio ?? false;
+				if (resolvedAudioPath && hasAudio) {
+					try {
+						await fs.access(resolvedAudioPath);
+					} catch {
+						console.warn(
+							"[FFmpeg] Audio source not accessible, exporting video only:",
+							resolvedAudioPath,
+						);
+						hasAudio = false;
+						resolvedAudioPath = undefined;
+					}
+				}
+
+				const args = buildFFmpegArgs({
+					width: config.width,
+					height: config.height,
+					frameRate: config.frameRate,
+					encoder: config.encoder,
+					bitrate: config.bitrate,
+					outputPath,
+					audioSourcePath: resolvedAudioPath,
+					hasAudio,
+				});
+
+				console.log(`[FFmpeg] Starting export: ${ffmpegPath} ${args.join(" ")}`);
+
+				const ffmpegProcess = spawn(ffmpegPath, args, {
+					stdio: ["pipe", "pipe", "pipe"],
+				});
+
+				const exitPromise = new Promise<{ code: number | null; signal: string | null }>(
+					(resolve) => {
+						ffmpegProcess.on("close", (code, signal) => {
+							resolve({ code, signal });
+						});
+						ffmpegProcess.on("error", (err) => {
+							console.error("[FFmpeg] Process error:", err);
+							resolve({ code: -1, signal: null });
+						});
+					},
+				);
+
+				let stderrOutput = "";
+				ffmpegProcess.stderr?.on("data", (data: Buffer) => {
+					const text = data.toString();
+					stderrOutput += text;
+					// Only log warnings/errors, not progress
+					if (text.includes("Error") || text.includes("error") || text.includes("Warning")) {
+						console.warn("[FFmpeg stderr]", text.trim());
+					}
+				});
+
+				ffmpegSessions.set(sessionId, {
+					process: ffmpegProcess,
+					outputPath,
+					frameCount: 0,
+					startedAt: Date.now(),
+					finished: false,
+					exitPromise,
+				});
+
+				return { success: true, sessionId };
+			} catch (error) {
+				console.error("[FFmpeg] Failed to start export:", error);
+				return { success: false, error: String(error) };
+			}
+		},
+	);
+
+	ipcMain.handle(
+		"ffmpeg-export-frame",
+		async (event, sessionId: string, frameData: ArrayBuffer) => {
+			if (!isTrustedSender(event)) return { success: false, error: "Unauthorized" };
+
+			try {
+				const session = ffmpegSessions.get(sessionId);
+				if (!session || session.finished) {
+					return { success: false, error: "Invalid or finished session" };
+				}
+
+				const stdin = session.process.stdin;
+				if (!stdin || stdin.destroyed) {
+					return { success: false, error: "FFmpeg stdin not available" };
+				}
+
+				const buffer = Buffer.from(frameData);
+				const canWrite = stdin.write(buffer);
+				session.frameCount++;
+
+				// Return backpressure signal so renderer can throttle
+				return { success: true, backpressure: !canWrite, frameCount: session.frameCount };
+			} catch (error) {
+				return { success: false, error: String(error) };
+			}
+		},
+	);
+
+	ipcMain.handle("ffmpeg-export-finish", async (event, sessionId: string, fileName: string) => {
+		if (!isTrustedSender(event)) return { success: false, error: "Unauthorized" };
+
+		try {
+			const session = ffmpegSessions.get(sessionId);
+			if (!session) {
+				return { success: false, error: "Invalid session" };
+			}
+
+			session.finished = true;
+
+			// Close stdin to signal end of input
+			if (session.process.stdin && !session.process.stdin.destroyed) {
+				session.process.stdin.end();
+			}
+
+			// Wait for FFmpeg to finish
+			const result = await session.exitPromise;
+			const elapsed = ((Date.now() - session.startedAt) / 1000).toFixed(1);
+			console.log(
+				`[FFmpeg] Export finished: ${session.frameCount} frames in ${elapsed}s (exit code: ${result.code})`,
+			);
+
+			if (result.code !== 0) {
+				ffmpegSessions.delete(sessionId);
+				return {
+					success: false,
+					error: `FFmpeg exited with code ${result.code}`,
+				};
+			}
+
+			// Verify output file exists
+			try {
+				await fs.access(session.outputPath);
+			} catch {
+				ffmpegSessions.delete(sessionId);
+				return { success: false, error: "FFmpeg output file not found" };
+			}
+
+			// Show save dialog
+			const saveResult = await dialog.showSaveDialog({
+				title: mainT("dialogs", "fileDialogs.saveVideo"),
+				defaultPath: path.join(app.getPath("downloads"), fileName),
+				filters: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }],
+				properties: ["createDirectory", "showOverwriteConfirmation"],
+			});
+
+			if (saveResult.canceled || !saveResult.filePath) {
+				// Clean up temp file
+				await fs.unlink(session.outputPath).catch(() => {});
+				ffmpegSessions.delete(sessionId);
+				return { success: false, canceled: true, message: "Export canceled" };
+			}
+
+			// Move temp file to user-chosen location
+			await fs.copyFile(session.outputPath, saveResult.filePath);
+			// Clean up temp file
+			await fs.unlink(session.outputPath).catch(() => {});
+
+			ffmpegSessions.delete(sessionId);
+
+			return {
+				success: true,
+				path: saveResult.filePath,
+				message: "Video exported successfully",
+			};
+		} catch (error) {
+			console.error("[FFmpeg] Failed to finish export:", error);
+			ffmpegSessions.delete(sessionId);
+			return { success: false, error: String(error) };
+		}
+	});
+
+	ipcMain.handle("ffmpeg-export-cancel", async (event, sessionId: string) => {
+		if (!isTrustedSender(event)) return { success: false, error: "Unauthorized" };
+
+		try {
+			const session = ffmpegSessions.get(sessionId);
+			if (!session) {
+				return { success: false, error: "Invalid session" };
+			}
+
+			session.finished = true;
+			session.process.kill("SIGKILL");
+			ffmpegSessions.delete(sessionId);
+
+			// Clean up temp file
+			fs.unlink(session.outputPath).catch(() => {});
+
+			console.log(`[FFmpeg] Export canceled: session ${sessionId}`);
+			return { success: true };
+		} catch (error) {
 			return { success: false, error: String(error) };
 		}
 	});
