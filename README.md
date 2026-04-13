@@ -1,3 +1,8 @@
+npm run build:win
+
+D:\Development\openscreen\release
+
+
 > [!WARNING]
 > This is very much in beta and might be buggy here and there (but hope you have a good experience!).
 
