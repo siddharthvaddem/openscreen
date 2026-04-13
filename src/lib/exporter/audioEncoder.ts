@@ -6,8 +6,15 @@ const AUDIO_BITRATE = 128_000;
 const DECODE_BACKPRESSURE_LIMIT = 20;
 const MIN_SPEED_REGION_DELTA_MS = 0.0001;
 
+export type TargetAudioCodec = "aac" | "opus";
+
 export class AudioProcessor {
 	private cancelled = false;
+	private targetCodec: TargetAudioCodec;
+
+	constructor(targetCodec: TargetAudioCodec) {
+		this.targetCodec = targetCodec;
+	}
 
 	/**
 	 * Audio export has two modes:
@@ -132,16 +139,24 @@ export class AudioProcessor {
 		const sampleRate = audioConfig.sampleRate || 48000;
 		const channels = audioConfig.numberOfChannels || 2;
 
-		const encodeConfig: AudioEncoderConfig = {
-			codec: "opus",
-			sampleRate,
-			numberOfChannels: channels,
-			bitrate: AUDIO_BITRATE,
-		};
+		const encodeConfig: AudioEncoderConfig =
+			this.targetCodec === "aac"
+				? {
+						codec: "mp4a.40.2",
+						sampleRate,
+						numberOfChannels: channels,
+						bitrate: AUDIO_BITRATE,
+					}
+				: {
+						codec: "opus",
+						sampleRate,
+						numberOfChannels: channels,
+						bitrate: AUDIO_BITRATE,
+					};
 
 		const encodeSupport = await AudioEncoder.isConfigSupported(encodeConfig);
 		if (!encodeSupport.supported) {
-			console.warn("[AudioProcessor] Opus encoding not supported, skipping audio");
+			console.warn("[AudioProcessor] Audio encoding not supported, skipping audio");
 			for (const frame of decodedFrames) frame.close();
 			return;
 		}
@@ -314,28 +329,7 @@ export class AudioProcessor {
 
 		try {
 			await demuxer.load(file);
-			const audioConfig = (await demuxer.getDecoderConfig("audio")) as AudioDecoderConfig;
-			const reader = (demuxer.read("audio") as ReadableStream<EncodedAudioChunk>).getReader();
-			let isFirstChunk = true;
-
-			try {
-				while (!this.cancelled) {
-					const { done, value: chunk } = await reader.read();
-					if (done || !chunk) break;
-					if (isFirstChunk) {
-						await muxer.addAudioChunk(chunk, { decoderConfig: audioConfig });
-						isFirstChunk = false;
-					} else {
-						await muxer.addAudioChunk(chunk);
-					}
-				}
-			} finally {
-				try {
-					await reader.cancel();
-				} catch {
-					/* reader already closed */
-				}
-			}
+			await this.processTrimOnlyAudio(demuxer, muxer, [], undefined);
 		} finally {
 			try {
 				demuxer.destroy();

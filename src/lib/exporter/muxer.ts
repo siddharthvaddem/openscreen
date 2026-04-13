@@ -8,17 +8,19 @@ import {
 } from "mediabunny";
 import type { ExportConfig } from "./types";
 
+export type Mp4AudioCodec = "aac" | "opus";
+
 export class VideoMuxer {
 	private output: Output | null = null;
 	private videoSource: EncodedVideoPacketSource | null = null;
 	private audioSource: EncodedAudioPacketSource | null = null;
-	private hasAudio: boolean;
+	private audioCodec: Mp4AudioCodec | null;
 	private target: BufferTarget | null = null;
 	private config: ExportConfig;
 
-	constructor(config: ExportConfig, hasAudio = false) {
+	constructor(config: ExportConfig, audioCodec: Mp4AudioCodec | null = null) {
 		this.config = config;
-		this.hasAudio = hasAudio;
+		this.audioCodec = audioCodec;
 	}
 
 	async initialize(): Promise<void> {
@@ -39,8 +41,8 @@ export class VideoMuxer {
 		});
 
 		// Create audio source if needed
-		if (this.hasAudio) {
-			this.audioSource = new EncodedAudioPacketSource("opus");
+		if (this.audioCodec) {
+			this.audioSource = new EncodedAudioPacketSource(this.audioCodec);
 			this.output.addAudioTrack(this.audioSource);
 		}
 

@@ -1,3 +1,4 @@
+import type { WebDemuxer } from "web-demuxer";
 import type {
 	AnnotationRegion,
 	CropRegion,
@@ -10,12 +11,13 @@ import type {
 import { AsyncVideoFrameQueue } from "./asyncVideoFrameQueue";
 import { AudioProcessor } from "./audioEncoder";
 import { FrameRenderer } from "./frameRenderer";
-import { VideoMuxer } from "./muxer";
+import { type Mp4AudioCodec, VideoMuxer } from "./muxer";
 import { StreamingVideoDecoder } from "./streamingDecoder";
 import type { ExportConfig, ExportProgress, ExportResult } from "./types";
 
 const ENCODER_STALL_TIMEOUT_MS = 15_000;
 const ENCODER_FLUSH_TIMEOUT_MS = 20_000;
+const AUDIO_BITRATE = 128_000;
 
 interface VideoExporterConfig extends ExportConfig {
 	videoUrl: string;
@@ -64,6 +66,40 @@ export class VideoExporter {
 
 	constructor(config: VideoExporterConfig) {
 		this.config = config;
+	}
+
+	private async pickAudioCodec(demuxer: WebDemuxer | null): Promise<Mp4AudioCodec | null> {
+		if (!demuxer) return null;
+
+		let audioConfig: AudioDecoderConfig;
+		try {
+			audioConfig = (await demuxer.getDecoderConfig("audio")) as AudioDecoderConfig;
+		} catch {
+			return null;
+		}
+
+		const sampleRate = audioConfig.sampleRate || 48000;
+		const channels = audioConfig.numberOfChannels || 2;
+
+		const aacConfig: AudioEncoderConfig = {
+			codec: "mp4a.40.2",
+			sampleRate,
+			numberOfChannels: channels,
+			bitrate: AUDIO_BITRATE,
+		};
+		const aacSupport = await AudioEncoder.isConfigSupported(aacConfig);
+		if (aacSupport.supported) return "aac";
+
+		const opusConfig: AudioEncoderConfig = {
+			codec: "opus",
+			sampleRate,
+			numberOfChannels: channels,
+			bitrate: AUDIO_BITRATE,
+		};
+		const opusSupport = await AudioEncoder.isConfigSupported(opusConfig);
+		if (opusSupport.supported) return "opus";
+
+		return null;
 	}
 
 	async export(): Promise<ExportResult> {
@@ -153,7 +189,14 @@ export class VideoExporter {
 			await this.initializeEncoder(encoderPreference);
 
 			const hasAudio = videoInfo.hasAudio;
-			const muxer = new VideoMuxer(this.config, hasAudio);
+			const audioCodec = hasAudio ? await this.pickAudioCodec(streamingDecoder.getDemuxer()) : null;
+			if (hasAudio && !audioCodec) {
+				throw new Error(
+					"Source has audio, but no supported audio encoder was found for MP4 export.",
+				);
+			}
+
+			const muxer = new VideoMuxer(this.config, audioCodec);
 			this.muxer = muxer;
 			await muxer.initialize();
 
@@ -335,11 +378,11 @@ export class VideoExporter {
 				phase: "finalizing",
 			});
 
-			if (hasAudio && !this.cancelled) {
+			if (audioCodec && !this.cancelled) {
 				const demuxer = streamingDecoder.getDemuxer();
 				if (demuxer) {
 					console.log("[VideoExporter] Processing audio track...");
-					this.audioProcessor = new AudioProcessor();
+					this.audioProcessor = new AudioProcessor(audioCodec);
 					await this.audioProcessor.process(
 						demuxer,
 						muxer,
