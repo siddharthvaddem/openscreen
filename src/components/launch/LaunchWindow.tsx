@@ -152,6 +152,19 @@ export function LaunchWindow() {
 		}
 	}, [selectedCameraId, setWebcamDeviceId]);
 
+	// Show live camera preview as soon as webcam is enabled (before and during recording).
+	// Only retrigger when webcamEnabled flips — not on every device-list load.
+	useEffect(() => {
+		if (!window.electronAPI) return;
+		if (webcamEnabled) {
+			const deviceId = webcamDeviceId || selectedCameraId || "";
+			window.electronAPI.showCameraPreview(deviceId);
+		} else {
+			window.electronAPI.hideCameraPreview();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [webcamEnabled]);
+
 	useEffect(() => {
 		if (!import.meta.env.DEV) {
 			return;

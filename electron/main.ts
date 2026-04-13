@@ -14,7 +14,13 @@ import {
 } from "electron";
 import { mainT, setMainLocale } from "./i18n";
 import { registerIpcHandlers } from "./ipc/handlers";
-import { createEditorWindow, createHudOverlayWindow, createSourceSelectorWindow } from "./windows";
+import {
+	closeCameraPreviewWindow,
+	createCameraPreviewWindow,
+	createEditorWindow,
+	createHudOverlayWindow,
+	createSourceSelectorWindow,
+} from "./windows";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -360,6 +366,14 @@ app.whenReady().then(async () => {
 	// Listen for HUD overlay quit event (macOS only)
 	ipcMain.on("hud-overlay-close", () => {
 		app.quit();
+	});
+
+	// Camera preview window — shown during recording so user can see their face
+	ipcMain.on("show-camera-preview", (_, deviceId: string) => {
+		createCameraPreviewWindow(deviceId ?? "");
+	});
+	ipcMain.on("hide-camera-preview", () => {
+		closeCameraPreviewWindow();
 	});
 	ipcMain.handle("set-locale", (_, locale: string) => {
 		setMainLocale(locale);

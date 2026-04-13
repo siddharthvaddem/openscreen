@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CameraPreviewWindow } from "./components/launch/CameraPreviewWindow";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { Toaster } from "./components/ui/sonner";
@@ -15,7 +16,7 @@ export default function App() {
 		const params = new URLSearchParams(window.location.search);
 		const type = params.get("windowType") || "";
 		setWindowType(type);
-		if (type === "hud-overlay" || type === "source-selector") {
+		if (type === "hud-overlay" || type === "source-selector" || type === "camera-preview") {
 			document.body.style.background = "transparent";
 			document.documentElement.style.background = "transparent";
 			document.getElementById("root")?.style.setProperty("background", "transparent");
@@ -29,6 +30,8 @@ export default function App() {
 
 	const content = (() => {
 		switch (windowType) {
+			case "camera-preview":
+				return <CameraPreviewWindow />;
 			case "hud-overlay":
 				return <LaunchWindow />;
 			case "source-selector":

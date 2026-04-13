@@ -555,6 +555,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			setElapsedSeconds(0);
 			window.electronAPI?.setRecordingState(true);
 
+
 			const activeScreenRecorder = screenRecorder.current;
 			const activeWebcamRecorder = webcamRecorder.current;
 			const activeRecordingId = recordingId.current;

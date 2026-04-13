@@ -10,6 +10,7 @@ const RENDERER_DIST = path.join(APP_ROOT, "dist");
 const HEADLESS = process.env["HEADLESS"] === "true";
 
 let hudOverlayWindow: BrowserWindow | null = null;
+let cameraPreviewWindow: BrowserWindow | null = null;
 
 ipcMain.on("hud-overlay-hide", () => {
 	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
@@ -83,6 +84,77 @@ export function createHudOverlayWindow(): BrowserWindow {
 	}
 
 	return win;
+}
+
+/**
+ * Creates a small always-on-top floating window that shows the live webcam
+ * feed during recording so the user can see their face overlay in real time.
+ */
+export function createCameraPreviewWindow(deviceId: string): BrowserWindow {
+	const primaryDisplay = screen.getPrimaryDisplay();
+	const { workArea } = primaryDisplay;
+
+	const windowSize = 220;
+	const margin = 24;
+
+	const x = Math.floor(workArea.x + workArea.width - windowSize - margin);
+	const y = Math.floor(workArea.y + workArea.height - windowSize - margin - 170); // above HUD
+
+	if (cameraPreviewWindow && !cameraPreviewWindow.isDestroyed()) {
+		cameraPreviewWindow.close();
+		cameraPreviewWindow = null;
+	}
+
+	const win = new BrowserWindow({
+		width: windowSize,
+		height: windowSize,
+		x,
+		y,
+		frame: false,
+		transparent: true,
+		resizable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		hasShadow: false,
+		show: !HEADLESS,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	cameraPreviewWindow = win;
+
+	win.on("closed", () => {
+		if (cameraPreviewWindow === win) {
+			cameraPreviewWindow = null;
+		}
+	});
+
+	const encodedDeviceId = encodeURIComponent(deviceId);
+
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(`${VITE_DEV_SERVER_URL}?windowType=camera-preview&deviceId=${encodedDeviceId}`);
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "camera-preview", deviceId },
+		});
+	}
+
+	return win;
+}
+
+export function closeCameraPreviewWindow(): void {
+	if (cameraPreviewWindow && !cameraPreviewWindow.isDestroyed()) {
+		cameraPreviewWindow.close();
+		cameraPreviewWindow = null;
+	}
 }
 
 /**
