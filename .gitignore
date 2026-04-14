@@ -34,4 +34,3 @@ playwright-report/
 
 # Vitest browser mode screenshots
 __screenshots__/
-package-lock.json
