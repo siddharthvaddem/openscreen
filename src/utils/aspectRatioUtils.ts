@@ -41,6 +41,8 @@ export function getAspectRatioValue(aspectRatio: AspectRatio): number {
 	}
 }
 
+const NATIVE_ASPECT_FALLBACK = 16 / 9;
+
 export function getNativeAspectRatioValue(
 	videoWidth: number,
 	videoHeight: number,
@@ -48,7 +50,13 @@ export function getNativeAspectRatioValue(
 ): number {
 	const cropW = cropRegion?.width ?? 1;
 	const cropH = cropRegion?.height ?? 1;
-	return (videoWidth * cropW) / (videoHeight * cropH);
+	const numerator = videoWidth * cropW;
+	const denominator = videoHeight * cropH;
+	if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+		return NATIVE_ASPECT_FALLBACK;
+	}
+	const ratio = numerator / denominator;
+	return ratio > 0 && Number.isFinite(ratio) ? ratio : NATIVE_ASPECT_FALLBACK;
 }
 
 export function getAspectRatioDimensions(
