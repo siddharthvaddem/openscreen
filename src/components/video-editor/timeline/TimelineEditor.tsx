@@ -137,6 +137,8 @@ interface TimelineRenderItem {
 	span: Span;
 	label: string;
 	zoomDepth?: number;
+	zoomInDurationMs?: number;
+	zoomOutDurationMs?: number;
 	speedValue?: number;
 	variant: "zoom" | "trim" | "annotation" | "speed" | "blur" | "music" | "hook";
 }
@@ -578,6 +580,7 @@ function Timeline({
 	selectedSpeedId,
 	selectedHookId,
 	selectedMusicId,
+	onZoomDurationChange,
 	rowVisibility,
 	keyframes = [],
 }: {
@@ -600,6 +603,7 @@ function Timeline({
 	selectedSpeedId?: string | null;
 	selectedHookId?: string | null;
 	selectedMusicId?: string | null;
+	onZoomDurationChange?: (id: string, zoomIn: number, zoomOut: number) => void;
 	rowVisibility: TimelineRowVisibility;
 	keyframes?: { id: string; time: number }[];
 }) {
@@ -734,6 +738,9 @@ function Timeline({
 							isSelected={item.id === selectedZoomId}
 							onSelect={() => onSelectZoom?.(item.id)}
 							zoomDepth={item.zoomDepth}
+							zoomInDurationMs={item.zoomInDurationMs}
+							zoomOutDurationMs={item.zoomOutDurationMs}
+							onZoomDurationChange={onZoomDurationChange}
 							variant="zoom"
 						>
 							{item.label}
@@ -871,7 +878,7 @@ export default function TimelineEditor({
 	onZoomAdded,
 	onZoomSuggested,
 	onZoomSpanChange,
-	onZoomDurationChange: _onZoomDurationChange,
+	onZoomDurationChange,
 	onZoomDelete,
 	selectedZoomId,
 	onSelectZoom,
@@ -1616,6 +1623,8 @@ export default function TimelineEditor({
 			span: { start: region.startMs, end: region.endMs },
 			label: t("labels.zoomItem", { index: String(index + 1) }),
 			zoomDepth: region.depth,
+			zoomInDurationMs: region.zoomInDurationMs,
+			zoomOutDurationMs: region.zoomOutDurationMs,
 			variant: "zoom",
 		}));
 
@@ -1955,6 +1964,7 @@ export default function TimelineEditor({
 						selectedSpeedId={selectedSpeedId}
 						selectedHookId={selectedHookId}
 						selectedMusicId={selectedMusicId}
+						onZoomDurationChange={onZoomDurationChange}
 						rowVisibility={rowVisibility}
 						keyframes={keyframes}
 					/>
