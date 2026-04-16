@@ -34,3 +34,8 @@ playwright-report/
 
 # Vitest browser mode screenshots
 __screenshots__/
+
+# Nix
+result
+result-*
+.direnv/

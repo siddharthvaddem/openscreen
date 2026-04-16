@@ -1,0 +1,41 @@
+{
+	"newRecording": {
+		"title": "返回錄影",
+		"description": "目前工作階段已儲存。",
+		"cancel": "取消",
+		"confirm": "確認"
+	},
+	"errors": {
+		"noVideoLoaded": "未載入影片",
+		"videoNotReady": "影片未就緒",
+		"unableToDetermineSourcePath": "無法確定來源影片路徑",
+		"failedToSaveGif": "儲存 GIF 失敗",
+		"gifExportFailed": "GIF 匯出失敗",
+		"failedToSaveVideo": "儲存影片失敗",
+		"exportFailed": "匯出失敗",
+		"exportFailedWithError": "匯出失敗：{{error}}",
+		"failedToSaveExport": "儲存匯出檔案失敗",
+		"failedToSaveExportedVideo": "儲存匯出的影片失敗",
+		"failedToRevealInFolder": "在資料夾中顯示時出錯：{{error}}"
+	},
+	"export": {
+		"canceled": "匯出已取消",
+		"exportedSuccessfully": "{{format}} 匯出成功"
+	},
+	"project": {
+		"saveCanceled": "專案儲存已取消",
+		"failedToSave": "儲存專案失敗",
+		"savedTo": "專案已儲存至 {{path}}",
+		"failedToLoad": "載入專案失敗",
+		"invalidFormat": "無效的專案檔案格式",
+		"loadedFrom": "專案已從 {{path}} 載入"
+	},
+	"recording": {
+		"failedCameraAccess": "請求攝影機權限失敗。",
+		"cameraBlocked": "攝影機權限已被封鎖。請在系統設定中啟用以使用攝影機。",
+		"systemAudioUnavailable": "系統音訊不可用。將在無系統音訊的情況下錄製。",
+		"microphoneDenied": "麥克風權限被拒絕。錄製將繼續，但不包含音訊。",
+		"cameraDenied": "攝影機權限被拒絕。錄製將繼續，但不包含攝影機畫面。",
+		"permissionDenied": "錄影權限被拒絕。請允許螢幕錄製。"
+	}
+}

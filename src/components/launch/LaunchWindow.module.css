@@ -6,3 +6,78 @@
 .electronNoDrag {
 	-webkit-app-region: no-drag;
 }
+
+.languageMenuScroll {
+	max-height: 16rem;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	touch-action: pan-y;
+	-webkit-overflow-scrolling: touch;
+}
+
+.languageMenuScroll::-webkit-scrollbar {
+	width: 8px;
+}
+
+.languageMenuScroll::-webkit-scrollbar-track {
+	background: rgba(255, 255, 255, 0.04);
+	border-radius: 999px;
+}
+
+.languageMenuScroll::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.languageMenuScroll::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.3));
+}
+
+.languageMenuContainer {
+	position: relative;
+	z-index: 20;
+}
+
+.languageMenuPanel {
+	position: fixed;
+	right: 0;
+	top: 0;
+	width: 12rem;
+	padding: 0.375rem;
+	border-radius: 0.75rem;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: linear-gradient(160deg, rgba(28, 29, 42, 0.98), rgba(18, 19, 28, 0.98));
+	box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+	backdrop-filter: blur(14px);
+	pointer-events: auto;
+	box-sizing: border-box;
+}
+
+.languageMenuItem {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.5rem 0.625rem;
+	border-radius: 0.5rem;
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.88);
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	transition: background-color 120ms ease, color 120ms ease;
+}
+
+.languageMenuItem:hover,
+.languageMenuItem:focus-visible {
+	background: rgba(255, 255, 255, 0.1);
+	color: #ffffff;
+	outline: none;
+}
+
+.languageMenuItemActive {
+	background: rgba(255, 255, 255, 0.12);
+	color: #ffffff;
+}

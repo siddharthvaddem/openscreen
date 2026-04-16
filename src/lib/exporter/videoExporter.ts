@@ -171,11 +171,11 @@ export class VideoExporter {
 			this.muxer = muxer;
 			await muxer.initialize();
 
-			const effectiveDuration = streamingDecoder.getEffectiveDuration(
+			const { effectiveDuration, totalFrames } = streamingDecoder.getExportMetrics(
+				this.config.frameRate,
 				this.config.trimRegions,
 				this.config.speedRegions,
 			);
-			const totalFrames = Math.ceil(effectiveDuration * this.config.frameRate);
 			const readEndSec = Math.max(videoInfo.duration, videoInfo.streamDuration ?? 0) + 0.5;
 
 			console.log("[VideoExporter] Original duration:", videoInfo.duration, "s");

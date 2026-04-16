@@ -1,0 +1,29 @@
+{
+	"actions": {
+		"cancel": "取消",
+		"save": "儲存",
+		"delete": "刪除",
+		"close": "關閉",
+		"share": "分享",
+		"done": "完成",
+		"open": "開啟",
+		"upload": "上傳",
+		"export": "匯出",
+		"file": "檔案",
+		"edit": "編輯",
+		"view": "檢視",
+		"window": "視窗",
+		"quit": "退出",
+		"stopRecording": "停止錄製"
+	},
+	"playback": {
+		"play": "播放",
+		"pause": "暫停",
+		"fullscreen": "全螢幕",
+		"exitFullscreen": "退出全螢幕"
+	},
+	"locale": {
+		"name": "繁體中文",
+		"short": "繁中"
+	}
+}

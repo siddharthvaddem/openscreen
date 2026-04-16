@@ -33,5 +33,11 @@
 	"recording": {
 		"selectSource": "Please select a source to record"
 	},
-	"language": "Language"
+	"language": "Language",
+	"systemLanguagePrompt": {
+		"title": "Use your system language?",
+		"description": "We detected {{language}} as your system language. Do you want to switch OpenScreen to {{language}}?",
+		"switch": "Switch to {{language}}",
+		"keepDefault": "Keep current language"
+	}
 }

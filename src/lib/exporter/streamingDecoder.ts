@@ -2,7 +2,7 @@ import { WebDemuxer } from "web-demuxer";
 import type { SpeedRegion, TrimRegion } from "@/components/video-editor/types";
 
 const SOURCE_LOAD_TIMEOUT_MS = 60_000;
-
+const EPSILON_SEC = 0.001;
 /**
  * Build a full WebCodecs-compatible AV1 codec string from the AV1CodecConfigurationRecord.
  * web-demuxer may return a bare "av01" when the WASM-side parser fails to read
@@ -251,10 +251,11 @@ export class StreamingVideoDecoder {
 			speedRegions,
 		);
 		const segmentOutputFrameCounts = segments.map((segment) =>
-			Math.ceil(((segment.endSec - segment.startSec) / segment.speed) * targetFrameRate),
+			Math.ceil(
+				((segment.endSec - segment.startSec - EPSILON_SEC) / segment.speed) * targetFrameRate,
+			),
 		);
 		const frameDurationUs = 1_000_000 / targetFrameRate;
-		const epsilonSec = 0.001;
 
 		// Async frame queue — decoder pushes, consumer pulls
 		const pendingFrames: VideoFrame[] = [];
@@ -365,7 +366,7 @@ export class StreamingVideoDecoder {
 
 			const sourceTimeSec =
 				segment.startSec + (segmentFrameIndex / targetFrameRate) * segment.speed;
-			if (sourceTimeSec >= segment.endSec - epsilonSec) return false;
+			if (sourceTimeSec >= segment.endSec - EPSILON_SEC) return false;
 
 			const clone = new VideoFrame(heldFrame, { timestamp: heldFrame.timestamp });
 			await onFrame(clone, exportFrameIndex * frameDurationUs, sourceTimeSec * 1000);
@@ -384,7 +385,7 @@ export class StreamingVideoDecoder {
 			// Finalize completed segments before handling this frame.
 			while (
 				segmentIdx < segments.length &&
-				frameTimeSec >= segments[segmentIdx].endSec - epsilonSec
+				frameTimeSec >= segments[segmentIdx].endSec - EPSILON_SEC
 			) {
 				const segment = segments[segmentIdx];
 				while (!this.cancelled && (await emitHeldFrameForTarget(segment))) {
@@ -396,7 +397,7 @@ export class StreamingVideoDecoder {
 				if (
 					heldFrame &&
 					segmentIdx < segments.length &&
-					heldFrameSec < segments[segmentIdx].startSec - epsilonSec
+					heldFrameSec < segments[segmentIdx].startSec - EPSILON_SEC
 				) {
 					heldFrame.close();
 					heldFrame = null;
@@ -411,7 +412,7 @@ export class StreamingVideoDecoder {
 			const currentSegment = segments[segmentIdx];
 
 			// Before current segment (trimmed region or pre-roll).
-			if (frameTimeSec < currentSegment.startSec - epsilonSec) {
+			if (frameTimeSec < currentSegment.startSec - EPSILON_SEC) {
 				frame.close();
 				continue;
 			}
@@ -432,7 +433,7 @@ export class StreamingVideoDecoder {
 
 				const sourceTimeSec =
 					currentSegment.startSec + (segmentFrameIndex / targetFrameRate) * currentSegment.speed;
-				if (sourceTimeSec >= currentSegment.endSec - epsilonSec) {
+				if (sourceTimeSec >= currentSegment.endSec - EPSILON_SEC) {
 					break;
 				}
 				if (sourceTimeSec > handoffBoundarySec) {
@@ -454,7 +455,7 @@ export class StreamingVideoDecoder {
 		if (heldFrame && segmentIdx < segments.length) {
 			while (!this.cancelled && segmentIdx < segments.length) {
 				const segment = segments[segmentIdx];
-				if (heldFrameSec < segment.startSec - epsilonSec) {
+				if (heldFrameSec < segment.startSec - EPSILON_SEC) {
 					break;
 				}
 
@@ -466,7 +467,7 @@ export class StreamingVideoDecoder {
 				segmentFrameIndex = 0;
 				if (
 					segmentIdx < segments.length &&
-					heldFrameSec < segments[segmentIdx].startSec - epsilonSec
+					heldFrameSec < segments[segmentIdx].startSec - EPSILON_SEC
 				) {
 					break;
 				}
@@ -541,11 +542,24 @@ export class StreamingVideoDecoder {
 		return segments;
 	}
 
-	getEffectiveDuration(trimRegions?: TrimRegion[], speedRegions?: SpeedRegion[]): number {
+	getExportMetrics(
+		targetFrameRate: number,
+		trimRegions?: TrimRegion[],
+		speedRegions?: SpeedRegion[],
+	): { effectiveDuration: number; totalFrames: number } {
 		if (!this.metadata) throw new Error("Must call loadMetadata() first");
 		const trimSegments = this.computeSegments(this.metadata.duration, trimRegions);
-		const speedSegments = this.splitBySpeed(trimSegments, speedRegions);
-		return speedSegments.reduce((sum, seg) => sum + (seg.endSec - seg.startSec) / seg.speed, 0);
+		const segments = this.splitBySpeed(trimSegments, speedRegions);
+		return {
+			effectiveDuration: segments.reduce(
+				(sum, seg) => sum + (seg.endSec - seg.startSec) / seg.speed,
+				0,
+			),
+			totalFrames: segments.reduce((sum, seg) => {
+				const segDur = seg.endSec - seg.startSec - EPSILON_SEC;
+				return sum + Math.max(0, Math.ceil((segDur / seg.speed) * targetFrameRate));
+			}, 0),
+		};
 	}
 
 	private splitBySpeed(

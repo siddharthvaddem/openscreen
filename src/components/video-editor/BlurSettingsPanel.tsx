@@ -1,14 +1,26 @@
 import { Info, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useScopedT } from "@/contexts/I18nContext";
+import { getBlurOverlayColor } from "@/lib/blurEffects";
 import { cn } from "@/lib/utils";
 import {
 	type AnnotationRegion,
+	type BlurColor,
 	type BlurData,
 	type BlurShape,
+	DEFAULT_BLUR_BLOCK_SIZE,
 	DEFAULT_BLUR_DATA,
+	MAX_BLUR_BLOCK_SIZE,
 	MAX_BLUR_INTENSITY,
+	MIN_BLUR_BLOCK_SIZE,
 	MIN_BLUR_INTENSITY,
 } from "./types";
 
@@ -30,6 +42,10 @@ export function BlurSettingsPanel({
 	const blurShapeOptions: Array<{ value: BlurShape; labelKey: string }> = [
 		{ value: "rectangle", labelKey: "blurShapeRectangle" },
 		{ value: "oval", labelKey: "blurShapeOval" },
+	];
+	const blurColorOptions: Array<{ value: BlurColor; labelKey: string }> = [
+		{ value: "white", labelKey: "blurColorWhite" },
+		{ value: "black", labelKey: "blurColorBlack" },
 	];
 
 	return (
@@ -91,27 +107,116 @@ export function BlurSettingsPanel({
 					})}
 				</div>
 
+				<div className="mt-4">
+					<label className="text-xs font-medium text-slate-300 mb-2 block">
+						{t("annotation.blurType")}
+					</label>
+					<Select
+						value={blurRegion.blurData?.type ?? DEFAULT_BLUR_DATA.type}
+						onValueChange={(value) => {
+							const nextBlurData: BlurData = {
+								...DEFAULT_BLUR_DATA,
+								...blurRegion.blurData,
+								type: value === "mosaic" ? "mosaic" : "blur",
+							};
+							onBlurDataChange(nextBlurData);
+							requestAnimationFrame(() => {
+								onBlurDataCommit?.();
+							});
+						}}
+					>
+						<SelectTrigger className="w-full bg-white/5 border-white/10 text-slate-200 h-9 text-xs">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent className="bg-[#1a1a1c] border-white/10 text-slate-200">
+							<SelectItem value="blur">{t("annotation.blurTypeBlur")}</SelectItem>
+							<SelectItem value="mosaic">{t("annotation.blurTypeMosaic")}</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+
+				<div className="mt-4">
+					<label className="text-xs font-medium text-slate-300 mb-2 block">
+						{t("annotation.blurColor")}
+					</label>
+					<div className="grid grid-cols-2 gap-2">
+						{blurColorOptions.map((option) => {
+							const activeColor = blurRegion.blurData?.color ?? DEFAULT_BLUR_DATA.color;
+							const isActive = activeColor === option.value;
+							return (
+								<button
+									key={option.value}
+									onClick={() => {
+										const nextBlurData: BlurData = {
+											...DEFAULT_BLUR_DATA,
+											...blurRegion.blurData,
+											color: option.value,
+										};
+										onBlurDataChange(nextBlurData);
+										requestAnimationFrame(() => {
+											onBlurDataCommit?.();
+										});
+									}}
+									className={cn(
+										"h-10 rounded-lg border flex items-center gap-2 px-3 transition-all",
+										isActive
+											? "bg-[#34B27B] border-[#34B27B]"
+											: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20",
+									)}
+								>
+									<div
+										className="w-4 h-4 rounded-full border border-white/20"
+										style={{
+											backgroundColor: getBlurOverlayColor({
+												...DEFAULT_BLUR_DATA,
+												...blurRegion.blurData,
+												color: option.value,
+											}),
+										}}
+									/>
+									<span className="text-xs text-slate-200">
+										{t(`annotation.${option.labelKey}`)}
+									</span>
+								</button>
+							);
+						})}
+					</div>
+				</div>
+
 				<div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
 					<div className="flex items-center justify-between mb-2">
 						<span className="text-xs font-medium text-slate-300">
-							{t("annotation.blurIntensity")}
+							{blurRegion.blurData?.type === "mosaic"
+								? t("annotation.mosaicBlockSize")
+								: t("annotation.blurIntensity")}
 						</span>
 						<span className="text-[10px] text-slate-400 font-mono">
-							{Math.round(blurRegion.blurData?.intensity ?? DEFAULT_BLUR_DATA.intensity)}px
+							{Math.round(
+								blurRegion.blurData?.type === "mosaic"
+									? (blurRegion.blurData?.blockSize ?? DEFAULT_BLUR_BLOCK_SIZE)
+									: (blurRegion.blurData?.intensity ?? DEFAULT_BLUR_DATA.intensity),
+							)}
+							px
 						</span>
 					</div>
 					<Slider
-						value={[blurRegion.blurData?.intensity ?? DEFAULT_BLUR_DATA.intensity]}
+						value={[
+							blurRegion.blurData?.type === "mosaic"
+								? (blurRegion.blurData?.blockSize ?? DEFAULT_BLUR_BLOCK_SIZE)
+								: (blurRegion.blurData?.intensity ?? DEFAULT_BLUR_DATA.intensity),
+						]}
 						onValueChange={(values) => {
 							onBlurDataChange({
 								...DEFAULT_BLUR_DATA,
 								...blurRegion.blurData,
-								intensity: values[0],
+								...(blurRegion.blurData?.type === "mosaic"
+									? { blockSize: values[0] }
+									: { intensity: values[0] }),
 							});
 						}}
 						onValueCommit={() => onBlurDataCommit?.()}
-						min={MIN_BLUR_INTENSITY}
-						max={MAX_BLUR_INTENSITY}
+						min={blurRegion.blurData?.type === "mosaic" ? MIN_BLUR_BLOCK_SIZE : MIN_BLUR_INTENSITY}
+						max={blurRegion.blurData?.type === "mosaic" ? MAX_BLUR_BLOCK_SIZE : MAX_BLUR_INTENSITY}
 						step={1}
 						className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 					/>

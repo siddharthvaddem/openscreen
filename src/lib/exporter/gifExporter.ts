@@ -174,11 +174,11 @@ export class GifExporter {
 			});
 
 			// Calculate effective duration and frame count (excluding trim regions)
-			const effectiveDuration = this.streamingDecoder.getEffectiveDuration(
+			const { effectiveDuration, totalFrames } = this.streamingDecoder.getExportMetrics(
+				this.config.frameRate,
 				this.config.trimRegions,
 				this.config.speedRegions,
 			);
-			const totalFrames = Math.ceil(effectiveDuration * this.config.frameRate);
 
 			// Calculate frame delay in milliseconds (gif.js uses ms)
 			const frameDelay = Math.round(1000 / this.config.frameRate);
