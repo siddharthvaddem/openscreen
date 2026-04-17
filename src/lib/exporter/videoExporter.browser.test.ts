@@ -3,8 +3,12 @@ import sampleVideoUrl from "../../../tests/fixtures/sample.webm?url";
 import type { ExportProgress } from "./types";
 import { VideoExporter } from "./videoExporter";
 
+const browserWorkerAvailable = typeof Worker !== "undefined";
+
 describe("VideoExporter (real browser)", () => {
-	it("exports a valid MP4 blob from a real video", async () => {
+	const testIfBrowserWorker = browserWorkerAvailable ? it : it.skip;
+
+	testIfBrowserWorker("exports a valid MP4 blob from a real video", async () => {
 		const progressEvents: ExportProgress[] = [];
 
 		const exporter = new VideoExporter({

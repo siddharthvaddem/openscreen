@@ -3,8 +3,12 @@ import sampleVideoUrl from "../../../tests/fixtures/sample.webm?url";
 import { GifExporter } from "./gifExporter";
 import type { ExportProgress } from "./types";
 
+const browserWorkerAvailable = typeof Worker !== "undefined";
+
 describe("GifExporter (real browser)", () => {
-	it("exports a valid GIF blob from a real video", async () => {
+	const testIfBrowserWorker = browserWorkerAvailable ? it : it.skip;
+
+	testIfBrowserWorker("exports a valid GIF blob from a real video", async () => {
 		const progressEvents: ExportProgress[] = [];
 
 		const exporter = new GifExporter({

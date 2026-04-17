@@ -1,0 +1,266 @@
+[
+	{
+		"id": "openscreen-sfx-alarm-001",
+		"name": "Alarm",
+		"fileName": "openscreen-sfx-alarm-001.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-alarm-001.mp3",
+		"category": "hook",
+		"tags": ["hooks", "alarm"]
+	},
+	{
+		"id": "openscreen-sfx-alert",
+		"name": "Alert",
+		"fileName": "openscreen-sfx-alert.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-alert.mp3",
+		"category": "hook",
+		"tags": ["hooks", "misc"]
+	},
+	{
+		"id": "openscreen-sfx-beep-001",
+		"name": "Beep",
+		"fileName": "openscreen-sfx-beep-001.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-beep-001.wav",
+		"category": "hook",
+		"tags": ["hooks", "alarm"]
+	},
+	{
+		"id": "openscreen-sfx-camera-001",
+		"name": "Camera 01",
+		"fileName": "openscreen-sfx-camera-001.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-camera-001.wav",
+		"category": "hook",
+		"tags": ["hooks", "camera"]
+	},
+	{
+		"id": "openscreen-sfx-camera-004",
+		"name": "Camera 02",
+		"fileName": "openscreen-sfx-camera-004.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-camera-004.mp3",
+		"category": "hook",
+		"tags": ["hooks", "camera"]
+	},
+	{
+		"id": "openscreen-sfx-click-001",
+		"name": "Click 001",
+		"fileName": "openscreen-sfx-click-001.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-click-001.wav",
+		"category": "hook",
+		"tags": ["hooks", "click"]
+	},
+	{
+		"id": "openscreen-sfx-click-002",
+		"name": "Click 002",
+		"fileName": "openscreen-sfx-click-002.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-click-002.mp3",
+		"category": "hook",
+		"tags": ["hooks", "click"]
+	},
+	{
+		"id": "openscreen-sfx-clock-001",
+		"name": "Clock 001",
+		"fileName": "openscreen-sfx-clock-001.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-clock-001.mp3",
+		"category": "hook",
+		"tags": ["hooks", "alarm"]
+	},
+	{
+		"id": "openscreen-sfx-fade-out-005",
+		"name": "Fade Out 005",
+		"fileName": "openscreen-sfx-fade-out-005.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-fade-out-005.wav",
+		"category": "hook",
+		"tags": ["hooks", "misc"]
+	},
+	{
+		"id": "openscreen-sfx-glitch-001",
+		"name": "Glitch 001",
+		"fileName": "openscreen-sfx-glitch-001.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-glitch-001.mp3",
+		"category": "hook",
+		"tags": ["hooks", "glitch"]
+	},
+	{
+		"id": "openscreen-sfx-glitch-002",
+		"name": "Glitch 002",
+		"fileName": "openscreen-sfx-glitch-002.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-glitch-002.mp3",
+		"category": "hook",
+		"tags": ["hooks", "glitch"]
+	},
+	{
+		"id": "openscreen-sfx-misc-002",
+		"name": "Misc 002",
+		"fileName": "openscreen-sfx-misc-002.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-misc-002.mp3",
+		"category": "hook",
+		"tags": ["hooks", "misc"]
+	},
+	{
+		"id": "openscreen-sfx-misc-014",
+		"name": "Misc 014",
+		"fileName": "openscreen-sfx-misc-014.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-misc-014.wav",
+		"category": "hook",
+		"tags": ["hooks", "misc"]
+	},
+	{
+		"id": "openscreen-sfx-money-002",
+		"name": "Money 002",
+		"fileName": "openscreen-sfx-money-002.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-money-002.mp3",
+		"category": "hook",
+		"tags": ["hooks", "coin"]
+	},
+	{
+		"id": "openscreen-sfx-money-003",
+		"name": "Money 003",
+		"fileName": "openscreen-sfx-money-003.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-money-003.mp3",
+		"category": "hook",
+		"tags": ["hooks", "coin"]
+	},
+	{
+		"id": "openscreen-sfx-notification-001",
+		"name": "Notification 001",
+		"fileName": "openscreen-sfx-notification-001.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-notification-001.mp3",
+		"category": "hook",
+		"tags": ["hooks", "notification"]
+	},
+	{
+		"id": "openscreen-sfx-notification-003",
+		"name": "Notification 003",
+		"fileName": "openscreen-sfx-notification-003.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-notification-003.mp3",
+		"category": "hook",
+		"tags": ["hooks", "notification"]
+	},
+	{
+		"id": "openscreen-sfx-notification-004",
+		"name": "Notification 004",
+		"fileName": "openscreen-sfx-notification-004.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-notification-004.mp3",
+		"category": "hook",
+		"tags": ["hooks", "notification"]
+	},
+	{
+		"id": "openscreen-sfx-reveal-013",
+		"name": "Reveal 013",
+		"fileName": "openscreen-sfx-reveal-013.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-reveal-013.mp3",
+		"category": "hook",
+		"tags": ["hooks", "misc"]
+	},
+	{
+		"id": "openscreen-sfx-typing-001",
+		"name": "Typing 001",
+		"fileName": "openscreen-sfx-typing-001.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-typing-001.mp3",
+		"category": "hook",
+		"tags": ["hooks", "typing"]
+	},
+	{
+		"id": "openscreen-sfx-typing-007",
+		"name": "Typing 007",
+		"fileName": "openscreen-sfx-typing-007.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-typing-007.mp3",
+		"category": "hook",
+		"tags": ["hooks", "typing"]
+	},
+	{
+		"id": "openscreen-sfx-whoosh-001",
+		"name": "Whoosh 001",
+		"fileName": "openscreen-sfx-whoosh-001.wav",
+		"url": "/audio/library/hooks/openscreen-sfx-whoosh-001.wav",
+		"category": "hook",
+		"tags": ["hooks", "whoosh"]
+	},
+	{
+		"id": "openscreen-sfx-whoosh-004",
+		"name": "Whoosh 004",
+		"fileName": "openscreen-sfx-whoosh-004.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-whoosh-004.mp3",
+		"category": "hook",
+		"tags": ["hooks", "whoosh"]
+	},
+	{
+		"id": "openscreen-sfx-whoosh-005",
+		"name": "Whoosh 005",
+		"fileName": "openscreen-sfx-whoosh-005.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-whoosh-005.mp3",
+		"category": "hook",
+		"tags": ["hooks", "whoosh"]
+	},
+	{
+		"id": "openscreen-sfx-whoosh-006",
+		"name": "Whoosh 006",
+		"fileName": "openscreen-sfx-whoosh-006.mp3",
+		"url": "/audio/library/hooks/openscreen-sfx-whoosh-006.mp3",
+		"category": "hook",
+		"tags": ["hooks", "whoosh"]
+	},
+	{
+		"id": "openscreen-ambient-001",
+		"name": "Openscreen Ambient 001",
+		"fileName": "openscreen-ambient-001.mp3",
+		"url": "/audio/library/music/openscreen-ambient-001.mp3",
+		"category": "music",
+		"tags": ["music", "ambient"]
+	},
+	{
+		"id": "openscreen-ambient-002",
+		"name": "Openscreen Ambient 002",
+		"fileName": "openscreen-ambient-002.mp3",
+		"url": "/audio/library/music/openscreen-ambient-002.mp3",
+		"category": "music",
+		"tags": ["music", "ambient"]
+	},
+	{
+		"id": "openscreen-corporate-001",
+		"name": "Openscreen Corporate 001",
+		"fileName": "openscreen-corporate-001.mp3",
+		"url": "/audio/library/music/openscreen-corporate-001.mp3",
+		"category": "music",
+		"tags": ["music", "corporate"]
+	},
+	{
+		"id": "openscreen-corporate-002",
+		"name": "Openscreen Corporate 002",
+		"fileName": "openscreen-corporate-002.mp3",
+		"url": "/audio/library/music/openscreen-corporate-002.mp3",
+		"category": "music",
+		"tags": ["music", "corporate"]
+	},
+	{
+		"id": "openscreen-lofi-001",
+		"name": "Openscreen Lofi 001",
+		"fileName": "openscreen-lofi-001.mp3",
+		"url": "/audio/library/music/openscreen-lofi-001.mp3",
+		"category": "music",
+		"tags": ["music", "lofi"]
+	},
+	{
+		"id": "openscreen-lofi-002",
+		"name": "Openscreen Lofi 002",
+		"fileName": "openscreen-lofi-002.mp3",
+		"url": "/audio/library/music/openscreen-lofi-002.mp3",
+		"category": "music",
+		"tags": ["music", "lofi"]
+	},
+	{
+		"id": "openscreen-track-001",
+		"name": "Openscreen Track 001",
+		"fileName": "openscreen-track-001.mp3",
+		"url": "/audio/library/music/openscreen-track-001.mp3",
+		"category": "music",
+		"tags": ["music", "track"]
+	},
+	{
+		"id": "openscreen-upbeat-001",
+		"name": "Openscreen Upbeat 001",
+		"fileName": "openscreen-upbeat-001.mp3",
+		"url": "/audio/library/music/openscreen-upbeat-001.mp3",
+		"category": "music",
+		"tags": ["music", "upbeat"]
+	}
+]

@@ -87,6 +87,11 @@ interface VideoPlaybackProps {
 	onZoomFocusChange: (id: string, focus: ZoomFocus) => void;
 	onZoomFocusDragEnd?: () => void;
 	isPlaying: boolean;
+	backgroundMusicPath?: string;
+	backgroundMusicRegions?: TrimRegion[];
+	backgroundMusicVolume?: number;
+	backgroundMusicFadeIn?: number;
+	backgroundMusicFadeOut?: number;
 	showShadow?: boolean;
 	shadowIntensity?: number;
 	showBlur?: boolean;
@@ -145,6 +150,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onZoomFocusChange,
 			onZoomFocusDragEnd,
 			isPlaying,
+			backgroundMusicPath,
+			backgroundMusicRegions = [],
+			backgroundMusicVolume = 0.35,
+			backgroundMusicFadeIn = 0,
+			backgroundMusicFadeOut = 0,
 			showShadow,
 			shadowIntensity = 0,
 			showBlur,
@@ -172,6 +182,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		ref,
 	) => {
 		const videoRef = useRef<HTMLVideoElement | null>(null);
+		const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
 		const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const appRef = useRef<Application | null>(null);
@@ -1177,6 +1188,75 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		}, [webcamVideoPath]);
 
 		useEffect(() => {
+			const backgroundMusic = backgroundMusicRef.current;
+			if (!backgroundMusic || !backgroundMusicPath) {
+				return;
+			}
+
+			backgroundMusic.pause();
+			backgroundMusic.currentTime = 0;
+		}, [backgroundMusicPath]);
+
+		useEffect(() => {
+			const backgroundMusic = backgroundMusicRef.current;
+			if (!backgroundMusic || !backgroundMusicPath) {
+				return;
+			}
+
+			const backgroundDuration = backgroundMusic.duration;
+			const hasValidDuration = Number.isFinite(backgroundDuration) && backgroundDuration > 0;
+			const loopedCurrentTime = hasValidDuration
+				? ((currentTime % backgroundDuration) + backgroundDuration) % backgroundDuration
+				: currentTime;
+
+			const isInRegion =
+				backgroundMusicRegions.length === 0 ||
+				backgroundMusicRegions.some(
+					(region) => currentTime * 1000 >= region.startMs && currentTime * 1000 < region.endMs,
+				);
+
+			let targetVolume = 0;
+			if (isInRegion) {
+				targetVolume = Math.min(1, Math.max(0, backgroundMusicVolume));
+				const videoDuration = videoRef.current?.duration ?? 0;
+				if (backgroundMusicFadeIn > 0 && currentTime < backgroundMusicFadeIn) {
+					targetVolume *= currentTime / backgroundMusicFadeIn;
+				}
+				if (backgroundMusicFadeOut > 0 && videoDuration > 0) {
+					const remaining = videoDuration - currentTime;
+					if (remaining < backgroundMusicFadeOut) {
+						targetVolume *= Math.max(0, remaining / backgroundMusicFadeOut);
+					}
+				}
+			}
+			backgroundMusic.volume = targetVolume;
+
+			if (!isPlaying) {
+				backgroundMusic.pause();
+				if (Math.abs(backgroundMusic.currentTime - loopedCurrentTime) > 0.05) {
+					backgroundMusic.currentTime = loopedCurrentTime;
+				}
+				return;
+			}
+
+			if (Math.abs(backgroundMusic.currentTime - loopedCurrentTime) > 0.2) {
+				backgroundMusic.currentTime = loopedCurrentTime;
+			}
+
+			backgroundMusic.play().catch(() => {
+				// Ignore autoplay restoration failures.
+			});
+		}, [
+			backgroundMusicPath,
+			backgroundMusicRegions,
+			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
+			currentTime,
+			isPlaying,
+		]);
+
+		useEffect(() => {
 			let mounted = true;
 			(async () => {
 				try {
@@ -1466,6 +1546,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					}}
 					onError={() => onError("Failed to load video")}
 				/>
+				{backgroundMusicPath && (
+					<audio ref={backgroundMusicRef} src={backgroundMusicPath} preload="auto" loop />
+				)}
 			</div>
 		);
 	},

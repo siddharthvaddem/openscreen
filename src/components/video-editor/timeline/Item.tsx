@@ -1,6 +1,6 @@
 import type { Span } from "dnd-timeline";
 import { useItem, useTimelineContext } from "dnd-timeline";
-import { Gauge, MessageSquare, Scissors, ZoomIn } from "lucide-react";
+import { Gauge, MessageSquare, Music2, Scissors, Sparkles, ZoomIn } from "lucide-react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,7 +22,7 @@ interface ItemProps {
 	zoomOutDurationMs?: number;
 	speedValue?: number;
 	onZoomDurationChange?: (id: string, zoomIn: number, zoomOut: number) => void;
-	variant?: "zoom" | "trim" | "annotation" | "speed" | "blur";
+	variant?: "zoom" | "trim" | "annotation" | "speed" | "blur" | "music" | "hook";
 }
 
 // Map zoom depth to multiplier labels
@@ -56,8 +56,8 @@ export default function Item({
 	zoomOutDurationMs,
 	speedValue,
 	variant = "zoom",
-	children,
 	onZoomDurationChange,
+	children,
 }: ItemProps) {
 	const { pixelsToValue } = useTimelineContext();
 	const { setNodeRef, attributes, listeners, itemStyle, itemContentStyle } = useItem({
@@ -69,6 +69,8 @@ export default function Item({
 	const isZoom = variant === "zoom";
 	const isTrim = variant === "trim";
 	const isSpeed = variant === "speed";
+	const isMusic = variant === "music";
+	const isHook = variant === "hook";
 
 	const glassClass = isZoom
 		? glassStyles.glassGreen
@@ -76,20 +78,28 @@ export default function Item({
 			? glassStyles.glassRed
 			: isSpeed
 				? glassStyles.glassAmber
-				: glassStyles.glassYellow;
+				: isHook
+					? glassStyles.glassBlue
+					: isMusic
+						? glassStyles.glassBlue
+						: glassStyles.glassYellow;
 
-	const endCapColor = isZoom ? "#21916A" : isTrim ? "#ef4444" : isSpeed ? "#d97706" : "#B4A046";
+	const endCapColor = isZoom
+		? "#21916A"
+		: isTrim
+			? "#ef4444"
+			: isSpeed
+				? "#d97706"
+				: isHook
+					? "#06b6d4"
+					: isMusic
+						? "#38bdf8"
+						: "#B4A046";
 
 	const timeLabel = useMemo(
 		() => `${formatMs(span.start)} – ${formatMs(span.end)}`,
 		[span.start, span.end],
 	);
-
-	// Minimum clickable width on the outer wrapper.
-	// Kept small (6px) so items visually distinguish their real positions;
-	// users should zoom in to interact with sub-second items precisely.
-	const MIN_ITEM_PX = 6;
-	const safeItemStyle = { ...itemStyle, minWidth: MIN_ITEM_PX };
 
 	const { zoomIn, zoomOut } = useMemo(() => {
 		if (!isZoom) return { zoomIn: 0, zoomOut: 0 };
@@ -100,6 +110,13 @@ export default function Item({
 			zoomOutDurationMs,
 		});
 	}, [isZoom, span.start, span.end, zoomInDurationMs, zoomOutDurationMs]);
+
+	// Minimum clickable width on the outer wrapper.
+	// Kept small (6px) so items visually distinguish their real positions;
+	// users should zoom in to interact with sub-second items precisely.
+	const MIN_ITEM_PX = 6;
+	const safeItemStyle = { ...itemStyle, minWidth: MIN_ITEM_PX };
+	const regionDuration = Math.max(1, span.end - span.start);
 
 	return (
 		<div
@@ -125,18 +142,16 @@ export default function Item({
 				>
 					{isZoom && (
 						<>
-							{/* Transition In Marker */}
 							<div
 								className="absolute top-0 bottom-0 left-0 bg-white/10 border-r border-white/20 pointer-events-none"
 								style={{
-									width: `${(zoomIn / (span.end - span.start)) * 100}%`,
+									width: `${(zoomIn / regionDuration) * 100}%`,
 								}}
 							/>
-							{/* Draggable handle for Transition In */}
 							<div
 								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-white/5 transition-colors"
 								style={{
-									left: `${(zoomIn / (span.end - span.start)) * 100}%`,
+									left: `${(zoomIn / regionDuration) * 100}%`,
 									transform: "translateX(-50%)",
 								}}
 								onPointerDown={(e) => {
@@ -154,7 +169,7 @@ export default function Item({
 										const deltaMs = pixelsToValue(deltaPx);
 										const newDuration = Math.max(
 											0,
-											Math.min(initialZoomIn + deltaMs, span.end - span.start - initialZoomOut),
+											Math.min(initialZoomIn + deltaMs, regionDuration - initialZoomOut),
 										);
 										onZoomDurationChange?.(id, newDuration, initialZoomOut);
 									};
@@ -169,18 +184,16 @@ export default function Item({
 									window.addEventListener("pointerup", onPointerUp);
 								}}
 							/>
-							{/* Transition Out Marker */}
 							<div
 								className="absolute top-0 bottom-0 right-0 bg-white/10 border-l border-white/20 pointer-events-none"
 								style={{
-									width: `${(zoomOut / (span.end - span.start)) * 100}%`,
+									width: `${(zoomOut / regionDuration) * 100}%`,
 								}}
 							/>
-							{/* Draggable handle for Transition Out */}
 							<div
 								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-white/5 transition-colors"
 								style={{
-									right: `${(zoomOut / (span.end - span.start)) * 100}%`,
+									right: `${(zoomOut / regionDuration) * 100}%`,
 									transform: "translateX(50%)",
 								}}
 								onPointerDown={(e) => {
@@ -194,11 +207,11 @@ export default function Item({
 									const initialZoomOut = zoomOutDurationMs ?? DEFAULT_ZOOM_OUT_MS;
 
 									const onPointerMove = (moveEvent: PointerEvent) => {
-										const deltaPx = startX - moveEvent.clientX; // Inverted because right-anchored
+										const deltaPx = startX - moveEvent.clientX;
 										const deltaMs = pixelsToValue(deltaPx);
 										const newDuration = Math.max(
 											0,
-											Math.min(initialZoomOut + deltaMs, span.end - span.start - initialZoomIn),
+											Math.min(initialZoomOut + deltaMs, regionDuration - initialZoomIn),
 										);
 										onZoomDurationChange?.(id, initialZoomIn, newDuration);
 									};
@@ -259,6 +272,20 @@ export default function Item({
 									<Gauge className="w-3.5 h-3.5 shrink-0" />
 									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
 										{speedValue !== undefined ? `${speedValue}×` : "Speed"}
+									</span>
+								</>
+							) : isMusic ? (
+								<>
+									<Music2 className="w-3.5 h-3.5 shrink-0" />
+									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+										Music
+									</span>
+								</>
+							) : isHook ? (
+								<>
+									<Sparkles className="w-3.5 h-3.5 shrink-0" />
+									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+										Hook
 									</span>
 								</>
 							) : (

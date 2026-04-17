@@ -1,4 +1,5 @@
 import Block from "@uiw/react-color-block";
+import Fuse from "fuse.js";
 import {
 	Bug,
 	Crop,
@@ -6,7 +7,9 @@ import {
 	Film,
 	Image,
 	Lock,
+	Music,
 	Palette,
+	Search,
 	Sparkles,
 	Star,
 	Trash2,
@@ -14,7 +17,7 @@ import {
 	Upload,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	Accordion,
@@ -35,6 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { getAssetPath } from "@/lib/assetPath";
+import { AUDIO_LIBRARY } from "@/lib/audioLibrary";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
@@ -48,10 +52,13 @@ import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
 	AnnotationRegion,
 	AnnotationType,
+	AudioHooksConfig,
+	AudioHookType,
 	BlurData,
 	CropRegion,
 	FigureData,
 	PlaybackSpeed,
+	TrimRegion,
 	WebcamLayoutPreset,
 	WebcamMaskShape,
 	WebcamSizePreset,
@@ -155,11 +162,37 @@ const GRADIENTS = [
 	"linear-gradient(to right, #0acffe 0%, #495aff 100%)",
 ];
 
+function PlayingBars({ className }: { className?: string }) {
+	return (
+		<div
+			className={cn("inline-flex h-3 items-end gap-[2px]", className)}
+			role="status"
+			aria-label="Playing preview"
+		>
+			<span
+				className="w-[2px] rounded-full bg-[#8ef3c5] animate-pulse"
+				style={{ height: 6, animationDelay: "0ms", animationDuration: "900ms" }}
+			/>
+			<span
+				className="w-[2px] rounded-full bg-[#8ef3c5] animate-pulse"
+				style={{ height: 10, animationDelay: "120ms", animationDuration: "900ms" }}
+			/>
+			<span
+				className="w-[2px] rounded-full bg-[#8ef3c5] animate-pulse"
+				style={{ height: 7, animationDelay: "240ms", animationDuration: "900ms" }}
+			/>
+		</div>
+	);
+}
+
 interface SettingsPanelProps {
 	selected: string;
 	onWallpaperChange: (path: string) => void;
 	selectedZoomDepth?: ZoomDepth | null;
 	onZoomDepthChange?: (depth: ZoomDepth) => void;
+	selectedZoomInDuration?: number;
+	selectedZoomOutDuration?: number;
+	onZoomDurationChange?: (zoomIn: number, zoomOut: number) => void;
 	selectedZoomFocusMode?: ZoomFocusMode | null;
 	onZoomFocusModeChange?: (mode: ZoomFocusMode) => void;
 	hasCursorTelemetry?: boolean;
@@ -181,6 +214,31 @@ interface SettingsPanelProps {
 	padding?: number;
 	onPaddingChange?: (padding: number) => void;
 	onPaddingCommit?: () => void;
+	backgroundMusicPath?: string | null;
+	backgroundMusicVolume?: number;
+	backgroundMusicFadeIn?: number;
+	backgroundMusicFadeOut?: number;
+	onBackgroundMusicPick?: () => void;
+	onBackgroundMusicRemove?: () => void;
+	onBackgroundMusicVolumeChange?: (volume: number) => void;
+	onBackgroundMusicVolumeCommit?: () => void;
+	onBackgroundMusicFadeInChange?: (value: number) => void;
+	onBackgroundMusicFadeInCommit?: () => void;
+	onBackgroundMusicFadeOutChange?: (value: number) => void;
+	onBackgroundMusicFadeOutCommit?: () => void;
+	onMusicTrackSelect?: (trackUrl: string) => void;
+	backgroundMusicRegions?: TrimRegion[];
+	selectedMusicRegionId?: string | null;
+	onSelectedMusicRegionDelete?: (id: string) => void;
+	audioHooks?: AudioHooksConfig;
+	audioHooksVolume?: number;
+	onAudioHooksChange?: (hooks: AudioHooksConfig) => void;
+	onAudioHooksVolumeChange?: (volume: number) => void;
+	onAudioHooksVolumeCommit?: () => void;
+	hookSoundLayers?: Record<AudioHookType, string[]>;
+	onHookTrackAdd?: (hook: AudioHookType, trackUrl: string) => void;
+	onHookTrackRemove?: (hook: AudioHookType, trackUrl: string) => void;
+	onHookTimelineAdd?: (hook: AudioHookType, trackUrl: string, trackName: string) => void;
 	cropRegion?: CropRegion;
 	onCropChange?: (region: CropRegion) => void;
 	aspectRatio: AspectRatio;
@@ -204,6 +262,7 @@ interface SettingsPanelProps {
 		format: string;
 	} | null;
 	onSaveUnsavedExport?: () => void;
+	showEmbeddedExportSection?: boolean;
 	selectedAnnotationId?: string | null;
 	annotationRegions?: AnnotationRegion[];
 	onAnnotationContentChange?: (id: string, content: string) => void;
@@ -225,9 +284,6 @@ interface SettingsPanelProps {
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
 	webcamMaskShape?: import("./types").WebcamMaskShape;
 	onWebcamMaskShapeChange?: (shape: import("./types").WebcamMaskShape) => void;
-	selectedZoomInDuration?: number;
-	selectedZoomOutDuration?: number;
-	onZoomDurationChange?: (zoomIn: number, zoomOut: number) => void;
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
@@ -242,13 +298,6 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 	{ depth: 4, label: "2.2×" },
 	{ depth: 5, label: "3.5×" },
 	{ depth: 6, label: "5×" },
-];
-
-const ZOOM_SPEED_OPTIONS = [
-	{ label: "Instant", zoomIn: 0, zoomOut: 0 },
-	{ label: "Fast", zoomIn: 500, zoomOut: 350 },
-	{ label: "Smooth", zoomIn: 1522, zoomOut: 1015 },
-	{ label: "Lazy", zoomIn: 3000, zoomOut: 2000 },
 ];
 
 export function SettingsPanel({
@@ -277,6 +326,43 @@ export function SettingsPanel({
 	padding = 50,
 	onPaddingChange,
 	onPaddingCommit,
+	backgroundMusicPath = null,
+	backgroundMusicVolume = 0.35,
+	backgroundMusicFadeIn = 0,
+	backgroundMusicFadeOut = 0,
+	onBackgroundMusicPick,
+	onBackgroundMusicRemove,
+	onBackgroundMusicVolumeChange,
+	onBackgroundMusicVolumeCommit,
+	onBackgroundMusicFadeInChange,
+	onBackgroundMusicFadeInCommit,
+	onBackgroundMusicFadeOutChange,
+	onBackgroundMusicFadeOutCommit,
+	onMusicTrackSelect,
+	backgroundMusicRegions = [],
+	selectedMusicRegionId = null,
+	onSelectedMusicRegionDelete,
+	audioHooks = {
+		zoom: false,
+		trim: false,
+		speed: false,
+		annotation: false,
+		blur: false,
+	},
+	audioHooksVolume = 0.35,
+	onAudioHooksChange,
+	onAudioHooksVolumeChange,
+	onAudioHooksVolumeCommit,
+	hookSoundLayers = {
+		zoom: [],
+		trim: [],
+		speed: [],
+		annotation: [],
+		blur: [],
+	},
+	onHookTrackAdd,
+	onHookTrackRemove,
+	onHookTimelineAdd,
 	cropRegion,
 	onCropChange,
 	aspectRatio,
@@ -295,6 +381,7 @@ export function SettingsPanel({
 	onExport,
 	unsavedExport,
 	onSaveUnsavedExport,
+	showEmbeddedExportSection = true,
 	selectedAnnotationId,
 	annotationRegions = [],
 	onAnnotationContentChange,
@@ -316,9 +403,6 @@ export function SettingsPanel({
 	onWebcamLayoutPresetChange,
 	webcamMaskShape = "rectangle",
 	onWebcamMaskShapeChange,
-	selectedZoomInDuration,
-	selectedZoomOutDuration,
-	onZoomDurationChange,
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
@@ -364,7 +448,16 @@ export function SettingsPanel({
 	const [selectedColor, setSelectedColor] = useState("#ADADAD");
 	const [gradient, setGradient] = useState<string>(GRADIENTS[0]);
 	const [showCropModal, setShowCropModal] = useState(false);
+	const [musicLibraryQuery, setMusicLibraryQuery] = useState("");
+	const [hookLibraryQuery, setHookLibraryQuery] = useState("");
+	const [selectedHookTarget, setSelectedHookTarget] = useState<AudioHookType>("zoom");
+	const [previewingMusicTrackId, setPreviewingMusicTrackId] = useState<string | null>(null);
+	const musicPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
+	const [previewingHookTrackId, setPreviewingHookTrackId] = useState<string | null>(null);
+	const hookPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
 	const cropSnapshotRef = useRef<CropRegion | null>(null);
+	const musicListRef = useRef<HTMLDivElement>(null);
+	const hooksListRef = useRef<HTMLDivElement>(null);
 	const [cropAspectLocked, setCropAspectLocked] = useState(false);
 	const [cropAspectRatio, setCropAspectRatio] = useState("");
 	const isPortraitCanvas = isPortraitAspectRatio(aspectRatio);
@@ -549,6 +642,175 @@ export function SettingsPanel({
 	const selectedBlur = selectedBlurId
 		? blurRegions.find((region) => region.id === selectedBlurId)
 		: null;
+	const backgroundMusicName = useMemo(() => {
+		if (!backgroundMusicPath) {
+			return null;
+		}
+		const parts = backgroundMusicPath.split(/[\\/]+/);
+		return parts[parts.length - 1] || backgroundMusicPath;
+	}, [backgroundMusicPath]);
+
+	const hookOptions = useMemo<Array<{ key: AudioHookType; label: string }>>(
+		() => [
+			{ key: "zoom", label: t("audio.hooks.zoom") },
+			{ key: "trim", label: t("audio.hooks.trim") },
+			{ key: "speed", label: t("audio.hooks.speed") },
+			{ key: "annotation", label: t("audio.hooks.annotation") },
+			{ key: "blur", label: t("audio.hooks.blur") },
+		],
+		[t],
+	);
+
+	const musicLibrary = useMemo(
+		() => AUDIO_LIBRARY.filter((entry) => entry.category === "music"),
+		[],
+	);
+
+	const hooksLibrary = useMemo(
+		() => AUDIO_LIBRARY.filter((entry) => entry.category === "hook"),
+		[],
+	);
+
+	const musicFuse = useMemo(
+		() =>
+			new Fuse(musicLibrary, {
+				keys: ["name", "tags"],
+				threshold: 0.4,
+				distance: 100,
+				minMatchCharLength: 1,
+				includeScore: true,
+			}),
+		[musicLibrary],
+	);
+
+	const filteredMusicLibrary = useMemo(() => {
+		const query = musicLibraryQuery.trim();
+		if (!query) return musicLibrary;
+		return musicFuse.search(query).map((r) => r.item);
+	}, [musicLibrary, musicLibraryQuery, musicFuse]);
+
+	const hooksFuse = useMemo(
+		() =>
+			new Fuse(hooksLibrary, {
+				keys: ["name", "tags"],
+				threshold: 0.4,
+				distance: 100,
+				minMatchCharLength: 1,
+				includeScore: true,
+			}),
+		[hooksLibrary],
+	);
+
+	const filteredHooksLibrary = useMemo(() => {
+		const query = hookLibraryQuery.trim();
+		if (!query) return hooksLibrary;
+		return hooksFuse.search(query).map((r) => r.item);
+	}, [hooksLibrary, hookLibraryQuery, hooksFuse]);
+
+	const stopMusicPreview = useCallback(() => {
+		if (musicPreviewAudioRef.current) {
+			musicPreviewAudioRef.current.pause();
+			musicPreviewAudioRef.current.currentTime = 0;
+			musicPreviewAudioRef.current = null;
+		}
+		setPreviewingMusicTrackId(null);
+	}, []);
+
+	const handleMusicLibraryPreview = useCallback(
+		async (trackId: string, trackUrl: string) => {
+			if (previewingMusicTrackId === trackId && musicPreviewAudioRef.current) {
+				stopMusicPreview();
+				return;
+			}
+
+			stopMusicPreview();
+			try {
+				const relativePath = trackUrl.replace(/^\/+/, "");
+				const resolvedAssetPath = await getAssetPath(relativePath);
+				const audio = new Audio(resolvedAssetPath);
+				audio.preload = "auto";
+				audio.volume = Math.min(1, Math.max(0, backgroundMusicVolume));
+				musicPreviewAudioRef.current = audio;
+				setPreviewingMusicTrackId(trackId);
+
+				void audio.play().catch(() => {
+					stopMusicPreview();
+					toast.error("Unable to preview this track");
+				});
+
+				audio.addEventListener(
+					"ended",
+					() => {
+						if (musicPreviewAudioRef.current === audio) {
+							musicPreviewAudioRef.current = null;
+							setPreviewingMusicTrackId(null);
+						}
+					},
+					{ once: true },
+				);
+			} catch {
+				stopMusicPreview();
+				toast.error("Unable to preview this track");
+			}
+		},
+		[backgroundMusicVolume, previewingMusicTrackId, stopMusicPreview],
+	);
+
+	const stopHookPreview = useCallback(() => {
+		if (hookPreviewAudioRef.current) {
+			hookPreviewAudioRef.current.pause();
+			hookPreviewAudioRef.current.currentTime = 0;
+			hookPreviewAudioRef.current = null;
+		}
+		setPreviewingHookTrackId(null);
+	}, []);
+
+	const handleHookLibraryPreview = useCallback(
+		async (trackId: string, trackUrl: string) => {
+			if (previewingHookTrackId === trackId && hookPreviewAudioRef.current) {
+				stopHookPreview();
+				return;
+			}
+
+			stopHookPreview();
+			try {
+				const relativePath = trackUrl.replace(/^\/+/, "");
+				const resolvedAssetPath = await getAssetPath(relativePath);
+				const audio = new Audio(resolvedAssetPath);
+				audio.preload = "auto";
+				audio.volume = Math.min(1, Math.max(0, audioHooksVolume));
+				hookPreviewAudioRef.current = audio;
+				setPreviewingHookTrackId(trackId);
+
+				void audio.play().catch(() => {
+					stopHookPreview();
+					toast.error("Unable to preview this sound");
+				});
+
+				audio.addEventListener(
+					"ended",
+					() => {
+						if (hookPreviewAudioRef.current === audio) {
+							hookPreviewAudioRef.current = null;
+							setPreviewingHookTrackId(null);
+						}
+					},
+					{ once: true },
+				);
+			} catch {
+				stopHookPreview();
+				toast.error("Unable to preview this sound");
+			}
+		},
+		[audioHooksVolume, previewingHookTrackId, stopHookPreview],
+	);
+
+	useEffect(() => {
+		return () => {
+			stopMusicPreview();
+			stopHookPreview();
+		};
+	}, [stopHookPreview, stopMusicPreview]);
 
 	// If an annotation is selected, show annotation settings instead
 	if (
@@ -587,7 +849,7 @@ export function SettingsPanel({
 
 	return (
 		<div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
-			<div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
+			<div className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar p-4 pb-0">
 				<div className="mb-4">
 					<div className="flex items-center justify-between mb-3">
 						<span className="text-sm font-medium text-slate-200">{t("zoom.level")}</span>
@@ -659,39 +921,6 @@ export function SettingsPanel({
 									{t("zoom.focusMode.autoDescription")}
 								</p>
 							)}
-						</div>
-					)}
-
-					{zoomEnabled && (
-						<div className="mt-3">
-							<span className="text-sm font-medium text-slate-200 mb-2 block">
-								{t("zoom.speed.title") || "Zoom Speed"}
-							</span>
-							<div className="grid grid-cols-4 gap-1.5">
-								{ZOOM_SPEED_OPTIONS.map((opt) => {
-									const isActive =
-										selectedZoomInDuration !== undefined &&
-										selectedZoomOutDuration !== undefined &&
-										Math.round(selectedZoomInDuration) === Math.round(opt.zoomIn) &&
-										Math.round(selectedZoomOutDuration) === Math.round(opt.zoomOut);
-									return (
-										<Button
-											key={opt.label}
-											type="button"
-											onClick={() => onZoomDurationChange?.(opt.zoomIn, opt.zoomOut)}
-											className={cn(
-												"h-auto w-full rounded-lg border px-1 py-2 text-center shadow-sm transition-all",
-												"duration-200 ease-out cursor-pointer",
-												isActive
-													? "border-[#34B27B] bg-[#34B27B] text-white shadow-[#34B27B]/20"
-													: "border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-slate-200",
-											)}
-										>
-											<span className="text-[10px] font-semibold">{opt.label}</span>
-										</Button>
-									);
-								})}
-							</div>
 						</div>
 					)}
 					{zoomEnabled && (
@@ -797,7 +1026,11 @@ export function SettingsPanel({
 
 				<Accordion
 					type="multiple"
-					defaultValue={hasWebcam ? ["layout", "effects", "background"] : ["effects", "background"]}
+					defaultValue={
+						hasWebcam
+							? ["layout", "effects", "audio", "background"]
+							: ["effects", "audio", "background"]
+					}
 					className="space-y-1"
 				>
 					{hasWebcam && (
@@ -1060,6 +1293,417 @@ export function SettingsPanel({
 						</AccordionContent>
 					</AccordionItem>
 
+					<AccordionItem value="audio" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<Music className="w-4 h-4 text-[#34B27B]" />
+								<span className="text-xs font-medium">{t("audio.title")}</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3 space-y-2">
+							<Tabs defaultValue="upload" className="w-full">
+								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+									<TabsTrigger
+										value="upload"
+										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"
+									>
+										{t("audio.tabs.upload")}
+									</TabsTrigger>
+									<TabsTrigger
+										value="music"
+										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"
+									>
+										{t("audio.tabs.music")}
+									</TabsTrigger>
+									<TabsTrigger
+										value="hooks"
+										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"
+									>
+										{t("audio.tabs.hooks")}
+									</TabsTrigger>
+								</TabsList>
+
+								<TabsContent value="upload" className="mt-0 space-y-2">
+									<Button
+										onClick={onBackgroundMusicPick}
+										variant="outline"
+										className="w-full gap-2 bg-white/5 text-slate-200 border-white/10 hover:bg-[#34B27B] hover:text-white hover:border-[#34B27B] transition-all h-7 text-[10px]"
+									>
+										<Upload className="w-3 h-3" />
+										{backgroundMusicPath ? t("audio.replace") : t("audio.upload")}
+									</Button>
+
+									<div className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/5">
+										<div className="text-[10px] font-medium text-slate-300 mb-0.5">
+											{t("audio.backgroundMusic")}
+										</div>
+										<div className="text-[10px] text-slate-500 truncate">
+											{backgroundMusicName ?? t("audio.noFileSelected")}
+										</div>
+									</div>
+
+									{backgroundMusicPath && (
+										<Button
+											onClick={onBackgroundMusicRemove}
+											variant="destructive"
+											size="sm"
+											className="w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all h-8 text-xs"
+										>
+											<Trash2 className="w-3 h-3" />
+											{t("audio.remove")}
+										</Button>
+									)}
+								</TabsContent>
+
+								<TabsContent value="music" className="mt-0 space-y-2">
+									<div className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/5">
+										<div className="text-[10px] font-medium text-slate-300 mb-0.5">
+											{t("audio.timelineRegions")}
+										</div>
+										<div className="text-[10px] text-slate-500">
+											{t("audio.regionCount", {
+												count: String(backgroundMusicRegions.length),
+											})}
+										</div>
+										<div className="text-[10px] text-slate-500 mt-1">{t("audio.trimHint")}</div>
+									</div>
+
+									<div className="p-2 rounded-lg bg-white/5 border border-white/5 space-y-2">
+										<div className="relative">
+											<Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+											<input
+												type="text"
+												value={musicLibraryQuery}
+												onChange={(event) => {
+													setMusicLibraryQuery(event.target.value);
+													musicListRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+												}}
+												placeholder={t("audio.searchMusicPlaceholder")}
+												className="w-full h-8 pl-8 pr-7 rounded-md bg-black/20 border border-white/10 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
+											/>
+											{musicLibraryQuery && (
+												<button
+													type="button"
+													onClick={() => setMusicLibraryQuery("")}
+													className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+												>
+													<X className="w-3 h-3" />
+												</button>
+											)}
+										</div>
+
+										<div
+											ref={musicListRef}
+											className="max-h-48 overflow-y-auto scroll-smooth custom-scrollbar space-y-1 pr-1"
+										>
+											{filteredMusicLibrary.slice(0, 80).map((track) => (
+												<div
+													key={track.id}
+													className={cn(
+														"flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all",
+														previewingMusicTrackId === track.id
+															? "border-[#34B27B]/30 bg-[#34B27B]/[0.09]"
+															: "border-white/[0.07] bg-black/20 hover:bg-white/[0.05] hover:border-white/[0.14]",
+													)}
+													onClick={() => {
+														void handleMusicLibraryPreview(track.id, track.url);
+													}}
+												>
+													<div className="flex items-center gap-2.5 min-w-0">
+														<div
+															className={cn(
+																"w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors",
+																previewingMusicTrackId === track.id
+																	? "bg-[#34B27B]/15"
+																	: "bg-white/[0.06]",
+															)}
+														>
+															{previewingMusicTrackId === track.id ? (
+																<PlayingBars />
+															) : (
+																<Music className="w-3.5 h-3.5 text-slate-400" />
+															)}
+														</div>
+														<span className="text-[11px] font-medium text-slate-200 truncate">
+															{track.name}
+														</span>
+													</div>
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={(event) => {
+															event.stopPropagation();
+															onMusicTrackSelect?.(track.url);
+														}}
+														className="h-6 px-2.5 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white shrink-0"
+													>
+														{t("audio.useTrack")}
+													</Button>
+												</div>
+											))}
+											{filteredMusicLibrary.length === 0 && (
+												<div className="text-[10px] text-slate-500 text-center py-2">
+													{t("audio.noSearchResults")}
+												</div>
+											)}
+										</div>
+									</div>
+
+									<div
+										className={cn(
+											"rounded-lg border border-white/5 bg-white/[0.02] divide-y divide-white/5",
+											!backgroundMusicPath && "opacity-50",
+										)}
+									>
+										<div className="px-3 pt-2.5 pb-2">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.volume")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{Math.round(backgroundMusicVolume * 100)}%
+												</span>
+											</div>
+											<Slider
+												value={[backgroundMusicVolume]}
+												onValueChange={(values) => onBackgroundMusicVolumeChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicVolumeCommit?.()}
+												min={0}
+												max={1}
+												step={0.01}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+										<div className="px-3 pt-2 pb-2">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.fadeIn")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{backgroundMusicFadeIn.toFixed(1)}s
+												</span>
+											</div>
+											<Slider
+												value={[backgroundMusicFadeIn]}
+												onValueChange={(values) => onBackgroundMusicFadeInChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicFadeInCommit?.()}
+												min={0}
+												max={10}
+												step={0.5}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+										<div className="px-3 pt-2 pb-2.5">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.fadeOut")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{backgroundMusicFadeOut.toFixed(1)}s
+												</span>
+											</div>
+											<Slider
+												value={[backgroundMusicFadeOut]}
+												onValueChange={(values) => onBackgroundMusicFadeOutChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicFadeOutCommit?.()}
+												min={0}
+												max={10}
+												step={0.5}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+									</div>
+
+									{selectedMusicRegionId && onSelectedMusicRegionDelete && (
+										<Button
+											onClick={() => onSelectedMusicRegionDelete(selectedMusicRegionId)}
+											variant="outline"
+											className="w-full gap-2 bg-white/5 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white transition-all h-7 text-[10px]"
+										>
+											<Trash2 className="w-3 h-3" />
+											{t("audio.removeSelectedRegion")}
+										</Button>
+									)}
+								</TabsContent>
+
+								<TabsContent value="hooks" className="mt-0 space-y-2">
+									<div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-3">
+										<div className="flex items-center justify-between">
+											<div className="text-[11px] font-semibold text-slate-200 tracking-wide">
+												{t("audio.hooks.title")}
+											</div>
+											<span className="text-[11px] text-slate-400 font-mono">
+												{Math.round(audioHooksVolume * 100)}%
+											</span>
+										</div>
+										<div className="space-y-1.5">
+											<div className="text-[11px] text-slate-400">{t("audio.hooks.assignTo")}</div>
+											<Select
+												value={selectedHookTarget}
+												onValueChange={(value) => setSelectedHookTarget(value as AudioHookType)}
+											>
+												<SelectTrigger className="h-8 bg-black/30 border-white/15 text-[11px]">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{hookOptions.map((hook) => (
+														<SelectItem key={hook.key} value={hook.key} className="text-sm">
+															{hook.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+										<Slider
+											value={[audioHooksVolume]}
+											onValueChange={(values) => onAudioHooksVolumeChange?.(values[0])}
+											onValueCommit={() => onAudioHooksVolumeCommit?.()}
+											min={0}
+											max={1}
+											step={0.01}
+											className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3.5 [&_[role=slider]]:w-3.5"
+										/>
+
+										<div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+											{hookOptions.map((hook) => (
+												<div
+													key={hook.key}
+													className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/25 border border-white/10"
+												>
+													<span className="text-[11px] text-slate-200">{hook.label}</span>
+													<Switch
+														checked={audioHooks[hook.key]}
+														onCheckedChange={(checked) =>
+															onAudioHooksChange?.({ ...audioHooks, [hook.key]: checked })
+														}
+													/>
+												</div>
+											))}
+										</div>
+										<div className="relative">
+											<Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+											<input
+												type="text"
+												value={hookLibraryQuery}
+												onChange={(event) => {
+													setHookLibraryQuery(event.target.value);
+													hooksListRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+												}}
+												placeholder={t("audio.searchHookPlaceholder")}
+												className="w-full h-8 pl-8 pr-7 rounded-md bg-black/25 border border-white/15 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
+											/>
+											{hookLibraryQuery && (
+												<button
+													type="button"
+													onClick={() => setHookLibraryQuery("")}
+													className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+												>
+													<X className="w-3 h-3" />
+												</button>
+											)}
+										</div>
+										{(hookSoundLayers[selectedHookTarget] ?? []).length > 0 && (
+											<div className="space-y-1.5">
+												<div className="text-[11px] text-slate-400">
+													{t("audio.hooks.assigned")}
+												</div>
+												{(hookSoundLayers[selectedHookTarget] ?? []).map((url) => (
+													<div
+														key={`${selectedHookTarget}-${url}`}
+														className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-black/25 border border-white/10"
+													>
+														<div className="text-[11px] text-slate-200 truncate">
+															{url.split("/").pop()}
+														</div>
+														<Button
+															size="sm"
+															variant="outline"
+															onClick={() => onHookTrackRemove?.(selectedHookTarget, url)}
+															className="h-7 px-2.5 text-[10px] bg-white/5 border-white/10 text-slate-200 hover:bg-red-500/20 hover:border-red-500/40"
+														>
+															{t("audio.remove")}
+														</Button>
+													</div>
+												))}
+											</div>
+										)}
+										<div
+											ref={hooksListRef}
+											className="max-h-52 overflow-y-auto scroll-smooth custom-scrollbar space-y-1 pr-1"
+										>
+											{filteredHooksLibrary.slice(0, 80).map((track) => (
+												<div
+													key={`${selectedHookTarget}-${track.id}`}
+													className={cn(
+														"flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all",
+														previewingHookTrackId === track.id
+															? "border-[#34B27B]/30 bg-[#34B27B]/[0.09]"
+															: "border-white/[0.07] bg-black/20 hover:bg-white/[0.05] hover:border-white/[0.14]",
+													)}
+													onClick={() => {
+														void handleHookLibraryPreview(track.id, track.url);
+													}}
+												>
+													<div className="flex items-center gap-2.5 min-w-0">
+														<div
+															className={cn(
+																"w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors",
+																previewingHookTrackId === track.id
+																	? "bg-[#34B27B]/15"
+																	: "bg-white/[0.06]",
+															)}
+														>
+															{previewingHookTrackId === track.id ? (
+																<PlayingBars />
+															) : (
+																<Sparkles className="w-3.5 h-3.5 text-slate-400" />
+															)}
+														</div>
+														<span className="text-[11px] font-medium text-slate-200 truncate">
+															{track.name}
+														</span>
+													</div>
+													<div className="flex items-center gap-1">
+														<Button
+															size="sm"
+															variant="outline"
+															onClick={(event) => {
+																event.stopPropagation();
+																onHookTimelineAdd?.(selectedHookTarget, track.url, track.name);
+															}}
+															className="h-6 px-2 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white"
+														>
+															{t("audio.useTrack")}
+														</Button>
+														<Button
+															size="sm"
+															variant="outline"
+															onClick={(event) => {
+																event.stopPropagation();
+																onHookTrackAdd?.(selectedHookTarget, track.url);
+															}}
+															className="h-6 px-2 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white"
+														>
+															{t("audio.addTrack")}
+														</Button>
+													</div>
+												</div>
+											))}
+											{filteredHooksLibrary.length === 0 && (
+												<div className="text-[10px] text-slate-500 text-center py-2">
+													{t("audio.noSearchResults")}
+												</div>
+											)}
+										</div>
+									</div>
+								</TabsContent>
+							</Tabs>
+						</AccordionContent>
+					</AccordionItem>
+
 					<AccordionItem
 						value="background"
 						className="border-white/5 rounded-xl bg-white/[0.02] px-3"
@@ -1072,7 +1716,7 @@ export function SettingsPanel({
 						</AccordionTrigger>
 						<AccordionContent className="pb-3">
 							<Tabs defaultValue="image" className="w-full">
-								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 rounded-lg">
+								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
 									<TabsTrigger
 										value="image"
 										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"
@@ -1093,7 +1737,7 @@ export function SettingsPanel({
 									</TabsTrigger>
 								</TabsList>
 
-								<div className="max-h-[min(200px,25vh)] overflow-y-auto custom-scrollbar">
+								<div className="max-h-[min(200px,25vh)] overflow-y-auto scroll-smooth custom-scrollbar">
 									<TabsContent value="image" className="mt-0 space-y-2">
 										<input
 											type="file"
@@ -1351,173 +1995,177 @@ export function SettingsPanel({
 				</>
 			)}
 
-			<div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
-				<div className="flex items-center gap-2 mb-3">
-					<button
-						onClick={() => onExportFormatChange?.("mp4")}
-						className={cn(
-							"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
-							exportFormat === "mp4"
-								? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
-								: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
-						)}
-					>
-						<Film className="w-3.5 h-3.5" />
-						{t("exportFormat.mp4")}
-					</button>
-					<button
-						data-testid={getTestId("gif-format-button")}
-						onClick={() => onExportFormatChange?.("gif")}
-						className={cn(
-							"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
-							exportFormat === "gif"
-								? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
-								: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
-						)}
-					>
-						<Image className="w-3.5 h-3.5" />
-						{t("exportFormat.gif")}
-					</button>
-				</div>
-
-				{exportFormat === "mp4" && (
-					<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+			{showEmbeddedExportSection && (
+				<div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
+					<div className="flex items-center gap-2 mb-3">
 						<button
-							onClick={() => onExportQualityChange?.("medium")}
+							onClick={() => onExportFormatChange?.("mp4")}
 							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "medium"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
+								"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
+								exportFormat === "mp4"
+									? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
+									: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
 							)}
 						>
-							{t("exportQuality.low")}
+							<Film className="w-3.5 h-3.5" />
+							{t("exportFormat.mp4")}
 						</button>
 						<button
-							onClick={() => onExportQualityChange?.("good")}
+							data-testid={getTestId("gif-format-button")}
+							onClick={() => onExportFormatChange?.("gif")}
 							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "good"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
+								"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
+								exportFormat === "gif"
+									? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
+									: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
 							)}
 						>
-							{t("exportQuality.medium")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("source")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "source"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.high")}
+							<Image className="w-3.5 h-3.5" />
+							{t("exportFormat.gif")}
 						</button>
 					</div>
-				)}
 
-				{exportFormat === "gif" && (
-					<div className="mb-3 space-y-2">
-						<div className="flex items-center gap-2">
-							<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-4 h-7 rounded-lg">
-								{GIF_FRAME_RATES.map((rate) => (
-									<button
-										key={rate.value}
-										onClick={() => onGifFrameRateChange?.(rate.value)}
-										className={cn(
-											"rounded-md transition-all text-[10px] font-medium",
-											gifFrameRate === rate.value
-												? "bg-white text-black"
-												: "text-slate-400 hover:text-slate-200",
-										)}
-									>
-										{rate.value}
-									</button>
-								))}
-							</div>
-							<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
-								{Object.entries(GIF_SIZE_PRESETS).map(([key, _preset]) => (
-									<button
-										key={key}
-										data-testid={getTestId(`gif-size-button-${key}`)}
-										onClick={() => onGifSizePresetChange?.(key as GifSizePreset)}
-										className={cn(
-											"rounded-md transition-all text-[10px] font-medium",
-											gifSizePreset === key
-												? "bg-white text-black"
-												: "text-slate-400 hover:text-slate-200",
-										)}
-									>
-										{key === "original" ? "Orig" : key.charAt(0).toUpperCase() + key.slice(1, 3)}
-									</button>
-								))}
-							</div>
+					{exportFormat === "mp4" && (
+						<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+							<button
+								onClick={() => onExportQualityChange?.("medium")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "medium"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.low")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("good")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "good"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.medium")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("source")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "source"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.high")}
+							</button>
 						</div>
-						<div className="flex items-center justify-between">
-							<span className="text-[10px] text-slate-500">
-								{gifOutputDimensions.width} × {gifOutputDimensions.height}px
-							</span>
+					)}
+
+					{exportFormat === "gif" && (
+						<div className="mb-3 space-y-2">
 							<div className="flex items-center gap-2">
-								<span className="text-[10px] text-slate-400">{t("gifSettings.loop")}</span>
-								<Switch
-									checked={gifLoop}
-									onCheckedChange={onGifLoopChange}
-									className="data-[state=checked]:bg-[#34B27B] scale-75"
-								/>
+								<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-4 h-7 rounded-lg">
+									{GIF_FRAME_RATES.map((rate) => (
+										<button
+											key={rate.value}
+											onClick={() => onGifFrameRateChange?.(rate.value)}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												gifFrameRate === rate.value
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+											)}
+										>
+											{rate.value}
+										</button>
+									))}
+								</div>
+								<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
+									{Object.entries(GIF_SIZE_PRESETS).map(([key, _preset]) => (
+										<button
+											key={key}
+											data-testid={getTestId(`gif-size-button-${key}`)}
+											onClick={() => onGifSizePresetChange?.(key as GifSizePreset)}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												gifSizePreset === key
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+											)}
+										>
+											{key === "original" ? "Orig" : key.charAt(0).toUpperCase() + key.slice(1, 3)}
+										</button>
+									))}
+								</div>
+							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-[10px] text-slate-500">
+									{gifOutputDimensions.width} × {gifOutputDimensions.height}px
+								</span>
+								<div className="flex items-center gap-2">
+									<span className="text-[10px] text-slate-400">{t("gifSettings.loop")}</span>
+									<Switch
+										checked={gifLoop}
+										onCheckedChange={onGifLoopChange}
+										className="data-[state=checked]:bg-[#34B27B] scale-75"
+									/>
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
 
-				{unsavedExport && (
+					{unsavedExport && (
+						<Button
+							type="button"
+							size="lg"
+							onClick={onSaveUnsavedExport}
+							className="w-full mb-2 py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-500/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+						>
+							<Download className="w-4 h-4" />
+							{t("export.chooseSaveLocation")}
+						</Button>
+					)}
 					<Button
+						data-testid={getTestId("export-button")}
 						type="button"
 						size="lg"
-						onClick={onSaveUnsavedExport}
-						className="w-full mb-2 py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-500/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+						onClick={onExport}
+						className="w-full py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#34B27B]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
 					>
 						<Download className="w-4 h-4" />
-						{t("export.chooseSaveLocation")}
+						{exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton")}
 					</Button>
-				)}
-				<Button
-					data-testid={getTestId("export-button")}
-					type="button"
-					size="lg"
-					onClick={onExport}
-					className="w-full py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#34B27B]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-				>
-					<Download className="w-4 h-4" />
-					{exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton")}
-				</Button>
 
-				<div className="flex gap-2 mt-3">
-					<button
-						type="button"
-						onClick={() => {
-							window.electronAPI?.openExternalUrl(
-								"https://github.com/siddharthvaddem/openscreen/issues/new/choose",
-							);
-						}}
-						className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
-					>
-						<Bug className="w-3 h-3 text-[#34B27B]" />
-						{t("links.reportBug")}
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							window.electronAPI?.openExternalUrl("https://github.com/siddharthvaddem/openscreen");
-						}}
-						className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
-					>
-						<Star className="w-3 h-3 text-yellow-400" />
-						{t("links.starOnGithub")}
-					</button>
+					<div className="flex gap-2 mt-3">
+						<button
+							type="button"
+							onClick={() => {
+								window.electronAPI?.openExternalUrl(
+									"https://github.com/siddharthvaddem/openscreen/issues/new/choose",
+								);
+							}}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<Bug className="w-3 h-3 text-[#34B27B]" />
+							{t("links.reportBug")}
+						</button>
+						<button
+							type="button"
+							onClick={() => {
+								window.electronAPI?.openExternalUrl(
+									"https://github.com/siddharthvaddem/openscreen",
+								);
+							}}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<Star className="w-3 h-3 text-yellow-400" />
+							{t("links.starOnGithub")}
+						</button>
+					</div>
 				</div>
-			</div>
+			)}
 		</div>
 	);
 }

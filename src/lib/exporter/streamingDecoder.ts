@@ -150,8 +150,13 @@ export class StreamingVideoDecoder {
 			};
 		}
 
+		const resolvedVideoUrl =
+			videoUrl.startsWith("/") || videoUrl.startsWith("./") || videoUrl.startsWith("../")
+				? new URL(videoUrl, window.location.href).href
+				: videoUrl;
+
 		const response = await this.withTimeout(
-			fetch(videoUrl),
+			fetch(resolvedVideoUrl),
 			SOURCE_LOAD_TIMEOUT_MS,
 			"Timed out while loading the source video.",
 		);
@@ -163,7 +168,7 @@ export class StreamingVideoDecoder {
 			SOURCE_LOAD_TIMEOUT_MS,
 			"Timed out while reading the source video.",
 		);
-		const filename = videoUrl.split("/").pop() || "video";
+		const filename = resolvedVideoUrl.split("/").pop() || "video";
 		return {
 			blob,
 			file: new File([blob], filename, { type: blob.type }),

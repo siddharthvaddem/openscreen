@@ -24,6 +24,10 @@
     {
       "from": "public/wallpapers",
       "to": "assets/wallpapers"
+    },
+    {
+      "from": "public/audio",
+      "to": "assets/audio"
     }
   ],
 

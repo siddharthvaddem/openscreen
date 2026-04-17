@@ -4,13 +4,15 @@
 		"suggestZooms": "커서 기반 줌 제안",
 		"addTrim": "트림 추가 (T)",
 		"addAnnotation": "주석 추가 (A)",
-		"addSpeed": "속도 추가 (S)"
+		"addSpeed": "속도 추가 (S)",
+		"addBlur": "블러 추가 (B)"
 	},
 	"hints": {
 		"pressZoom": "Z를 눌러 줌 추가",
 		"pressTrim": "T를 눌러 트림 추가",
 		"pressAnnotation": "A를 눌러 주석 추가",
-		"pressSpeed": "S를 눌러 속도 추가"
+		"pressSpeed": "S를 눌러 속도 추가",
+		"pressBlur": "B를 눌러 블러 구간 추가"
 	},
 	"labels": {
 		"pan": "이동",
@@ -18,9 +20,26 @@
 		"zoomItem": "줌 {{index}}",
 		"trimItem": "트림 {{index}}",
 		"speedItem": "속도 {{index}}",
+		"hookItem": "Hook {{index}}",
 		"annotationItem": "주석",
 		"imageItem": "이미지",
-		"emptyText": "빈 텍스트"
+		"emptyText": "빈 텍스트",
+		"blurItem": "블러 {{index}}",
+		"musicItem": "음악 {{index}}"
+	},
+	"controls": {
+		"toggleRowsTitle": "타임라인 행 표시 또는 숨기기",
+		"tracks": "트랙",
+		"timelineVisibility": "타임라인 표시"
+	},
+	"rows": {
+		"zoom": "줌",
+		"trim": "트림",
+		"annotation": "주석",
+		"blur": "블러",
+		"speed": "속도",
+		"hook": "Hook",
+		"music": "음악"
 	},
 	"emptyState": {
 		"noVideo": "불러온 비디오 없음",
@@ -41,7 +60,9 @@
 		"cannotPlaceTrim": "이 위치에 트림을 추가할 수 없습니다",
 		"trimExistsAtLocation": "이 위치에 이미 트림이 있거나 공간이 부족합니다.",
 		"cannotPlaceSpeed": "이 위치에 속도를 추가할 수 없습니다",
-		"speedExistsAtLocation": "이 위치에 이미 속도 구간이 있거나 공간이 부족합니다."
+		"speedExistsAtLocation": "이 위치에 이미 속도 구간이 있거나 공간이 부족합니다.",
+		"cannotPlaceMusic": "이 위치에 음악을 추가할 수 없습니다",
+		"musicExistsAtLocation": "이 위치에 이미 음악 구간이 있거나 공간이 부족합니다."
 	},
 	"success": {
 		"addedZoomSuggestions": "커서 기반 줌 제안 {{count}}개가 추가되었습니다",

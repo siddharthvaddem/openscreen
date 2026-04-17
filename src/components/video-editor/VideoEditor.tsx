@@ -1,6 +1,7 @@
 import type { Span } from "dnd-timeline";
-import { FolderOpen, Languages, Save, Video } from "lucide-react";
+import { Bug, Download, FolderOpen, Languages, Save, Star, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaDiscord } from "react-icons/fa";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { resolveAudioSourceUrl, useAudioPreview } from "@/hooks/useAudioPreview";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale } from "@/i18n/config";
 import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
@@ -38,6 +40,7 @@ import {
 	isPortraitAspectRatio,
 } from "@/utils/aspectRatioUtils";
 import { ExportDialog } from "./ExportDialog";
+import { ExportSettingsPopup } from "./ExportSettingsPopup";
 import PlaybackControls from "./PlaybackControls";
 import {
 	createProjectData,
@@ -76,6 +79,10 @@ import {
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayback/constants";
 
+const OPENSCREEN_GITHUB_URL = "https://github.com/siddharthvaddem/openscreen";
+const OPENSCREEN_REPORT_BUG_URL = "https://github.com/siddharthvaddem/openscreen/issues/new/choose";
+const OPENSCREEN_DISCORD_INVITE_URL = "https://discord.gg/kpPMU5C9";
+
 export default function VideoEditor() {
 	const {
 		state: editorState,
@@ -91,6 +98,14 @@ export default function VideoEditor() {
 		trimRegions,
 		speedRegions,
 		annotationRegions,
+		hookRegions,
+		backgroundMusicPath,
+		backgroundMusicRegions,
+		backgroundMusicVolume,
+		backgroundMusicFadeIn,
+		backgroundMusicFadeOut,
+		audioHooks,
+		audioHooksVolume,
 		cropRegion,
 		wallpaper,
 		shadowIntensity,
@@ -124,12 +139,15 @@ export default function VideoEditor() {
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
 	const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
+	const [selectedMusicRegionId, setSelectedMusicRegionId] = useState<string | null>(null);
+	const [selectedHookRegionId, setSelectedHookRegionId] = useState<string | null>(null);
 	const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
 	const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 	const [exportError, setExportError] = useState<string | null>(null);
 	const [showExportDialog, setShowExportDialog] = useState(false);
+	const [showExportSettingsPopup, setShowExportSettingsPopup] = useState(false);
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
@@ -151,6 +169,8 @@ export default function VideoEditor() {
 	const nextZoomIdRef = useRef(1);
 	const nextTrimIdRef = useRef(1);
 	const nextSpeedIdRef = useRef(1);
+	const nextMusicTrimIdRef = useRef(1);
+	const nextHookRegionIdRef = useRef(1);
 
 	const { shortcuts, isMac } = useShortcuts();
 	const t = useScopedT("editor");
@@ -170,6 +190,63 @@ export default function VideoEditor() {
 		() => annotationRegions.filter((region) => region.type === "blur"),
 		[annotationRegions],
 	);
+
+	const handleSelectMusicRegion = useCallback((id: string | null) => {
+		setSelectedMusicRegionId(id);
+		if (id) {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedSpeedId(null);
+			setSelectedHookRegionId(null);
+			setSelectedAnnotationId(null);
+			setSelectedBlurId(null);
+		}
+	}, []);
+
+	const handleSelectHookRegion = useCallback((id: string | null) => {
+		setSelectedHookRegionId(id);
+		if (id) {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedSpeedId(null);
+			setSelectedMusicRegionId(null);
+			setSelectedAnnotationId(null);
+			setSelectedBlurId(null);
+		}
+	}, []);
+
+	const {
+		hookSoundLayers,
+		setHookSoundLayers,
+		handlePickBackgroundMusic,
+		handleMusicTrackSelect,
+		handleRemoveBackgroundMusic,
+		handleMusicRegionAdded,
+		handleMusicRegionSpanChange,
+		handleMusicRegionDelete,
+		handleHookTrackAdd,
+		handleHookTrackRemove,
+		handleHookTimelineAdd,
+	} = useAudioPreview({
+		pushState,
+		currentTimeRef,
+		durationRef,
+		nextMusicTrimIdRef,
+		nextHookRegionIdRef,
+		audioHooks,
+		audioHooksVolume,
+		hookRegions,
+		zoomRegions,
+		trimRegions,
+		speedRegions,
+		annotationOnlyRegions,
+		blurRegions,
+		currentTime,
+		isPlaying,
+		selectedMusicRegionId,
+		onSelectMusicRegion: handleSelectMusicRegion,
+		onSelectHookRegion: handleSelectHookRegion,
+	});
 
 	const currentProjectMedia = useMemo<ProjectMedia | null>(() => {
 		const screenVideoPath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
@@ -217,6 +294,13 @@ export default function VideoEditor() {
 
 			pushState({
 				wallpaper: normalizedEditor.wallpaper,
+				backgroundMusicPath: normalizedEditor.backgroundMusicPath,
+				backgroundMusicRegions: normalizedEditor.backgroundMusicRegions,
+				backgroundMusicVolume: normalizedEditor.backgroundMusicVolume,
+				backgroundMusicFadeIn: normalizedEditor.backgroundMusicFadeIn,
+				backgroundMusicFadeOut: normalizedEditor.backgroundMusicFadeOut,
+				audioHooks: normalizedEditor.audioHooks,
+				audioHooksVolume: normalizedEditor.audioHooksVolume,
 				shadowIntensity: normalizedEditor.shadowIntensity,
 				showBlur: normalizedEditor.showBlur,
 				motionBlurAmount: normalizedEditor.motionBlurAmount,
@@ -227,6 +311,7 @@ export default function VideoEditor() {
 				trimRegions: normalizedEditor.trimRegions,
 				speedRegions: normalizedEditor.speedRegions,
 				annotationRegions: normalizedEditor.annotationRegions,
+				hookRegions: normalizedEditor.hookRegions,
 				aspectRatio: normalizedEditor.aspectRatio,
 				webcamLayoutPreset: normalizedEditor.webcamLayoutPreset,
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
@@ -238,10 +323,13 @@ export default function VideoEditor() {
 			setGifFrameRate(normalizedEditor.gifFrameRate);
 			setGifLoop(normalizedEditor.gifLoop);
 			setGifSizePreset(normalizedEditor.gifSizePreset);
+			setHookSoundLayers(normalizedEditor.hookSoundLayers);
 
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
 			setSelectedSpeedId(null);
+			setSelectedMusicRegionId(null);
+			setSelectedHookRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 
@@ -257,9 +345,17 @@ export default function VideoEditor() {
 				"speed",
 				normalizedEditor.speedRegions.map((region) => region.id),
 			);
+			nextMusicTrimIdRef.current = deriveNextId(
+				"music",
+				normalizedEditor.backgroundMusicRegions.map((region) => region.id),
+			);
 			nextAnnotationIdRef.current = deriveNextId(
 				"annotation",
 				normalizedEditor.annotationRegions.map((region) => region.id),
+			);
+			nextHookRegionIdRef.current = deriveNextId(
+				"hook",
+				normalizedEditor.hookRegions.map((region) => region.id),
 			);
 			nextAnnotationZIndexRef.current =
 				normalizedEditor.annotationRegions.reduce(
@@ -277,7 +373,7 @@ export default function VideoEditor() {
 			);
 			return true;
 		},
-		[pushState],
+		[pushState, setHookSoundLayers],
 	);
 
 	const currentProjectSnapshot = useMemo(() => {
@@ -286,6 +382,14 @@ export default function VideoEditor() {
 		}
 		return createProjectSnapshot(currentProjectMedia, {
 			wallpaper,
+			backgroundMusicPath,
+			backgroundMusicRegions,
+			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
+			audioHooks,
+			hookSoundLayers,
+			audioHooksVolume,
 			shadowIntensity,
 			showBlur,
 			motionBlurAmount,
@@ -296,9 +400,11 @@ export default function VideoEditor() {
 			trimRegions,
 			speedRegions,
 			annotationRegions,
+			hookRegions,
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -309,6 +415,14 @@ export default function VideoEditor() {
 	}, [
 		currentProjectMedia,
 		wallpaper,
+		backgroundMusicPath,
+		backgroundMusicRegions,
+		backgroundMusicVolume,
+		backgroundMusicFadeIn,
+		backgroundMusicFadeOut,
+		audioHooks,
+		hookSoundLayers,
+		audioHooksVolume,
 		shadowIntensity,
 		showBlur,
 		motionBlurAmount,
@@ -319,6 +433,7 @@ export default function VideoEditor() {
 		trimRegions,
 		speedRegions,
 		annotationRegions,
+		hookRegions,
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
@@ -430,6 +545,14 @@ export default function VideoEditor() {
 
 			const projectData = createProjectData(currentProjectMedia, {
 				wallpaper,
+				backgroundMusicPath,
+				backgroundMusicRegions,
+				backgroundMusicVolume,
+				backgroundMusicFadeIn,
+				backgroundMusicFadeOut,
+				audioHooks,
+				hookSoundLayers,
+				audioHooksVolume,
 				shadowIntensity,
 				showBlur,
 				motionBlurAmount,
@@ -440,6 +563,7 @@ export default function VideoEditor() {
 				trimRegions,
 				speedRegions,
 				annotationRegions,
+				hookRegions,
 				aspectRatio,
 				webcamLayoutPreset,
 				webcamMaskShape,
@@ -486,6 +610,14 @@ export default function VideoEditor() {
 			currentProjectMedia,
 			currentProjectPath,
 			wallpaper,
+			backgroundMusicPath,
+			backgroundMusicRegions,
+			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
+			audioHooks,
+			hookSoundLayers,
+			audioHooksVolume,
 			shadowIntensity,
 			showBlur,
 			motionBlurAmount,
@@ -496,6 +628,7 @@ export default function VideoEditor() {
 			trimRegions,
 			speedRegions,
 			annotationRegions,
+			hookRegions,
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
@@ -639,10 +772,41 @@ export default function VideoEditor() {
 		video.currentTime = time;
 	}
 
+	const handleHookRegionSpanChange = useCallback(
+		(id: string, span: Span) => {
+			pushState((prev) => ({
+				hookRegions: prev.hookRegions.map((region) =>
+					region.id === id
+						? {
+								...region,
+								startMs: Math.round(span.start),
+								endMs: Math.round(span.end),
+							}
+						: region,
+				),
+			}));
+		},
+		[pushState],
+	);
+
+	const handleHookRegionDelete = useCallback(
+		(id: string) => {
+			pushState((prev) => ({
+				hookRegions: prev.hookRegions.filter((region) => region.id !== id),
+			}));
+			if (selectedHookRegionId === id) {
+				setSelectedHookRegionId(null);
+			}
+		},
+		[pushState, selectedHookRegionId],
+	);
+
 	const handleSelectZoom = useCallback((id: string | null) => {
 		setSelectedZoomId(id);
 		if (id) {
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		}
@@ -652,6 +816,8 @@ export default function VideoEditor() {
 		setSelectedTrimId(id);
 		if (id) {
 			setSelectedZoomId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		}
@@ -662,6 +828,8 @@ export default function VideoEditor() {
 		if (id) {
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedBlurId(null);
 		}
 	}, []);
@@ -671,6 +839,8 @@ export default function VideoEditor() {
 		if (id) {
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedSpeedId(null);
 		}
@@ -689,6 +859,7 @@ export default function VideoEditor() {
 			pushState((prev) => ({ zoomRegions: [...prev.zoomRegions, newRegion] }));
 			setSelectedZoomId(id);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		},
@@ -708,6 +879,7 @@ export default function VideoEditor() {
 			pushState((prev) => ({ zoomRegions: [...prev.zoomRegions, newRegion] }));
 			setSelectedZoomId(id);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		},
@@ -725,6 +897,7 @@ export default function VideoEditor() {
 			pushState((prev) => ({ trimRegions: [...prev.trimRegions, newRegion] }));
 			setSelectedTrimId(id);
 			setSelectedZoomId(null);
+			setSelectedHookRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		},
@@ -836,6 +1009,8 @@ export default function VideoEditor() {
 		if (id) {
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		}
@@ -856,6 +1031,8 @@ export default function VideoEditor() {
 			setSelectedSpeedId(id);
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
+			setSelectedMusicRegionId(null);
 			setSelectedAnnotationId(null);
 			setSelectedBlurId(null);
 		},
@@ -924,6 +1101,7 @@ export default function VideoEditor() {
 			setSelectedAnnotationId(id);
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
 			setSelectedBlurId(null);
 		},
 		[pushState],
@@ -952,6 +1130,7 @@ export default function VideoEditor() {
 			setSelectedAnnotationId(null);
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
+			setSelectedHookRegionId(null);
 			setSelectedSpeedId(null);
 		},
 		[pushState],
@@ -1047,10 +1226,12 @@ export default function VideoEditor() {
 			if (type === "blur" && selectedAnnotationId === id) {
 				setSelectedAnnotationId(null);
 				setSelectedBlurId(id);
+				setSelectedHookRegionId(null);
 				setSelectedSpeedId(null);
 			} else if (type !== "blur" && selectedBlurId === id) {
 				setSelectedBlurId(null);
 				setSelectedAnnotationId(id);
+				setSelectedHookRegionId(null);
 			}
 		},
 		[pushState, selectedAnnotationId, selectedBlurId],
@@ -1250,6 +1431,21 @@ export default function VideoEditor() {
 			setSelectedSpeedId(null);
 		}
 	}, [selectedSpeedId, speedRegions]);
+
+	useEffect(() => {
+		if (
+			selectedMusicRegionId &&
+			!backgroundMusicRegions.some((region) => region.id === selectedMusicRegionId)
+		) {
+			setSelectedMusicRegionId(null);
+		}
+	}, [selectedMusicRegionId, backgroundMusicRegions]);
+
+	useEffect(() => {
+		if (selectedHookRegionId && !hookRegions.some((region) => region.id === selectedHookRegionId)) {
+			setSelectedHookRegionId(null);
+		}
+	}, [selectedHookRegionId, hookRegions]);
 
 	const handleShowExportedFile = useCallback(async (filePath: string) => {
 		try {
@@ -1480,6 +1676,15 @@ export default function VideoEditor() {
 					const exporter = new VideoExporter({
 						videoUrl: videoPath,
 						webcamVideoUrl: webcamVideoPath || undefined,
+						backgroundAudioUrl: resolveAudioSourceUrl(backgroundMusicPath),
+						backgroundAudioRegions: backgroundMusicRegions,
+						backgroundAudioVolume: backgroundMusicVolume,
+						backgroundMusicFadeIn,
+						backgroundMusicFadeOut,
+						audioHooks,
+						audioHooksVolume,
+						hookSoundLayers,
+						hookRegions,
 						width: exportWidth,
 						height: exportHeight,
 						frameRate: 60,
@@ -1564,14 +1769,23 @@ export default function VideoEditor() {
 			motionBlurAmount,
 			borderRadius,
 			padding,
+			backgroundMusicPath,
+			backgroundMusicRegions,
+			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
+			audioHooks,
+			audioHooksVolume,
 			cropRegion,
 			annotationRegions,
+			hookRegions,
 			isPlaying,
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
 			webcamSizePreset,
 			webcamPosition,
+			hookSoundLayers,
 			exportQuality,
 			handleExportSaved,
 			cursorTelemetry,
@@ -1648,6 +1862,10 @@ export default function VideoEditor() {
 			setExportError(null);
 			setExportedFilePath(null);
 		}
+	}, []);
+
+	const handleOpenExternal = useCallback((url: string) => {
+		window.electronAPI?.openExternalUrl(url);
 	}, []);
 
 	if (loading) {
@@ -1754,6 +1972,43 @@ export default function VideoEditor() {
 						{ts("project.save")}
 					</button>
 				</div>
+				<div
+					className="flex items-center gap-1"
+					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+				>
+					<button
+						type="button"
+						onClick={() => setShowExportSettingsPopup(true)}
+						className="inline-flex items-center gap-1.5 rounded-md border border-[#34B27B]/45 bg-[#34B27B]/10 px-2.5 py-1 text-[11px] font-semibold text-[#9ee7c8] hover:bg-[#34B27B]/20 hover:text-white transition-colors"
+					>
+						<Download size={13} />
+						Export
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_REPORT_BUG_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title={ts("links.reportBug")}
+					>
+						<Bug size={13} />
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_GITHUB_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title={ts("links.starOnGithub")}
+					>
+						<Star size={13} />
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_DISCORD_INVITE_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title="Join Discord"
+					>
+						<FaDiscord size={13} />
+					</button>
+				</div>
 			</div>
 
 			<div className="flex-1 p-5 gap-4 flex min-h-0 relative">
@@ -1831,6 +2086,11 @@ export default function VideoEditor() {
 											onBlurDataChange={handleBlurDataPreviewChange}
 											onBlurDataCommit={commitState}
 											cursorTelemetry={cursorTelemetry}
+											backgroundMusicPath={resolveAudioSourceUrl(backgroundMusicPath)}
+											backgroundMusicRegions={backgroundMusicRegions}
+											backgroundMusicVolume={backgroundMusicVolume}
+											backgroundMusicFadeIn={backgroundMusicFadeIn}
+											backgroundMusicFadeOut={backgroundMusicFadeOut}
 										/>
 									</div>
 								</div>
@@ -1883,6 +2143,17 @@ export default function VideoEditor() {
 									onSpeedDelete={handleSpeedDelete}
 									selectedSpeedId={selectedSpeedId}
 									onSelectSpeed={handleSelectSpeed}
+									hookRegions={hookRegions}
+									onHookSpanChange={handleHookRegionSpanChange}
+									onHookDelete={handleHookRegionDelete}
+									selectedHookId={selectedHookRegionId}
+									onSelectHook={handleSelectHookRegion}
+									musicRegions={backgroundMusicRegions}
+									onMusicAdded={handleMusicRegionAdded}
+									onMusicSpanChange={handleMusicRegionSpanChange}
+									onMusicDelete={handleMusicRegionDelete}
+									selectedMusicId={selectedMusicRegionId}
+									onSelectMusic={handleSelectMusicRegion}
 									annotationRegions={annotationOnlyRegions}
 									onAnnotationAdded={handleAnnotationAdded}
 									onAnnotationSpanChange={handleAnnotationSpanChange}
@@ -1946,6 +2217,31 @@ export default function VideoEditor() {
 						padding={padding}
 						onPaddingChange={(v) => updateState({ padding: v })}
 						onPaddingCommit={commitState}
+						backgroundMusicPath={backgroundMusicPath}
+						backgroundMusicVolume={backgroundMusicVolume}
+						backgroundMusicFadeIn={backgroundMusicFadeIn}
+						backgroundMusicFadeOut={backgroundMusicFadeOut}
+						onBackgroundMusicPick={handlePickBackgroundMusic}
+						onBackgroundMusicRemove={handleRemoveBackgroundMusic}
+						onBackgroundMusicVolumeChange={(v) => updateState({ backgroundMusicVolume: v })}
+						onBackgroundMusicVolumeCommit={commitState}
+						onBackgroundMusicFadeInChange={(v) => updateState({ backgroundMusicFadeIn: v })}
+						onBackgroundMusicFadeInCommit={commitState}
+						onBackgroundMusicFadeOutChange={(v) => updateState({ backgroundMusicFadeOut: v })}
+						onBackgroundMusicFadeOutCommit={commitState}
+						onMusicTrackSelect={handleMusicTrackSelect}
+						backgroundMusicRegions={backgroundMusicRegions}
+						selectedMusicRegionId={selectedMusicRegionId}
+						onSelectedMusicRegionDelete={handleMusicRegionDelete}
+						audioHooks={audioHooks}
+						audioHooksVolume={audioHooksVolume}
+						onAudioHooksChange={(hooks) => pushState({ audioHooks: hooks })}
+						onAudioHooksVolumeChange={(v) => updateState({ audioHooksVolume: v })}
+						onAudioHooksVolumeCommit={commitState}
+						hookSoundLayers={hookSoundLayers}
+						onHookTrackAdd={handleHookTrackAdd}
+						onHookTrackRemove={handleHookTrackRemove}
+						onHookTimelineAdd={handleHookTimelineAdd}
 						cropRegion={cropRegion}
 						onCropChange={(r) => pushState({ cropRegion: r })}
 						aspectRatio={aspectRatio}
@@ -2024,9 +2320,44 @@ export default function VideoEditor() {
 						onZoomDurationChange={(zoomIn, zoomOut) =>
 							selectedZoomId && handleZoomDurationChange(selectedZoomId, zoomIn, zoomOut)
 						}
+						showEmbeddedExportSection={false}
 					/>
 				</div>
 			</div>
+
+			<ExportSettingsPopup
+				isOpen={showExportSettingsPopup}
+				onClose={() => setShowExportSettingsPopup(false)}
+				exportFormat={exportFormat}
+				onExportFormatChange={setExportFormat}
+				exportQuality={exportQuality}
+				onExportQualityChange={setExportQuality}
+				gifFrameRate={gifFrameRate}
+				onGifFrameRateChange={setGifFrameRate}
+				gifLoop={gifLoop}
+				onGifLoopChange={setGifLoop}
+				gifSizePreset={gifSizePreset}
+				onGifSizePresetChange={setGifSizePreset}
+				gifOutputDimensions={calculateOutputDimensions(
+					videoPlaybackRef.current?.video?.videoWidth || 1920,
+					videoPlaybackRef.current?.video?.videoHeight || 1080,
+					gifSizePreset,
+					GIF_SIZE_PRESETS,
+					aspectRatio === "native"
+						? getNativeAspectRatioValue(
+								videoPlaybackRef.current?.video?.videoWidth || 1920,
+								videoPlaybackRef.current?.video?.videoHeight || 1080,
+								cropRegion,
+							)
+						: getAspectRatioValue(aspectRatio),
+				)}
+				onExport={() => {
+					setShowExportSettingsPopup(false);
+					handleOpenExportDialog();
+				}}
+				unsavedExport={unsavedExport}
+				onSaveUnsavedExport={handleSaveUnsavedExport}
+			/>
 
 			<ExportDialog
 				isOpen={showExportDialog}

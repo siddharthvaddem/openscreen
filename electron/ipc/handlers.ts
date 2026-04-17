@@ -25,6 +25,15 @@ const PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 const RECORDING_SESSION_SUFFIX = ".session.json";
 const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+const ALLOWED_IMPORT_AUDIO_EXTENSIONS = new Set([
+	".mp3",
+	".wav",
+	".m4a",
+	".aac",
+	".ogg",
+	".flac",
+	".webm",
+]);
 
 /**
  * Paths explicitly approved by the user via file picker dialogs or project loads.
@@ -56,6 +65,10 @@ function hasAllowedImportVideoExtension(filePath: string): boolean {
 	return ALLOWED_IMPORT_VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
+function hasAllowedImportAudioExtension(filePath: string): boolean {
+	return ALLOWED_IMPORT_AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
 async function approveReadableVideoPath(
 	filePath?: string | null,
 	trustedDirs?: string[],
@@ -82,6 +95,33 @@ async function approveReadableVideoPath(
 		if (!withinTrusted) {
 			return null;
 		}
+	}
+
+	try {
+		const stats = await fs.stat(normalizedPath);
+		if (!stats.isFile()) {
+			return null;
+		}
+	} catch {
+		return null;
+	}
+
+	approveFilePath(normalizedPath);
+	return normalizedPath;
+}
+
+async function approveReadableAudioPath(filePath?: string | null): Promise<string | null> {
+	const normalizedPath = normalizeVideoSourcePath(filePath);
+	if (!normalizedPath) {
+		return null;
+	}
+
+	if (isPathAllowed(normalizedPath)) {
+		return normalizedPath;
+	}
+
+	if (!hasAllowedImportAudioExtension(normalizedPath)) {
+		return null;
 	}
 
 	try {
@@ -719,6 +759,47 @@ export function registerIpcHandlers(
 			return {
 				success: false,
 				message: "Failed to open file picker",
+				error: String(error),
+			};
+		}
+	});
+
+	ipcMain.handle("open-audio-file-picker", async () => {
+		try {
+			const result = await dialog.showOpenDialog({
+				title: "Select audio",
+				defaultPath: app.getPath("music"),
+				filters: [
+					{
+						name: "Audio Files",
+						extensions: ["mp3", "wav", "m4a", "aac", "ogg", "flac", "webm"],
+					},
+					{ name: "All Files", extensions: ["*"] },
+				],
+				properties: ["openFile"],
+			});
+
+			if (result.canceled || result.filePaths.length === 0) {
+				return { success: false, canceled: true };
+			}
+
+			const approvedPath = await approveReadableAudioPath(result.filePaths[0]);
+			if (!approvedPath) {
+				return {
+					success: false,
+					message: "Selected file is not a supported audio file",
+				};
+			}
+
+			return {
+				success: true,
+				path: approvedPath,
+			};
+		} catch (error) {
+			console.error("Failed to open audio file picker:", error);
+			return {
+				success: false,
+				message: "Failed to open audio file picker",
 				error: String(error),
 			};
 		}

@@ -46,6 +46,15 @@
 		"roundness": "圆角",
 		"padding": "内边距"
 	},
+	"audio": {
+		"title": "音频",
+		"backgroundMusic": "背景音乐",
+		"upload": "上传音频",
+		"replace": "替换音频",
+		"remove": "移除音频",
+		"noFileSelected": "未选择音频文件",
+		"volume": "音乐音量"
+	},
 	"background": {
 		"title": "背景",
 		"image": "图片",

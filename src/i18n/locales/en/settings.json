@@ -46,6 +46,42 @@
 		"roundness": "Roundness",
 		"padding": "Padding"
 	},
+	"audio": {
+		"title": "Audio",
+		"backgroundMusic": "Background Music",
+		"upload": "Upload Audio",
+		"replace": "Replace Audio",
+		"remove": "Remove Audio",
+		"noFileSelected": "No audio file selected",
+		"volume": "Music Volume",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
+		},
+		"timelineRegions": "Timeline Regions",
+		"regionCount": "{{count}} region(s)",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"searchPlaceholder": "Search hooks and music",
+		"searchMusicPlaceholder": "Search music",
+		"searchHookPlaceholder": "Search hook sounds",
+		"useTrack": "Use",
+		"addTrack": "Add",
+		"noSearchResults": "No matching tracks",
+		"removeSelectedRegion": "Remove Selected Region",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
+	},
 	"background": {
 		"title": "Background",
 		"image": "Image",
