@@ -90,6 +90,8 @@ interface VideoPlaybackProps {
 	backgroundMusicPath?: string;
 	backgroundMusicRegions?: TrimRegion[];
 	backgroundMusicVolume?: number;
+	backgroundMusicFadeIn?: number;
+	backgroundMusicFadeOut?: number;
 	showShadow?: boolean;
 	shadowIntensity?: number;
 	showBlur?: boolean;
@@ -151,6 +153,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			backgroundMusicPath,
 			backgroundMusicRegions = [],
 			backgroundMusicVolume = 0.35,
+			backgroundMusicFadeIn = 0,
+			backgroundMusicFadeOut = 0,
 			showShadow,
 			shadowIntensity = 0,
 			showBlur,
@@ -1211,7 +1215,21 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					(region) => currentTime * 1000 >= region.startMs && currentTime * 1000 < region.endMs,
 				);
 
-			backgroundMusic.volume = isInRegion ? Math.min(1, Math.max(0, backgroundMusicVolume)) : 0;
+			let targetVolume = 0;
+			if (isInRegion) {
+				targetVolume = Math.min(1, Math.max(0, backgroundMusicVolume));
+				const videoDuration = videoRef.current?.duration ?? 0;
+				if (backgroundMusicFadeIn > 0 && currentTime < backgroundMusicFadeIn) {
+					targetVolume *= currentTime / backgroundMusicFadeIn;
+				}
+				if (backgroundMusicFadeOut > 0 && videoDuration > 0) {
+					const remaining = videoDuration - currentTime;
+					if (remaining < backgroundMusicFadeOut) {
+						targetVolume *= Math.max(0, remaining / backgroundMusicFadeOut);
+					}
+				}
+			}
+			backgroundMusic.volume = targetVolume;
 
 			if (!isPlaying) {
 				backgroundMusic.pause();
@@ -1232,6 +1250,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			backgroundMusicPath,
 			backgroundMusicRegions,
 			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
 			currentTime,
 			isPlaying,
 		]);

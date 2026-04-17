@@ -2089,6 +2089,8 @@ export default function VideoEditor() {
 											backgroundMusicPath={resolveAudioSourceUrl(backgroundMusicPath)}
 											backgroundMusicRegions={backgroundMusicRegions}
 											backgroundMusicVolume={backgroundMusicVolume}
+											backgroundMusicFadeIn={backgroundMusicFadeIn}
+											backgroundMusicFadeOut={backgroundMusicFadeOut}
 										/>
 									</div>
 								</div>
