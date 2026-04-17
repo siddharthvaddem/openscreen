@@ -54,6 +54,7 @@
 		"dnd-timeline": "^2.2.0",
 		"emoji-picker-react": "^4.16.1",
 		"fix-webm-duration": "^1.0.6",
+		"fuse.js": "^7.3.0",
 		"gif.js": "^0.2.0",
 		"gsap": "^3.13.0",
 		"lucide-react": "^0.545.0",

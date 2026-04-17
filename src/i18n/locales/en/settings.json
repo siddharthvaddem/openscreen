@@ -69,6 +69,8 @@
 		"addTrack": "Add",
 		"noSearchResults": "No matching tracks",
 		"removeSelectedRegion": "Remove Selected Region",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
 		"hooks": {
 			"title": "Hook Effects",
 			"assignTo": "Assign tracks to",

@@ -1,4 +1,5 @@
 import Block from "@uiw/react-color-block";
+import Fuse from "fuse.js";
 import {
 	Bug,
 	Crop,
@@ -161,25 +162,6 @@ const GRADIENTS = [
 	"linear-gradient(to right, #0acffe 0%, #495aff 100%)",
 ];
 
-const AUDIO_CARD_GRADIENTS = [
-	"linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(8,47,73,0.9) 45%, rgba(37,99,235,0.75) 100%)",
-	"linear-gradient(135deg, rgba(23,37,84,0.9) 0%, rgba(88,28,135,0.85) 50%, rgba(14,116,144,0.7) 100%)",
-	"linear-gradient(135deg, rgba(69,10,10,0.85) 0%, rgba(120,53,15,0.85) 50%, rgba(6,78,59,0.75) 100%)",
-	"linear-gradient(135deg, rgba(49,46,129,0.9) 0%, rgba(2,132,199,0.8) 55%, rgba(34,197,94,0.65) 100%)",
-	"linear-gradient(135deg, rgba(91,33,182,0.88) 0%, rgba(147,51,234,0.72) 45%, rgba(30,64,175,0.72) 100%)",
-];
-
-function getStableGradient(value: string): string {
-	const source = value || "audio";
-	let hash = 0;
-	for (let i = 0; i < source.length; i += 1) {
-		hash = (hash << 5) - hash + source.charCodeAt(i);
-		hash |= 0;
-	}
-	const index = Math.abs(hash) % AUDIO_CARD_GRADIENTS.length;
-	return AUDIO_CARD_GRADIENTS[index];
-}
-
 function PlayingBars({ className }: { className?: string }) {
 	return (
 		<div
@@ -234,10 +216,16 @@ interface SettingsPanelProps {
 	onPaddingCommit?: () => void;
 	backgroundMusicPath?: string | null;
 	backgroundMusicVolume?: number;
+	backgroundMusicFadeIn?: number;
+	backgroundMusicFadeOut?: number;
 	onBackgroundMusicPick?: () => void;
 	onBackgroundMusicRemove?: () => void;
 	onBackgroundMusicVolumeChange?: (volume: number) => void;
 	onBackgroundMusicVolumeCommit?: () => void;
+	onBackgroundMusicFadeInChange?: (value: number) => void;
+	onBackgroundMusicFadeInCommit?: () => void;
+	onBackgroundMusicFadeOutChange?: (value: number) => void;
+	onBackgroundMusicFadeOutCommit?: () => void;
 	onMusicTrackSelect?: (trackUrl: string) => void;
 	backgroundMusicRegions?: TrimRegion[];
 	selectedMusicRegionId?: string | null;
@@ -274,6 +262,7 @@ interface SettingsPanelProps {
 		format: string;
 	} | null;
 	onSaveUnsavedExport?: () => void;
+	showEmbeddedExportSection?: boolean;
 	selectedAnnotationId?: string | null;
 	annotationRegions?: AnnotationRegion[];
 	onAnnotationContentChange?: (id: string, content: string) => void;
@@ -339,10 +328,16 @@ export function SettingsPanel({
 	onPaddingCommit,
 	backgroundMusicPath = null,
 	backgroundMusicVolume = 0.35,
+	backgroundMusicFadeIn = 0,
+	backgroundMusicFadeOut = 0,
 	onBackgroundMusicPick,
 	onBackgroundMusicRemove,
 	onBackgroundMusicVolumeChange,
 	onBackgroundMusicVolumeCommit,
+	onBackgroundMusicFadeInChange,
+	onBackgroundMusicFadeInCommit,
+	onBackgroundMusicFadeOutChange,
+	onBackgroundMusicFadeOutCommit,
 	onMusicTrackSelect,
 	backgroundMusicRegions = [],
 	selectedMusicRegionId = null,
@@ -386,6 +381,7 @@ export function SettingsPanel({
 	onExport,
 	unsavedExport,
 	onSaveUnsavedExport,
+	showEmbeddedExportSection = true,
 	selectedAnnotationId,
 	annotationRegions = [],
 	onAnnotationContentChange,
@@ -460,6 +456,8 @@ export function SettingsPanel({
 	const [previewingHookTrackId, setPreviewingHookTrackId] = useState<string | null>(null);
 	const hookPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
 	const cropSnapshotRef = useRef<CropRegion | null>(null);
+	const musicListRef = useRef<HTMLDivElement>(null);
+	const hooksListRef = useRef<HTMLDivElement>(null);
 	const [cropAspectLocked, setCropAspectLocked] = useState(false);
 	const [cropAspectRatio, setCropAspectRatio] = useState("");
 	const isPortraitCanvas = isPortraitAspectRatio(aspectRatio);
@@ -673,29 +671,41 @@ export function SettingsPanel({
 		[],
 	);
 
-	const filteredMusicLibrary = useMemo(() => {
-		const query = musicLibraryQuery.trim().toLowerCase();
-		if (!query) {
-			return musicLibrary;
-		}
+	const musicFuse = useMemo(
+		() =>
+			new Fuse(musicLibrary, {
+				keys: ["name", "tags"],
+				threshold: 0.4,
+				distance: 100,
+				minMatchCharLength: 1,
+				includeScore: true,
+			}),
+		[musicLibrary],
+	);
 
-		return musicLibrary.filter((entry) => {
-			if (entry.name.toLowerCase().includes(query)) return true;
-			return entry.tags.some((tag) => tag.includes(query));
-		});
-	}, [musicLibrary, musicLibraryQuery]);
+	const filteredMusicLibrary = useMemo(() => {
+		const query = musicLibraryQuery.trim();
+		if (!query) return musicLibrary;
+		return musicFuse.search(query).map((r) => r.item);
+	}, [musicLibrary, musicLibraryQuery, musicFuse]);
+
+	const hooksFuse = useMemo(
+		() =>
+			new Fuse(hooksLibrary, {
+				keys: ["name", "tags"],
+				threshold: 0.4,
+				distance: 100,
+				minMatchCharLength: 1,
+				includeScore: true,
+			}),
+		[hooksLibrary],
+	);
 
 	const filteredHooksLibrary = useMemo(() => {
-		const query = hookLibraryQuery.trim().toLowerCase();
-		if (!query) {
-			return hooksLibrary;
-		}
-
-		return hooksLibrary.filter((entry) => {
-			if (entry.name.toLowerCase().includes(query)) return true;
-			return entry.tags.some((tag) => tag.includes(query));
-		});
-	}, [hooksLibrary, hookLibraryQuery]);
+		const query = hookLibraryQuery.trim();
+		if (!query) return hooksLibrary;
+		return hooksFuse.search(query).map((r) => r.item);
+	}, [hooksLibrary, hookLibraryQuery, hooksFuse]);
 
 	const stopMusicPreview = useCallback(() => {
 		if (musicPreviewAudioRef.current) {
@@ -839,7 +849,7 @@ export function SettingsPanel({
 
 	return (
 		<div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
-			<div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
+			<div className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar p-4 pb-0">
 				<div className="mb-4">
 					<div className="flex items-center justify-between mb-3">
 						<span className="text-sm font-medium text-slate-200">{t("zoom.level")}</span>
@@ -1364,59 +1374,71 @@ export function SettingsPanel({
 											<input
 												type="text"
 												value={musicLibraryQuery}
-												onChange={(event) => setMusicLibraryQuery(event.target.value)}
+												onChange={(event) => {
+													setMusicLibraryQuery(event.target.value);
+													musicListRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+												}}
 												placeholder={t("audio.searchMusicPlaceholder")}
-												className="w-full h-8 pl-8 pr-2 rounded-md bg-black/20 border border-white/10 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
+												className="w-full h-8 pl-8 pr-7 rounded-md bg-black/20 border border-white/10 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
 											/>
+											{musicLibraryQuery && (
+												<button
+													type="button"
+													onClick={() => setMusicLibraryQuery("")}
+													className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+												>
+													<X className="w-3 h-3" />
+												</button>
+											)}
 										</div>
 
-										<div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+										<div
+											ref={musicListRef}
+											className="max-h-48 overflow-y-auto scroll-smooth custom-scrollbar space-y-1 pr-1"
+										>
 											{filteredMusicLibrary.slice(0, 80).map((track) => (
 												<div
 													key={track.id}
 													className={cn(
-														"relative overflow-hidden flex items-center justify-between gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all",
+														"flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all",
 														previewingMusicTrackId === track.id
-															? "border-[#34B27B]/70 shadow-[0_0_0_1px_rgba(52,178,123,0.25)]"
-															: "border-white/10 hover:border-white/20",
+															? "border-[#34B27B]/30 bg-[#34B27B]/[0.09]"
+															: "border-white/[0.07] bg-black/20 hover:bg-white/[0.05] hover:border-white/[0.14]",
 													)}
 													onClick={() => {
 														void handleMusicLibraryPreview(track.id, track.url);
 													}}
-													style={{
-														backgroundImage: `linear-gradient(105deg, rgba(2,6,23,0.72), rgba(15,23,42,0.4) 45%, rgba(15,23,42,0.15)), ${getStableGradient(track.id)}`,
-													}}
 												>
-													<div className="flex items-start gap-2 min-w-0">
+													<div className="flex items-center gap-2.5 min-w-0">
 														<div
-															className="w-9 h-9 rounded-md border border-white/20 shadow-lg flex items-center justify-center"
-															style={{ backgroundImage: getStableGradient(`${track.id}-cover`) }}
+															className={cn(
+																"w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors",
+																previewingMusicTrackId === track.id
+																	? "bg-[#34B27B]/15"
+																	: "bg-white/[0.06]",
+															)}
 														>
-															<Music className="w-4 h-4 text-white/90" />
+															{previewingMusicTrackId === track.id ? (
+																<PlayingBars />
+															) : (
+																<Music className="w-3.5 h-3.5 text-slate-400" />
+															)}
 														</div>
-														<div className="min-w-0">
-															<div className="text-[11px] font-medium text-slate-100 truncate">
-																{track.name}
-															</div>
-															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">
-																music
-															</div>
-														</div>
+														<span className="text-[11px] font-medium text-slate-200 truncate">
+															{track.name}
+														</span>
 													</div>
-													<div className="flex items-center gap-2">
-														{previewingMusicTrackId === track.id && <PlayingBars />}
-														<Button
-															size="sm"
-															variant="outline"
-															onClick={(event) => {
-																event.stopPropagation();
-																onMusicTrackSelect?.(track.url);
-															}}
-															className="h-7 px-2.5 text-[10px] bg-white/10 border-white/20 text-slate-100 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50"
-														>
-															{t("audio.useTrack")}
-														</Button>
-													</div>
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={(event) => {
+															event.stopPropagation();
+															onMusicTrackSelect?.(track.url);
+														}}
+														className="h-6 px-2.5 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white shrink-0"
+													>
+														{t("audio.useTrack")}
+													</Button>
 												</div>
 											))}
 											{filteredMusicLibrary.length === 0 && (
@@ -1429,28 +1451,70 @@ export function SettingsPanel({
 
 									<div
 										className={cn(
-											"p-2 rounded-lg bg-white/5 border border-white/5",
+											"rounded-lg border border-white/5 bg-white/[0.02] divide-y divide-white/5",
 											!backgroundMusicPath && "opacity-50",
 										)}
 									>
-										<div className="flex items-center justify-between mb-1">
-											<div className="text-[10px] font-medium text-slate-300">
-												{t("audio.volume")}
+										<div className="px-3 pt-2.5 pb-2">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.volume")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{Math.round(backgroundMusicVolume * 100)}%
+												</span>
 											</div>
-											<span className="text-[10px] text-slate-500 font-mono">
-												{Math.round(backgroundMusicVolume * 100)}%
-											</span>
+											<Slider
+												value={[backgroundMusicVolume]}
+												onValueChange={(values) => onBackgroundMusicVolumeChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicVolumeCommit?.()}
+												min={0}
+												max={1}
+												step={0.01}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
 										</div>
-										<Slider
-											value={[backgroundMusicVolume]}
-											onValueChange={(values) => onBackgroundMusicVolumeChange?.(values[0])}
-											onValueCommit={() => onBackgroundMusicVolumeCommit?.()}
-											min={0}
-											max={1}
-											step={0.01}
-											disabled={!backgroundMusicPath}
-											className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
-										/>
+										<div className="px-3 pt-2 pb-2">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.fadeIn")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{backgroundMusicFadeIn.toFixed(1)}s
+												</span>
+											</div>
+											<Slider
+												value={[backgroundMusicFadeIn]}
+												onValueChange={(values) => onBackgroundMusicFadeInChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicFadeInCommit?.()}
+												min={0}
+												max={10}
+												step={0.5}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
+										<div className="px-3 pt-2 pb-2.5">
+											<div className="flex items-center justify-between mb-1.5">
+												<div className="text-[10px] font-medium text-slate-300">
+													{t("audio.fadeOut")}
+												</div>
+												<span className="text-[10px] text-slate-500 font-mono">
+													{backgroundMusicFadeOut.toFixed(1)}s
+												</span>
+											</div>
+											<Slider
+												value={[backgroundMusicFadeOut]}
+												onValueChange={(values) => onBackgroundMusicFadeOutChange?.(values[0])}
+												onValueCommit={() => onBackgroundMusicFadeOutCommit?.()}
+												min={0}
+												max={10}
+												step={0.5}
+												disabled={!backgroundMusicPath}
+												className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+											/>
+										</div>
 									</div>
 
 									{selectedMusicRegionId && onSelectedMusicRegionDelete && (
@@ -1524,10 +1588,22 @@ export function SettingsPanel({
 											<input
 												type="text"
 												value={hookLibraryQuery}
-												onChange={(event) => setHookLibraryQuery(event.target.value)}
+												onChange={(event) => {
+													setHookLibraryQuery(event.target.value);
+													hooksListRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+												}}
 												placeholder={t("audio.searchHookPlaceholder")}
-												className="w-full h-8 pl-8 pr-2 rounded-md bg-black/25 border border-white/15 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
+												className="w-full h-8 pl-8 pr-7 rounded-md bg-black/25 border border-white/15 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#34B27B]/60"
 											/>
+											{hookLibraryQuery && (
+												<button
+													type="button"
+													onClick={() => setHookLibraryQuery("")}
+													className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+												>
+													<X className="w-3 h-3" />
+												</button>
+											)}
 										</div>
 										{(hookSoundLayers[selectedHookTarget] ?? []).length > 0 && (
 											<div className="space-y-1.5">
@@ -1554,33 +1630,41 @@ export function SettingsPanel({
 												))}
 											</div>
 										)}
-										<div className="max-h-52 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+										<div
+											ref={hooksListRef}
+											className="max-h-52 overflow-y-auto scroll-smooth custom-scrollbar space-y-1 pr-1"
+										>
 											{filteredHooksLibrary.slice(0, 80).map((track) => (
 												<div
 													key={`${selectedHookTarget}-${track.id}`}
 													className={cn(
-														"flex items-center justify-between gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all bg-black/25",
-														previewingHookTrackId === track.id &&
-															"border-[#34B27B]/70 shadow-[0_0_0_1px_rgba(52,178,123,0.25)]",
-														previewingHookTrackId !== track.id &&
-															"border-white/10 hover:border-white/20",
+														"flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all",
+														previewingHookTrackId === track.id
+															? "border-[#34B27B]/30 bg-[#34B27B]/[0.09]"
+															: "border-white/[0.07] bg-black/20 hover:bg-white/[0.05] hover:border-white/[0.14]",
 													)}
 													onClick={() => {
 														void handleHookLibraryPreview(track.id, track.url);
 													}}
 												>
-													<div className="flex items-start gap-2 min-w-0">
-														<div className="w-8 h-8 rounded-md border border-white/15 bg-black/30 flex items-center justify-center">
-															<Sparkles className="w-3.5 h-3.5 text-white/80" />
+													<div className="flex items-center gap-2.5 min-w-0">
+														<div
+															className={cn(
+																"w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors",
+																previewingHookTrackId === track.id
+																	? "bg-[#34B27B]/15"
+																	: "bg-white/[0.06]",
+															)}
+														>
+															{previewingHookTrackId === track.id ? (
+																<PlayingBars />
+															) : (
+																<Sparkles className="w-3.5 h-3.5 text-slate-400" />
+															)}
 														</div>
-														<div className="min-w-0">
-															<div className="text-[11px] font-medium text-slate-100 truncate">
-																{track.name}
-															</div>
-															<div className="text-[9px] uppercase tracking-[0.12em] text-slate-300/70 mt-0.5">
-																hook
-															</div>
-														</div>
+														<span className="text-[11px] font-medium text-slate-200 truncate">
+															{track.name}
+														</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<Button
@@ -1590,11 +1674,10 @@ export function SettingsPanel({
 																event.stopPropagation();
 																onHookTimelineAdd?.(selectedHookTarget, track.url, track.name);
 															}}
-															className="h-7 px-2.5 text-[10px] bg-white/10 border-white/20 text-slate-100 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50"
+															className="h-6 px-2 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white"
 														>
 															{t("audio.useTrack")}
 														</Button>
-														{previewingHookTrackId === track.id && <PlayingBars />}
 														<Button
 															size="sm"
 															variant="outline"
@@ -1602,7 +1685,7 @@ export function SettingsPanel({
 																event.stopPropagation();
 																onHookTrackAdd?.(selectedHookTarget, track.url);
 															}}
-															className="h-7 px-2.5 text-[10px] bg-white/10 border-white/20 text-slate-100 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50"
+															className="h-6 px-2 text-[10px] bg-white/[0.06] border-white/10 text-slate-300 hover:bg-[#34B27B]/25 hover:border-[#34B27B]/50 hover:text-white"
 														>
 															{t("audio.addTrack")}
 														</Button>
@@ -1654,7 +1737,7 @@ export function SettingsPanel({
 									</TabsTrigger>
 								</TabsList>
 
-								<div className="max-h-[min(200px,25vh)] overflow-y-auto custom-scrollbar">
+								<div className="max-h-[min(200px,25vh)] overflow-y-auto scroll-smooth custom-scrollbar">
 									<TabsContent value="image" className="mt-0 space-y-2">
 										<input
 											type="file"
@@ -1912,173 +1995,177 @@ export function SettingsPanel({
 				</>
 			)}
 
-			<div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
-				<div className="flex items-center gap-2 mb-3">
-					<button
-						onClick={() => onExportFormatChange?.("mp4")}
-						className={cn(
-							"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
-							exportFormat === "mp4"
-								? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
-								: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
-						)}
-					>
-						<Film className="w-3.5 h-3.5" />
-						{t("exportFormat.mp4")}
-					</button>
-					<button
-						data-testid={getTestId("gif-format-button")}
-						onClick={() => onExportFormatChange?.("gif")}
-						className={cn(
-							"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
-							exportFormat === "gif"
-								? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
-								: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
-						)}
-					>
-						<Image className="w-3.5 h-3.5" />
-						{t("exportFormat.gif")}
-					</button>
-				</div>
-
-				{exportFormat === "mp4" && (
-					<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+			{showEmbeddedExportSection && (
+				<div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
+					<div className="flex items-center gap-2 mb-3">
 						<button
-							onClick={() => onExportQualityChange?.("medium")}
+							onClick={() => onExportFormatChange?.("mp4")}
 							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "medium"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
+								"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
+								exportFormat === "mp4"
+									? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
+									: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
 							)}
 						>
-							{t("exportQuality.low")}
+							<Film className="w-3.5 h-3.5" />
+							{t("exportFormat.mp4")}
 						</button>
 						<button
-							onClick={() => onExportQualityChange?.("good")}
+							data-testid={getTestId("gif-format-button")}
+							onClick={() => onExportFormatChange?.("gif")}
 							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "good"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
+								"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
+								exportFormat === "gif"
+									? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
+									: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
 							)}
 						>
-							{t("exportQuality.medium")}
-						</button>
-						<button
-							onClick={() => onExportQualityChange?.("source")}
-							className={cn(
-								"rounded-md transition-all text-[10px] font-medium",
-								exportQuality === "source"
-									? "bg-white text-black"
-									: "text-slate-400 hover:text-slate-200",
-							)}
-						>
-							{t("exportQuality.high")}
+							<Image className="w-3.5 h-3.5" />
+							{t("exportFormat.gif")}
 						</button>
 					</div>
-				)}
 
-				{exportFormat === "gif" && (
-					<div className="mb-3 space-y-2">
-						<div className="flex items-center gap-2">
-							<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-4 h-7 rounded-lg">
-								{GIF_FRAME_RATES.map((rate) => (
-									<button
-										key={rate.value}
-										onClick={() => onGifFrameRateChange?.(rate.value)}
-										className={cn(
-											"rounded-md transition-all text-[10px] font-medium",
-											gifFrameRate === rate.value
-												? "bg-white text-black"
-												: "text-slate-400 hover:text-slate-200",
-										)}
-									>
-										{rate.value}
-									</button>
-								))}
-							</div>
-							<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
-								{Object.entries(GIF_SIZE_PRESETS).map(([key, _preset]) => (
-									<button
-										key={key}
-										data-testid={getTestId(`gif-size-button-${key}`)}
-										onClick={() => onGifSizePresetChange?.(key as GifSizePreset)}
-										className={cn(
-											"rounded-md transition-all text-[10px] font-medium",
-											gifSizePreset === key
-												? "bg-white text-black"
-												: "text-slate-400 hover:text-slate-200",
-										)}
-									>
-										{key === "original" ? "Orig" : key.charAt(0).toUpperCase() + key.slice(1, 3)}
-									</button>
-								))}
-							</div>
+					{exportFormat === "mp4" && (
+						<div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+							<button
+								onClick={() => onExportQualityChange?.("medium")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "medium"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.low")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("good")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "good"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.medium")}
+							</button>
+							<button
+								onClick={() => onExportQualityChange?.("source")}
+								className={cn(
+									"rounded-md transition-all text-[10px] font-medium",
+									exportQuality === "source"
+										? "bg-white text-black"
+										: "text-slate-400 hover:text-slate-200",
+								)}
+							>
+								{t("exportQuality.high")}
+							</button>
 						</div>
-						<div className="flex items-center justify-between">
-							<span className="text-[10px] text-slate-500">
-								{gifOutputDimensions.width} × {gifOutputDimensions.height}px
-							</span>
+					)}
+
+					{exportFormat === "gif" && (
+						<div className="mb-3 space-y-2">
 							<div className="flex items-center gap-2">
-								<span className="text-[10px] text-slate-400">{t("gifSettings.loop")}</span>
-								<Switch
-									checked={gifLoop}
-									onCheckedChange={onGifLoopChange}
-									className="data-[state=checked]:bg-[#34B27B] scale-75"
-								/>
+								<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-4 h-7 rounded-lg">
+									{GIF_FRAME_RATES.map((rate) => (
+										<button
+											key={rate.value}
+											onClick={() => onGifFrameRateChange?.(rate.value)}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												gifFrameRate === rate.value
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+											)}
+										>
+											{rate.value}
+										</button>
+									))}
+								</div>
+								<div className="flex-1 bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
+									{Object.entries(GIF_SIZE_PRESETS).map(([key, _preset]) => (
+										<button
+											key={key}
+											data-testid={getTestId(`gif-size-button-${key}`)}
+											onClick={() => onGifSizePresetChange?.(key as GifSizePreset)}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												gifSizePreset === key
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+											)}
+										>
+											{key === "original" ? "Orig" : key.charAt(0).toUpperCase() + key.slice(1, 3)}
+										</button>
+									))}
+								</div>
+							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-[10px] text-slate-500">
+									{gifOutputDimensions.width} × {gifOutputDimensions.height}px
+								</span>
+								<div className="flex items-center gap-2">
+									<span className="text-[10px] text-slate-400">{t("gifSettings.loop")}</span>
+									<Switch
+										checked={gifLoop}
+										onCheckedChange={onGifLoopChange}
+										className="data-[state=checked]:bg-[#34B27B] scale-75"
+									/>
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
 
-				{unsavedExport && (
+					{unsavedExport && (
+						<Button
+							type="button"
+							size="lg"
+							onClick={onSaveUnsavedExport}
+							className="w-full mb-2 py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-500/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+						>
+							<Download className="w-4 h-4" />
+							{t("export.chooseSaveLocation")}
+						</Button>
+					)}
 					<Button
+						data-testid={getTestId("export-button")}
 						type="button"
 						size="lg"
-						onClick={onSaveUnsavedExport}
-						className="w-full mb-2 py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-500/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+						onClick={onExport}
+						className="w-full py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#34B27B]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
 					>
 						<Download className="w-4 h-4" />
-						{t("export.chooseSaveLocation")}
+						{exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton")}
 					</Button>
-				)}
-				<Button
-					data-testid={getTestId("export-button")}
-					type="button"
-					size="lg"
-					onClick={onExport}
-					className="w-full py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#34B27B]/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-				>
-					<Download className="w-4 h-4" />
-					{exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton")}
-				</Button>
 
-				<div className="flex gap-2 mt-3">
-					<button
-						type="button"
-						onClick={() => {
-							window.electronAPI?.openExternalUrl(
-								"https://github.com/siddharthvaddem/openscreen/issues/new/choose",
-							);
-						}}
-						className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
-					>
-						<Bug className="w-3 h-3 text-[#34B27B]" />
-						{t("links.reportBug")}
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							window.electronAPI?.openExternalUrl("https://github.com/siddharthvaddem/openscreen");
-						}}
-						className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
-					>
-						<Star className="w-3 h-3 text-yellow-400" />
-						{t("links.starOnGithub")}
-					</button>
+					<div className="flex gap-2 mt-3">
+						<button
+							type="button"
+							onClick={() => {
+								window.electronAPI?.openExternalUrl(
+									"https://github.com/siddharthvaddem/openscreen/issues/new/choose",
+								);
+							}}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<Bug className="w-3 h-3 text-[#34B27B]" />
+							{t("links.reportBug")}
+						</button>
+						<button
+							type="button"
+							onClick={() => {
+								window.electronAPI?.openExternalUrl(
+									"https://github.com/siddharthvaddem/openscreen",
+								);
+							}}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<Star className="w-3 h-3 text-yellow-400" />
+							{t("links.starOnGithub")}
+						</button>
+					</div>
 				</div>
-			</div>
+			)}
 		</div>
 	);
 }

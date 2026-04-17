@@ -12,6 +12,7 @@ import {
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
+	DEFAULT_AUDIO_HOOKS,
 	DEFAULT_BLUR_BLOCK_SIZE,
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_FREEHAND_POINTS,
@@ -24,6 +25,7 @@ import {
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
 	DEFAULT_ZOOM_DEPTH,
+	type HookRegion,
 	MAX_BLUR_BLOCK_SIZE,
 	MAX_BLUR_INTENSITY,
 	MAX_PLAYBACK_SPEED,
@@ -54,6 +56,8 @@ export interface ProjectEditorState {
 	backgroundMusicPath: string | null;
 	backgroundMusicRegions: TrimRegion[];
 	backgroundMusicVolume: number;
+	backgroundMusicFadeIn: number;
+	backgroundMusicFadeOut: number;
 	audioHooks: AudioHooksConfig;
 	hookSoundLayers: Record<AudioHookType, string[]>;
 	audioHooksVolume: number;
@@ -557,6 +561,16 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		)
 			? clamp((editor as { backgroundMusicVolume: number }).backgroundMusicVolume, 0, 1)
 			: 0.35,
+		backgroundMusicFadeIn: isFiniteNumber(
+			(editor as { backgroundMusicFadeIn?: unknown }).backgroundMusicFadeIn,
+		)
+			? clamp((editor as { backgroundMusicFadeIn: number }).backgroundMusicFadeIn, 0, 30)
+			: 0,
+		backgroundMusicFadeOut: isFiniteNumber(
+			(editor as { backgroundMusicFadeOut?: unknown }).backgroundMusicFadeOut,
+		)
+			? clamp((editor as { backgroundMusicFadeOut: number }).backgroundMusicFadeOut, 0, 30)
+			: 0,
 		audioHooks: normalizeAudioHooks((editor as { audioHooks?: unknown }).audioHooks),
 		hookSoundLayers: normalizeHookSoundLayers(
 			(editor as { hookSoundLayers?: unknown }).hookSoundLayers,

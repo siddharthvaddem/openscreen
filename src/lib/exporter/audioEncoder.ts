@@ -45,6 +45,8 @@ export class AudioProcessor {
 		backgroundAudioUrl?: string,
 		backgroundAudioRegions?: TrimRegion[],
 		backgroundAudioVolume = 0.35,
+		backgroundAudioFadeIn = 0,
+		backgroundAudioFadeOut = 0,
 		audioHooks?: AudioHooksConfig,
 		audioHooksVolume = 0.35,
 		hookSoundLayers?: Partial<Record<AudioHookType, string[]>>,
@@ -71,6 +73,8 @@ export class AudioProcessor {
 				backgroundAudioUrl,
 				backgroundAudioRegions ?? [],
 				backgroundAudioVolume,
+				backgroundAudioFadeIn,
+				backgroundAudioFadeOut,
 				audioHooks,
 				audioHooksVolume,
 				hookSoundLayers,
@@ -231,6 +235,8 @@ export class AudioProcessor {
 		backgroundAudioUrl?: string,
 		backgroundAudioRegions: TrimRegion[] = [],
 		backgroundAudioVolume = 0.35,
+		backgroundAudioFadeIn = 0,
+		backgroundAudioFadeOut = 0,
 		audioHooks?: AudioHooksConfig,
 		audioHooksVolume = 0.35,
 		hookSoundLayers?: Partial<Record<AudioHookType, string[]>>,
@@ -467,9 +473,23 @@ export class AudioProcessor {
 						crossed(timeMs) && !this.isInTrimRegion(timeMs, trimRegions);
 
 					if (backgroundGainNode) {
-						backgroundGainNode.gain.value = isBackgroundActiveAt(currentTimeMs)
+						let bgGain = isBackgroundActiveAt(currentTimeMs)
 							? Math.min(1, Math.max(0, backgroundAudioVolume))
 							: 0;
+						if (bgGain > 0) {
+							const fadeInMs = backgroundAudioFadeIn * 1000;
+							if (fadeInMs > 0 && currentTimeMs < fadeInMs) {
+								bgGain *= currentTimeMs / fadeInMs;
+							}
+							const fadeOutMs = backgroundAudioFadeOut * 1000;
+							if (fadeOutMs > 0) {
+								const remainingMs = sourceMedia.duration * 1000 - currentTimeMs;
+								if (remainingMs < fadeOutMs) {
+									bgGain *= Math.max(0, remainingMs / fadeOutMs);
+								}
+							}
+						}
+						backgroundGainNode.gain.value = bgGain;
 					}
 
 					for (let i = activeHookNodes.length - 1; i >= 0; i -= 1) {
@@ -510,12 +530,6 @@ export class AudioProcessor {
 							return;
 						}
 						sourceMedia.currentTime = skipToTime;
-						if (backgroundMedia) {
-							const targetBackgroundTime = backgroundMedia.duration
-								? skipToTime % backgroundMedia.duration
-								: skipToTime;
-							backgroundMedia.currentTime = targetBackgroundTime;
-						}
 						previousTimeMs = activeTrimRegion.endMs;
 					} else {
 						const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions);

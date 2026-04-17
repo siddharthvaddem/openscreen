@@ -33,6 +33,8 @@ export interface EditorState {
 	backgroundMusicPath: string | null;
 	backgroundMusicRegions: TrimRegion[];
 	backgroundMusicVolume: number;
+	backgroundMusicFadeIn: number;
+	backgroundMusicFadeOut: number;
 	audioHooks: AudioHooksConfig;
 	audioHooksVolume: number;
 	cropRegion: CropRegion;
@@ -58,6 +60,8 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	backgroundMusicPath: null,
 	backgroundMusicRegions: [],
 	backgroundMusicVolume: 0.35,
+	backgroundMusicFadeIn: 0,
+	backgroundMusicFadeOut: 0,
 	audioHooks: { ...DEFAULT_AUDIO_HOOKS },
 	audioHooksVolume: 0.35,
 	cropRegion: DEFAULT_CROP_REGION,

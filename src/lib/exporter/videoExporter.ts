@@ -26,6 +26,8 @@ interface VideoExporterConfig extends ExportConfig {
 	backgroundAudioUrl?: string;
 	backgroundAudioRegions?: TrimRegion[];
 	backgroundAudioVolume?: number;
+	backgroundMusicFadeIn?: number;
+	backgroundMusicFadeOut?: number;
 	audioHooks?: AudioHooksConfig;
 	audioHooksVolume?: number;
 	hookSoundLayers?: Partial<Record<keyof AudioHooksConfig, string[]>>;
@@ -363,6 +365,8 @@ export class VideoExporter {
 						this.config.backgroundAudioUrl,
 						this.config.backgroundAudioRegions,
 						this.config.backgroundAudioVolume,
+						this.config.backgroundMusicFadeIn,
+						this.config.backgroundMusicFadeOut,
 						this.config.audioHooks,
 						this.config.audioHooksVolume,
 						this.config.hookSoundLayers,

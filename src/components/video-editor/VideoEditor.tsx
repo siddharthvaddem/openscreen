@@ -1,6 +1,7 @@
 import type { Span } from "dnd-timeline";
-import { FolderOpen, Languages, Save, Video } from "lucide-react";
+import { Bug, Download, FolderOpen, Languages, Save, Star, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaDiscord } from "react-icons/fa";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { resolveAudioSourceUrl, useAudioPreview } from "@/hooks/useAudioPreview";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale } from "@/i18n/config";
 import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
@@ -38,6 +40,7 @@ import {
 	isPortraitAspectRatio,
 } from "@/utils/aspectRatioUtils";
 import { ExportDialog } from "./ExportDialog";
+import { ExportSettingsPopup } from "./ExportSettingsPopup";
 import PlaybackControls from "./PlaybackControls";
 import {
 	createProjectData,
@@ -54,7 +57,6 @@ import { SettingsPanel } from "./SettingsPanel";
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
 	type AnnotationRegion,
-	type AudioHookType,
 	type BlurData,
 	type CursorTelemetryPoint,
 	clampFocusToDepth,
@@ -66,7 +68,6 @@ import {
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
 	type FigureData,
-	type HookRegion,
 	type PlaybackSpeed,
 	type SpeedRegion,
 	type TrimRegion,
@@ -78,15 +79,9 @@ import {
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayback/constants";
 
-const DEFAULT_HOOK_SOUND_ASSETS: Record<AudioHookType, string> = {
-	zoom: "/audio/hooks/zoom.wav",
-	trim: "/audio/hooks/trim.wav",
-	speed: "/audio/hooks/speed.mp3",
-	annotation: "/audio/hooks/annotation.mp3",
-	blur: "/audio/hooks/blur.wav",
-};
-
-const HOOK_TRIGGER_LEAD_MS = 140;
+const OPENSCREEN_GITHUB_URL = "https://github.com/siddharthvaddem/openscreen";
+const OPENSCREEN_REPORT_BUG_URL = "https://github.com/siddharthvaddem/openscreen/issues/new/choose";
+const OPENSCREEN_DISCORD_INVITE_URL = "https://discord.gg/kpPMU5C9";
 
 export default function VideoEditor() {
 	const {
@@ -107,6 +102,8 @@ export default function VideoEditor() {
 		backgroundMusicPath,
 		backgroundMusicRegions,
 		backgroundMusicVolume,
+		backgroundMusicFadeIn,
+		backgroundMusicFadeOut,
 		audioHooks,
 		audioHooksVolume,
 		cropRegion,
@@ -150,6 +147,7 @@ export default function VideoEditor() {
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 	const [exportError, setExportError] = useState<string | null>(null);
 	const [showExportDialog, setShowExportDialog] = useState(false);
+	const [showExportSettingsPopup, setShowExportSettingsPopup] = useState(false);
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
@@ -183,17 +181,6 @@ export default function VideoEditor() {
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
 	const exporterRef = useRef<VideoExporter | null>(null);
-	const previewHookAudioNodesRef = useRef<HTMLAudioElement[]>([]);
-	const hookRegionStopTimersRef = useRef<number[]>([]);
-	const previousPlaybackTimeRef = useRef<number | null>(null);
-	const previousHookRegionPlaybackTimeRef = useRef<number | null>(null);
-	const [hookSoundLayers, setHookSoundLayers] = useState<Record<AudioHookType, string[]>>({
-		zoom: [DEFAULT_HOOK_SOUND_ASSETS.zoom],
-		trim: [DEFAULT_HOOK_SOUND_ASSETS.trim],
-		speed: [DEFAULT_HOOK_SOUND_ASSETS.speed],
-		annotation: [DEFAULT_HOOK_SOUND_ASSETS.annotation],
-		blur: [DEFAULT_HOOK_SOUND_ASSETS.blur],
-	});
 
 	const annotationOnlyRegions = useMemo(
 		() => annotationRegions.filter((region) => region.type !== "blur"),
@@ -204,35 +191,62 @@ export default function VideoEditor() {
 		[annotationRegions],
 	);
 
-	const resolveAudioSourceUrl = useCallback(
-		(value: string | null | undefined): string | undefined => {
-			if (!value) {
-				return undefined;
-			}
-			if (/^(file|https?):\/\//i.test(value) || value.startsWith("/")) {
-				return value;
-			}
-			return toFileUrl(value);
-		},
-		[],
-	);
-
-	const resolveLibraryTrackUrl = useCallback(async (trackUrl: string): Promise<string> => {
-		if (/^(file|https?):\/\//i.test(trackUrl)) {
-			return trackUrl;
+	const handleSelectMusicRegion = useCallback((id: string | null) => {
+		setSelectedMusicRegionId(id);
+		if (id) {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedSpeedId(null);
+			setSelectedHookRegionId(null);
+			setSelectedAnnotationId(null);
+			setSelectedBlurId(null);
 		}
-
-		if (trackUrl.startsWith("/audio/")) {
-			return trackUrl;
-		}
-
-		if (trackUrl.startsWith("/")) {
-			const relativePath = trackUrl.replace(/^\/+/, "");
-			return getAssetPath(relativePath);
-		}
-
-		return trackUrl;
 	}, []);
+
+	const handleSelectHookRegion = useCallback((id: string | null) => {
+		setSelectedHookRegionId(id);
+		if (id) {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedSpeedId(null);
+			setSelectedMusicRegionId(null);
+			setSelectedAnnotationId(null);
+			setSelectedBlurId(null);
+		}
+	}, []);
+
+	const {
+		hookSoundLayers,
+		setHookSoundLayers,
+		handlePickBackgroundMusic,
+		handleMusicTrackSelect,
+		handleRemoveBackgroundMusic,
+		handleMusicRegionAdded,
+		handleMusicRegionSpanChange,
+		handleMusicRegionDelete,
+		handleHookTrackAdd,
+		handleHookTrackRemove,
+		handleHookTimelineAdd,
+	} = useAudioPreview({
+		pushState,
+		currentTimeRef,
+		durationRef,
+		nextMusicTrimIdRef,
+		nextHookRegionIdRef,
+		audioHooks,
+		audioHooksVolume,
+		hookRegions,
+		zoomRegions,
+		trimRegions,
+		speedRegions,
+		annotationOnlyRegions,
+		blurRegions,
+		currentTime,
+		isPlaying,
+		selectedMusicRegionId,
+		onSelectMusicRegion: handleSelectMusicRegion,
+		onSelectHookRegion: handleSelectHookRegion,
+	});
 
 	const currentProjectMedia = useMemo<ProjectMedia | null>(() => {
 		const screenVideoPath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
@@ -283,6 +297,8 @@ export default function VideoEditor() {
 				backgroundMusicPath: normalizedEditor.backgroundMusicPath,
 				backgroundMusicRegions: normalizedEditor.backgroundMusicRegions,
 				backgroundMusicVolume: normalizedEditor.backgroundMusicVolume,
+				backgroundMusicFadeIn: normalizedEditor.backgroundMusicFadeIn,
+				backgroundMusicFadeOut: normalizedEditor.backgroundMusicFadeOut,
 				audioHooks: normalizedEditor.audioHooks,
 				audioHooksVolume: normalizedEditor.audioHooksVolume,
 				shadowIntensity: normalizedEditor.shadowIntensity,
@@ -357,7 +373,7 @@ export default function VideoEditor() {
 			);
 			return true;
 		},
-		[pushState],
+		[pushState, setHookSoundLayers],
 	);
 
 	const currentProjectSnapshot = useMemo(() => {
@@ -369,6 +385,8 @@ export default function VideoEditor() {
 			backgroundMusicPath,
 			backgroundMusicRegions,
 			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
 			audioHooks,
 			hookSoundLayers,
 			audioHooksVolume,
@@ -386,6 +404,7 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -399,6 +418,8 @@ export default function VideoEditor() {
 		backgroundMusicPath,
 		backgroundMusicRegions,
 		backgroundMusicVolume,
+		backgroundMusicFadeIn,
+		backgroundMusicFadeOut,
 		audioHooks,
 		hookSoundLayers,
 		audioHooksVolume,
@@ -416,6 +437,7 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
+		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -526,6 +548,8 @@ export default function VideoEditor() {
 				backgroundMusicPath,
 				backgroundMusicRegions,
 				backgroundMusicVolume,
+				backgroundMusicFadeIn,
+				backgroundMusicFadeOut,
 				audioHooks,
 				hookSoundLayers,
 				audioHooksVolume,
@@ -589,6 +613,8 @@ export default function VideoEditor() {
 			backgroundMusicPath,
 			backgroundMusicRegions,
 			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
 			audioHooks,
 			hookSoundLayers,
 			audioHooksVolume,
@@ -746,204 +772,6 @@ export default function VideoEditor() {
 		video.currentTime = time;
 	}
 
-	useEffect(() => {
-		let mounted = true;
-
-		const loadHookAssets = async () => {
-			try {
-				const entries = await Promise.all(
-					(Object.keys(DEFAULT_HOOK_SOUND_ASSETS) as AudioHookType[]).map(async (hook) => {
-						const resolved = await getAssetPath(DEFAULT_HOOK_SOUND_ASSETS[hook]);
-						return [hook, resolved] as const;
-					}),
-				);
-
-				if (!mounted) {
-					return;
-				}
-
-				setHookSoundLayers(
-					entries.reduce<Record<AudioHookType, string[]>>(
-						(acc, [hook, url]) => {
-							acc[hook] = [url];
-							return acc;
-						},
-						{
-							zoom: [DEFAULT_HOOK_SOUND_ASSETS.zoom],
-							trim: [DEFAULT_HOOK_SOUND_ASSETS.trim],
-							speed: [DEFAULT_HOOK_SOUND_ASSETS.speed],
-							annotation: [DEFAULT_HOOK_SOUND_ASSETS.annotation],
-							blur: [DEFAULT_HOOK_SOUND_ASSETS.blur],
-						},
-					),
-				);
-			} catch {
-				// Keep default /audio/... paths in dev if asset resolution fails.
-			}
-		};
-
-		void loadHookAssets();
-
-		return () => {
-			mounted = false;
-		};
-	}, []);
-
-	const handlePickBackgroundMusic = useCallback(async () => {
-		const result = await window.electronAPI.openAudioFilePicker();
-
-		if (result.canceled) {
-			return;
-		}
-
-		if (!result.success || !result.path) {
-			toast.error(result.message || "Failed to load audio file");
-			return;
-		}
-
-		const fullDurationMs = Math.max(1000, Math.round(durationRef.current * 1000));
-		pushState((prev) => ({
-			backgroundMusicPath: result.path,
-			backgroundMusicRegions:
-				prev.backgroundMusicRegions.length > 0
-					? prev.backgroundMusicRegions
-					: [
-							{
-								id: `music-${nextMusicTrimIdRef.current++}`,
-								startMs: 0,
-								endMs: fullDurationMs,
-							},
-						],
-		}));
-	}, [pushState]);
-
-	const handleMusicTrackSelect = useCallback(
-		async (trackUrl: string) => {
-			try {
-				const resolvedAssetPath = await resolveLibraryTrackUrl(trackUrl);
-				const fullDurationMs = Math.max(1000, Math.round(durationRef.current * 1000));
-				pushState((prev) => ({
-					backgroundMusicPath: resolvedAssetPath,
-					backgroundMusicRegions:
-						prev.backgroundMusicRegions.length > 0
-							? prev.backgroundMusicRegions
-							: [
-									{
-										id: `music-${nextMusicTrimIdRef.current++}`,
-										startMs: 0,
-										endMs: fullDurationMs,
-									},
-								],
-				}));
-			} catch {
-				toast.error("Failed to load bundled track");
-			}
-		},
-		[pushState, resolveLibraryTrackUrl],
-	);
-
-	const resolveHookTrackSourceUrl = useCallback(
-		async (trackUrl: string) => {
-			return resolveLibraryTrackUrl(trackUrl);
-		},
-		[resolveLibraryTrackUrl],
-	);
-
-	const resolveAudioDurationMs = useCallback(async (audioUrl: string): Promise<number> => {
-		return await new Promise((resolve) => {
-			const audio = new Audio(audioUrl);
-			audio.preload = "metadata";
-
-			const cleanup = () => {
-				audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-				audio.removeEventListener("error", handleError);
-				audio.src = "";
-			};
-
-			const handleLoadedMetadata = () => {
-				const durationMs = Number.isFinite(audio.duration)
-					? Math.round(audio.duration * 1000)
-					: 1200;
-				cleanup();
-				resolve(Math.max(250, Math.min(durationMs, 12000)));
-			};
-
-			const handleError = () => {
-				cleanup();
-				resolve(1200);
-			};
-
-			audio.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
-			audio.addEventListener("error", handleError, { once: true });
-		});
-	}, []);
-
-	const handleHookTrackAdd = useCallback(
-		async (hook: AudioHookType, trackUrl: string) => {
-			try {
-				const resolvedAssetPath = await resolveLibraryTrackUrl(trackUrl);
-				setHookSoundLayers((prev) => {
-					const existing = prev[hook] ?? [];
-					if (existing.includes(resolvedAssetPath)) {
-						return prev;
-					}
-					return {
-						...prev,
-						[hook]: [...existing, resolvedAssetPath],
-					};
-				});
-			} catch {
-				toast.error("Failed to add hook sound");
-			}
-		},
-		[resolveLibraryTrackUrl],
-	);
-
-	const handleHookTrackRemove = useCallback((hook: AudioHookType, trackUrl: string) => {
-		setHookSoundLayers((prev) => ({
-			...prev,
-			[hook]: (prev[hook] ?? []).filter((url) => url !== trackUrl),
-		}));
-	}, []);
-
-	const handleHookTimelineAdd = useCallback(
-		async (hook: AudioHookType, trackUrl: string, trackLabel: string) => {
-			try {
-				const resolvedAssetPath = await resolveHookTrackSourceUrl(trackUrl);
-				const durationMs = await resolveAudioDurationMs(resolvedAssetPath);
-				const playheadMs = Math.max(0, Math.round(currentTimeRef.current * 1000));
-				const timelineDurationMs = Math.max(playheadMs + 1, Math.round(durationRef.current * 1000));
-				const endMs = Math.max(
-					playheadMs + 1,
-					Math.min(timelineDurationMs, playheadMs + durationMs),
-				);
-
-				const newRegion: HookRegion = {
-					id: `hook-${nextHookRegionIdRef.current++}`,
-					startMs: playheadMs,
-					endMs,
-					soundUrl: resolvedAssetPath,
-					label: trackLabel,
-					hookType: hook,
-				};
-
-				pushState((prev) => ({
-					hookRegions: [...prev.hookRegions, newRegion],
-				}));
-				setSelectedHookRegionId(newRegion.id);
-				setSelectedZoomId(null);
-				setSelectedTrimId(null);
-				setSelectedSpeedId(null);
-				setSelectedMusicRegionId(null);
-				setSelectedAnnotationId(null);
-				setSelectedBlurId(null);
-			} catch {
-				toast.error("Failed to add hook clip to timeline");
-			}
-		},
-		[pushState, resolveAudioDurationMs, resolveHookTrackSourceUrl],
-	);
-
 	const handleHookRegionSpanChange = useCallback(
 		(id: string, span: Span) => {
 			pushState((prev) => ({
@@ -971,80 +799,6 @@ export default function VideoEditor() {
 			}
 		},
 		[pushState, selectedHookRegionId],
-	);
-
-	const handleRemoveBackgroundMusic = useCallback(() => {
-		pushState({ backgroundMusicPath: null, backgroundMusicRegions: [] });
-		setSelectedMusicRegionId(null);
-	}, [pushState]);
-
-	const handleSelectMusicRegion = useCallback((id: string | null) => {
-		setSelectedMusicRegionId(id);
-		if (id) {
-			setSelectedZoomId(null);
-			setSelectedTrimId(null);
-			setSelectedSpeedId(null);
-			setSelectedHookRegionId(null);
-			setSelectedAnnotationId(null);
-			setSelectedBlurId(null);
-		}
-	}, []);
-
-	const handleSelectHookRegion = useCallback((id: string | null) => {
-		setSelectedHookRegionId(id);
-		if (id) {
-			setSelectedZoomId(null);
-			setSelectedTrimId(null);
-			setSelectedSpeedId(null);
-			setSelectedMusicRegionId(null);
-			setSelectedAnnotationId(null);
-			setSelectedBlurId(null);
-		}
-	}, []);
-
-	const handleMusicRegionAdded = useCallback(
-		(span: Span) => {
-			const id = `music-${nextMusicTrimIdRef.current++}`;
-			const newRegion: TrimRegion = {
-				id,
-				startMs: Math.round(span.start),
-				endMs: Math.round(span.end),
-			};
-			pushState((prev) => ({
-				backgroundMusicRegions: [...prev.backgroundMusicRegions, newRegion],
-			}));
-			handleSelectMusicRegion(id);
-		},
-		[pushState, handleSelectMusicRegion],
-	);
-
-	const handleMusicRegionSpanChange = useCallback(
-		(id: string, span: Span) => {
-			pushState((prev) => ({
-				backgroundMusicRegions: prev.backgroundMusicRegions.map((region) =>
-					region.id === id
-						? {
-								...region,
-								startMs: Math.round(span.start),
-								endMs: Math.round(span.end),
-							}
-						: region,
-				),
-			}));
-		},
-		[pushState],
-	);
-
-	const handleMusicRegionDelete = useCallback(
-		(id: string) => {
-			pushState((prev) => ({
-				backgroundMusicRegions: prev.backgroundMusicRegions.filter((region) => region.id !== id),
-			}));
-			if (selectedMusicRegionId === id) {
-				setSelectedMusicRegionId(null);
-			}
-		},
-		[pushState, selectedMusicRegionId],
 	);
 
 	const handleSelectZoom = useCallback((id: string | null) => {
@@ -1572,187 +1326,6 @@ export default function VideoEditor() {
 		[pushState],
 	);
 
-	const stopAllPreviewHookAudio = useCallback(() => {
-		previewHookAudioNodesRef.current.forEach((audio) => {
-			audio.pause();
-			audio.currentTime = 0;
-		});
-		previewHookAudioNodesRef.current = [];
-		hookRegionStopTimersRef.current.forEach((timerId) => {
-			window.clearTimeout(timerId);
-		});
-		hookRegionStopTimersRef.current = [];
-	}, []);
-
-	const playHookPreviewSound = useCallback(
-		(type: AudioHookType) => {
-			const sources = hookSoundLayers[type]?.length
-				? hookSoundLayers[type]
-				: [DEFAULT_HOOK_SOUND_ASSETS[type]];
-			if (!sources.length) {
-				return;
-			}
-
-			sources.forEach((src) => {
-				const audio = new Audio(src);
-				audio.volume = Math.min(1, Math.max(0, audioHooksVolume));
-				audio.preload = "auto";
-				previewHookAudioNodesRef.current.push(audio);
-
-				void audio.play().catch(() => undefined);
-				audio.addEventListener(
-					"ended",
-					() => {
-						previewHookAudioNodesRef.current = previewHookAudioNodesRef.current.filter(
-							(node) => node !== audio,
-						);
-					},
-					{ once: true },
-				);
-			});
-		},
-		[audioHooksVolume, hookSoundLayers],
-	);
-
-	const playHookRegionPreviewSound = useCallback(
-		(region: HookRegion) => {
-			const audio = new Audio(region.soundUrl);
-			audio.volume = Math.min(1, Math.max(0, audioHooksVolume));
-			audio.preload = "auto";
-			previewHookAudioNodesRef.current.push(audio);
-
-			const clipDurationMs = Math.max(30, region.endMs - region.startMs);
-			const stopTimerId = window.setTimeout(() => {
-				audio.pause();
-				audio.currentTime = 0;
-				previewHookAudioNodesRef.current = previewHookAudioNodesRef.current.filter(
-					(node) => node !== audio,
-				);
-				hookRegionStopTimersRef.current = hookRegionStopTimersRef.current.filter(
-					(id) => id !== stopTimerId,
-				);
-			}, clipDurationMs + 30);
-			hookRegionStopTimersRef.current.push(stopTimerId);
-
-			void audio.play().catch(() => {
-				window.clearTimeout(stopTimerId);
-				hookRegionStopTimersRef.current = hookRegionStopTimersRef.current.filter(
-					(id) => id !== stopTimerId,
-				);
-				previewHookAudioNodesRef.current = previewHookAudioNodesRef.current.filter(
-					(node) => node !== audio,
-				);
-			});
-
-			audio.addEventListener(
-				"ended",
-				() => {
-					window.clearTimeout(stopTimerId);
-					hookRegionStopTimersRef.current = hookRegionStopTimersRef.current.filter(
-						(id) => id !== stopTimerId,
-					);
-					previewHookAudioNodesRef.current = previewHookAudioNodesRef.current.filter(
-						(node) => node !== audio,
-					);
-				},
-				{ once: true },
-			);
-		},
-		[audioHooksVolume],
-	);
-
-	useEffect(() => {
-		const hookEntries = Object.entries(audioHooks).filter(([, enabled]) => enabled);
-		if (!isPlaying || hookEntries.length === 0) {
-			previousPlaybackTimeRef.current = null;
-			return;
-		}
-
-		const currentMs = Math.round(currentTime * 1000);
-		const previousMs = previousPlaybackTimeRef.current;
-		previousPlaybackTimeRef.current = currentMs;
-
-		if (previousMs === null) {
-			return;
-		}
-
-		const delta = currentMs - previousMs;
-		if (delta <= 0 || delta > 900) {
-			return;
-		}
-
-		const crossed = (timeMs: number) => timeMs > previousMs && timeMs <= currentMs;
-		const withLead = (timeMs: number) => Math.max(0, timeMs - HOOK_TRIGGER_LEAD_MS);
-
-		if (audioHooks.zoom && zoomRegions.some((region) => crossed(withLead(region.startMs)))) {
-			playHookPreviewSound("zoom");
-		}
-		if (audioHooks.trim && trimRegions.some((region) => crossed(withLead(region.startMs)))) {
-			playHookPreviewSound("trim");
-		}
-		if (audioHooks.speed && speedRegions.some((region) => crossed(withLead(region.startMs)))) {
-			playHookPreviewSound("speed");
-		}
-		if (
-			audioHooks.annotation &&
-			annotationOnlyRegions.some((region) => crossed(withLead(region.startMs)))
-		) {
-			playHookPreviewSound("annotation");
-		}
-		if (audioHooks.blur && blurRegions.some((region) => crossed(withLead(region.startMs)))) {
-			playHookPreviewSound("blur");
-		}
-	}, [
-		currentTime,
-		isPlaying,
-		audioHooks,
-		zoomRegions,
-		trimRegions,
-		speedRegions,
-		annotationOnlyRegions,
-		blurRegions,
-		playHookPreviewSound,
-	]);
-
-	useEffect(() => {
-		if (!isPlaying || hookRegions.length === 0) {
-			previousHookRegionPlaybackTimeRef.current = null;
-			return;
-		}
-
-		const currentMs = Math.round(currentTime * 1000);
-		const previousMs = previousHookRegionPlaybackTimeRef.current;
-		previousHookRegionPlaybackTimeRef.current = currentMs;
-
-		if (previousMs === null) {
-			return;
-		}
-
-		const delta = currentMs - previousMs;
-		if (delta <= 0 || delta > 900) {
-			return;
-		}
-
-		const crossed = (timeMs: number) => timeMs > previousMs && timeMs <= currentMs;
-		hookRegions.forEach((region) => {
-			if (crossed(region.startMs)) {
-				playHookRegionPreviewSound(region);
-			}
-		});
-	}, [currentTime, isPlaying, hookRegions, playHookRegionPreviewSound]);
-
-	useEffect(() => {
-		if (!isPlaying) {
-			stopAllPreviewHookAudio();
-		}
-	}, [isPlaying, stopAllPreviewHookAudio]);
-
-	useEffect(() => {
-		return () => {
-			stopAllPreviewHookAudio();
-		};
-	}, [stopAllPreviewHookAudio]);
-
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			const mod = e.ctrlKey || e.metaKey;
@@ -2106,6 +1679,8 @@ export default function VideoEditor() {
 						backgroundAudioUrl: resolveAudioSourceUrl(backgroundMusicPath),
 						backgroundAudioRegions: backgroundMusicRegions,
 						backgroundAudioVolume: backgroundMusicVolume,
+						backgroundMusicFadeIn,
+						backgroundMusicFadeOut,
 						audioHooks,
 						audioHooksVolume,
 						hookSoundLayers,
@@ -2197,6 +1772,8 @@ export default function VideoEditor() {
 			backgroundMusicPath,
 			backgroundMusicRegions,
 			backgroundMusicVolume,
+			backgroundMusicFadeIn,
+			backgroundMusicFadeOut,
 			audioHooks,
 			audioHooksVolume,
 			cropRegion,
@@ -2210,7 +1787,6 @@ export default function VideoEditor() {
 			webcamPosition,
 			hookSoundLayers,
 			exportQuality,
-			resolveAudioSourceUrl,
 			handleExportSaved,
 			cursorTelemetry,
 		],
@@ -2286,6 +1862,10 @@ export default function VideoEditor() {
 			setExportError(null);
 			setExportedFilePath(null);
 		}
+	}, []);
+
+	const handleOpenExternal = useCallback((url: string) => {
+		window.electronAPI?.openExternalUrl(url);
 	}, []);
 
 	if (loading) {
@@ -2390,6 +1970,43 @@ export default function VideoEditor() {
 					>
 						<Save size={14} />
 						{ts("project.save")}
+					</button>
+				</div>
+				<div
+					className="flex items-center gap-1"
+					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+				>
+					<button
+						type="button"
+						onClick={() => setShowExportSettingsPopup(true)}
+						className="inline-flex items-center gap-1.5 rounded-md border border-[#34B27B]/45 bg-[#34B27B]/10 px-2.5 py-1 text-[11px] font-semibold text-[#9ee7c8] hover:bg-[#34B27B]/20 hover:text-white transition-colors"
+					>
+						<Download size={13} />
+						Export
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_REPORT_BUG_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title={ts("links.reportBug")}
+					>
+						<Bug size={13} />
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_GITHUB_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title={ts("links.starOnGithub")}
+					>
+						<Star size={13} />
+					</button>
+					<button
+						type="button"
+						onClick={() => handleOpenExternal(OPENSCREEN_DISCORD_INVITE_URL)}
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-white/50 hover:text-white/90 hover:bg-white/10 transition-colors text-[11px] font-medium"
+						title="Join Discord"
+					>
+						<FaDiscord size={13} />
 					</button>
 				</div>
 			</div>
@@ -2600,10 +2217,16 @@ export default function VideoEditor() {
 						onPaddingCommit={commitState}
 						backgroundMusicPath={backgroundMusicPath}
 						backgroundMusicVolume={backgroundMusicVolume}
+						backgroundMusicFadeIn={backgroundMusicFadeIn}
+						backgroundMusicFadeOut={backgroundMusicFadeOut}
 						onBackgroundMusicPick={handlePickBackgroundMusic}
 						onBackgroundMusicRemove={handleRemoveBackgroundMusic}
 						onBackgroundMusicVolumeChange={(v) => updateState({ backgroundMusicVolume: v })}
 						onBackgroundMusicVolumeCommit={commitState}
+						onBackgroundMusicFadeInChange={(v) => updateState({ backgroundMusicFadeIn: v })}
+						onBackgroundMusicFadeInCommit={commitState}
+						onBackgroundMusicFadeOutChange={(v) => updateState({ backgroundMusicFadeOut: v })}
+						onBackgroundMusicFadeOutCommit={commitState}
 						onMusicTrackSelect={handleMusicTrackSelect}
 						backgroundMusicRegions={backgroundMusicRegions}
 						selectedMusicRegionId={selectedMusicRegionId}
@@ -2695,9 +2318,44 @@ export default function VideoEditor() {
 						onZoomDurationChange={(zoomIn, zoomOut) =>
 							selectedZoomId && handleZoomDurationChange(selectedZoomId, zoomIn, zoomOut)
 						}
+						showEmbeddedExportSection={false}
 					/>
 				</div>
 			</div>
+
+			<ExportSettingsPopup
+				isOpen={showExportSettingsPopup}
+				onClose={() => setShowExportSettingsPopup(false)}
+				exportFormat={exportFormat}
+				onExportFormatChange={setExportFormat}
+				exportQuality={exportQuality}
+				onExportQualityChange={setExportQuality}
+				gifFrameRate={gifFrameRate}
+				onGifFrameRateChange={setGifFrameRate}
+				gifLoop={gifLoop}
+				onGifLoopChange={setGifLoop}
+				gifSizePreset={gifSizePreset}
+				onGifSizePresetChange={setGifSizePreset}
+				gifOutputDimensions={calculateOutputDimensions(
+					videoPlaybackRef.current?.video?.videoWidth || 1920,
+					videoPlaybackRef.current?.video?.videoHeight || 1080,
+					gifSizePreset,
+					GIF_SIZE_PRESETS,
+					aspectRatio === "native"
+						? getNativeAspectRatioValue(
+								videoPlaybackRef.current?.video?.videoWidth || 1920,
+								videoPlaybackRef.current?.video?.videoHeight || 1080,
+								cropRegion,
+							)
+						: getAspectRatioValue(aspectRatio),
+				)}
+				onExport={() => {
+					setShowExportSettingsPopup(false);
+					handleOpenExportDialog();
+				}}
+				unsavedExport={unsavedExport}
+				onSaveUnsavedExport={handleSaveUnsavedExport}
+			/>
 
 			<ExportDialog
 				isOpen={showExportDialog}
