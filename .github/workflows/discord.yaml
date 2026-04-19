@@ -1,7 +1,7 @@
 name: PR to Discord Forum
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, ready_for_review, converted_to_draft, synchronize, edited, labeled, unlabeled, closed]
   pull_request_review:
     types: [submitted]
@@ -18,7 +18,10 @@ permissions:
 
 jobs:
   notify:
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && github.actor != 'github-actions[bot]'
+    concurrency:
+      group: discord-pr-sync-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Sync PR activity to Discord forum thread
@@ -145,7 +148,7 @@ jobs:
             }
 
             async function getPullRequest() {
-              if (context.eventName === "pull_request" || context.eventName === "pull_request_review") {
+              if (context.eventName === "pull_request_target" || context.eventName === "pull_request_review") {
                 return context.payload.pull_request || null;
               }
               if (context.eventName === "issue_comment") {
@@ -200,12 +203,7 @@ jobs:
                 return;
               }
 
-              const isForkPr = !!pr.head?.repo?.fork;
               if (!webhookUrl) {
-                if (isForkPr) {
-                  core.info("Skipping Discord sync: webhook secret is unavailable for fork PR events.");
-                  return;
-                }
                 core.setFailed(
                   "Missing Discord webhook secret. Set either DISCORD_WEBHOOK_URL or DISCORD_PR_FORUM_WEBHOOK in repository secrets, or pass it explicitly if using reusable workflows."
                 );
@@ -230,7 +228,7 @@ jobs:
 
               let threadId = extractThreadId(body);
               const shouldCreateThread =
-                context.eventName === "pull_request" &&
+                context.eventName === "pull_request_target" &&
                 ["opened", "reopened", "ready_for_review"].includes(action) &&
                 !threadId;
 
@@ -295,7 +293,7 @@ jobs:
                 return;
               }
 
-              if (context.eventName === "pull_request" && ["edited", "labeled", "unlabeled", "ready_for_review", "converted_to_draft"].includes(action)) {
+              if (context.eventName === "pull_request_target" && ["edited", "labeled", "unlabeled", "ready_for_review", "converted_to_draft"].includes(action)) {
                 const statusTag = desiredStatusTag({
                   draft: action === "converted_to_draft" ? true : pr.draft,
                   reviewState,
@@ -313,7 +311,7 @@ jobs:
               let updateMessage = null;
               let updateEmbed = null;
 
-              if (context.eventName === "pull_request") {
+              if (context.eventName === "pull_request_target") {
                 if (action === "synchronize") {
                   const { data: commits } = await github.rest.pulls.listCommits({ owner, repo, pull_number: number, per_page: 5 });
                   const list = commits.map((c) => `- \`${c.sha.slice(0, 7)}\` ${c.commit.message.split("\n")[0]}`).join("\n") || "- No commit details";
