@@ -1,15 +1,27 @@
-import { type CSSProperties, type PointerEvent, useRef, useState } from "react";
+import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
+import {
+	getBlurOverlayColor,
+	getMosaicGridOverlayColor,
+	getNormalizedMosaicBlockSize,
+} from "@/lib/blurEffects";
 import { cn } from "@/lib/utils";
 import { getArrowComponent } from "./ArrowSvgs";
 import {
 	type AnnotationRegion,
 	type BlurData,
+	DEFAULT_BLUR_BLOCK_SIZE,
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_INTENSITY,
 } from "./types";
 
 const FREEHAND_POINT_THRESHOLD = 1;
+type PreviewCanvasSource = {
+	width: number;
+	height: number;
+	clientWidth?: number;
+	clientHeight?: number;
+};
 
 function buildBlurPolygonClipPath(points: Array<{ x: number; y: number }>) {
 	if (points.length < 3) return undefined;
@@ -36,6 +48,8 @@ interface AnnotationOverlayProps {
 	onClick: (id: string) => void;
 	zIndex: number;
 	isSelectedBoost: boolean; // Boost z-index when selected for easy editing
+	previewSourceCanvas?: PreviewCanvasSource | null;
+	previewFrameVersion?: number;
 }
 
 export function AnnotationOverlay({
@@ -50,11 +64,13 @@ export function AnnotationOverlay({
 	onClick,
 	zIndex,
 	isSelectedBoost,
+	previewSourceCanvas,
+	previewFrameVersion,
 }: AnnotationOverlayProps) {
-	const x = (annotation.position.x / 100) * containerWidth;
-	const y = (annotation.position.y / 100) * containerHeight;
-	const width = (annotation.size.width / 100) * containerWidth;
-	const height = (annotation.size.height / 100) * containerHeight;
+	const committedX = (annotation.position.x / 100) * containerWidth;
+	const committedY = (annotation.position.y / 100) * containerHeight;
+	const committedWidth = (annotation.size.width / 100) * containerWidth;
+	const committedHeight = (annotation.size.height / 100) * containerHeight;
 	const blurShape = annotation.type === "blur" ? (annotation.blurData?.shape ?? "rectangle") : null;
 	const isSelectedFreehandBlur = isSelected && blurShape === "freehand";
 	const isDraggingRef = useRef(false);
@@ -65,6 +81,108 @@ export function AnnotationOverlay({
 		[],
 	);
 	const [livePointerPoint, setLivePointerPoint] = useState<{ x: number; y: number } | null>(null);
+	const mosaicCanvasRef = useRef<HTMLCanvasElement | null>(null);
+	const blurType = annotation.type === "blur" ? (annotation.blurData?.type ?? "blur") : "blur";
+	const blurOverlayColor =
+		annotation.type === "blur" ? getBlurOverlayColor(annotation.blurData) : "";
+	const mosaicGridOverlayColor =
+		annotation.type === "blur" ? getMosaicGridOverlayColor(annotation.blurData) : "";
+	const [liveRect, setLiveRect] = useState({
+		x: committedX,
+		y: committedY,
+		width: committedWidth,
+		height: committedHeight,
+	});
+
+	useEffect(() => {
+		setLiveRect({
+			x: committedX,
+			y: committedY,
+			width: committedWidth,
+			height: committedHeight,
+		});
+	}, [committedHeight, committedWidth, committedX, committedY]);
+
+	const { x, y, width, height } = liveRect;
+
+	useEffect(() => {
+		if (annotation.type !== "blur" || blurType !== "mosaic") {
+			return;
+		}
+		void previewFrameVersion;
+
+		const canvas = mosaicCanvasRef.current;
+		const sourceCanvas = previewSourceCanvas;
+		if (!canvas || !sourceCanvas) {
+			return;
+		}
+
+		const sourceWidth = sourceCanvas.width;
+		const sourceHeight = sourceCanvas.height;
+		const sourceClientWidth = sourceCanvas.clientWidth || containerWidth || sourceWidth;
+		const sourceClientHeight = sourceCanvas.clientHeight || containerHeight || sourceHeight;
+		if (
+			sourceWidth <= 0 ||
+			sourceHeight <= 0 ||
+			sourceClientWidth <= 0 ||
+			sourceClientHeight <= 0
+		) {
+			return;
+		}
+
+		const drawWidth = Math.max(1, Math.round(width));
+		const drawHeight = Math.max(1, Math.round(height));
+		if (drawWidth <= 0 || drawHeight <= 0) {
+			return;
+		}
+
+		canvas.width = drawWidth;
+		canvas.height = drawHeight;
+
+		const context = canvas.getContext("2d", { willReadFrequently: true });
+		if (!context) {
+			return;
+		}
+
+		const scaleX = sourceWidth / sourceClientWidth;
+		const scaleY = sourceHeight / sourceClientHeight;
+		const sourceX = Math.max(0, Math.floor(x * scaleX));
+		const sourceY = Math.max(0, Math.floor(y * scaleY));
+		const sourceSampleWidth = Math.max(1, Math.ceil(drawWidth * scaleX));
+		const sourceSampleHeight = Math.max(1, Math.ceil(drawHeight * scaleY));
+		const clampedSampleWidth = Math.max(1, Math.min(sourceSampleWidth, sourceWidth - sourceX));
+		const clampedSampleHeight = Math.max(1, Math.min(sourceSampleHeight, sourceHeight - sourceY));
+		const blockSize = getNormalizedMosaicBlockSize(annotation.blurData);
+		const downscaledWidth = Math.max(1, Math.round(drawWidth / blockSize));
+		const downscaledHeight = Math.max(1, Math.round(drawHeight / blockSize));
+		canvas.width = downscaledWidth;
+		canvas.height = downscaledHeight;
+
+		context.clearRect(0, 0, downscaledWidth, downscaledHeight);
+		context.imageSmoothingEnabled = true;
+		context.drawImage(
+			sourceCanvas as CanvasImageSource,
+			sourceX,
+			sourceY,
+			clampedSampleWidth,
+			clampedSampleHeight,
+			0,
+			0,
+			downscaledWidth,
+			downscaledHeight,
+		);
+	}, [
+		annotation,
+		blurType,
+		containerHeight,
+		containerWidth,
+		height,
+		previewFrameVersion,
+		previewSourceCanvas,
+		width,
+		x,
+		y,
+	]);
 
 	const renderArrow = () => {
 		const direction = annotation.figureData?.arrowDirection || "right";
@@ -240,6 +358,10 @@ export function AnnotationOverlay({
 					1,
 					Math.round(annotation.blurData?.intensity ?? DEFAULT_BLUR_INTENSITY),
 				);
+				const blockSize = Math.max(
+					1,
+					Math.round(annotation.blurData?.blockSize ?? DEFAULT_BLUR_BLOCK_SIZE),
+				);
 				const activeFreehandPoints =
 					shape === "freehand"
 						? isFreehandDrawing
@@ -292,12 +414,43 @@ export function AnnotationOverlay({
 								className="absolute inset-0"
 								style={{
 									...shapeMaskStyle,
-									backdropFilter: `blur(${blurIntensity}px)`,
-									WebkitBackdropFilter: `blur(${blurIntensity}px)`,
-									backgroundColor: "rgba(255, 255, 255, 0.02)",
+									backdropFilter: blurType === "mosaic" ? "none" : `blur(${blurIntensity}px)`,
+									WebkitBackdropFilter: blurType === "mosaic" ? "none" : `blur(${blurIntensity}px)`,
+									backgroundColor: blurOverlayColor,
 									opacity: shouldShowFreehandBlurFill ? 1 : 0,
 								}}
 							/>
+							{blurType === "mosaic" && shouldShowFreehandBlurFill && (
+								<canvas
+									ref={mosaicCanvasRef}
+									className="absolute inset-0 w-full h-full"
+									style={{
+										...shapeMaskStyle,
+										imageRendering: "pixelated",
+									}}
+								/>
+							)}
+							{blurType === "mosaic" && shouldShowFreehandBlurFill && (
+								<div
+									className="absolute inset-0 pointer-events-none"
+									style={{
+										...shapeMaskStyle,
+										backgroundColor: blurOverlayColor,
+									}}
+								/>
+							)}
+							{blurType === "mosaic" && (
+								<div
+									className="absolute inset-0 pointer-events-none"
+									style={{
+										...shapeMaskStyle,
+										backgroundImage: `linear-gradient(${mosaicGridOverlayColor} 1px, transparent 1px), linear-gradient(90deg, ${mosaicGridOverlayColor} 1px, transparent 1px)`,
+										backgroundSize: `${blockSize}px ${blockSize}px`,
+										mixBlendMode: "screen",
+										opacity: 0.35,
+									}}
+								/>
+							)}
 							{isSelected && shape !== "freehand" && (
 								<div
 									className="absolute inset-0 pointer-events-none border-2 border-[#34B27B]/80"
@@ -354,7 +507,19 @@ export function AnnotationOverlay({
 			onDragStart={() => {
 				isDraggingRef.current = true;
 			}}
+			onDrag={(_e, d) => {
+				setLiveRect((prev) => ({
+					...prev,
+					x: d.x,
+					y: d.y,
+				}));
+			}}
 			onDragStop={(_e, d) => {
+				setLiveRect((prev) => ({
+					...prev,
+					x: d.x,
+					y: d.y,
+				}));
 				const xPercent = (d.x / containerWidth) * 100;
 				const yPercent = (d.y / containerHeight) * 100;
 				onPositionChange(annotation.id, { x: xPercent, y: yPercent });
@@ -364,7 +529,21 @@ export function AnnotationOverlay({
 					isDraggingRef.current = false;
 				}, 100);
 			}}
+			onResize={(_e, _direction, ref, _delta, position) => {
+				setLiveRect({
+					x: position.x,
+					y: position.y,
+					width: ref.offsetWidth,
+					height: ref.offsetHeight,
+				});
+			}}
 			onResizeStop={(_e, _direction, ref, _delta, position) => {
+				setLiveRect({
+					x: position.x,
+					y: position.y,
+					width: ref.offsetWidth,
+					height: ref.offsetHeight,
+				});
 				const xPercent = (position.x / containerWidth) * 100;
 				const yPercent = (position.y / containerHeight) * 100;
 				const widthPercent = (ref.offsetWidth / containerWidth) * 100;

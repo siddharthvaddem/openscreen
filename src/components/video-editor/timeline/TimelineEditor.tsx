@@ -59,6 +59,7 @@ interface TimelineEditorProps {
 	onZoomAdded: (span: Span) => void;
 	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
 	onZoomSpanChange: (id: string, span: Span) => void;
+	onZoomDurationChange: (id: string, zoomIn: number, zoomOut: number) => void;
 	onZoomDelete: (id: string) => void;
 	selectedZoomId: string | null;
 	onSelectZoom: (id: string | null) => void;
@@ -103,6 +104,8 @@ interface TimelineRenderItem {
 	label: string;
 	zoomDepth?: number;
 	speedValue?: number;
+	zoomInDurationMs?: number;
+	zoomOutDurationMs?: number;
 	variant: "zoom" | "trim" | "annotation" | "speed" | "blur";
 }
 
@@ -539,6 +542,7 @@ function Timeline({
 	selectedAnnotationId,
 	selectedBlurId,
 	selectedSpeedId,
+	onZoomDurationChange,
 	keyframes = [],
 }: {
 	items: TimelineRenderItem[];
@@ -556,6 +560,7 @@ function Timeline({
 	selectedAnnotationId?: string | null;
 	selectedBlurId?: string | null;
 	selectedSpeedId?: string | null;
+	onZoomDurationChange: (id: string, zoomIn: number, zoomOut: number) => void;
 	keyframes?: { id: string; time: number }[];
 }) {
 	const t = useScopedT("timeline");
@@ -682,6 +687,9 @@ function Timeline({
 						isSelected={item.id === selectedZoomId}
 						onSelect={() => onSelectZoom?.(item.id)}
 						zoomDepth={item.zoomDepth}
+						zoomInDurationMs={item.zoomInDurationMs}
+						zoomOutDurationMs={item.zoomOutDurationMs}
+						onZoomDurationChange={onZoomDurationChange}
 						variant="zoom"
 					>
 						{item.label}
@@ -770,6 +778,7 @@ export default function TimelineEditor({
 	onZoomAdded,
 	onZoomSuggested,
 	onZoomSpanChange,
+	onZoomDurationChange,
 	onZoomDelete,
 	selectedZoomId,
 	onSelectZoom,
@@ -1313,7 +1322,6 @@ export default function TimelineEditor({
 		selectedBlurId,
 		selectedSpeedId,
 		annotationRegions,
-		blurRegions,
 		currentTime,
 		onSelectAnnotation,
 		keyShortcuts,
@@ -1338,6 +1346,8 @@ export default function TimelineEditor({
 			span: { start: region.startMs, end: region.endMs },
 			label: t("labels.zoomItem", { index: String(index + 1) }),
 			zoomDepth: region.depth,
+			zoomInDurationMs: region.zoomInDurationMs,
+			zoomOutDurationMs: region.zoomOutDurationMs,
 			variant: "zoom",
 		}));
 
@@ -1594,6 +1604,7 @@ export default function TimelineEditor({
 						selectedAnnotationId={selectedAnnotationId}
 						selectedBlurId={selectedBlurId}
 						selectedSpeedId={selectedSpeedId}
+						onZoomDurationChange={onZoomDurationChange}
 						keyframes={keyframes}
 					/>
 				</TimelineWrapper>

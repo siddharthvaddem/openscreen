@@ -1,10 +1,11 @@
+import { type AnnotationRegion, type ArrowDirection } from "@/components/video-editor/types";
 import {
-	type AnnotationRegion,
-	type ArrowDirection,
-	DEFAULT_BLUR_INTENSITY,
-	MAX_BLUR_INTENSITY,
-	MIN_BLUR_INTENSITY,
-} from "@/components/video-editor/types";
+	applyMosaicToImageData,
+	getBlurOverlayColor,
+	getNormalizedBlurIntensity,
+	getNormalizedMosaicBlockSize,
+	normalizeBlurType,
+} from "@/lib/blurEffects";
 
 let blurScratchCanvas: HTMLCanvasElement | null = null;
 let blurScratchCtx: CanvasRenderingContext2D | null = null;
@@ -151,15 +152,16 @@ function renderBlur(
 	scaleFactor: number,
 ) {
 	const canvas = ctx.canvas;
-	const configuredIntensity = annotation.blurData?.intensity ?? DEFAULT_BLUR_INTENSITY;
+	const blurType = normalizeBlurType(annotation.blurData?.type);
+
 	const blurRadius = Math.max(
 		1,
-		Math.round(clamp(configuredIntensity, MIN_BLUR_INTENSITY, MAX_BLUR_INTENSITY) * scaleFactor),
+		Math.round(getNormalizedBlurIntensity(annotation.blurData) * scaleFactor),
 	);
-
-	// Sample pixels around the target shape too; without this padding, small blur regions
-	// lose intensity because the filter has no neighboring pixels to blend with.
-	const samplePadding = Math.max(2, Math.ceil(blurRadius * 2));
+	const samplePadding =
+		blurType === "mosaic"
+			? Math.max(0, Math.ceil(getNormalizedMosaicBlockSize(annotation.blurData, scaleFactor)))
+			: Math.max(2, Math.ceil(blurRadius * 2));
 	const sx = Math.max(0, Math.floor(x) - samplePadding);
 	const sy = Math.max(0, Math.floor(y) - samplePadding);
 	const ex = Math.min(canvas.width, Math.ceil(x + width) + samplePadding);
@@ -179,17 +181,24 @@ function renderBlur(
 	blurScratchCtx.clearRect(0, 0, sw, sh);
 	blurScratchCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
+	if (blurType === "mosaic") {
+		const imageData = blurScratchCtx.getImageData(0, 0, sw, sh);
+		applyMosaicToImageData(
+			imageData,
+			getNormalizedMosaicBlockSize(annotation.blurData, scaleFactor),
+		);
+		blurScratchCtx.putImageData(imageData, 0, 0);
+	}
+
 	ctx.save();
 	drawBlurPath(ctx, annotation, x, y, width, height);
 	ctx.clip();
-	ctx.filter = `blur(${blurRadius}px)`;
+	ctx.filter = blurType === "mosaic" ? "none" : `blur(${blurRadius}px)`;
 	ctx.drawImage(blurScratchCanvas, sx, sy);
 	ctx.filter = "none";
+	ctx.fillStyle = getBlurOverlayColor(annotation.blurData);
+	ctx.fillRect(sx, sy, sw, sh);
 	ctx.restore();
-}
-
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
 }
 
 function renderText(
@@ -364,7 +373,7 @@ export async function renderAnnotations(
 ): Promise<void> {
 	// Filter active annotations at current time
 	const activeAnnotations = annotations.filter(
-		(ann) => currentTimeMs >= ann.startMs && currentTimeMs <= ann.endMs,
+		(ann) => currentTimeMs >= ann.startMs && currentTimeMs < ann.endMs,
 	);
 
 	// Sort by z-index (lower first, so higher z-index draws on top)

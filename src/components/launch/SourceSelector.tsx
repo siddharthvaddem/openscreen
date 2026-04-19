@@ -65,7 +65,7 @@ export function SourceSelector() {
 				style={{ minHeight: "100vh" }}
 			>
 				<div className="text-center">
-					<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#34B27B] mx-auto mb-2" />
+					<div className="animate-spin duration-500 rounded-[50%] h-6 w-6 border-2 border-b-transparent border-[#34B27B] mx-auto mb-2" />
 					<p className="text-xs text-zinc-400">{t("sourceSelector.loading")}</p>
 				</div>
 			</div>
@@ -84,10 +84,10 @@ export function SourceSelector() {
 					<img
 						src={source.thumbnail || ""}
 						alt={source.name}
-						className="w-full aspect-video object-cover rounded-lg"
+						className="w-full aspect-video object-cover rounded-xl [corner-shape:squircle] "
 					/>
 					{isSelected && (
-						<div className="absolute -top-1.5 -right-1.5">
+						<div className="absolute -top-1 -right-1">
 							<div className={styles.checkBadge}>
 								<MdCheck size={12} className="text-white" />
 							</div>
@@ -111,16 +111,16 @@ export function SourceSelector() {
 					defaultValue={screenSources.length === 0 ? "windows" : "screens"}
 					className="flex-1 flex flex-col"
 				>
-					<TabsList className="grid grid-cols-2 mb-3 bg-white/5 rounded-full">
+					<TabsList className="grid grid-cols-2 mb-3 bg-white/5 rounded-[14px] squircle ">
 						<TabsTrigger
 							value="screens"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-full text-xs py-1 transition-all"
+							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-[12px] squircle text-xs py-1.5 transition-all"
 						>
 							{t("sourceSelector.screens", { count: String(screenSources.length) })}
 						</TabsTrigger>
 						<TabsTrigger
 							value="windows"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-full text-xs py-1 transition-all"
+							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-[12px] squircle text-xs py-1.5 transition-all"
 						>
 							{t("sourceSelector.windows", { count: String(windowSources.length) })}
 						</TabsTrigger>
@@ -128,14 +128,14 @@ export function SourceSelector() {
 					<div className="flex-1 min-h-0">
 						<TabsContent value="screens" className="h-full mt-0">
 							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
+								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pt-1 pr-1.5 auto-rows-min ${styles.sourceGridScroll}`}
 							>
 								{screenSources.map(renderSourceCard)}
 							</div>
 						</TabsContent>
 						<TabsContent value="windows" className="h-full mt-0">
 							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pr-1 auto-rows-min ${styles.sourceGridScroll}`}
+								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pt-1 pr-1.5 auto-rows-min ${styles.sourceGridScroll}`}
 							>
 								{windowSources.map(renderSourceCard)}
 							</div>
@@ -143,18 +143,18 @@ export function SourceSelector() {
 					</div>
 				</Tabs>
 			</div>
-			<div className="p-3 flex justify-center gap-2">
+			<div className="p-3 justify-center flex gap-2">
 				<Button
 					variant="ghost"
 					onClick={() => window.close()}
-					className="px-5 py-1 text-xs text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+					className="px-5 py-1 text-xs text-zinc-400 hover:text-white active:scale-95 transition-transform duration-150 hover:bg-white/5 rounded-full"
 				>
 					{tc("actions.cancel")}
 				</Button>
 				<Button
 					onClick={handleShare}
 					disabled={!selectedSource}
-					className="px-5 py-1 text-xs bg-[#34B27B] text-white hover:bg-[#34B27B]/80 disabled:opacity-30 disabled:bg-zinc-700 rounded-full"
+					className="px-5 py-1 text-xs bg-[#34B27B] text-white active:scale-95 transition-transform duration-150 hover:bg-[#34B27B]/80 disabled:opacity-30 disabled:bg-zinc-700 rounded-full"
 				>
 					{tc("actions.share")}
 				</Button>

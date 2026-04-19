@@ -210,6 +210,7 @@ interface SettingsPanelProps {
 	onAnnotationTypeChange?: (id: string, type: AnnotationType) => void;
 	onAnnotationStyleChange?: (id: string, style: Partial<AnnotationRegion["style"]>) => void;
 	onAnnotationFigureDataChange?: (id: string, figureData: FigureData) => void;
+	onAnnotationDuplicate?: (id: string) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedBlurId?: string | null;
 	blurRegions?: AnnotationRegion[];
@@ -225,6 +226,9 @@ interface SettingsPanelProps {
 	onWebcamLayoutPresetChange?: (preset: WebcamLayoutPreset) => void;
 	webcamMaskShape?: import("./types").WebcamMaskShape;
 	onWebcamMaskShapeChange?: (shape: import("./types").WebcamMaskShape) => void;
+	selectedZoomInDuration?: number;
+	selectedZoomOutDuration?: number;
+	onZoomDurationChange?: (zoomIn: number, zoomOut: number) => void;
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
@@ -239,6 +243,13 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 	{ depth: 4, label: "2.2×" },
 	{ depth: 5, label: "3.5×" },
 	{ depth: 6, label: "5×" },
+];
+
+const ZOOM_SPEED_OPTIONS = [
+	{ label: "Instant", zoomIn: 0, zoomOut: 0 },
+	{ label: "Fast", zoomIn: 500, zoomOut: 350 },
+	{ label: "Smooth", zoomIn: 1522, zoomOut: 1015 },
+	{ label: "Lazy", zoomIn: 3000, zoomOut: 2000 },
 ];
 
 export function SettingsPanel({
@@ -291,6 +302,7 @@ export function SettingsPanel({
 	onAnnotationTypeChange,
 	onAnnotationStyleChange,
 	onAnnotationFigureDataChange,
+	onAnnotationDuplicate,
 	onAnnotationDelete,
 	selectedBlurId,
 	blurRegions = [],
@@ -306,6 +318,9 @@ export function SettingsPanel({
 	onWebcamLayoutPresetChange,
 	webcamMaskShape = "rectangle",
 	onWebcamMaskShapeChange,
+	selectedZoomInDuration,
+	selectedZoomOutDuration,
+	onZoomDurationChange,
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
@@ -556,6 +571,9 @@ export function SettingsPanel({
 						? (figureData) => onAnnotationFigureDataChange(selectedAnnotation.id, figureData)
 						: undefined
 				}
+				onDuplicate={
+					onAnnotationDuplicate ? () => onAnnotationDuplicate(selectedAnnotation.id) : undefined
+				}
 				onDelete={() => onAnnotationDelete(selectedAnnotation.id)}
 			/>
 		);
@@ -646,6 +664,39 @@ export function SettingsPanel({
 									{t("zoom.focusMode.autoDescription")}
 								</p>
 							)}
+						</div>
+					)}
+
+					{zoomEnabled && (
+						<div className="mt-3">
+							<span className="text-sm font-medium text-slate-200 mb-2 block">
+								{t("zoom.speed.title") || "Zoom Speed"}
+							</span>
+							<div className="grid grid-cols-4 gap-1.5">
+								{ZOOM_SPEED_OPTIONS.map((opt) => {
+									const isActive =
+										selectedZoomInDuration !== undefined &&
+										selectedZoomOutDuration !== undefined &&
+										Math.round(selectedZoomInDuration) === Math.round(opt.zoomIn) &&
+										Math.round(selectedZoomOutDuration) === Math.round(opt.zoomOut);
+									return (
+										<Button
+											key={opt.label}
+											type="button"
+											onClick={() => onZoomDurationChange?.(opt.zoomIn, opt.zoomOut)}
+											className={cn(
+												"h-auto w-full rounded-lg border px-1 py-2 text-center shadow-sm transition-all",
+												"duration-200 ease-out cursor-pointer",
+												isActive
+													? "border-[#34B27B] bg-[#34B27B] text-white shadow-[#34B27B]/20"
+													: "border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-slate-200",
+											)}
+										>
+											<span className="text-[10px] font-semibold">{opt.label}</span>
+										</Button>
+									);
+								})}
+							</div>
 						</div>
 					)}
 					{zoomEnabled && (
@@ -1026,7 +1077,7 @@ export function SettingsPanel({
 						</AccordionTrigger>
 						<AccordionContent className="pb-3">
 							<Tabs defaultValue="image" className="w-full">
-								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 rounded-lg">
 									<TabsTrigger
 										value="image"
 										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"

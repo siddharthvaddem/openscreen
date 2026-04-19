@@ -1,0 +1,176 @@
+{
+	"zoom": {
+		"level": "縮放級別",
+		"selectRegion": "選擇要調整的縮放區域",
+		"deleteZoom": "刪除縮放",
+		"focusMode": {
+			"title": "對焦模式",
+			"manual": "手動",
+			"auto": "自動",
+			"autoDescription": "攝影機跟隨錄製時的游標位置"
+		},
+		"speed": {
+			"title": "縮放速度",
+			"instant": "即時",
+			"fast": "快速",
+			"smooth": "平滑",
+			"lazy": "緩慢"
+		}
+	},
+	"speed": {
+		"playbackSpeed": "播放速度",
+		"selectRegion": "選擇要調整的速度區域",
+		"deleteRegion": "刪除速度區域",
+		"customPlaybackSpeed": "自訂播放速度",
+		"maxSpeedError": "速度不能超過 16×"
+	},
+	"trim": {
+		"deleteRegion": "刪除剪輯區域"
+	},
+	"layout": {
+		"title": "版面配置",
+		"preset": "預設",
+		"selectPreset": "選擇預設",
+		"pictureInPicture": "子母畫面",
+		"verticalStack": "垂直堆疊",
+		"dualFrame": "雙畫框",
+		"webcamShape": "攝影機形狀",
+		"webcamSize": "攝影機大小"
+	},
+	"effects": {
+		"title": "影片效果",
+		"blurBg": "模糊背景",
+		"motionBlur": "動態模糊",
+		"off": "關",
+		"shadow": "陰影",
+		"roundness": "圓角",
+		"padding": "內邊距"
+	},
+	"background": {
+		"title": "背景",
+		"image": "圖片",
+		"color": "顏色",
+		"gradient": "漸層",
+		"uploadCustom": "上傳自訂",
+		"gradientLabel": "漸層 {{index}}"
+	},
+	"crop": {
+		"title": "裁剪",
+		"cropVideo": "裁剪影片",
+		"dragInstruction": "拖動每一側來調整裁剪區域",
+		"ratio": "比例",
+		"free": "自由",
+		"done": "完成",
+		"lockAspectRatio": "鎖定長寬比",
+		"unlockAspectRatio": "解鎖長寬比"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "MP4 影片",
+		"mp4Description": "高品質影片檔案",
+		"gifAnimation": "GIF 動畫",
+		"gifDescription": "可分享的動態圖片"
+	},
+	"exportQuality": {
+		"title": "匯出品質",
+		"low": "低",
+		"medium": "中",
+		"high": "高"
+	},
+	"gifSettings": {
+		"frameRate": "GIF 影格率",
+		"size": "GIF 尺寸",
+		"loop": "循環 GIF"
+	},
+	"project": {
+		"save": "儲存專案",
+		"load": "載入專案"
+	},
+	"export": {
+		"videoButton": "匯出影片",
+		"gifButton": "匯出 GIF",
+		"chooseSaveLocation": "選擇儲存位置"
+	},
+	"links": {
+		"reportBug": "回報錯誤",
+		"starOnGithub": "在 GitHub 上加星"
+	},
+	"imageUpload": {
+		"invalidFileType": "無效的檔案類型",
+		"jpgOnly": "請上傳 JPG 或 JPEG 格式的圖片檔案。",
+		"uploadSuccess": "自訂圖片上傳成功！",
+		"failedToUpload": "上傳圖片失敗",
+		"errorReading": "讀取檔案時出錯。"
+	},
+	"annotation": {
+		"title": "標註設定",
+		"active": "啟用",
+		"typeText": "文字",
+		"typeImage": "圖片",
+		"typeArrow": "箭頭",
+		"typeBlur": "模糊",
+		"textContent": "文字內容",
+		"textPlaceholder": "輸入您的文字...",
+		"fontStyle": "字體樣式",
+		"selectStyle": "選擇樣式",
+		"size": "大小",
+		"customFonts": "自訂字體",
+		"textColor": "文字顏色",
+		"background": "背景",
+		"none": "無",
+		"color": "顏色",
+		"clearBackground": "清除背景",
+		"uploadImage": "上傳圖片",
+		"supportedFormats": "支援的格式：JPG、PNG、GIF、WebP",
+		"arrowDirection": "箭頭方向",
+		"strokeWidth": "描邊寬度：{{width}}px",
+		"arrowColor": "箭頭顏色",
+		"blurShape": "模糊形狀",
+		"blurIntensity": "模糊強度",
+		"blurShapeRectangle": "矩形",
+		"blurShapeOval": "橢圓",
+		"blurShapeFreehand": "自由手繪",
+		"deleteAnnotation": "刪除標註",
+		"shortcutsAndTips": "快捷鍵與提示",
+		"tipMovePlayhead": "將播放頭移動到重疊的標註區域並選擇一個項目。",
+		"tipTabCycle": "使用 Tab 鍵在重疊項目之間循環切換。",
+		"tipShiftTabCycle": "使用 Shift+Tab 反向循環切換。",
+		"invalidImageType": "無效的檔案類型",
+		"imageFormatsOnly": "請上傳 JPG、PNG、GIF 或 WebP 格式的圖片檔案。",
+		"imageUploadSuccess": "圖片上傳成功！",
+		"failedImageUpload": "上傳圖片失敗"
+	},
+	"fontStyles": {
+		"classic": "經典",
+		"editor": "編輯器",
+		"strong": "粗體",
+		"typewriter": "打字機",
+		"deco": "裝飾",
+		"simple": "簡約",
+		"modern": "現代",
+		"clean": "簡潔"
+	},
+	"customFont": {
+		"dialogTitle": "新增 Google 字體",
+		"urlLabel": "Google Fonts 匯入 URL",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "從 Google Fonts 取得：選擇字體 → 點擊 \"Get font\" → 複製 @import URL",
+		"nameLabel": "顯示名稱",
+		"namePlaceholder": "我的自訂字體",
+		"nameHelp": "這是字體在字體選擇器中顯示的名稱",
+		"addButton": "新增字體",
+		"addingButton": "新增中...",
+		"errorEmptyUrl": "請輸入 Google Fonts 匯入 URL",
+		"errorInvalidUrl": "請輸入有效的 Google Fonts URL",
+		"errorEmptyName": "請輸入字體名稱",
+		"errorExtractFailed": "無法從 URL 中提取字體系列",
+		"successMessage": "字體 \"{{fontName}}\" 新增成功",
+		"failedToAdd": "新增字體失敗",
+		"errorTimeout": "字體載入時間過長。請檢查 URL 並重試。",
+		"errorLoadFailed": "無法載入該字體。請確認 Google Fonts URL 是否正確。"
+	},
+	"language": {
+		"title": "語言"
+	}
+}

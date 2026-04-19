@@ -8,6 +8,13 @@
 			"manual": "Manual",
 			"auto": "Auto",
 			"autoDescription": "La cámara sigue la posición del cursor grabado"
+		},
+		"speed": {
+			"title": "Velocidad de zoom",
+			"instant": "Instantáneo",
+			"fast": "Rápido",
+			"smooth": "Suave",
+			"lazy": "Lento"
 		}
 	},
 	"speed": {
@@ -119,8 +126,15 @@
 		"arrowDirection": "Dirección de la flecha",
 		"strokeWidth": "Grosor del trazo: {{width}}px",
 		"arrowColor": "Color de la flecha",
+		"blurType": "Tipo de desenfoque",
+		"blurTypeBlur": "Desenfoque",
+		"blurTypeMosaic": "Desenfoque mosaico",
+		"blurColor": "Color del desenfoque",
+		"blurColorWhite": "Blanco",
+		"blurColorBlack": "Negro",
 		"blurShape": "Forma del desenfoque",
 		"blurIntensity": "Intensidad del desenfoque",
+		"mosaicBlockSize": "Tamano del bloque mosaico",
 		"blurShapeRectangle": "Rectángulo",
 		"blurShapeOval": "Óvalo",
 		"blurShapeFreehand": "Mano alzada",

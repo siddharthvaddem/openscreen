@@ -74,6 +74,7 @@ import {
 	type ZoomRegion,
 } from "./types";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
+import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayback/constants";
 
 export default function VideoEditor() {
 	const {
@@ -321,7 +322,6 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
-		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
@@ -498,7 +498,6 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
-			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -507,6 +506,7 @@ export default function VideoEditor() {
 			gifSizePreset,
 			videoPath,
 			t,
+			webcamSizePreset,
 		],
 	);
 
@@ -956,6 +956,19 @@ export default function VideoEditor() {
 		[pushState],
 	);
 
+	const handleZoomDurationChange = useCallback(
+		(id: string, zoomIn: number, zoomOut: number) => {
+			pushState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((region) =>
+					region.id === id
+						? { ...region, zoomInDurationMs: zoomIn, zoomOutDurationMs: zoomOut }
+						: region,
+				),
+			}));
+		},
+		[pushState],
+	);
+
 	const handleAnnotationSpanChange = useCallback(
 		(id: string, span: Span) => {
 			pushState((prev) => ({
@@ -969,6 +982,33 @@ export default function VideoEditor() {
 						: region,
 				),
 			}));
+		},
+		[pushState],
+	);
+
+	const handleAnnotationDuplicate = useCallback(
+		(id: string) => {
+			const duplicateId = `annotation-${nextAnnotationIdRef.current++}`;
+			const duplicateZIndex = nextAnnotationZIndexRef.current++;
+			pushState((prev) => {
+				const source = prev.annotationRegions.find((region) => region.id === id);
+				if (!source) return {};
+
+				const duplicate: AnnotationRegion = {
+					...source,
+					id: duplicateId,
+					zIndex: duplicateZIndex,
+					position: { x: source.position.x + 4, y: source.position.y + 4 },
+					size: { ...source.size },
+					style: { ...source.style },
+					figureData: source.figureData ? { ...source.figureData } : undefined,
+				};
+
+				return { annotationRegions: [...prev.annotationRegions, duplicate] };
+			});
+			setSelectedAnnotationId(duplicateId);
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
 		},
 		[pushState],
 	);
@@ -1853,6 +1893,7 @@ export default function VideoEditor() {
 									onZoomAdded={handleZoomAdded}
 									onZoomSuggested={handleZoomSuggested}
 									onZoomSpanChange={handleZoomSpanChange}
+									onZoomDurationChange={handleZoomDurationChange}
 									onZoomDelete={handleZoomDelete}
 									selectedZoomId={selectedZoomId}
 									onSelectZoom={handleSelectZoom}
@@ -1978,6 +2019,7 @@ export default function VideoEditor() {
 						onAnnotationTypeChange={handleAnnotationTypeChange}
 						onAnnotationStyleChange={handleAnnotationStyleChange}
 						onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
+						onAnnotationDuplicate={handleAnnotationDuplicate}
 						onAnnotationDelete={handleAnnotationDelete}
 						selectedBlurId={selectedBlurId}
 						blurRegions={blurRegions}
@@ -1994,6 +2036,21 @@ export default function VideoEditor() {
 						onSpeedDelete={handleSpeedDelete}
 						unsavedExport={unsavedExport}
 						onSaveUnsavedExport={handleSaveUnsavedExport}
+						selectedZoomInDuration={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.zoomInDurationMs ??
+									Math.round(ZOOM_IN_TRANSITION_WINDOW_MS))
+								: undefined
+						}
+						selectedZoomOutDuration={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.zoomOutDurationMs ??
+									Math.round(TRANSITION_WINDOW_MS))
+								: undefined
+						}
+						onZoomDurationChange={(zoomIn, zoomOut) =>
+							selectedZoomId && handleZoomDurationChange(selectedZoomId, zoomIn, zoomOut)
+						}
 					/>
 				</div>
 			</div>

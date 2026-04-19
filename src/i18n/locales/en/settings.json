@@ -8,6 +8,13 @@
 			"manual": "Manual",
 			"auto": "Auto",
 			"autoDescription": "Camera follows the recorded cursor position"
+		},
+		"speed": {
+			"title": "Zoom Speed",
+			"instant": "Instant",
+			"fast": "Fast",
+			"smooth": "Smooth",
+			"lazy": "Lazy"
 		}
 	},
 	"speed": {
@@ -119,8 +126,15 @@
 		"arrowDirection": "Arrow Direction",
 		"strokeWidth": "Stroke Width: {{width}}px",
 		"arrowColor": "Arrow Color",
+		"blurType": "Blur Type",
+		"blurTypeBlur": "Blur",
+		"blurTypeMosaic": "Mosaic Blur",
+		"blurColor": "Blur Color",
+		"blurColorWhite": "White",
+		"blurColorBlack": "Black",
 		"blurShape": "Blur Shape",
 		"blurIntensity": "Blur Intensity",
+		"mosaicBlockSize": "Mosaic Block Size",
 		"blurShapeRectangle": "Rectangle",
 		"blurShapeOval": "Oval",
 		"blurShapeFreehand": "Freehand",

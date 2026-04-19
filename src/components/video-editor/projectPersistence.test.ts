@@ -68,6 +68,75 @@ describe("projectPersistence media compatibility", () => {
 		).toBe("rectangle");
 	});
 
+	it("normalizes blur region type and mosaic block size safely", () => {
+		const editor = normalizeProjectEditor({
+			annotationRegions: [
+				{
+					id: "annotation-1",
+					startMs: 0,
+					endMs: 500,
+					type: "blur",
+					content: "",
+					position: { x: 10, y: 10 },
+					size: { width: 20, height: 20 },
+					style: {
+						color: "#fff",
+						backgroundColor: "transparent",
+						fontSize: 32,
+						fontFamily: "Inter",
+						fontWeight: "bold",
+						fontStyle: "normal",
+						textDecoration: "none",
+						textAlign: "center",
+					},
+					zIndex: 1,
+					blurData: {
+						type: "mosaic",
+						shape: "rectangle",
+						color: "black",
+						intensity: 999,
+						blockSize: 999,
+					},
+				},
+				{
+					id: "annotation-2",
+					startMs: 0,
+					endMs: 500,
+					type: "blur",
+					content: "",
+					position: { x: 10, y: 10 },
+					size: { width: 20, height: 20 },
+					style: {
+						color: "#fff",
+						backgroundColor: "transparent",
+						fontSize: 32,
+						fontFamily: "Inter",
+						fontWeight: "bold",
+						fontStyle: "normal",
+						textDecoration: "none",
+						textAlign: "center",
+					},
+					zIndex: 2,
+					blurData: {
+						type: "invalid" as never,
+						shape: "rectangle",
+						color: "invalid" as never,
+						intensity: 10,
+						blockSize: 0,
+					},
+				},
+			],
+		});
+
+		expect(editor.annotationRegions[0].blurData?.type).toBe("mosaic");
+		expect(editor.annotationRegions[0].blurData?.color).toBe("black");
+		expect(editor.annotationRegions[0].blurData?.intensity).toBe(40);
+		expect(editor.annotationRegions[0].blurData?.blockSize).toBe(48);
+		expect(editor.annotationRegions[1].blurData?.type).toBe("blur");
+		expect(editor.annotationRegions[1].blurData?.color).toBe("white");
+		expect(editor.annotationRegions[1].blurData?.blockSize).toBe(4);
+	});
+
 	it("accepts the dual frame webcam layout preset", () => {
 		expect(normalizeProjectEditor({ webcamLayoutPreset: "dual-frame" }).webcamLayoutPreset).toBe(
 			"dual-frame",

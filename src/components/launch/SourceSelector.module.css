@@ -2,15 +2,21 @@
 	background: linear-gradient(135deg, rgba(28, 28, 34, 0.92) 0%, rgba(18, 18, 22, 0.88) 100%);
 	backdrop-filter: blur(20px) saturate(160%);
 	-webkit-backdrop-filter: blur(20px) saturate(160%);
-	border-radius: 14px;
-	box-shadow:
-		0 4px 16px 0 rgba(0, 0, 0, 0.32),
-		0 1px 3px 0 rgba(0, 0, 0, 0.18) inset;
-	border: 1px solid rgba(60, 60, 80, 0.18);
+	border-radius: 30px;
+	corner-shape: squircle;
+	/*
+		Removed box-shadow here because electron doesn't round corners of the shadow, thereby leaving a square border shadow conflicting with the rounded corners of the SourceSelector.
+		The result is easily visible when you place a white window just behind the SourceSelector
+	*/
+	/* box-shadow:
+		0 0px 16px 0 rgba(0, 0, 0, 0.32),
+		0 1px 3px 0 rgba(0, 0, 0, 0.18) inset; */
+	border: 1.5px solid rgba(60, 60, 80, 0.3);
 }
 
 .sourceCard {
-	border-radius: 12px;
+	corner-shape: squircle;
+	border-radius: 20px;
 	background: linear-gradient(120deg, rgba(38, 38, 48, 0.98) 0%, rgba(24, 24, 32, 0.96) 100%);
 	border: 1px solid rgba(60, 60, 80, 0.22);
 	box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
@@ -28,7 +34,7 @@
 }
 
 .selected {
-	border: 2px solid #34b27b;
+	border: 1.5px solid #34b27b;
 	background: linear-gradient(120deg, rgba(52, 178, 123, 0.08) 0%, rgba(38, 38, 48, 0.98) 100%);
 	box-shadow:
 		0 0 12px rgba(52, 178, 123, 0.15),
@@ -70,30 +76,27 @@
 }
 
 /* scrollbar */
-.sourceGridScroll {
-	scrollbar-width: thin;
-	scrollbar-color: rgba(52, 178, 123, 0.5) rgba(40, 40, 50, 0.6);
-}
 
 .sourceGridScroll::-webkit-scrollbar {
-	width: 8px;
+	width: 3px;
 }
 
 .sourceGridScroll::-webkit-scrollbar-track {
-	background: rgba(30, 30, 38, 0.5);
+	background: rgba(30, 30, 38, 0.3);
 	border-radius: 4px;
-	margin: 4px 0;
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb {
-	background: rgba(80, 80, 100, 0.6);
-	border-radius: 4px;
+	background: rgba(52, 178, 123, 0.5);
+	border-radius: 10px;
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb:hover {
 	background: rgba(52, 178, 123, 0.6);
+	cursor: grab;
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb:active {
 	background: rgba(52, 178, 123, 0.8);
+	cursor: grabbing;
 }
