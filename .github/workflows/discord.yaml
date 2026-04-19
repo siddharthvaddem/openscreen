@@ -103,13 +103,19 @@ jobs:
                 })
               });
 
+              const contentType = (response.headers.get("content-type") || "").toLowerCase();
+              const text = await response.text();
+
               if (!response.ok) {
-                const text = await response.text();
                 throw new Error(`Discord API error ${response.status}: ${text}`);
               }
 
-              const text = await response.text();
-              return text ? JSON.parse(text) : {};
+              if (!text) return {};
+              if (contentType.includes("application/json")) return JSON.parse(text);
+
+              // Some proxy/CDN edge responses may return HTML with 2xx; avoid crashing on JSON parse.
+              core.warning(`Discord webhook returned non-JSON response (content-type: ${contentType || "unknown"}).`);
+              return {};
             }
 
             async function patchDiscordThread(threadId, patchBody) {
@@ -204,9 +210,15 @@ jobs:
               }
 
               if (!webhookUrl) {
-                core.setFailed(
-                  "Missing Discord webhook secret. Set either DISCORD_WEBHOOK_URL or DISCORD_PR_FORUM_WEBHOOK in repository secrets, or pass it explicitly if using reusable workflows."
-                );
+                const strictEvents = new Set(["pull_request_target", "workflow_dispatch"]);
+                const msg =
+                  `Discord sync skipped: webhook secret unavailable for event '${context.eventName}'. ` +
+                  "Set either DISCORD_WEBHOOK_URL or DISCORD_PR_FORUM_WEBHOOK in repository secrets.";
+                if (strictEvents.has(context.eventName)) {
+                  core.setFailed(msg);
+                } else {
+                  core.warning(msg);
+                }
                 return;
               }
 
