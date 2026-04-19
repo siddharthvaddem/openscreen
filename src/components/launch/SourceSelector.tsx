@@ -127,6 +127,12 @@ export function SourceSelector() {
 					</TabsList>
 					<div className="flex-1 min-h-0">
 						<TabsContent value="screens" className="h-full mt-0">
+							{screenSources.length === 0 && !loading && (
+								<div className="flex flex-col items-center justify-center h-[280px] text-center px-4">
+									<p className="text-sm text-red-400 mb-2 font-medium">Screen access blocked by macOS</p>
+									<p className="text-xs text-zinc-400">Please check Screen Recording in System Settings &gt; Privacy &amp; Security. If checked, remove it with (-) and add it again.</p>
+								</div>
+							)}
 							<div
 								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pt-1 pr-1.5 auto-rows-min ${styles.sourceGridScroll}`}
 							>
