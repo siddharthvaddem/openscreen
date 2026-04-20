@@ -182,6 +182,6 @@
 			"moderate": "中度",
 			"aggressive": "強力"
 		},
-		"nrDescription": "AI 降噪可移除背景雜訊。等級越高越強力,但可能影響人聲品質。"
+		"nrDescription": "AI 降噪可移除背景雜訊。等級越高越強力，但可能影響人聲品質。"
 	}
 }

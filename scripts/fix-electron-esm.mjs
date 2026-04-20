@@ -16,8 +16,8 @@ const distElectron = path.resolve("dist-electron");
 const target = path.join(distElectron, "package.json");
 
 if (!fs.existsSync(distElectron)) {
-	console.log("[fix-electron-esm] dist-electron/ not found, skipping.");
-	process.exit(0);
+	console.error("[fix-electron-esm] dist-electron/ not found after vite build.");
+	process.exit(1);
 }
 
 fs.writeFileSync(target, JSON.stringify({ type: "commonjs" }, null, 2) + "\n");

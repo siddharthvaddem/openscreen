@@ -86,7 +86,14 @@ export function useAudioEnhancement(
 		disconnectChain();
 
 		if (!enabled) {
-			// Bypass: source → speakers directly
+			// Bypass: source → speakers directly.
+			// A fresh AudioContext starts suspended; without resume() the
+			// connected graph produces no output even though it's wired up.
+			if (ctx.state === "suspended") {
+				ctx.resume().catch(() => {
+					// May need a user gesture; the next play() will unblock it.
+				});
+			}
 			source.connect(ctx.destination);
 			return () => {
 				source.disconnect();

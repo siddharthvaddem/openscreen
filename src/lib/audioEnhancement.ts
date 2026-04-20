@@ -4,7 +4,9 @@ import rnnoiseSimdWasmPath from "@sapphi-red/web-noise-suppressor/rnnoise_simd.w
 import rnnoiseWorkletPath from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
 
 let rnnoiseWasmBinary: ArrayBuffer | null = null;
-let workletRegistered = false;
+// AudioWorklet modules are registered per-AudioContext, so we can't use a
+// single global flag — track which contexts we've already registered on.
+const workletRegisteredContexts = new WeakSet<AudioContext>();
 
 export type NoiseReductionLevel = "light" | "moderate" | "aggressive";
 
@@ -66,10 +68,10 @@ export async function preloadRnnoiseWasm(): Promise<ArrayBuffer> {
 }
 
 async function registerRnnoiseWorklet(audioContext: AudioContext): Promise<void> {
-	if (workletRegistered) return;
+	if (workletRegisteredContexts.has(audioContext)) return;
 
 	await audioContext.audioWorklet.addModule(rnnoiseWorkletPath);
-	workletRegistered = true;
+	workletRegisteredContexts.add(audioContext);
 }
 
 export type AudioEnhancementNodes = {
@@ -135,11 +137,12 @@ function createNoiseGate(
 }
 
 /**
- * Creates an audio enhancement chain with configurable aggressiveness:
+ * Creates an audio enhancement chain with configurable aggressiveness.
+ * Frequencies come from LEVEL_PRESETS above:
  *
- * Light:      highpass(60Hz) → lowpass(14kHz) → RNNoise → soft gate → compressor
- * Moderate:   highpass(100Hz) → lowpass(11kHz) → RNNoise → medium gate → compressor
- * Aggressive: highpass(150Hz) → lowpass(9kHz) → RNNoise → hard gate → compressor
+ * Light:      highpass(120Hz) → lowpass(10kHz) → RNNoise → soft gate → compressor
+ * Moderate:   highpass(250Hz) → lowpass(7kHz) → RNNoise → medium gate → compressor
+ * Aggressive: highpass(400Hz) → lowpass(5kHz) → RNNoise → hard gate → compressor
  */
 export async function createAudioEnhancementChain(
 	audioContext: AudioContext,
@@ -214,6 +217,20 @@ export async function createAudioEnhancementChain(
 		destroy: () => {
 			gate.destroy();
 			rnnoiseNode?.destroy();
+			// Disconnect every node in the chain so repeated toggles/level
+			// changes don't leak nodes into the audio graph.
+			try {
+				highPass1.disconnect();
+				highPass2.disconnect();
+				lowPass1.disconnect();
+				lowPass2.disconnect();
+				rnnoiseNode?.disconnect();
+				gate.input.disconnect();
+				gate.output.disconnect();
+				compressor.disconnect();
+			} catch {
+				// Nodes may already be disconnected if the context was closed.
+			}
 		},
 	};
 }

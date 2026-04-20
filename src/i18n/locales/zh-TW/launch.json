@@ -24,7 +24,7 @@
 			"moderate": "中度",
 			"aggressive": "強力"
 		},
-		"noiseReductionPrompt": "要啟用 AI 降噪以獲得更清晰的音訊嗎?",
+		"noiseReductionPrompt": "要啟用 AI 降噪以獲得更清晰的音訊嗎？",
 		"enableNoiseReductionShort": "啟用"
 	},
 	"webcam": {
