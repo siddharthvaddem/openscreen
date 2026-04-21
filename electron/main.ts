@@ -224,6 +224,12 @@ function updateTrayMenu(recording: boolean = false) {
 	const menuTemplate = recording
 		? [
 				{
+					label: mainT("common", "actions.showRecordingControls") || "Show Recording Controls",
+					click: () => {
+						showMainWindow();
+					},
+				},
+				{
 					label: mainT("common", "actions.stopRecording") || "Stop Recording",
 					click: () => {
 						if (mainWindow && !mainWindow.isDestroyed()) {
@@ -421,7 +427,9 @@ app.whenReady().then(async () => {
 			selectedSourceName = sourceName;
 			if (!tray) createTray();
 			updateTrayMenu(recording);
+
 			if (!recording) {
+				// Restore HUD when recording ends.
 				showMainWindow();
 			}
 		},

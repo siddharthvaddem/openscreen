@@ -62,6 +62,11 @@ export function createHudOverlayWindow(): BrowserWindow {
 		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	}
 
+	// Prevent the HUD from being captured in recordings on supported platforms.
+	if (process.platform === "win32" || process.platform === "darwin") {
+		win.setContentProtection(true);
+	}
+
 	win.webContents.on("did-finish-load", () => {
 		win?.webContents.send("main-process-message", new Date().toLocaleString());
 	});
