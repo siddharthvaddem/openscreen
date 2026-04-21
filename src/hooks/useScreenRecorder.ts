@@ -445,7 +445,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			webcamRecorder.current = null;
 			teardownMedia();
 		};
-	}, [teardownMedia]);
+	}, [teardownMedia, safeHideCountdownOverlay]);
 
 	const safeShowCountdownOverlay = async (value: number, runId: number) => {
 		try {
@@ -472,13 +472,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		}
 	};
 
-	const safeHideCountdownOverlay = async (runId: number) => {
+	const safeHideCountdownOverlay = useCallback(async (runId: number) => {
 		try {
 			await window.electronAPI.hideCountdownOverlay(runId);
 		} catch (error) {
 			console.warn("Failed to hide countdown overlay:", error);
 		}
-	};
+	}, []);
 
 	const isCountdownRunActive = (runId?: number) =>
 		runId === undefined || countdownRunId.current === runId;

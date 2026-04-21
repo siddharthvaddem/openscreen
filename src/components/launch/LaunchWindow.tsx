@@ -130,6 +130,11 @@ export function LaunchWindow() {
 		top: 12,
 		maxHeight: 240,
 	});
+	const [platform, setPlatform] = useState<string>("win32");
+
+	useEffect(() => {
+		window.electronAPI.getPlatform().then((p) => setPlatform(p));
+	}, []);
 
 	const {
 		devices: micDevices,
@@ -563,7 +568,7 @@ export function LaunchWindow() {
 						{recording ? (
 							<div className="flex items-center gap-1.5">
 								<div
-									className={`h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] ${styles.recordingPulse}`}
+									className={`h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] ${styles["recording-pulse"]}`}
 								/>
 								{getIcon("stop", paused ? "text-amber-400" : "text-red-400")}
 							</div>
@@ -626,7 +631,7 @@ export function LaunchWindow() {
 					</>
 				)}
 
-				{!recording && (
+				{(!recording || platform === "linux") && (
 					<div className={`${hudSidebarClasses} ${styles.electronNoDrag}`}>
 						<div className={`${styles.languageMenuContainer} ${styles.electronNoDrag}`}>
 							<button

@@ -224,7 +224,7 @@ function updateTrayMenu(recording: boolean = false) {
 	const menuTemplate = recording
 		? [
 				{
-					label: mainT("common", "actions.open") || "Show Controls",
+					label: mainT("common", "actions.showRecordingControls") || "Show Recording Controls",
 					click: () => {
 						showMainWindow();
 					},

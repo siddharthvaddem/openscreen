@@ -82,14 +82,14 @@
 	color: #ffffff;
 }
 
-@keyframes recordingPulse {
+@keyframes recording-pulse {
 	0% { opacity: 1; transform: scale(1); }
 	50% { opacity: 0.4; transform: scale(0.92); }
 	100% { opacity: 1; transform: scale(1); }
 }
 
-.recordingPulse {
-	animation: recordingPulse 1.5s ease-in-out infinite;
+.recording-pulse {
+	animation: recording-pulse 1.5s ease-in-out infinite;
 }
 
 .recordingBar {
