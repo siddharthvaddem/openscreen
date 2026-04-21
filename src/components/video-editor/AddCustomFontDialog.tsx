@@ -114,23 +114,23 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 				<Button
 					variant="outline"
 					size="sm"
-					className="w-full bg-white/5 border-white/10 text-slate-200 hover:bg-white/10 h-9 text-xs"
+					className="w-full editor-panel-soft editor-text hover:bg-accent h-9 text-xs"
 				>
 					<Plus className="w-3 h-3 mr-1" />
 					{t("customFont.dialogTitle")}
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="bg-[#1a1a1c] border-white/10 text-slate-200">
+			<DialogContent className="editor-panel text-foreground">
 				<DialogHeader>
 					<DialogTitle>{t("customFont.dialogTitle")}</DialogTitle>
-					<DialogDescription className="text-slate-400">
+					<DialogDescription className="editor-text-muted">
 						Add a custom font from Google Fonts to use in your annotations.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 mt-4">
 					<div className="space-y-2">
-						<Label htmlFor="import-url" className="text-slate-200">
+						<Label htmlFor="import-url" className="editor-text">
 							{t("customFont.urlLabel")}
 						</Label>
 						<Input
@@ -138,13 +138,13 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 							placeholder={t("customFont.urlPlaceholder")}
 							value={importUrl}
 							onChange={(e) => handleImportUrlChange(e.target.value)}
-							className="bg-white/5 border-white/10 text-slate-200"
+							className="bg-background border-input text-foreground"
 						/>
-						<p className="text-xs text-slate-400">{t("customFont.urlHelp")}</p>
+						<p className="text-xs editor-text-muted">{t("customFont.urlHelp")}</p>
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="font-name" className="text-slate-200">
+						<Label htmlFor="font-name" className="editor-text">
 							{t("customFont.nameLabel")}
 						</Label>
 						<Input
@@ -152,16 +152,16 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 							placeholder={t("customFont.namePlaceholder")}
 							value={fontName}
 							onChange={(e) => setFontName(e.target.value)}
-							className="bg-white/5 border-white/10 text-slate-200"
+							className="bg-background border-input text-foreground"
 						/>
-						<p className="text-xs text-slate-400">{t("customFont.nameHelp")}</p>
+						<p className="text-xs editor-text-muted">{t("customFont.nameHelp")}</p>
 					</div>
 
 					<div className="flex justify-end gap-2 mt-6">
 						<Button
 							variant="outline"
 							onClick={() => setOpen(false)}
-							className="bg-white/5 border-white/10 text-slate-200 hover:bg-white/10"
+							className="editor-panel-soft editor-text hover:bg-accent"
 						>
 							{tc("actions.cancel")}
 						</Button>

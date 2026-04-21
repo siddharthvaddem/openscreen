@@ -117,7 +117,7 @@ export default function Item({
 						"w-full h-full overflow-hidden flex items-center justify-center gap-1.5 cursor-grab active:cursor-grabbing relative",
 						isSelected && glassStyles.selected,
 					)}
-					style={{ height: 40, color: "#fff", minWidth: 24 }}
+					style={{ height: 40, color: "var(--editor-text-strong)", minWidth: 24 }}
 					onClick={(event) => {
 						event.stopPropagation();
 						onSelect?.();
@@ -127,14 +127,14 @@ export default function Item({
 						<>
 							{/* Transition In Marker */}
 							<div
-								className="absolute top-0 bottom-0 left-0 bg-white/10 border-r border-white/20 pointer-events-none"
+								className="absolute top-0 bottom-0 left-0 bg-foreground/10 border-r border-foreground/15 pointer-events-none"
 								style={{
 									width: `${(zoomIn / (span.end - span.start)) * 100}%`,
 								}}
 							/>
 							{/* Draggable handle for Transition In */}
 							<div
-								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-white/5 transition-colors"
+								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-foreground/5 transition-colors"
 								style={{
 									left: `${(zoomIn / (span.end - span.start)) * 100}%`,
 									transform: "translateX(-50%)",
@@ -171,14 +171,14 @@ export default function Item({
 							/>
 							{/* Transition Out Marker */}
 							<div
-								className="absolute top-0 bottom-0 right-0 bg-white/10 border-l border-white/20 pointer-events-none"
+								className="absolute top-0 bottom-0 right-0 bg-foreground/10 border-l border-foreground/15 pointer-events-none"
 								style={{
 									width: `${(zoomOut / (span.end - span.start)) * 100}%`,
 								}}
 							/>
 							{/* Draggable handle for Transition Out */}
 							<div
-								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-white/5 transition-colors"
+								className="absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group-hover:bg-foreground/5 transition-colors"
 								style={{
 									right: `${(zoomOut / (span.end - span.start)) * 100}%`,
 									transform: "translateX(50%)",
@@ -238,7 +238,7 @@ export default function Item({
 						title="Resize right"
 					/>
 					{/* Content */}
-					<div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
+					<div className="relative z-10 flex flex-col items-center justify-center text-foreground/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
 						<div className="flex items-center gap-1.5">
 							{isZoom ? (
 								<>

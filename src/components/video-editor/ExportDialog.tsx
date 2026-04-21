@@ -94,7 +94,7 @@ export function ExportDialog({
 				className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 animate-in fade-in duration-200"
 				onClick={isExporting ? undefined : onClose}
 			/>
-			<div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[60] bg-[#09090b] rounded-2xl shadow-2xl border border-white/10 p-8 w-[90vw] max-w-md animate-in zoom-in-95 duration-200">
+			<div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[60] editor-panel rounded-2xl shadow-2xl p-8 w-[90vw] max-w-md animate-in zoom-in-95 duration-200">
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex items-center gap-4">
 						{showSuccess ? (
@@ -103,23 +103,23 @@ export function ExportDialog({
 									<Download className="w-6 h-6 text-[#34B27B]" />
 								</div>
 								<div className="flex flex-col gap-2">
-									<span className="text-xl font-bold text-slate-200 block">
+									<span className="text-xl font-bold editor-text-strong block">
 										{t("export.complete")}
 									</span>
-									<span className="text-sm text-slate-400">
+									<span className="text-sm editor-text-muted">
 										{t("export.yourFormatReady", { format: formatLabel.toLowerCase() })}
 									</span>
 									{exportedFilePath && (
 										<Button
 											variant="secondary"
 											onClick={onShowInFolder}
-											className="mt-2 w-fit px-3 py-1 text-sm rounded-md bg-white/10 hover:bg-white/20 text-slate-200"
+											className="mt-2 w-fit px-3 py-1 text-sm rounded-md editor-panel-soft editor-text"
 										>
 											{t("export.showInFolder")}
 										</Button>
 									)}
 									{exportedFilePath && (
-										<span className="text-xs text-slate-500 break-all max-w-xs mt-1">
+										<span className="text-xs editor-text-faint break-all max-w-xs mt-1">
 											{exportedFilePath.split("/").pop()}
 										</span>
 									)}
@@ -132,13 +132,13 @@ export function ExportDialog({
 										<Loader2 className="w-6 h-6 text-[#34B27B] animate-spin" />
 									</div>
 								) : (
-									<div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-										<Download className="w-6 h-6 text-slate-200" />
+									<div className="w-12 h-12 rounded-full editor-panel-soft flex items-center justify-center editor-border">
+										<Download className="w-6 h-6 editor-text" />
 									</div>
 								)}
 								<div>
-									<span className="text-xl font-bold text-slate-200 block">{getTitle()}</span>
-									<span className="text-sm text-slate-400">{getStatusMessage()}</span>
+									<span className="text-xl font-bold editor-text-strong block">{getTitle()}</span>
+									<span className="text-sm editor-text-muted">{getStatusMessage()}</span>
 								</div>
 							</>
 						)}
@@ -148,7 +148,7 @@ export function ExportDialog({
 							variant="ghost"
 							size="icon"
 							onClick={onClose}
-							className="hover:bg-white/10 text-slate-400 hover:text-white rounded-full"
+							className="editor-hover text-muted-foreground hover:text-foreground rounded-full"
 						>
 							<X className="w-5 h-5" />
 						</Button>
@@ -169,13 +169,13 @@ export function ExportDialog({
 				{isExporting && progress && (
 					<div className="space-y-6">
 						<div className="space-y-2">
-							<div className="flex justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+							<div className="flex justify-between text-xs font-medium editor-text-muted uppercase tracking-wider">
 								<span>
 									{isCompiling || isFinalizing
 										? t("export.compiling")
 										: t("export.renderingFrames")}
 								</span>
-								<span className="font-mono text-slate-200">
+								<span className="font-mono editor-text">
 									{isCompiling || isFinalizing ? (
 										renderProgress !== undefined && renderProgress > 0 ? (
 											`${renderProgress}%`
@@ -190,7 +190,7 @@ export function ExportDialog({
 									)}
 								</span>
 							</div>
-							<div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+							<div className="h-2 bg-muted rounded-full overflow-hidden border editor-border">
 								{isCompiling || isFinalizing ? (
 									// Show render progress if available, otherwise animated indeterminate bar
 									renderProgress !== undefined && renderProgress > 0 ? (
@@ -224,11 +224,11 @@ export function ExportDialog({
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div className="bg-white/5 rounded-xl p-3 border border-white/5">
-								<div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+							<div className="editor-panel-soft rounded-xl p-3">
+								<div className="text-[10px] editor-text-faint uppercase tracking-wider mb-1">
 									{isCompiling || isFinalizing ? t("export.status") : t("export.format")}
 								</div>
-								<div className="text-slate-200 font-medium text-sm">
+								<div className="editor-text font-medium text-sm">
 									{isFinalizing && exportFormat === "mp4"
 										? t("export.finalizing")
 										: isCompiling || isFinalizing
@@ -236,11 +236,11 @@ export function ExportDialog({
 											: formatLabel}
 								</div>
 							</div>
-							<div className="bg-white/5 rounded-xl p-3 border border-white/5">
-								<div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+							<div className="editor-panel-soft rounded-xl p-3">
+								<div className="text-[10px] editor-text-faint uppercase tracking-wider mb-1">
 									{t("export.frames")}
 								</div>
-								<div className="text-slate-200 font-medium text-sm">
+								<div className="editor-text font-medium text-sm">
 									{progress.currentFrame} / {progress.totalFrames}
 								</div>
 							</div>

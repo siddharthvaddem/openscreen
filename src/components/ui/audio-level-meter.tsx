@@ -12,7 +12,7 @@ const bars = [
 ];
 
 function getBarColor(level: number, threshold: number) {
-	if (!level || level < threshold) return "bg-slate-700";
+	if (!level || level < threshold) return "bg-muted";
 	if (threshold > 80) return "bg-red-500";
 	if (threshold > 60) return "bg-yellow-500";
 	if (threshold > 40) return "bg-green-500";

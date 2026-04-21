@@ -1,5 +1,5 @@
 .glassContainer {
-	background: linear-gradient(135deg, rgba(28, 28, 34, 0.92) 0%, rgba(18, 18, 22, 0.88) 100%);
+	background: var(--glass-surface);
 	backdrop-filter: blur(20px) saturate(160%);
 	-webkit-backdrop-filter: blur(20px) saturate(160%);
 	border-radius: 30px;
@@ -48,18 +48,18 @@
 .icon {
 	width: 13px;
 	height: 13px;
-	color: #c7d2fe;
+	color: var(--glass-icon);
 }
 
 .name {
 	font-size: 0.8rem;
-	color: #e4e4e7;
+	color: var(--glass-text);
 	font-weight: 500;
 	letter-spacing: 0.01em;
 }
 
 .cardText {
-	color: #a1a1aa;
+	color: var(--glass-text-muted);
 	font-size: 0.75rem;
 }
 
@@ -82,7 +82,7 @@
 }
 
 .sourceGridScroll::-webkit-scrollbar-track {
-	background: rgba(30, 30, 38, 0.3);
+	background: var(--glass-scroll-track);
 	border-radius: 4px;
 }
 

@@ -35,7 +35,7 @@ function TooltipContent({
 				data-slot="tooltip-content"
 				sideOffset={sideOffset}
 				className={cn(
-					"px-2 py-1 text-[11px] leading-none text-white/90 bg-black/85 border border-white/10 rounded-md z-50",
+					"editor-tooltip px-2 py-1 text-[11px] leading-none rounded-md z-50 shadow-lg",
 					"animate-in fade-in-0 zoom-in-95",
 					"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 					className,

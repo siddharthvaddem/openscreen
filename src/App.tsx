@@ -7,7 +7,13 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
 import VideoEditor from "./components/video-editor/VideoEditor";
 import { ShortcutsProvider } from "./contexts/ShortcutsContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { loadAllCustomFonts } from "./lib/customFonts";
+
+function ToasterWrapper() {
+	const { theme } = useTheme();
+	return <Toaster theme={theme} className="pointer-events-auto" />;
+}
 
 export default function App() {
 	const [windowType, setWindowType] = useState(
@@ -59,9 +65,11 @@ export default function App() {
 	})();
 
 	return (
-		<TooltipProvider>
-			{content}
-			<Toaster theme="dark" className="pointer-events-auto" />
-		</TooltipProvider>
+		<ThemeProvider>
+			<TooltipProvider>
+				{content}
+				<ToasterWrapper />
+			</TooltipProvider>
+		</ThemeProvider>
 	);
 }
