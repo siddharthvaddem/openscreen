@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Validates that all locale translation files have identical key structures.
- * Compares zh-CN and es against the en baseline for every namespace.
+ * Compares all locale folders (except en) against the en baseline for every namespace.
  *
  * Usage: node scripts/i18n-check.mjs
  */
@@ -11,7 +11,6 @@ import path from "node:path";
 
 const LOCALES_DIR = path.resolve("src/i18n/locales");
 const BASE_LOCALE = "en";
-const COMPARE_LOCALES = ["zh-CN", "es", "tr", "ko-KR"];
 
 function getKeys(obj, prefix = "") {
 	const keys = [];
@@ -34,12 +33,19 @@ const namespaces = fs
 	.filter((f) => f.endsWith(".json"))
 	.map((f) => f.replace(".json", ""));
 
+const compareLocales = fs
+	.readdirSync(LOCALES_DIR, { withFileTypes: true })
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => entry.name)
+	.filter((locale) => locale !== BASE_LOCALE)
+	.sort((a, b) => a.localeCompare(b));
+
 for (const namespace of namespaces) {
 	const basePath = path.join(baseDir, `${namespace}.json`);
 	const baseData = JSON.parse(fs.readFileSync(basePath, "utf-8"));
 	const baseKeys = getKeys(baseData);
 
-	for (const locale of COMPARE_LOCALES) {
+	for (const locale of compareLocales) {
 		const localePath = path.join(LOCALES_DIR, locale, `${namespace}.json`);
 
 		if (!fs.existsSync(localePath)) {
@@ -77,6 +83,6 @@ if (hasErrors) {
 	process.exit(1);
 } else {
 	console.log(
-		`i18n check PASSED — all ${COMPARE_LOCALES.length} locales match ${BASE_LOCALE} across ${namespaces.length} namespaces.`,
+		`i18n check PASSED — all ${compareLocales.length} locales match ${BASE_LOCALE} across ${namespaces.length} namespaces.`,
 	);
 }

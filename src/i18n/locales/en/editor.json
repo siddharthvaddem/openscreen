@@ -36,6 +36,8 @@
 		"systemAudioUnavailable": "System audio not available. Recording without system audio.",
 		"microphoneDenied": "Microphone access denied. Recording will continue without audio.",
 		"cameraDenied": "Camera access denied. Recording will continue without webcam.",
+		"cameraDisconnected": "Webcam disconnected.",
+		"cameraNotFound": "Camera not found.",
 		"permissionDenied": "Recording permission denied. Please allow screen recording."
 	}
 }

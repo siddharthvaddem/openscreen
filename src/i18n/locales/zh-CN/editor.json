@@ -36,6 +36,8 @@
 		"systemAudioUnavailable": "系统音频不可用。将在无系统音频的情况下录制。",
 		"microphoneDenied": "麦克风权限被拒绝。录制将继续，但不包含音频。",
 		"cameraDenied": "摄像头权限被拒绝。录制将继续，但不包含摄像头画面。",
+		"cameraDisconnected": "摄像头已断开连接。",
+		"cameraNotFound": "未找到摄像头。",
 		"permissionDenied": "录屏权限被拒绝。请允许屏幕录制。"
 	}
 }

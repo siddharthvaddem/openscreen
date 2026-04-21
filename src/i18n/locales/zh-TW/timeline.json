@@ -1,0 +1,53 @@
+{
+	"buttons": {
+		"addZoom": "新增縮放 (Z)",
+		"suggestZooms": "根據游標建議縮放",
+		"addTrim": "新增剪輯 (T)",
+		"addAnnotation": "新增標註 (A)",
+		"addSpeed": "新增速度 (S)",
+		"addBlur": "新增模糊 (B)"
+	},
+	"hints": {
+		"pressZoom": "按 Z 新增縮放",
+		"pressTrim": "按 T 新增剪輯",
+		"pressAnnotation": "按 A 新增標註",
+		"pressSpeed": "按 S 新增速度",
+		"pressBlur": "按 B 新增模糊區域"
+	},
+	"labels": {
+		"pan": "平移",
+		"zoom": "縮放",
+		"zoomItem": "縮放 {{index}}",
+		"trimItem": "剪輯 {{index}}",
+		"speedItem": "速度 {{index}}",
+		"annotationItem": "標註",
+		"imageItem": "圖片",
+		"emptyText": "空文字",
+		"blurItem": "模糊 {{index}}"
+	},
+	"emptyState": {
+		"noVideo": "未載入影片",
+		"dragAndDrop": "拖放影片以開始編輯"
+	},
+	"errors": {
+		"cannotPlaceZoom": "無法在此處放置縮放",
+		"zoomExistsAtLocation": "此位置已存在縮放或沒有足夠的空間。",
+		"zoomSuggestionUnavailable": "縮放建議處理器不可用",
+		"noCursorTelemetry": "無可用的游標遙測資料",
+		"noCursorTelemetryDescription": "請先錄製一段螢幕錄影以產生基於游標的建議。",
+		"noUsableTelemetry": "無可用的游標遙測資料",
+		"noUsableTelemetryDescription": "錄製內容沒有包含足夠的游標移動資料。",
+		"noDwellMoments": "未找到明確的游標停留時刻",
+		"noDwellMomentsDescription": "請嘗試在重要操作上進行較慢游標停留的錄製。",
+		"noAutoZoomSlots": "無可用的自動縮放位置",
+		"noAutoZoomSlotsDescription": "偵測到的停留點與現有縮放區域重疊。",
+		"cannotPlaceTrim": "無法在此處放置剪輯",
+		"trimExistsAtLocation": "此位置已存在剪輯或沒有足夠的空間。",
+		"cannotPlaceSpeed": "無法在此處放置速度",
+		"speedExistsAtLocation": "此位置已存在速度區域或沒有足夠的空間。"
+	},
+	"success": {
+		"addedZoomSuggestions": "已新增 {{count}} 個基於游標的縮放建議",
+		"addedZoomSuggestionsPlural": "已新增 {{count}} 個基於游標的縮放建議"
+	}
+}

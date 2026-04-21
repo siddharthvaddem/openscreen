@@ -68,14 +68,22 @@ export interface FigureData {
 }
 
 export type BlurShape = "rectangle" | "oval" | "freehand";
+export type BlurType = "blur" | "mosaic";
+export type BlurColor = "white" | "black";
 
 export const MIN_BLUR_INTENSITY = 2;
 export const MAX_BLUR_INTENSITY = 40;
 export const DEFAULT_BLUR_INTENSITY = 12;
+export const MIN_BLUR_BLOCK_SIZE = 4;
+export const MAX_BLUR_BLOCK_SIZE = 48;
+export const DEFAULT_BLUR_BLOCK_SIZE = 12;
 
 export interface BlurData {
+	type: BlurType;
 	shape: BlurShape;
+	color: BlurColor;
 	intensity: number;
+	blockSize: number;
 	// Points are normalized (0-100) within the annotation bounds.
 	freehandPoints?: Array<{ x: number; y: number }>;
 }
@@ -157,8 +165,11 @@ export const DEFAULT_BLUR_FREEHAND_POINTS: Array<{ x: number; y: number }> = [
 ];
 
 export const DEFAULT_BLUR_DATA: BlurData = {
+	type: "blur",
 	shape: "rectangle",
+	color: "white",
 	intensity: DEFAULT_BLUR_INTENSITY,
+	blockSize: DEFAULT_BLUR_BLOCK_SIZE,
 	freehandPoints: DEFAULT_BLUR_FREEHAND_POINTS,
 };
 

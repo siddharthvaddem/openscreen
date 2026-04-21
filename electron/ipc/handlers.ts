@@ -352,15 +352,163 @@ function sampleCursorPoint() {
 export function registerIpcHandlers(
 	createEditorWindow: () => void,
 	createSourceSelectorWindow: () => BrowserWindow,
+	createCountdownOverlayWindow: () => BrowserWindow,
 	getMainWindow: () => BrowserWindow | null,
 	getSourceSelectorWindow: () => BrowserWindow | null,
+	getCountdownOverlayWindow: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 	switchToHud?: () => void,
 ) {
+	const supportsWindowOpacity = process.platform !== "linux";
+	const countdownOverlayState = {
+		visible: false,
+		value: null as number | null,
+		activeRunId: null as number | null,
+		hideCommitId: 0,
+		hideCommitTimer: null as ReturnType<typeof setTimeout> | null,
+	};
+	const COUNTDOWN_OVERLAY_HIDE_DEBOUNCE_MS = 1200;
+
+	const clearCountdownOverlayHideCommit = () => {
+		if (countdownOverlayState.hideCommitTimer) {
+			clearTimeout(countdownOverlayState.hideCommitTimer);
+			countdownOverlayState.hideCommitTimer = null;
+		}
+	};
+
+	const commitCountdownOverlayHide = (win: BrowserWindow, hideCommitId: number) => {
+		if (win.isDestroyed()) {
+			return;
+		}
+
+		if (countdownOverlayState.visible || countdownOverlayState.hideCommitId !== hideCommitId) {
+			return;
+		}
+
+		win.hide();
+		if (supportsWindowOpacity) {
+			// Reset baseline opacity for the next show cycle.
+			win.setOpacity(1);
+		}
+	};
+
+	const flushCountdownOverlayState = (win: BrowserWindow) => {
+		if (win.isDestroyed()) {
+			return;
+		}
+
+		clearCountdownOverlayHideCommit();
+		win.webContents.send("countdown-overlay-value", countdownOverlayState.value);
+		if (!countdownOverlayState.visible) {
+			return;
+		}
+
+		if (win.isVisible()) {
+			if (supportsWindowOpacity) {
+				win.setOpacity(1);
+			}
+			return;
+		}
+
+		setTimeout(() => {
+			if (!win.isDestroyed() && countdownOverlayState.visible && !win.isVisible()) {
+				if (supportsWindowOpacity) {
+					win.setOpacity(0);
+				}
+				win.showInactive();
+
+				if (supportsWindowOpacity) {
+					setTimeout(() => {
+						if (!win.isDestroyed() && countdownOverlayState.visible && win.isVisible()) {
+							win.setOpacity(1);
+						}
+					}, 0);
+				}
+			}
+		}, 16);
+	};
+
+	ipcMain.handle("countdown-overlay-show", (_, value: number, runId: number) => {
+		countdownOverlayState.activeRunId = runId;
+		countdownOverlayState.visible = true;
+		countdownOverlayState.value = value;
+
+		const win = getCountdownOverlayWindow() ?? createCountdownOverlayWindow();
+		if (win.isDestroyed()) {
+			return;
+		}
+
+		if (win.webContents.isLoading()) {
+			win.webContents.once("did-finish-load", () => {
+				if (!win.isDestroyed()) {
+					flushCountdownOverlayState(win);
+				}
+			});
+		} else {
+			flushCountdownOverlayState(win);
+		}
+	});
+
+	ipcMain.handle("countdown-overlay-set-value", (_, value: number, runId: number) => {
+		if (countdownOverlayState.activeRunId !== runId || !countdownOverlayState.visible) {
+			return;
+		}
+
+		countdownOverlayState.value = value;
+
+		const win = getCountdownOverlayWindow();
+		if (!win || win.isDestroyed()) {
+			return;
+		}
+
+		if (win.webContents.isLoading()) {
+			return;
+		}
+
+		win.webContents.send("countdown-overlay-value", value);
+	});
+
+	ipcMain.handle("countdown-overlay-hide", (_, runId: number) => {
+		if (countdownOverlayState.activeRunId !== runId) {
+			return;
+		}
+
+		countdownOverlayState.visible = false;
+		countdownOverlayState.hideCommitId += 1;
+		const hideCommitId = countdownOverlayState.hideCommitId;
+		clearCountdownOverlayHideCommit();
+
+		const win = getCountdownOverlayWindow();
+		if (!win || win.isDestroyed()) {
+			countdownOverlayState.value = null;
+			return;
+		}
+
+		if (supportsWindowOpacity) {
+			// Hide visually immediately to avoid hide/show compositor flashes on rapid restart.
+			win.setOpacity(0);
+		}
+
+		countdownOverlayState.value = null;
+		if (!win.webContents.isLoading()) {
+			win.webContents.send("countdown-overlay-value", countdownOverlayState.value);
+		}
+
+		if (!supportsWindowOpacity) {
+			win.hide();
+			return;
+		}
+
+		countdownOverlayState.hideCommitTimer = setTimeout(() => {
+			countdownOverlayState.hideCommitTimer = null;
+			commitCountdownOverlayHide(win, hideCommitId);
+		}, COUNTDOWN_OVERLAY_HIDE_DEBOUNCE_MS);
+	});
+
 	ipcMain.handle("switch-to-hud", () => {
 		if (switchToHud) switchToHud();
 	});
-	ipcMain.handle("start-new-recording", async () => {
+	ipcMain.handle("start-new-recording", () => {
 		try {
 			setCurrentRecordingSessionState(null);
 			if (switchToHud) {
@@ -490,7 +638,24 @@ export function registerIpcHandlers(
 				return { success: false, message: "No recorded video found" };
 			}
 
-			const latestVideo = videoFiles.sort().reverse()[0];
+			// Sort by most recently modified to reliably get the latest recording.
+			// Lexicographic sort is unreliable (e.g. recording-9.webm > recording-10.webm).
+			let latestVideo: string | null = null;
+			let latestMtimeMs = 0;
+			for (const file of videoFiles) {
+				try {
+					const stat = await fs.stat(path.join(RECORDINGS_DIR, file));
+					if (stat.mtimeMs > latestMtimeMs) {
+						latestMtimeMs = stat.mtimeMs;
+						latestVideo = file;
+					}
+				} catch {
+					// Skip inaccessible files.
+				}
+			}
+			if (!latestVideo) {
+				return { success: false, message: "No recorded video found" };
+			}
 			const videoPath = path.join(RECORDINGS_DIR, latestVideo);
 
 			return { success: true, path: videoPath };
@@ -616,7 +781,19 @@ export function registerIpcHandlers(
 
 	ipcMain.handle("open-external-url", async (_, url: string) => {
 		try {
-			await shell.openExternal(url);
+			const ALLOWED_SCHEMES = ["http:", "https:", "mailto:"];
+			let parsed: URL;
+			try {
+				parsed = new URL(url);
+			} catch {
+				return { success: false, error: "Invalid URL" };
+			}
+
+			if (!ALLOWED_SCHEMES.includes(parsed.protocol)) {
+				return { success: false, error: `Unsupported URL scheme: ${parsed.protocol}` };
+			}
+
+			await shell.openExternal(parsed.toString());
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to open URL:", error);
@@ -638,6 +815,16 @@ export function registerIpcHandlers(
 			return null;
 		}
 	});
+
+	/**
+	 * Handles saving an exported video file.
+	 * Shows a save dialog, normalizes the file path for the current OS,
+	 * ensures the directory exists, and writes the video data.
+	 * @param _ - Unused event parameter.
+	 * @param videoData - The exported video as an ArrayBuffer.
+	 * @param fileName - Suggested filename for the save dialog.
+	 * @returns Object with success status, optional file path, and error details.
+	 */
 
 	ipcMain.handle("save-exported-video", async (_, videoData: ArrayBuffer, fileName: string) => {
 		try {
@@ -664,11 +851,18 @@ export function registerIpcHandlers(
 				};
 			}
 
-			await fs.writeFile(result.filePath, Buffer.from(videoData));
+			// --- FIX: Normalize the path for Windows compatibility ---
+			const normalizedPath = path.normalize(result.filePath);
+
+			// Ensure the parent directory exists (Windows may fail if the folder is missing)
+			await fs.mkdir(path.dirname(normalizedPath), { recursive: true });
+			// --- END FIX ---
+
+			await fs.writeFile(normalizedPath, Buffer.from(videoData));
 
 			return {
 				success: true,
-				path: result.filePath,
+				path: normalizedPath,
 				message: "Video exported successfully",
 			};
 		} catch (error) {
@@ -680,7 +874,6 @@ export function registerIpcHandlers(
 			};
 		}
 	});
-
 	ipcMain.handle("open-video-file-picker", async () => {
 		try {
 			const result = await dialog.showOpenDialog({

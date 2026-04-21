@@ -15,8 +15,8 @@ import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
-import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
-import { getLocaleName } from "@/i18n/loader";
+import { type Locale } from "@/i18n/config";
+import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
 import {
 	calculateOutputDimensions,
 	type ExportFormat,
@@ -156,6 +156,7 @@ export default function VideoEditor() {
 	const { shortcuts, isMac } = useShortcuts();
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
+	const availableLocales = getAvailableLocales();
 	const { locale, setLocale } = useI18n();
 	const { theme, toggleTheme } = useTheme();
 
@@ -499,7 +500,6 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
-			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
@@ -508,6 +508,7 @@ export default function VideoEditor() {
 			gifSizePreset,
 			videoPath,
 			t,
+			webcamSizePreset,
 		],
 	);
 
@@ -983,6 +984,33 @@ export default function VideoEditor() {
 						: region,
 				),
 			}));
+		},
+		[pushState],
+	);
+
+	const handleAnnotationDuplicate = useCallback(
+		(id: string) => {
+			const duplicateId = `annotation-${nextAnnotationIdRef.current++}`;
+			const duplicateZIndex = nextAnnotationZIndexRef.current++;
+			pushState((prev) => {
+				const source = prev.annotationRegions.find((region) => region.id === id);
+				if (!source) return {};
+
+				const duplicate: AnnotationRegion = {
+					...source,
+					id: duplicateId,
+					zIndex: duplicateZIndex,
+					position: { x: source.position.x + 4, y: source.position.y + 4 },
+					size: { ...source.size },
+					style: { ...source.style },
+					figureData: source.figureData ? { ...source.figureData } : undefined,
+				};
+
+				return { annotationRegions: [...prev.annotationRegions, duplicate] };
+			});
+			setSelectedAnnotationId(duplicateId);
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
 		},
 		[pushState],
 	);
@@ -1722,8 +1750,8 @@ export default function VideoEditor() {
 							className="bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none pr-1"
 							style={{ color: "inherit" }}
 						>
-							{SUPPORTED_LOCALES.map((loc) => (
-								<option key={loc} value={loc} className="bg-popover text-foreground">
+							{availableLocales.map((loc) => (
+								<option key={loc} value={loc} className="bg-[#09090b] text-white">
 									{getLocaleName(loc)}
 								</option>
 							))}
@@ -2001,6 +2029,7 @@ export default function VideoEditor() {
 						onAnnotationTypeChange={handleAnnotationTypeChange}
 						onAnnotationStyleChange={handleAnnotationStyleChange}
 						onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
+						onAnnotationDuplicate={handleAnnotationDuplicate}
 						onAnnotationDelete={handleAnnotationDelete}
 						selectedBlurId={selectedBlurId}
 						blurRegions={blurRegions}

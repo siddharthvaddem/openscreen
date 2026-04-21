@@ -1,0 +1,37 @@
+{
+	"title": "鍵盤快捷鍵",
+	"customize": "自訂",
+	"configurable": "可設定",
+	"fixed": "固定",
+	"pressKey": "請按下按鍵…",
+	"clickToChange": "點擊以變更",
+	"pressEscToCancel": "按 Esc 取消",
+	"helpText": "點擊一個快捷鍵，然後按下新的組合鍵。按 Esc 取消。",
+	"resetToDefaults": "還原預設設定",
+	"alreadyUsedBy": "已被 \"{{action}}\" 使用",
+	"swap": "交換",
+	"reservedShortcut": "此快捷鍵已保留給 \"{{label}}\"，無法重新指定。",
+	"savedToast": "鍵盤快捷鍵已儲存",
+	"resetToast": "已還原預設快捷鍵 — 點擊儲存以套用",
+	"actions": {
+		"addZoom": "新增縮放",
+		"addTrim": "新增剪輯",
+		"addSpeed": "新增速度",
+		"addAnnotation": "新增標註",
+		"addBlur": "新增模糊",
+		"addKeyframe": "新增關鍵影格",
+		"deleteSelected": "刪除所選",
+		"playPause": "播放 / 暫停"
+	},
+	"fixedActions": {
+		"undo": "復原",
+		"redo": "重做",
+		"cycleAnnotationsForward": "向前切換標註",
+		"cycleAnnotationsBackward": "向後切換標註",
+		"deleteSelectedAlt": "刪除所選（替代）",
+		"panTimeline": "平移時間軸",
+		"zoomTimeline": "縮放時間軸",
+		"frameBack": "上一影格",
+		"frameForward": "下一影格"
+	}
+}

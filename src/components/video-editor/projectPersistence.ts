@@ -1,3 +1,4 @@
+import { normalizeBlurColor, normalizeBlurType } from "@/lib/blurEffects";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
@@ -9,6 +10,7 @@ import {
 	DEFAULT_ANNOTATION_POSITION,
 	DEFAULT_ANNOTATION_SIZE,
 	DEFAULT_ANNOTATION_STYLE,
+	DEFAULT_BLUR_BLOCK_SIZE,
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_FREEHAND_POINTS,
 	DEFAULT_BLUR_INTENSITY,
@@ -20,8 +22,10 @@ import {
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
 	DEFAULT_ZOOM_DEPTH,
+	MAX_BLUR_BLOCK_SIZE,
 	MAX_BLUR_INTENSITY,
 	MAX_PLAYBACK_SPEED,
+	MIN_BLUR_BLOCK_SIZE,
 	MIN_BLUR_INTENSITY,
 	MIN_PLAYBACK_SPEED,
 	type SpeedRegion,
@@ -305,6 +309,8 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						VALID_BLUR_SHAPES.has(region.blurData.shape)
 							? region.blurData.shape
 							: DEFAULT_BLUR_DATA.shape;
+					const blurType = normalizeBlurType(region.blurData?.type);
+					const blurColor = normalizeBlurColor(region.blurData?.color);
 
 					return {
 						id: region.id,
@@ -365,10 +371,15 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 								? {
 										...DEFAULT_BLUR_DATA,
 										...region.blurData,
+										type: blurType,
 										shape: blurShape,
+										color: blurColor,
 										intensity: isFiniteNumber(region.blurData.intensity)
 											? clamp(region.blurData.intensity, MIN_BLUR_INTENSITY, MAX_BLUR_INTENSITY)
 											: DEFAULT_BLUR_INTENSITY,
+										blockSize: isFiniteNumber(region.blurData.blockSize)
+											? clamp(region.blurData.blockSize, MIN_BLUR_BLOCK_SIZE, MAX_BLUR_BLOCK_SIZE)
+											: DEFAULT_BLUR_BLOCK_SIZE,
 										freehandPoints: Array.isArray(region.blurData.freehandPoints)
 											? region.blurData.freehandPoints
 													.filter(

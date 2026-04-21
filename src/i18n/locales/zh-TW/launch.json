@@ -1,0 +1,37 @@
+{
+	"tooltips": {
+		"hideHUD": "隱藏控制面板",
+		"closeApp": "關閉應用程式",
+		"restartRecording": "重新開始錄製",
+		"cancelRecording": "取消錄製",
+		"pauseRecording": "暫停錄製",
+		"resumeRecording": "繼續錄製",
+		"openVideoFile": "開啟影片檔案",
+		"openProject": "開啟專案"
+	},
+	"audio": {
+		"enableSystemAudio": "啟用系統音訊",
+		"disableSystemAudio": "停用系統音訊",
+		"enableMicrophone": "啟用麥克風",
+		"disableMicrophone": "停用麥克風",
+		"defaultMicrophone": "預設麥克風"
+	},
+	"webcam": {
+		"enableWebcam": "啟用攝影機",
+		"disableWebcam": "停用攝影機",
+		"defaultCamera": "預設攝影機",
+		"searching": "正在搜尋...",
+		"noneFound": "未找到攝影機",
+		"unavailable": "攝影機不可用"
+	},
+	"sourceSelector": {
+		"loading": "正在載入來源...",
+		"screens": "螢幕 ({{count}})",
+		"windows": "視窗 ({{count}})",
+		"defaultSourceName": "螢幕"
+	},
+	"recording": {
+		"selectSource": "請選擇要錄製的來源"
+	},
+	"language": "語言"
+}

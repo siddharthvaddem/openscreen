@@ -5,6 +5,7 @@ import type { VideoMuxer } from "./muxer";
 const AUDIO_BITRATE = 128_000;
 const DECODE_BACKPRESSURE_LIMIT = 20;
 const MIN_SPEED_REGION_DELTA_MS = 0.0001;
+const SEEK_TIMEOUT_MS = 5_000;
 
 export class AudioProcessor {
 	private cancelled = false;
@@ -18,9 +19,9 @@ export class AudioProcessor {
 		demuxer: WebDemuxer,
 		muxer: VideoMuxer,
 		videoUrl: string,
-		trimRegions?: TrimRegion[],
-		speedRegions?: SpeedRegion[],
-		readEndSec?: number,
+		trimRegions: TrimRegion[] | undefined,
+		speedRegions: SpeedRegion[] | undefined,
+		validatedDurationSec: number,
 	): Promise<void> {
 		const sortedTrims = trimRegions ? [...trimRegions].sort((a, b) => a.startMs - b.startMs) : [];
 		const sortedSpeedRegions = speedRegions
@@ -35,14 +36,19 @@ export class AudioProcessor {
 				videoUrl,
 				sortedTrims,
 				sortedSpeedRegions,
+				validatedDurationSec,
 			);
-			if (!this.cancelled) {
+			if (!this.cancelled && renderedAudioBlob.size > 0) {
 				await this.muxRenderedAudioBlob(renderedAudioBlob, muxer);
 				return;
 			}
+			return;
 		}
 
 		// No speed edits: keep the original demux/decode/encode path with trim timestamp remap.
+		// The +0.5s buffer mirrors streamingDecoder.decodeAll's read window so the trim-only
+		// and speed-aware paths agree on how far to read past the validated duration boundary.
+		const readEndSec = validatedDurationSec + 0.5;
 		await this.processTrimOnlyAudio(demuxer, muxer, sortedTrims, readEndSec);
 	}
 
@@ -55,7 +61,7 @@ export class AudioProcessor {
 	): Promise<void> {
 		let audioConfig: AudioDecoderConfig;
 		try {
-			audioConfig = (await demuxer.getDecoderConfig("audio")) as AudioDecoderConfig;
+			audioConfig = await demuxer.getDecoderConfig("audio");
 		} catch {
 			console.warn("[AudioProcessor] No audio track found, skipping");
 			return;
@@ -80,11 +86,10 @@ export class AudioProcessor {
 			typeof readEndSec === "number" && Number.isFinite(readEndSec)
 				? Math.max(0, readEndSec)
 				: undefined;
-		const audioStream = (
+		const audioStream =
 			safeReadEndSec !== undefined
 				? demuxer.read("audio", 0, safeReadEndSec)
-				: demuxer.read("audio")
-		) as ReadableStream<EncodedAudioChunk>;
+				: demuxer.read("audio");
 		const reader = audioStream.getReader();
 
 		try {
@@ -187,6 +192,7 @@ export class AudioProcessor {
 		videoUrl: string,
 		trimRegions: TrimRegion[],
 		speedRegions: SpeedRegion[],
+		validatedDurationSec: number,
 	): Promise<Blob> {
 		const media = document.createElement("audio");
 		media.src = videoUrl;
@@ -211,15 +217,44 @@ export class AudioProcessor {
 		const destinationNode = audioContext.createMediaStreamDestination();
 		sourceNode.connect(destinationNode);
 
-		const { recorder, recordedBlobPromise } = this.startAudioRecording(destinationNode.stream);
 		let rafId: number | null = null;
+		let recorder: MediaRecorder | null = null;
+		let recordedBlobPromise: Promise<Blob> | null = null;
 
 		try {
 			if (audioContext.state === "suspended") {
 				await audioContext.resume();
 			}
 
-			await this.seekTo(media, 0);
+			// Skip past any initial trim region(s) before recording starts to avoid
+			// capturing trimmed audio during the first rAF frames of playback.
+			// Loops to handle back-to-back or overlapping trims at t=0.
+			const effectiveEnd = validatedDurationSec;
+			let startPosition = 0;
+			for (let i = 0; i <= trimRegions.length; i++) {
+				const activeTrim = this.findActiveTrimRegion(startPosition * 1000, trimRegions);
+				if (!activeTrim) break;
+				startPosition = activeTrim.endMs / 1000;
+				if (startPosition >= effectiveEnd) break;
+			}
+
+			if (startPosition >= effectiveEnd) {
+				// All content is trimmed — return silent blob
+				return new Blob([], { type: "audio/webm" });
+			}
+
+			await this.seekTo(media, startPosition);
+
+			// Set initial playback rate for the starting position
+			const initialSpeedRegion = this.findActiveSpeedRegion(startPosition * 1000, speedRegions);
+			if (initialSpeedRegion) {
+				media.playbackRate = initialSpeedRegion.speed;
+			}
+
+			// Start recording only AFTER seeking past trims
+			const recording = this.startAudioRecording(destinationNode.stream);
+			recorder = recording.recorder;
+			recordedBlobPromise = recording.recordedBlobPromise;
 			await media.play();
 
 			await new Promise<void>((resolve, reject) => {
@@ -249,24 +284,66 @@ export class AudioProcessor {
 						return;
 					}
 
+					// Stop playback at validated duration — browser's media.duration
+					// may be inflated from bad container metadata.
+					if (media.currentTime >= validatedDurationSec) {
+						media.pause();
+						cleanup();
+						resolve();
+						return;
+					}
+
 					const currentTimeMs = media.currentTime * 1000;
 					const activeTrimRegion = this.findActiveTrimRegion(currentTimeMs, trimRegions);
 
 					if (activeTrimRegion && !media.paused && !media.ended) {
 						const skipToTime = activeTrimRegion.endMs / 1000;
-						if (skipToTime >= media.duration) {
+						if (skipToTime >= media.duration || skipToTime >= validatedDurationSec) {
 							media.pause();
 							cleanup();
 							resolve();
 							return;
 						}
+						// Pause recording during trim seek to prevent capturing
+						// silence/noise as the audio element seeks.
+						media.pause();
+						if (recorder?.state === "recording") recorder.pause();
+						const onSeeked = () => {
+							clearTimeout(seekTimer);
+							if (this.cancelled) {
+								cleanup();
+								resolve();
+								return;
+							}
+							if (recorder?.state === "paused") recorder.resume();
+							media
+								.play()
+								.then(() => {
+									if (!this.cancelled) rafId = requestAnimationFrame(tick);
+								})
+								.catch((err) => {
+									cleanup();
+									reject(
+										new Error(
+											`Failed to resume playback after trim seek: ${err instanceof Error ? err.message : String(err)}`,
+										),
+									);
+								});
+						};
+						const seekTimer = window.setTimeout(() => {
+							media.removeEventListener("seeked", onSeeked);
+							cleanup();
+							reject(new Error("Audio seek timed out while skipping trim region"));
+						}, SEEK_TIMEOUT_MS);
+						media.addEventListener("seeked", onSeeked, { once: true });
 						media.currentTime = skipToTime;
-					} else {
-						const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions);
-						const playbackRate = activeSpeedRegion ? activeSpeedRegion.speed : 1;
-						if (Math.abs(media.playbackRate - playbackRate) > 0.0001) {
-							media.playbackRate = playbackRate;
-						}
+						return;
+					}
+
+					const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions);
+					const playbackRate = activeSpeedRegion ? activeSpeedRegion.speed : 1;
+					if (Math.abs(media.playbackRate - playbackRate) > 0.0001) {
+						media.playbackRate = playbackRate;
 					}
 
 					if (!media.paused && !media.ended) {
@@ -286,7 +363,7 @@ export class AudioProcessor {
 				cancelAnimationFrame(rafId);
 			}
 			media.pause();
-			if (recorder.state !== "inactive") {
+			if (recorder && recorder.state !== "inactive") {
 				recorder.stop();
 			}
 			destinationNode.stream.getTracks().forEach((track) => track.stop());
@@ -297,6 +374,12 @@ export class AudioProcessor {
 			media.load();
 		}
 
+		if (!recordedBlobPromise) {
+			// Invariant: either an early return above fires, or startAudioRecording ran and
+			// populated recordedBlobPromise before the playback Promise resolved. Reaching
+			// here means that contract was broken — fail loud instead of returning silence.
+			throw new Error("Audio recorder finished without assigning recordedBlobPromise");
+		}
 		const recordedBlob = await recordedBlobPromise;
 		if (this.cancelled) {
 			throw new Error("Export cancelled");
@@ -314,8 +397,8 @@ export class AudioProcessor {
 
 		try {
 			await demuxer.load(file);
-			const audioConfig = (await demuxer.getDecoderConfig("audio")) as AudioDecoderConfig;
-			const reader = (demuxer.read("audio") as ReadableStream<EncodedAudioChunk>).getReader();
+			const audioConfig = await demuxer.getDecoderConfig("audio");
+			const reader = demuxer.read("audio").getReader();
 			let isFirstChunk = true;
 
 			try {
@@ -459,7 +542,10 @@ export class AudioProcessor {
 	}
 
 	private cloneWithTimestamp(src: AudioData, newTimestamp: number): AudioData {
-		const isPlanar = src.format?.includes("planar") ?? false;
+		if (!src.format) {
+			throw new Error("AudioData format is required for cloning");
+		}
+		const isPlanar = src.format.includes("planar");
 		const numPlanes = isPlanar ? src.numberOfChannels : 1;
 
 		let totalSize = 0;
@@ -476,7 +562,7 @@ export class AudioProcessor {
 		}
 
 		return new AudioData({
-			format: src.format!,
+			format: src.format,
 			sampleRate: src.sampleRate,
 			numberOfFrames: src.numberOfFrames,
 			numberOfChannels: src.numberOfChannels,

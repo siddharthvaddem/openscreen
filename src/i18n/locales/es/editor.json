@@ -30,6 +30,8 @@
 		"systemAudioUnavailable": "Audio del sistema no disponible. Grabando sin audio del sistema.",
 		"microphoneDenied": "Acceso al micrófono denegado. La grabación continuará sin audio.",
 		"cameraDenied": "Acceso a la cámara denegado. La grabación continuará sin cámara web.",
+		"cameraDisconnected": "Cámara web desconectada.",
+		"cameraNotFound": "Cámara no encontrada.",
 		"permissionDenied": "Permiso de grabación denegado. Por favor permite la grabación de pantalla."
 	}
 }

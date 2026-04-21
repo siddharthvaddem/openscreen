@@ -17,9 +17,7 @@ export async function requestCameraAccess(): Promise<CameraAccessResult> {
 	if (window.electronAPI?.requestCameraAccess) {
 		try {
 			const electronResult = await window.electronAPI.requestCameraAccess();
-			if (!electronResult.success || !electronResult.granted) {
-				return electronResult;
-			}
+			return electronResult;
 		} catch (error) {
 			return {
 				success: false,

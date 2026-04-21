@@ -1348,7 +1348,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								if (annotation.id === selectedAnnotationId) return true;
 
 								const timeMs = Math.round(currentTime * 1000);
-								return timeMs >= annotation.startMs && timeMs <= annotation.endMs;
+								return timeMs >= annotation.startMs && timeMs < annotation.endMs;
 							});
 
 							const filteredBlurRegions = (blurRegions || []).filter((blurRegion) => {
@@ -1358,7 +1358,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								if (blurRegion.id === selectedBlurId) return true;
 
 								const timeMs = Math.round(currentTime * 1000);
-								return timeMs >= blurRegion.startMs && timeMs <= blurRegion.endMs;
+								return timeMs >= blurRegion.startMs && timeMs < blurRegion.endMs;
 							});
 
 							const sorted = [
@@ -1371,6 +1371,15 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 									region: blurRegion,
 								})),
 							].sort((a, b) => a.region.zIndex - b.region.zIndex);
+							const previewSnapshotCanvas = (() => {
+								const app = appRef.current;
+								if (!app?.renderer?.extract) return null;
+								try {
+									return app.renderer.extract.canvas(app.stage);
+								} catch {
+									return null;
+								}
+							})();
 
 							// Handle click-through cycling: when clicking same annotation, cycle to next
 							const handleAnnotationClick = (clickedId: string) => {
@@ -1404,7 +1413,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								<AnnotationOverlay
 									key={
 										item.kind === "blur"
-											? `${item.region.id}-${overlaySize.width}-${overlaySize.height}-${item.region.blurData?.shape ?? "rectangle"}-${(item.region.blurData?.freehandPoints ?? []).map((p) => `${Math.round(p.x)}_${Math.round(p.y)}`).join("-")}`
+											? `${item.region.id}-${overlaySize.width}-${overlaySize.height}-${item.region.blurData?.type ?? "blur"}-${item.region.blurData?.shape ?? "rectangle"}-${item.region.blurData?.color ?? "white"}-${Math.round(item.region.blurData?.blockSize ?? 0)}-${Math.round(item.region.blurData?.intensity ?? 0)}-${(item.region.blurData?.freehandPoints ?? []).map((p) => `${Math.round(p.x)}_${Math.round(p.y)}`).join("-")}`
 											: `${item.region.id}-${overlaySize.width}-${overlaySize.height}`
 									}
 									annotation={item.region}
@@ -1438,6 +1447,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 											? item.region.id === selectedBlurId
 											: item.region.id === selectedAnnotationId
 									}
+									previewSourceCanvas={previewSnapshotCanvas}
+									previewFrameVersion={Math.round(currentTime * 1000)}
 								/>
 							));
 						})()}

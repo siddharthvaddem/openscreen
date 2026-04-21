@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CountdownOverlay } from "./components/launch/CountdownOverlay.tsx";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { Toaster } from "./components/ui/sonner";
@@ -15,18 +16,24 @@ function ToasterWrapper() {
 }
 
 export default function App() {
-	const [windowType, setWindowType] = useState("");
+	const [windowType, setWindowType] = useState(
+		() => new URLSearchParams(window.location.search).get("windowType") || "",
+	);
 
 	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		const type = params.get("windowType") || "";
-		setWindowType(type);
-		if (type === "hud-overlay" || type === "source-selector") {
+		const type = new URLSearchParams(window.location.search).get("windowType") || "";
+		if (type !== windowType) {
+			setWindowType(type);
+		}
+
+		if (type === "hud-overlay" || type === "source-selector" || type === "countdown-overlay") {
 			document.body.style.background = "transparent";
 			document.documentElement.style.background = "transparent";
 			document.getElementById("root")?.style.setProperty("background", "transparent");
 		}
+	}, [windowType]);
 
+	useEffect(() => {
 		// Load custom fonts on app initialization
 		loadAllCustomFonts().catch((error) => {
 			console.error("Failed to load custom fonts:", error);
@@ -39,6 +46,8 @@ export default function App() {
 				return <LaunchWindow />;
 			case "source-selector":
 				return <SourceSelector />;
+			case "countdown-overlay":
+				return <CountdownOverlay />;
 			case "editor":
 				return (
 					<ShortcutsProvider>

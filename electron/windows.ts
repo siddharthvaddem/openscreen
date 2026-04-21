@@ -177,3 +177,55 @@ export function createSourceSelectorWindow(): BrowserWindow {
 
 	return win;
 }
+
+/**
+ * Creates a centered transparent countdown overlay window that sits above the
+ * HUD while recording pre-roll is running.
+ */
+export function createCountdownOverlayWindow(): BrowserWindow {
+	const { workArea } = screen.getPrimaryDisplay();
+	const overlayWidth = 420;
+	const overlayHeight = 260;
+
+	const win = new BrowserWindow({
+		width: overlayWidth,
+		height: overlayHeight,
+		minWidth: overlayWidth,
+		maxWidth: overlayWidth,
+		minHeight: overlayHeight,
+		maxHeight: overlayHeight,
+		x: Math.round(workArea.x + (workArea.width - overlayWidth) / 2),
+		y: Math.round(workArea.y + (workArea.height - overlayHeight) / 2),
+		frame: false,
+		resizable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		focusable: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		hasShadow: false,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	win.setIgnoreMouseEvents(true);
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(VITE_DEV_SERVER_URL + "?windowType=countdown-overlay");
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "countdown-overlay" },
+		});
+	}
+
+	return win;
+}
