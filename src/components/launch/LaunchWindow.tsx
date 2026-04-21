@@ -333,15 +333,16 @@ export function LaunchWindow() {
 							variant="ghost"
 							size="sm"
 							onClick={dismissSystemLocaleSuggestion}
-							className="h-7 text-xs text-white/80 hover:bg-white/10 hover:text-white"
+							className="text-xs text-white/80 hover:bg-white/10 hover:text-white"
 						>
 							{t("systemLanguagePrompt.keepDefault")}
 						</Button>
 						<Button
 							type="button"
+							variant="default"
 							size="sm"
 							onClick={acceptSystemLocaleSuggestion}
-							className="h-7 text-xs bg-white text-[#10121b] hover:bg-white/90"
+							className="text-xs bg-white text-[#10121b] hover:bg-white/90"
 						>
 							{t("systemLanguagePrompt.switch", {
 								language: suggestedLanguageName,
@@ -479,61 +480,71 @@ export function LaunchWindow() {
 
 			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
 			<div
-				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[16px] backdrop-saturate-[140%] border border-[rgba(80,80,120,0.25)]`}
+				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[16px] backdrop-saturate-[140%] border border-[rgba(80,80,120,0.25)] transition-all duration-300 ${
+					recording ? styles.recordingBar : ""
+				}`}
 			>
 				{/* Drag handle */}
 				<div className={`flex items-center px-1 ${styles.electronDrag}`}>
 					{getIcon("drag", "text-white/30")}
 				</div>
 
-				{/* Source selector */}
-				<button
-					className={`${hudGroupClasses} p-2 ${styles.electronNoDrag}`}
-					onClick={openSourceSelector}
-					disabled={recording}
-					title={selectedSource}
-				>
-					{getIcon("monitor", "text-white/80")}
-					<span className="text-white/70 text-[11px] max-w-[72px] truncate">{selectedSource}</span>
-				</button>
+				{!recording && (
+					<>
+						{/* Source selector */}
+						<button
+							className={`${hudGroupClasses} p-2 ${styles.electronNoDrag}`}
+							onClick={openSourceSelector}
+							disabled={recording}
+							title={selectedSource}
+						>
+							{getIcon("monitor", "text-white/80")}
+							<span className="text-white/70 text-[11px] max-w-[72px] truncate">
+								{selectedSource}
+							</span>
+						</button>
 
-				{/* Audio controls group */}
-				<div className={`${hudGroupClasses} ${styles.electronNoDrag}`}>
-					<button
-						className={`${hudIconBtnClasses} ${systemAudioEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={() => !recording && setSystemAudioEnabled(!systemAudioEnabled)}
-						disabled={recording}
-						title={
-							systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
-						}
-					>
-						{systemAudioEnabled
-							? getIcon("volumeOn", "text-green-400")
-							: getIcon("volumeOff", "text-white/40")}
-					</button>
-					<button
-						className={`${hudIconBtnClasses} ${microphoneEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={toggleMicrophone}
-						disabled={recording}
-						title={microphoneEnabled ? t("audio.disableMicrophone") : t("audio.enableMicrophone")}
-					>
-						{microphoneEnabled
-							? getIcon("micOn", "text-green-400")
-							: getIcon("micOff", "text-white/40")}
-					</button>
-					<button
-						className={`${hudIconBtnClasses} ${webcamEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
-						onClick={async () => {
-							await setWebcamEnabled(!webcamEnabled);
-						}}
-						disabled={recording}
-						title={webcamEnabled ? t("webcam.disableWebcam") : t("webcam.enableWebcam")}
-					>
-						{webcamEnabled
-							? getIcon("webcamOn", "text-green-400")
-							: getIcon("webcamOff", "text-white/40")}
-					</button>
-				</div>
+						{/* Audio controls group */}
+						<div className={`${hudGroupClasses} ${styles.electronNoDrag}`}>
+							<button
+								className={`${hudIconBtnClasses} ${systemAudioEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+								onClick={() => !recording && setSystemAudioEnabled(!systemAudioEnabled)}
+								disabled={recording}
+								title={
+									systemAudioEnabled ? t("audio.disableSystemAudio") : t("audio.enableSystemAudio")
+								}
+							>
+								{systemAudioEnabled
+									? getIcon("volumeOn", "text-green-400")
+									: getIcon("volumeOff", "text-white/40")}
+							</button>
+							<button
+								className={`${hudIconBtnClasses} ${microphoneEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+								onClick={toggleMicrophone}
+								disabled={recording}
+								title={
+									microphoneEnabled ? t("audio.disableMicrophone") : t("audio.enableMicrophone")
+								}
+							>
+								{microphoneEnabled
+									? getIcon("micOn", "text-green-400")
+									: getIcon("micOff", "text-white/40")}
+							</button>
+							<button
+								className={`${hudIconBtnClasses} ${webcamEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
+								onClick={async () => {
+									await setWebcamEnabled(!webcamEnabled);
+								}}
+								disabled={recording}
+								title={webcamEnabled ? t("webcam.disableWebcam") : t("webcam.enableWebcam")}
+							>
+								{webcamEnabled
+									? getIcon("webcamOn", "text-green-400")
+									: getIcon("webcamOff", "text-white/40")}
+							</button>
+						</div>
+					</>
+				)}
 
 				{/* Record/Stop group */}
 				<button
@@ -548,10 +559,17 @@ export function LaunchWindow() {
 					disabled={!hasSelectedSource && !recording}
 					style={{ flex: "0 0 auto" }}
 				>
-					<div className={`flex items-center justify-center ${recording ? "gap-1.5" : ""}`}>
-						{recording
-							? getIcon("stop", paused ? "text-amber-400" : "text-red-400")
-							: getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")}
+					<div className={`flex items-center justify-center ${recording ? "gap-2" : ""}`}>
+						{recording ? (
+							<div className="flex items-center gap-1.5">
+								<div
+									className={`h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] ${styles.recordingPulse}`}
+								/>
+								{getIcon("stop", paused ? "text-amber-400" : "text-red-400")}
+							</div>
+						) : (
+							getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")
+						)}
 						{recording && (
 							<span
 								className={`${paused ? "text-amber-400" : "text-red-400"} inline-block w-[34px] text-left text-xs font-semibold tabular-nums`}
@@ -608,81 +626,82 @@ export function LaunchWindow() {
 					</>
 				)}
 
-				{/* Right sidebar controls */}
-				<div className={`${hudSidebarClasses} ${styles.electronNoDrag}`}>
-					<div className={`${styles.languageMenuContainer} ${styles.electronNoDrag}`}>
-						<button
-							ref={languageTriggerRef}
-							type="button"
-							aria-label={t("language")}
-							aria-expanded={isLanguageMenuOpen}
-							aria-haspopup="menu"
-							onClick={() => setIsLanguageMenuOpen((open) => !open)}
-							className={`h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
-						>
-							<div className="flex w-full items-center justify-center">
-								<Languages size={13} className="text-white/75" />
-							</div>
-						</button>
-					</div>
+				{!recording && (
+					<div className={`${hudSidebarClasses} ${styles.electronNoDrag}`}>
+						<div className={`${styles.languageMenuContainer} ${styles.electronNoDrag}`}>
+							<button
+								ref={languageTriggerRef}
+								type="button"
+								aria-label={t("language")}
+								aria-expanded={isLanguageMenuOpen}
+								aria-haspopup="menu"
+								onClick={() => setIsLanguageMenuOpen((open) => !open)}
+								className={`h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
+							>
+								<div className="flex w-full items-center justify-center">
+									<Languages size={13} className="text-white/75" />
+								</div>
+							</button>
+						</div>
 
-					{isLanguageMenuOpen
-						? createPortal(
-								<div
-									ref={languageMenuPanelRef}
-									role="menu"
-									className={`${styles.languageMenuPanel} ${styles.languageMenuScroll} ${styles.electronNoDrag}`}
-									style={
-										{
-											WebkitAppRegion: "no-drag",
-											pointerEvents: "auto",
-											right: `${languageMenuStyle.right}px`,
-											top: `${languageMenuStyle.top}px`,
-											maxHeight: `${languageMenuStyle.maxHeight}px`,
-										} as React.CSSProperties
-									}
-									onPointerDown={(event) => event.stopPropagation()}
-								>
-									{availableLocales.map((loc) => (
-										<button
-											key={loc}
-											type="button"
-											role="menuitemradio"
-											aria-checked={loc === locale}
-											onClick={() => {
-												setLocale(loc);
-												resolveSystemLocaleSuggestion();
-												setIsLanguageMenuOpen(false);
-											}}
-											className={`${styles.languageMenuItem} ${loc === locale ? styles.languageMenuItemActive : ""}`}
-										>
-											<span className="truncate">{getLocaleName(loc)}</span>
-											{loc === locale ? <Check size={11} className="text-white/85" /> : null}
-										</button>
-									))}
-								</div>,
-								document.body,
-							)
-						: null}
+						{isLanguageMenuOpen
+							? createPortal(
+									<div
+										ref={languageMenuPanelRef}
+										role="menu"
+										className={`${styles.languageMenuPanel} ${styles.languageMenuScroll} ${styles.electronNoDrag}`}
+										style={
+											{
+												WebkitAppRegion: "no-drag",
+												pointerEvents: "auto",
+												right: `${languageMenuStyle.right}px`,
+												top: `${languageMenuStyle.top}px`,
+												maxHeight: `${languageMenuStyle.maxHeight}px`,
+											} as React.CSSProperties
+										}
+										onPointerDown={(event) => event.stopPropagation()}
+									>
+										{availableLocales.map((loc) => (
+											<button
+												key={loc}
+												type="button"
+												role="menuitemradio"
+												aria-checked={loc === locale}
+												onClick={() => {
+													setLocale(loc);
+													resolveSystemLocaleSuggestion();
+													setIsLanguageMenuOpen(false);
+												}}
+												className={`${styles.languageMenuItem} ${loc === locale ? styles.languageMenuItemActive : ""}`}
+											>
+												<span className="truncate">{getLocaleName(loc)}</span>
+												{loc === locale ? <Check size={11} className="text-white/85" /> : null}
+											</button>
+										))}
+									</div>,
+									document.body,
+								)
+							: null}
 
-					{/* Window controls */}
-					<div className="flex items-center gap-0.5">
-						<button
-							className={windowBtnClasses}
-							title={t("tooltips.hideHUD")}
-							onClick={sendHudOverlayHide}
-						>
-							{getIcon("minimize", "text-white")}
-						</button>
-						<button
-							className={windowBtnClasses}
-							title={t("tooltips.closeApp")}
-							onClick={sendHudOverlayClose}
-						>
-							{getIcon("close", "text-white")}
-						</button>
+						{/* Window controls */}
+						<div className="flex items-center gap-0.5">
+							<button
+								className={windowBtnClasses}
+								title={t("tooltips.hideHUD")}
+								onClick={sendHudOverlayHide}
+							>
+								{getIcon("minimize", "text-white")}
+							</button>
+							<button
+								className={windowBtnClasses}
+								title={t("tooltips.closeApp")}
+								onClick={sendHudOverlayClose}
+							>
+								{getIcon("close", "text-white")}
+							</button>
+						</div>
 					</div>
-				</div>
+				)}
 			</div>
 		</div>
 	);

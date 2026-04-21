@@ -81,3 +81,24 @@
 	background: rgba(255, 255, 255, 0.12);
 	color: #ffffff;
 }
+
+@keyframes recordingPulse {
+	0% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.4; transform: scale(0.92); }
+	100% { opacity: 1; transform: scale(1); }
+}
+
+.recordingPulse {
+	animation: recordingPulse 1.5s ease-in-out infinite;
+}
+
+.recordingBar {
+	background: linear-gradient(180deg, rgba(20, 20, 25, 0.94), rgba(10, 10, 15, 0.94)) !important;
+	border: 1px solid rgba(255, 60, 60, 0.3) !important;
+	box-shadow: 0 8px 32px rgba(255, 0, 0, 0.15) !important;
+	padding-left: 14px !important;
+	padding-right: 14px !important;
+	min-width: unset !important;
+	width: auto !important;
+	height: 48px !important;
+}
