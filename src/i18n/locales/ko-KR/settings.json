@@ -158,5 +158,16 @@
 	},
 	"language": {
 		"title": "언어"
+	},
+	"audio": {
+		"title": "오디오",
+		"noiseReduction": "노이즈 감소",
+		"level": "레벨",
+		"nrLevel": {
+			"light": "약함",
+			"moderate": "보통",
+			"aggressive": "강함"
+		},
+		"nrDescription": "AI 기반 노이즈 감소는 배경 잡음을 제거합니다. 레벨이 높을수록 더 강력하지만 음성 품질에 영향을 줄 수 있습니다."
 	}
 }

@@ -14,7 +14,18 @@
 		"disableSystemAudio": "Disable system audio",
 		"enableMicrophone": "Enable microphone",
 		"disableMicrophone": "Disable microphone",
-		"defaultMicrophone": "Default Microphone"
+		"defaultMicrophone": "Default Microphone",
+		"enableNoiseReduction": "Enable noise reduction (AI-powered)",
+		"disableNoiseReduction": "Disable noise reduction",
+		"noiseReduction": "Noise reduction",
+		"clickToCycle": "Click to change level",
+		"nrLevel": {
+			"light": "Light",
+			"moderate": "Moderate",
+			"aggressive": "Aggressive"
+		},
+		"noiseReductionPrompt": "Want to enable AI noise reduction for clearer audio?",
+		"enableNoiseReductionShort": "Enable"
 	},
 	"webcam": {
 		"enableWebcam": "Enable webcam",

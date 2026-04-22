@@ -12,7 +12,18 @@ export default defineConfig({
 				// Shortcut of `build.lib.entry`.
 				entry: "electron/main.ts",
 				vite: {
-					build: {},
+					build: {
+						lib: {
+							entry: "electron/main.ts",
+							formats: ["cjs"],
+						},
+						rollupOptions: {
+							output: {
+								entryFileNames: "[name].js",
+							},
+						},
+						minify: false,
+					},
 				},
 			},
 			preload: {

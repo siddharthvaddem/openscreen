@@ -14,7 +14,18 @@
 		"disableSystemAudio": "停用系統音訊",
 		"enableMicrophone": "啟用麥克風",
 		"disableMicrophone": "停用麥克風",
-		"defaultMicrophone": "預設麥克風"
+		"defaultMicrophone": "預設麥克風",
+		"enableNoiseReduction": "啟用降噪 (AI 驅動)",
+		"disableNoiseReduction": "停用降噪",
+		"noiseReduction": "降噪",
+		"clickToCycle": "點擊以變更等級",
+		"nrLevel": {
+			"light": "輕度",
+			"moderate": "中度",
+			"aggressive": "強力"
+		},
+		"noiseReductionPrompt": "要啟用 AI 降噪以獲得更清晰的音訊嗎？",
+		"enableNoiseReductionShort": "啟用"
 	},
 	"webcam": {
 		"enableWebcam": "啟用攝影機",

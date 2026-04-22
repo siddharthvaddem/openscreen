@@ -144,6 +144,9 @@ export default function VideoEditor() {
 		format: string;
 	} | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(false);
+	const [noiseReductionLevel, setNoiseReductionLevel] =
+		useState<import("@/lib/audioEnhancement").NoiseReductionLevel>("moderate");
 
 	const playerContainerRef = useRef<HTMLDivElement>(null);
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
@@ -1857,6 +1860,8 @@ export default function VideoEditor() {
 											onBlurDataChange={handleBlurDataPreviewChange}
 											onBlurDataCommit={commitState}
 											cursorTelemetry={cursorTelemetry}
+											noiseReductionEnabled={noiseReductionEnabled}
+											noiseReductionLevel={noiseReductionLevel}
 										/>
 									</div>
 								</div>
@@ -2051,6 +2056,10 @@ export default function VideoEditor() {
 						onZoomDurationChange={(zoomIn, zoomOut) =>
 							selectedZoomId && handleZoomDurationChange(selectedZoomId, zoomIn, zoomOut)
 						}
+						noiseReductionEnabled={noiseReductionEnabled}
+						onNoiseReductionEnabledChange={setNoiseReductionEnabled}
+						noiseReductionLevel={noiseReductionLevel}
+						onNoiseReductionLevelChange={setNoiseReductionLevel}
 					/>
 				</div>
 			</div>

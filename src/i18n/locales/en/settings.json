@@ -179,5 +179,16 @@
 	},
 	"language": {
 		"title": "Language"
+	},
+	"audio": {
+		"title": "Audio",
+		"noiseReduction": "Noise Reduction",
+		"level": "Level",
+		"nrLevel": {
+			"light": "Light",
+			"moderate": "Moderate",
+			"aggressive": "Aggressive"
+		},
+		"nrDescription": "AI-powered noise reduction removes background noise. Higher levels are more aggressive but may affect voice quality."
 	}
 }

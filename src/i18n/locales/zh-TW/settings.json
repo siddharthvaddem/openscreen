@@ -172,5 +172,16 @@
 	},
 	"language": {
 		"title": "語言"
+	},
+	"audio": {
+		"title": "音訊",
+		"noiseReduction": "降噪",
+		"level": "等級",
+		"nrLevel": {
+			"light": "輕度",
+			"moderate": "中度",
+			"aggressive": "強力"
+		},
+		"nrDescription": "AI 降噪可移除背景雜訊。等級越高越強力，但可能影響人聲品質。"
 	}
 }

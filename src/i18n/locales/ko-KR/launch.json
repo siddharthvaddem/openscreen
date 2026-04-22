@@ -14,7 +14,18 @@
 		"disableSystemAudio": "시스템 오디오 비활성화",
 		"enableMicrophone": "마이크 활성화",
 		"disableMicrophone": "마이크 비활성화",
-		"defaultMicrophone": "기본 마이크"
+		"defaultMicrophone": "기본 마이크",
+		"enableNoiseReduction": "노이즈 감소 활성화 (AI 기반)",
+		"disableNoiseReduction": "노이즈 감소 비활성화",
+		"noiseReduction": "노이즈 감소",
+		"clickToCycle": "레벨 변경하려면 클릭",
+		"nrLevel": {
+			"light": "약함",
+			"moderate": "보통",
+			"aggressive": "강함"
+		},
+		"noiseReductionPrompt": "더 선명한 오디오를 위해 AI 노이즈 감소를 활성화하시겠습니까?",
+		"enableNoiseReductionShort": "활성화"
 	},
 	"webcam": {
 		"enableWebcam": "웹캠 활성화",

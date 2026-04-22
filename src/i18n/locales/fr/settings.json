@@ -168,5 +168,16 @@
 	},
 	"language": {
 		"title": "Langue"
+	},
+	"audio": {
+		"title": "Audio",
+		"noiseReduction": "Réduction de bruit",
+		"level": "Niveau",
+		"nrLevel": {
+			"light": "Léger",
+			"moderate": "Modéré",
+			"aggressive": "Agressif"
+		},
+		"nrDescription": "La réduction de bruit IA supprime les bruits de fond. Les niveaux élevés sont plus agressifs mais peuvent affecter la qualité vocale."
 	}
 }
