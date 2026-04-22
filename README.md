@@ -93,6 +93,10 @@ System audio capture relies on Electron's [desktopCapturer](https://www.electron
 
 _I'm new to open source, idk what I'm doing lol. If something is wrong please raise an issue 🙏_
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=Date)](https://www.star-history.com/siddharthvaddem/openscreen#history)
+
 ## Documentation
 
 See the documentation here:
