@@ -49,5 +49,9 @@
 	"success": {
 		"addedZoomSuggestions": "{{count}} imleç tabanlı yakınlaştırma önerisi eklendi",
 		"addedZoomSuggestionsPlural": "{{count}} imleç tabanlı yakınlaştırma önerisi eklendi"
+	},
+	"feedback": {
+		"copied": "Kopyalandı!",
+		"pasted": "Yapıştırıldı!"
 	}
 }

@@ -49,5 +49,9 @@
 	"success": {
 		"addedZoomSuggestions": "已新增 {{count}} 個基於游標的縮放建議",
 		"addedZoomSuggestionsPlural": "已新增 {{count}} 個基於游標的縮放建議"
+	},
+	"feedback": {
+		"copied": "已複製！",
+		"pasted": "已貼上！"
 	}
 }

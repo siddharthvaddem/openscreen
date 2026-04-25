@@ -87,6 +87,10 @@ interface TimelineEditorProps {
 	onSpeedDelete?: (id: string) => void;
 	selectedSpeedId?: string | null;
 	onSelectSpeed?: (id: string | null) => void;
+	canCopySelectedItem?: boolean;
+	canPasteTimelineItem?: boolean;
+	onCopySelectedItem?: () => void;
+	onPasteTimelineItem?: () => void;
 	aspectRatio: AspectRatio;
 	onAspectRatioChange: (aspectRatio: AspectRatio) => void;
 }
@@ -806,6 +810,10 @@ export default function TimelineEditor({
 	onSpeedDelete,
 	selectedSpeedId,
 	onSelectSpeed,
+	canCopySelectedItem = false,
+	canPasteTimelineItem = false,
+	onCopySelectedItem,
+	onPasteTimelineItem,
 	aspectRatio,
 	onAspectRatioChange,
 }: TimelineEditorProps) {
@@ -1234,7 +1242,42 @@ export default function TimelineEditor({
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+			const target = e.target;
+			const isEditableTarget =
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				target instanceof HTMLSelectElement ||
+				(target instanceof HTMLElement && target.isContentEditable);
+			if (isEditableTarget) {
+				return;
+			}
+
+			const mod = isMac ? e.metaKey : e.ctrlKey;
+			const key = e.key.toLowerCase();
+
+			if (
+				mod &&
+				!e.shiftKey &&
+				!e.altKey &&
+				key === "c" &&
+				canCopySelectedItem &&
+				onCopySelectedItem
+			) {
+				e.preventDefault();
+				onCopySelectedItem();
+				return;
+			}
+
+			if (
+				mod &&
+				!e.shiftKey &&
+				!e.altKey &&
+				key === "v" &&
+				canPasteTimelineItem &&
+				onPasteTimelineItem
+			) {
+				e.preventDefault();
+				onPasteTimelineItem();
 				return;
 			}
 
@@ -1326,6 +1369,10 @@ export default function TimelineEditor({
 		onSelectAnnotation,
 		keyShortcuts,
 		isMac,
+		canCopySelectedItem,
+		canPasteTimelineItem,
+		onCopySelectedItem,
+		onPasteTimelineItem,
 	]);
 
 	const clampedRange = useMemo<Range>(() => {

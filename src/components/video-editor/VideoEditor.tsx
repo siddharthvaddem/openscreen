@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { useClipboardFeedback } from "@/hooks/useClipboardFeedback";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale } from "@/i18n/config";
 import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
@@ -54,6 +55,11 @@ import {
 import { SettingsPanel } from "./SettingsPanel";
 import TimelineEditor from "./timeline/TimelineEditor";
 import {
+	cloneAnnotationRegion,
+	getPastedAnnotationPosition,
+	spansOverlap,
+} from "./timelineClipboardUtils";
+import {
 	type AnnotationRegion,
 	type BlurData,
 	type CursorTelemetryPoint,
@@ -76,6 +82,13 @@ import {
 } from "./types";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayback/constants";
+
+type TimelineClipboardItem =
+	| { kind: "zoom"; region: ZoomRegion }
+	| { kind: "trim"; region: TrimRegion }
+	| { kind: "speed"; region: SpeedRegion }
+	| { kind: "annotation"; region: AnnotationRegion }
+	| { kind: "blur"; region: AnnotationRegion };
 
 export default function VideoEditor() {
 	const {
@@ -145,6 +158,7 @@ export default function VideoEditor() {
 		format: string;
 	} | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [timelineClipboard, setTimelineClipboard] = useState<TimelineClipboardItem | null>(null);
 
 	const playerContainerRef = useRef<HTMLDivElement>(null);
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
@@ -154,8 +168,10 @@ export default function VideoEditor() {
 	const nextSpeedIdRef = useRef(1);
 
 	const { shortcuts, isMac } = useShortcuts();
+	const { notifyCopied, notifyPasted } = useClipboardFeedback();
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
+	const tt = useScopedT("timeline");
 	const availableLocales = getAvailableLocales();
 	const { locale, setLocale } = useI18n();
 
@@ -1013,6 +1029,219 @@ export default function VideoEditor() {
 		},
 		[pushState],
 	);
+
+	const handleCopySelectedTimelineItem = useCallback(() => {
+		if (selectedAnnotationId) {
+			const region = annotationOnlyRegions.find((item) => item.id === selectedAnnotationId);
+			if (region) {
+				setTimelineClipboard({ kind: "annotation", region: cloneAnnotationRegion(region) });
+				notifyCopied();
+			}
+			return;
+		}
+
+		if (selectedBlurId) {
+			const region = blurRegions.find((item) => item.id === selectedBlurId);
+			if (region) {
+				setTimelineClipboard({ kind: "blur", region: cloneAnnotationRegion(region) });
+				notifyCopied();
+			}
+			return;
+		}
+
+		if (selectedZoomId) {
+			const region = zoomRegions.find((item) => item.id === selectedZoomId);
+			if (region) {
+				setTimelineClipboard({ kind: "zoom", region: { ...region, focus: { ...region.focus } } });
+				notifyCopied();
+			}
+			return;
+		}
+
+		if (selectedTrimId) {
+			const region = trimRegions.find((item) => item.id === selectedTrimId);
+			if (region) {
+				setTimelineClipboard({ kind: "trim", region: { ...region } });
+				notifyCopied();
+			}
+			return;
+		}
+
+		if (selectedSpeedId) {
+			const region = speedRegions.find((item) => item.id === selectedSpeedId);
+			if (region) {
+				setTimelineClipboard({ kind: "speed", region: { ...region } });
+				notifyCopied();
+			}
+		}
+	}, [
+		selectedAnnotationId,
+		selectedBlurId,
+		selectedZoomId,
+		selectedTrimId,
+		selectedSpeedId,
+		annotationOnlyRegions,
+		blurRegions,
+		zoomRegions,
+		trimRegions,
+		speedRegions,
+		notifyCopied,
+	]);
+
+	const handlePasteTimelineItem = useCallback(() => {
+		if (!timelineClipboard) return;
+
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		if (totalMs <= 0) return;
+
+		const sourceDuration = Math.max(
+			1,
+			timelineClipboard.region.endMs - timelineClipboard.region.startMs,
+		);
+		const pastedDuration = Math.min(sourceDuration, totalMs);
+		const currentTimeMs = Math.max(0, Math.round(currentTime * 1000));
+		const targetStart = Math.min(currentTimeMs, Math.max(0, totalMs - pastedDuration));
+		const targetEnd = Math.min(totalMs, targetStart + pastedDuration);
+
+		function clearTimelineSelection() {
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedAnnotationId(null);
+			setSelectedBlurId(null);
+			setSelectedSpeedId(null);
+		}
+
+		function pasteSpanRegion<T extends { id: string; startMs: number; endMs: number }>(config: {
+			existingRegions: T[];
+			createId: () => string;
+			createRegion: (id: string) => T;
+			pushRegion: (region: T) => void;
+			selectRegion: (id: string) => void;
+			errorTitle: string;
+			errorDescription: string;
+		}): void {
+			const hasConflict = config.existingRegions.some((region) =>
+				spansOverlap(region.startMs, region.endMs, targetStart, targetEnd),
+			);
+			if (hasConflict) {
+				toast.error(config.errorTitle, {
+					description: config.errorDescription,
+				});
+				return;
+			}
+
+			const id = config.createId();
+			config.pushRegion(config.createRegion(id));
+			clearTimelineSelection();
+			config.selectRegion(id);
+			notifyPasted();
+		}
+
+		if (timelineClipboard.kind === "annotation" || timelineClipboard.kind === "blur") {
+			const id = `annotation-${nextAnnotationIdRef.current++}`;
+			const zIndex = nextAnnotationZIndexRef.current++;
+			const source = cloneAnnotationRegion(timelineClipboard.region);
+			const pasted: AnnotationRegion = {
+				...source,
+				id,
+				startMs: targetStart,
+				endMs: targetEnd,
+				zIndex,
+				position: getPastedAnnotationPosition(source.position, source.size),
+			};
+
+			pushState((prev) => ({
+				annotationRegions: [...prev.annotationRegions, pasted],
+			}));
+
+			if (timelineClipboard.kind === "blur") {
+				setSelectedBlurId(id);
+				setSelectedAnnotationId(null);
+			} else {
+				setSelectedAnnotationId(id);
+				setSelectedBlurId(null);
+			}
+			setSelectedZoomId(null);
+			setSelectedTrimId(null);
+			setSelectedSpeedId(null);
+			notifyPasted();
+			return;
+		}
+
+		if (timelineClipboard.kind === "zoom") {
+			pasteSpanRegion({
+				existingRegions: zoomRegions,
+				createId: () => `zoom-${nextZoomIdRef.current++}`,
+				createRegion: (id) => ({
+					...timelineClipboard.region,
+					id,
+					startMs: targetStart,
+					endMs: targetEnd,
+					focus: { ...timelineClipboard.region.focus },
+				}),
+				pushRegion: (region) => {
+					pushState((prev) => ({
+						zoomRegions: [...prev.zoomRegions, region],
+					}));
+				},
+				selectRegion: setSelectedZoomId,
+				errorTitle: tt("errors.cannotPlaceZoom"),
+				errorDescription: tt("errors.zoomExistsAtLocation"),
+			});
+			return;
+		}
+
+		if (timelineClipboard.kind === "trim") {
+			pasteSpanRegion({
+				existingRegions: trimRegions,
+				createId: () => `trim-${nextTrimIdRef.current++}`,
+				createRegion: (id) => ({
+					...timelineClipboard.region,
+					id,
+					startMs: targetStart,
+					endMs: targetEnd,
+				}),
+				pushRegion: (region) => {
+					pushState((prev) => ({
+						trimRegions: [...prev.trimRegions, region],
+					}));
+				},
+				selectRegion: setSelectedTrimId,
+				errorTitle: tt("errors.cannotPlaceTrim"),
+				errorDescription: tt("errors.trimExistsAtLocation"),
+			});
+			return;
+		}
+
+		pasteSpanRegion({
+			existingRegions: speedRegions,
+			createId: () => `speed-${nextSpeedIdRef.current++}`,
+			createRegion: (id) => ({
+				...timelineClipboard.region,
+				id,
+				startMs: targetStart,
+				endMs: targetEnd,
+			}),
+			pushRegion: (region) => {
+				pushState((prev) => ({
+					speedRegions: [...prev.speedRegions, region],
+				}));
+			},
+			selectRegion: setSelectedSpeedId,
+			errorTitle: tt("errors.cannotPlaceSpeed"),
+			errorDescription: tt("errors.speedExistsAtLocation"),
+		});
+	}, [
+		timelineClipboard,
+		duration,
+		currentTime,
+		pushState,
+		zoomRegions,
+		trimRegions,
+		speedRegions,
+		tt,
+		notifyPasted,
+	]);
 
 	const handleAnnotationDelete = useCallback(
 		(id: string) => {
@@ -1929,6 +2158,16 @@ export default function VideoEditor() {
 									onBlurDelete={handleAnnotationDelete}
 									selectedBlurId={selectedBlurId}
 									onSelectBlur={handleSelectBlur}
+									canCopySelectedItem={
+										!!selectedZoomId ||
+										!!selectedTrimId ||
+										!!selectedAnnotationId ||
+										!!selectedBlurId ||
+										!!selectedSpeedId
+									}
+									canPasteTimelineItem={!!timelineClipboard && duration > 0}
+									onCopySelectedItem={handleCopySelectedTimelineItem}
+									onPasteTimelineItem={handlePasteTimelineItem}
 									aspectRatio={aspectRatio}
 									onAspectRatioChange={(ar) =>
 										pushState({

@@ -49,5 +49,9 @@
 	"success": {
 		"addedZoomSuggestions": "已添加 {{count}} 个基于光标的缩放建议",
 		"addedZoomSuggestionsPlural": "已添加 {{count}} 个基于光标的缩放建议"
+	},
+	"feedback": {
+		"copied": "已复制！",
+		"pasted": "已粘贴！"
 	}
 }
