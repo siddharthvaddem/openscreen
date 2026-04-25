@@ -1,4 +1,10 @@
 {
+	"newRecording": {
+		"title": "Retour à l'enregistreur",
+		"description": "Votre session actuelle a été enregistrée.",
+		"cancel": "Annuler",
+		"confirm": "Confirmer"
+	},
 	"errors": {
 		"noVideoLoaded": "Aucune vidéo chargée",
 		"videoNotReady": "Vidéo non prête",
@@ -8,6 +14,7 @@
 		"failedToSaveVideo": "Échec de l'enregistrement de la vidéo",
 		"exportFailed": "L'export a échoué",
 		"exportFailedWithError": "L'export a échoué : {{error}}",
+		"exportBackgroundLoadFailed": "L'export a échoué : impossible de charger l'image d'arrière-plan ({{url}})",
 		"failedToSaveExport": "Échec de l'enregistrement de l'export",
 		"failedToSaveExportedVideo": "Échec de l'enregistrement de la vidéo exportée",
 		"failedToRevealInFolder": "Erreur lors de l'affichage dans le dossier : {{error}}"
@@ -30,6 +37,8 @@
 		"systemAudioUnavailable": "Audio système non disponible. Enregistrement sans audio système.",
 		"microphoneDenied": "Accès au microphone refusé. L'enregistrement continuera sans audio.",
 		"cameraDenied": "Accès à la caméra refusé. L'enregistrement continuera sans webcam.",
+		"cameraDisconnected": "Webcam déconnectée.",
+		"cameraNotFound": "Caméra introuvable.",
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran."
 	}
 }

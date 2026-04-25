@@ -45,6 +45,7 @@ import {
 	type Size,
 	type StyledRenderRect,
 } from "@/lib/compositeLayout";
+import { BackgroundLoadError, classifyWallpaper, resolveImageWallpaperUrl } from "@/lib/wallpaper";
 import { drawCanvasClipPath } from "@/lib/webcamMaskShapes";
 import { renderAnnotations } from "./annotationRenderer";
 import {
@@ -231,123 +232,93 @@ export class FrameRenderer {
 	private async setupBackground(): Promise<void> {
 		const wallpaper = this.config.wallpaper;
 
-		// Create background canvas for separate rendering (not affected by zoom)
 		const bgCanvas = document.createElement("canvas");
 		bgCanvas.width = this.config.width;
 		bgCanvas.height = this.config.height;
 		const bgCtx = bgCanvas.getContext("2d")!;
 
-		try {
-			// Render background based on type
-			if (
-				wallpaper.startsWith("file://") ||
-				wallpaper.startsWith("data:") ||
-				wallpaper.startsWith("/") ||
-				wallpaper.startsWith("http")
-			) {
-				// Image background
-				const img = new Image();
-				// Don't set crossOrigin for same-origin images to avoid CORS taint
-				// Only set it for cross-origin URLs
-				let imageUrl: string;
-				if (wallpaper.startsWith("http")) {
-					imageUrl = wallpaper;
-					if (!imageUrl.startsWith(window.location.origin)) {
-						img.crossOrigin = "anonymous";
-					}
-				} else if (wallpaper.startsWith("file://") || wallpaper.startsWith("data:")) {
-					imageUrl = wallpaper;
-				} else {
-					imageUrl = window.location.origin + wallpaper;
-				}
+		const classified = classifyWallpaper(wallpaper);
 
+		if (classified.kind === "color") {
+			bgCtx.fillStyle = classified.value;
+			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+		} else if (classified.kind === "gradient") {
+			const parsedGradient = parseCssGradient(classified.value);
+			if (!parsedGradient) {
+				throw new BackgroundLoadError(classified.value);
+			}
+			const gradient =
+				parsedGradient.type === "linear"
+					? (() => {
+							const points = getLinearGradientPoints(
+								resolveLinearGradientAngle(parsedGradient.descriptor),
+								this.config.width,
+								this.config.height,
+							);
+							return bgCtx.createLinearGradient(points.x0, points.y0, points.x1, points.y1);
+						})()
+					: (() => {
+							const shape = getRadialGradientShape(
+								parsedGradient.descriptor,
+								this.config.width,
+								this.config.height,
+							);
+							return bgCtx.createRadialGradient(
+								shape.cx,
+								shape.cy,
+								0,
+								shape.cx,
+								shape.cy,
+								shape.radius,
+							);
+						})();
+
+			parsedGradient.stops.forEach((stop) => {
+				gradient.addColorStop(stop.offset, stop.color);
+			});
+
+			bgCtx.fillStyle = gradient;
+			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+		} else {
+			const imageUrl = resolveImageWallpaperUrl(classified.path);
+			const img = new Image();
+			if (imageUrl.startsWith("http") && !imageUrl.startsWith(window.location.origin)) {
+				img.crossOrigin = "anonymous";
+			}
+
+			try {
 				await new Promise<void>((resolve, reject) => {
 					img.onload = () => resolve();
-					img.onerror = (err) => {
-						console.error("[FrameRenderer] Failed to load background image:", imageUrl, err);
-						reject(new Error(`Failed to load background image: ${imageUrl}`));
-					};
+					img.onerror = (err) => reject(err);
 					img.src = imageUrl;
 				});
-
-				// Draw the image using cover and center positioning
-				const imgAspect = img.width / img.height;
-				const canvasAspect = this.config.width / this.config.height;
-
-				let drawWidth, drawHeight, drawX, drawY;
-
-				if (imgAspect > canvasAspect) {
-					drawHeight = this.config.height;
-					drawWidth = drawHeight * imgAspect;
-					drawX = (this.config.width - drawWidth) / 2;
-					drawY = 0;
-				} else {
-					drawWidth = this.config.width;
-					drawHeight = drawWidth / imgAspect;
-					drawX = 0;
-					drawY = (this.config.height - drawHeight) / 2;
-				}
-
-				bgCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-			} else if (wallpaper.startsWith("#")) {
-				bgCtx.fillStyle = wallpaper;
-				bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-			} else if (
-				wallpaper.startsWith("linear-gradient") ||
-				wallpaper.startsWith("radial-gradient")
-			) {
-				const parsedGradient = parseCssGradient(wallpaper);
-				if (parsedGradient) {
-					const gradient =
-						parsedGradient.type === "linear"
-							? (() => {
-									const points = getLinearGradientPoints(
-										resolveLinearGradientAngle(parsedGradient.descriptor),
-										this.config.width,
-										this.config.height,
-									);
-
-									return bgCtx.createLinearGradient(points.x0, points.y0, points.x1, points.y1);
-								})()
-							: (() => {
-									const shape = getRadialGradientShape(
-										parsedGradient.descriptor,
-										this.config.width,
-										this.config.height,
-									);
-
-									return bgCtx.createRadialGradient(
-										shape.cx,
-										shape.cy,
-										0,
-										shape.cx,
-										shape.cy,
-										shape.radius,
-									);
-								})();
-
-					parsedGradient.stops.forEach((stop) => {
-						gradient.addColorStop(stop.offset, stop.color);
-					});
-
-					bgCtx.fillStyle = gradient;
-					bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-				} else {
-					console.warn("[FrameRenderer] Could not parse gradient, using black fallback");
-					bgCtx.fillStyle = "#000000";
-					bgCtx.fillRect(0, 0, this.config.width, this.config.height);
-				}
-			} else {
-				bgCtx.fillStyle = wallpaper;
-				bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+			} catch (err) {
+				throw new BackgroundLoadError(imageUrl, err);
 			}
-		} catch (error) {
-			console.error("[FrameRenderer] Error setting up background, using fallback:", error);
-			bgCtx.fillStyle = "#000000";
-			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+
+			const imgAspect = img.width / img.height;
+			const canvasAspect = this.config.width / this.config.height;
+
+			let drawWidth: number;
+			let drawHeight: number;
+			let drawX: number;
+			let drawY: number;
+
+			if (imgAspect > canvasAspect) {
+				drawHeight = this.config.height;
+				drawWidth = drawHeight * imgAspect;
+				drawX = (this.config.width - drawWidth) / 2;
+				drawY = 0;
+			} else {
+				drawWidth = this.config.width;
+				drawHeight = drawWidth / imgAspect;
+				drawX = 0;
+				drawY = (this.config.height - drawHeight) / 2;
+			}
+
+			bgCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 		}
 
-		// Store the background canvas for compositing
 		this.backgroundSprite = bgCanvas;
 	}
 
@@ -423,8 +394,8 @@ export class FrameRenderer {
 			this.compositeCtx
 		) {
 			// Calculate scale factor based on export vs preview dimensions
-			const previewWidth = this.config.previewWidth || 1920;
-			const previewHeight = this.config.previewHeight || 1080;
+			const previewWidth = this.config.previewWidth ?? this.config.width;
+			const previewHeight = this.config.previewHeight ?? this.config.height;
 			const scaleX = this.config.width / previewWidth;
 			const scaleY = this.config.height / previewHeight;
 			const scaleFactor = (scaleX + scaleY) / 2;
@@ -509,8 +480,8 @@ export class FrameRenderer {
 		this.videoContainer.y = screenRect.y;
 
 		// scale border radius by export/preview canvas ratio
-		const previewWidth = this.config.previewWidth || 1920;
-		const previewHeight = this.config.previewHeight || 1080;
+		const previewWidth = this.config.previewWidth ?? this.config.width;
+		const previewHeight = this.config.previewHeight ?? this.config.height;
 		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
 		const scaledBorderRadius =
 			compositeLayout.screenBorderRadius != null

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import {
 	app,
 	BrowserWindow,
@@ -798,21 +798,6 @@ export function registerIpcHandlers(
 		} catch (error) {
 			console.error("Failed to open URL:", error);
 			return { success: false, error: String(error) };
-		}
-	});
-
-	// Return base path for assets so renderer can resolve file:// paths in production
-	ipcMain.handle("get-asset-base-path", () => {
-		try {
-			if (app.isPackaged) {
-				const assetPath = path.join(process.resourcesPath, "assets");
-				return pathToFileURL(`${assetPath}${path.sep}`).toString();
-			}
-			const assetPath = path.join(app.getAppPath(), "public", "assets");
-			return pathToFileURL(`${assetPath}${path.sep}`).toString();
-		} catch (err) {
-			console.error("Failed to resolve asset base path:", err);
-			return null;
 		}
 	});
 

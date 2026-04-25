@@ -37,7 +37,7 @@ interface Window {
 			status: string;
 			error?: string;
 		}>;
-		getAssetBasePath: () => Promise<string | null>;
+		assetBaseUrl: string;
 		storeRecordedVideo: (
 			videoData: ArrayBuffer,
 			fileName: string,

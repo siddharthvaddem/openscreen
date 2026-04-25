@@ -197,3 +197,62 @@ it("detects unsaved changes from differing snapshots", () => {
 	expect(hasProjectUnsavedChanges("same", "same")).toBe(false);
 	expect(hasProjectUnsavedChanges("current", "baseline")).toBe(true);
 });
+
+describe("wallpaper legacy normalization", () => {
+	it("rewrites pre-fix packaged paths (resources/assets/wallpapers/…)", () => {
+		const normalized = normalizeProjectEditor({
+			wallpaper: "file:///opt/Openscreen/resources/assets/wallpapers/wallpaper5.jpg",
+		});
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper5.jpg");
+	});
+
+	it("rewrites new packaged layout (resources/wallpapers/…)", () => {
+		const normalized = normalizeProjectEditor({
+			wallpaper: "file:///opt/Openscreen/resources/wallpapers/wallpaper3.jpg",
+		});
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper3.jpg");
+	});
+
+	it("rewrites unpackaged dev layout (public/wallpapers/…)", () => {
+		const normalized = normalizeProjectEditor({
+			wallpaper: "file:///home/user/project/public/wallpapers/wallpaper1.jpg",
+		});
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper1.jpg");
+	});
+
+	it("rewrites Windows-style file URLs with drive letter", () => {
+		const normalized = normalizeProjectEditor({
+			wallpaper: "file:///C:/Users/me/openscreen/resources/wallpapers/wallpaper2.jpg",
+		});
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper2.jpg");
+	});
+
+	it("leaves canonical relative paths untouched", () => {
+		const normalized = normalizeProjectEditor({ wallpaper: "/wallpapers/wallpaper2.jpg" });
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper2.jpg");
+	});
+
+	it("leaves data URIs untouched", () => {
+		const dataUri = "data:image/png;base64,AAA";
+		expect(normalizeProjectEditor({ wallpaper: dataUri }).wallpaper).toBe(dataUri);
+	});
+
+	it("leaves colors and gradients untouched", () => {
+		expect(normalizeProjectEditor({ wallpaper: "#1a1a2e" }).wallpaper).toBe("#1a1a2e");
+		expect(
+			normalizeProjectEditor({ wallpaper: "linear-gradient(90deg, red, blue)" }).wallpaper,
+		).toBe("linear-gradient(90deg, red, blue)");
+	});
+
+	it("does NOT rewrite user files outside the known install layout", () => {
+		const userPath = "file:///home/user/Pictures/wallpapers/wallpaper1.jpg";
+		expect(normalizeProjectEditor({ wallpaper: userPath }).wallpaper).toBe(userPath);
+	});
+
+	it("falls back to default for bundled paths outside WALLPAPER_PATHS", () => {
+		const normalized = normalizeProjectEditor({
+			wallpaper: "file:///opt/Openscreen/resources/wallpapers/wallpaper99.jpg",
+		});
+		expect(normalized.wallpaper).toBe("/wallpapers/wallpaper1.jpg");
+	});
+});

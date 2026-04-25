@@ -1,16 +1,26 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { contextBridge, ipcRenderer } from "electron";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
 
+// Asset base URL is a build-time constant per process; resolve once here so
+// the renderer can consume it synchronously. Packaged: electron-builder
+// extraResources copies public/wallpapers -> resources/wallpapers (see
+// electron-builder.json5). Unpackaged: wallpapers live at <appRoot>/public/,
+// and __dirname in dist-electron resolves to <appRoot>/dist-electron/.
+const isPackagedProcess = !process.defaultApp;
+const assetBaseDir = isPackagedProcess
+	? process.resourcesPath
+	: path.join(__dirname, "..", "public");
+const assetBaseUrl = pathToFileURL(`${assetBaseDir}${path.sep}`).toString();
+
 contextBridge.exposeInMainWorld("electronAPI", {
+	assetBaseUrl,
 	hudOverlayHide: () => {
 		ipcRenderer.send("hud-overlay-hide");
 	},
 	hudOverlayClose: () => {
 		ipcRenderer.send("hud-overlay-close");
-	},
-	getAssetBasePath: async () => {
-		// ask main process for the correct base path (production vs dev)
-		return await ipcRenderer.invoke("get-asset-base-path");
 	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);

@@ -17,6 +17,7 @@ import {
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
 } from "@/components/video-editor/types";
+import { DEFAULT_WALLPAPER } from "@/lib/wallpaper";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
 // Undoable state — selection IDs are intentionally excluded (undoing a
@@ -46,7 +47,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	speedRegions: [],
 	annotationRegions: [],
 	cropRegion: DEFAULT_CROP_REGION,
-	wallpaper: "/wallpapers/wallpaper1.jpg",
+	wallpaper: DEFAULT_WALLPAPER,
 	shadowIntensity: 0,
 	showBlur: false,
 	motionBlurAmount: 0,

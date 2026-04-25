@@ -47,10 +47,16 @@ export default defineConfig({
 		},
 		rollupOptions: {
 			output: {
-				manualChunks: {
-					pixi: ["pixi.js"],
-					"react-vendor": ["react", "react-dom"],
-					"video-processing": ["mediabunny", "mp4box", "@fix-webm-duration/fix"],
+				manualChunks(id) {
+					if (id.includes("pixi.js") || id.includes("pixi-filters") || id.includes("@pixi/"))
+						return "pixi";
+					if (id.includes("react-dom") || id.includes("/react/")) return "react-vendor";
+					if (
+						id.includes("mediabunny") ||
+						id.includes("mp4box") ||
+						id.includes("fix-webm-duration")
+					)
+						return "video-processing";
 				},
 			},
 		},

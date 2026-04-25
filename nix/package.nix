@@ -68,10 +68,10 @@ buildNpmPackage {
     cp -r node_modules "$out/lib/openscreen/"
 
     # Asset resolution: when app.isPackaged is false, the main process resolves
-    # assets at <appPath>/public/assets/. Mirror the electron-builder
-    # extraResources layout so wallpapers load correctly.
-    mkdir -p "$out/lib/openscreen/public/assets"
-    cp -r public/wallpapers "$out/lib/openscreen/public/assets/wallpapers"
+    # assets at <appPath>/public/. Place wallpapers at that root to match the
+    # packaged layout (electron-builder extraResources -> resources/wallpapers).
+    mkdir -p "$out/lib/openscreen/public"
+    cp -r public/wallpapers "$out/lib/openscreen/public/wallpapers"
 
     # Wrap system electron with the app directory
     mkdir -p "$out/bin"

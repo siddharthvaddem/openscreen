@@ -18,7 +18,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { getAssetPath } from "@/lib/assetPath";
 import {
 	getWebcamLayoutCssBoxShadow,
 	type Size,
@@ -26,6 +25,7 @@ import {
 	type WebcamLayoutPreset,
 	type WebcamSizePreset,
 } from "@/lib/compositeLayout";
+import { classifyWallpaper, DEFAULT_WALLPAPER, resolveImageWallpaperUrl } from "@/lib/wallpaper";
 import { getCssClipPath } from "@/lib/webcamMaskShapes";
 import {
 	type AspectRatio,
@@ -184,6 +184,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const [overlaySize, setOverlaySize] = useState({ width: 800, height: 600 });
 		const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
 		const overlayRef = useRef<HTMLDivElement | null>(null);
+
 		const focusIndicatorRef = useRef<HTMLDivElement | null>(null);
 		const [webcamLayout, setWebcamLayout] = useState<StyledRenderRect | null>(null);
 		const [webcamDimensions, setWebcamDimensions] = useState<Size | null>(null);
@@ -368,7 +369,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				if (!vid) return;
 				try {
 					allowPlaybackRef.current = true;
-					await vid.play();
+					await vid.play().catch((err) => {
+						console.log("PLAY ERROR:", err);
+						throw err;
+					});
 				} catch (error) {
 					allowPlaybackRef.current = false;
 					throw error;
@@ -541,84 +545,24 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
+			const el = overlayRef.current;
+			if (!el) return;
 
-			const app = appRef.current;
-			const cameraContainer = cameraContainerRef.current;
-			const video = videoRef.current;
+			// Seed immediately so overlays never start at 800×600
+			setOverlaySize({ width: el.clientWidth, height: el.clientHeight });
 
-			if (!app || !cameraContainer || !video) return;
-
-			const tickerWasStarted = app.ticker?.started || false;
-			if (tickerWasStarted && app.ticker) {
-				app.ticker.stop();
-			}
-
-			const wasPlaying = !video.paused;
-			if (wasPlaying) {
-				video.pause();
-			}
-
-			animationStateRef.current = {
-				scale: 1,
-				focusX: DEFAULT_FOCUS.cx,
-				focusY: DEFAULT_FOCUS.cy,
-				progress: 0,
-				x: 0,
-				y: 0,
-				appliedScale: 1,
-			};
-
-			// Reset motion blur state for clean transitions
-			motionBlurStateRef.current = createMotionBlurState();
-
-			if (blurFilterRef.current) {
-				blurFilterRef.current.blur = 0;
-			}
-
-			requestAnimationFrame(() => {
-				const container = cameraContainerRef.current;
-				const videoStage = videoContainerRef.current;
-				const sprite = videoSpriteRef.current;
-				const currentApp = appRef.current;
-				if (!container || !videoStage || !sprite || !currentApp) {
-					return;
-				}
-
-				container.scale.set(1);
-				container.position.set(0, 0);
-				videoStage.scale.set(1);
-				videoStage.position.set(0, 0);
-				sprite.scale.set(1);
-				sprite.position.set(0, 0);
-
-				layoutVideoContent();
-
-				applyZoomTransform({
-					cameraContainer: container,
-					blurFilter: blurFilterRef.current,
-					stageSize: stageSizeRef.current,
-					baseMask: baseMaskRef.current,
-					zoomScale: 1,
-					focusX: DEFAULT_FOCUS.cx,
-					focusY: DEFAULT_FOCUS.cy,
-					motionIntensity: 0,
-					isPlaying: false,
-					motionBlurAmount: motionBlurAmountRef.current,
-				});
-
-				requestAnimationFrame(() => {
-					const finalApp = appRef.current;
-					if (wasPlaying && video) {
-						video.play().catch(() => {
-							// Ignore autoplay restoration failures.
-						});
-					}
-					if (tickerWasStarted && finalApp?.ticker) {
-						finalApp.ticker.start();
-					}
+			const observer = new ResizeObserver((entries) => {
+				if (!entries[0]) return;
+				const { width, height } = entries[0].contentRect;
+				setOverlaySize((prev) => {
+					if (prev.width === width && prev.height === height) return prev;
+					return { width, height };
 				});
 			});
-		}, [pixiReady, videoReady, layoutVideoContent]);
+
+			observer.observe(el);
+			return () => observer.disconnect();
+		}, [pixiReady, videoReady]);
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
@@ -1108,7 +1052,17 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoReadyRafRef.current = requestAnimationFrame(waitForRenderableFrame);
 		};
 
-		const [resolvedWallpaper, setResolvedWallpaper] = useState<string | null>(null);
+		const resolvedWallpaper = useMemo<string | null>(() => {
+			const source = wallpaper || DEFAULT_WALLPAPER;
+			const classified = classifyWallpaper(source);
+			if (classified.kind !== "image") return classified.value;
+			try {
+				return resolveImageWallpaperUrl(classified.path);
+			} catch (err) {
+				console.warn("[VideoPlayback] wallpaper resolve failed:", err);
+				return null;
+			}
+		}, [wallpaper]);
 		const webcamCssBoxShadow = useMemo(
 			() => getWebcamLayoutCssBoxShadow(webcamLayoutPreset),
 			[webcamLayoutPreset],
@@ -1175,58 +1129,6 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamVideo.pause();
 			webcamVideo.currentTime = 0;
 		}, [webcamVideoPath]);
-
-		useEffect(() => {
-			let mounted = true;
-			(async () => {
-				try {
-					if (!wallpaper) {
-						const def = await getAssetPath("wallpapers/wallpaper1.jpg");
-						if (mounted) setResolvedWallpaper(def);
-						return;
-					}
-
-					if (
-						wallpaper.startsWith("#") ||
-						wallpaper.startsWith("linear-gradient") ||
-						wallpaper.startsWith("radial-gradient")
-					) {
-						if (mounted) setResolvedWallpaper(wallpaper);
-						return;
-					}
-
-					// If it's a data URL (custom uploaded image), use as-is
-					if (wallpaper.startsWith("data:")) {
-						if (mounted) setResolvedWallpaper(wallpaper);
-						return;
-					}
-
-					// If it's an absolute web/http or file path, use as-is
-					if (
-						wallpaper.startsWith("http") ||
-						wallpaper.startsWith("file://") ||
-						wallpaper.startsWith("/")
-					) {
-						// If it's an absolute server path (starts with '/'), resolve via getAssetPath as well
-						if (wallpaper.startsWith("/")) {
-							const rel = wallpaper.replace(/^\//, "");
-							const p = await getAssetPath(rel);
-							if (mounted) setResolvedWallpaper(p);
-							return;
-						}
-						if (mounted) setResolvedWallpaper(wallpaper);
-						return;
-					}
-					const p = await getAssetPath(wallpaper.replace(/^\//, ""));
-					if (mounted) setResolvedWallpaper(p);
-				} catch (_err) {
-					if (mounted) setResolvedWallpaper(wallpaper || "/wallpapers/wallpaper1.jpg");
-				}
-			})();
-			return () => {
-				mounted = false;
-			};
-		}, [wallpaper]);
 
 		useEffect(() => {
 			return () => {
@@ -1329,7 +1231,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					<div
 						ref={setOverlayRefs}
 						className="absolute inset-0 select-none"
-						style={{ pointerEvents: "none", zIndex: 30 }}
+						style={{ pointerEvents: "auto", zIndex: 30 }}
 						onPointerDown={handleOverlayPointerDown}
 						onPointerMove={handleOverlayPointerMove}
 						onPointerUp={handleOverlayPointerUp}

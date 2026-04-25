@@ -29,7 +29,7 @@
 		"description": "Comprendre comment supprimer les parties indésirables de votre vidéo.",
 		"explanationBefore": "L'outil Coupe fonctionne en définissant les segments que vous souhaitez",
 		"remove": "supprimer",
-		"explanationMiddle": " — tout élément",
+		"explanationMiddle": " — tout ce qui est",
 		"covered": "couvert",
 		"explanationAfter": "par un segment de coupe rouge sera coupé lors de l'export.",
 		"visualExample": "Exemple visuel",

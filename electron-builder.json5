@@ -20,10 +20,12 @@
     "!CONTRIBUTING.md",
     "!LICENSE"
   ],
+  // Asset layout contract: "wallpapers/" under resourcesPath must align with
+  // assetBaseDir in electron/preload.ts (packaged branch).
   "extraResources": [
     {
       "from": "public/wallpapers",
-      "to": "assets/wallpapers"
+      "to": "wallpapers"
     }
   ],
 

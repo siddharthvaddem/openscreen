@@ -57,4 +57,4 @@ function PopoverArrow({
 	);
 }
 
-export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor, PopoverArrow };
+export { Popover, PopoverAnchor, PopoverArrow, PopoverContent, PopoverTrigger };

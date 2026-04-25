@@ -8,6 +8,7 @@
 		"failedToSaveVideo": "Video kaydedilemedi",
 		"exportFailed": "Dışa aktarım başarısız oldu",
 		"exportFailedWithError": "Dışa aktarım başarısız: {{error}}",
+		"exportBackgroundLoadFailed": "Dışa aktarım başarısız: arka plan görüntüsü yüklenemedi ({{url}})",
 		"failedToSaveExport": "Dışa aktarım kaydedilemedi",
 		"failedToSaveExportedVideo": "Dışa aktarılan video kaydedilemedi",
 		"failedToRevealInFolder": "Klasörde gösterme hatası: {{error}}"

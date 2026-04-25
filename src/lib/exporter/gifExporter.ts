@@ -8,6 +8,7 @@ import type {
 	WebcamSizePreset,
 	ZoomRegion,
 } from "@/components/video-editor/types";
+import { BackgroundLoadError } from "@/lib/wallpaper";
 import { getPlatform } from "@/utils/platformUtils";
 import { AsyncVideoFrameQueue } from "./asyncVideoFrameQueue";
 import { FrameRenderer } from "./frameRenderer";
@@ -326,6 +327,9 @@ export class GifExporter {
 
 			return { success: true, blob };
 		} catch (error) {
+			if (error instanceof BackgroundLoadError) {
+				throw error;
+			}
 			console.error("GIF Export error:", error);
 			return {
 				success: false,

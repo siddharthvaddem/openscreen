@@ -2,6 +2,7 @@ import { normalizeBlurColor, normalizeBlurType } from "@/lib/blurEffects";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
+import { DEFAULT_WALLPAPER, WALLPAPER_PATHS } from "@/lib/wallpaper";
 import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import {
 	type AnnotationRegion,
@@ -37,13 +38,23 @@ import {
 	type ZoomRegion,
 } from "./types";
 
-const WALLPAPER_COUNT = 18;
 const VALID_BLUR_SHAPES = new Set(["rectangle", "oval", "freehand"] as const);
 
-export const WALLPAPER_PATHS = Array.from(
-	{ length: WALLPAPER_COUNT },
-	(_, i) => `/wallpapers/wallpaper${i + 1}.jpg`,
-);
+// Pre-fix projects could persist resolved file:// URLs (machine-specific) for
+// bundled wallpapers. Rewrite only paths that match a known install layout
+// (resources/[assets/]wallpapers for packaged, public/wallpapers for dev) so
+// a legitimate user file that happens to live in a folder named "wallpapers"
+// elsewhere is never silently replaced.
+const LEGACY_FILE_WALLPAPER_RE =
+	/^file:\/\/.*?\/(?:resources\/(?:assets\/)?|public\/)wallpapers\/(wallpaper\d+\.jpg)$/i;
+const CANONICAL_WALLPAPERS = new Set(WALLPAPER_PATHS);
+
+function normalizeWallpaperValue(value: string): string {
+	const match = LEGACY_FILE_WALLPAPER_RE.exec(value);
+	if (!match) return value;
+	const canonical = `/wallpapers/${match[1]}`;
+	return CANONICAL_WALLPAPERS.has(canonical) ? canonical : DEFAULT_WALLPAPER;
+}
 
 export const PROJECT_VERSION = 2;
 
@@ -425,7 +436,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 	const cropHeight = clamp(rawCropHeight, 0.01, 1 - cropY);
 
 	return {
-		wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
+		wallpaper:
+			typeof editor.wallpaper === "string"
+				? normalizeWallpaperValue(editor.wallpaper)
+				: DEFAULT_WALLPAPER,
 		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
 		showBlur: typeof editor.showBlur === "boolean" ? editor.showBlur : false,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)
