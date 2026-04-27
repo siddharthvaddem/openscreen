@@ -697,7 +697,7 @@ export function AnnotationSettingsPanel({
 													onValueChange={([value]) => {
 														const next: FigureData = {
 															...figureData,
-															fill: withAlpha(figureData.color, percentToAlpha(value)),
+															fill: withAlpha(fillValue, percentToAlpha(value)),
 														};
 														onFigureDataChange?.(next);
 													}}
