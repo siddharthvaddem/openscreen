@@ -26,6 +26,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useScopedT } from "@/contexts/I18nContext";
@@ -602,6 +603,80 @@ export function AnnotationSettingsPanel({
 								</PopoverContent>
 							</Popover>
 						</div>
+
+						{(() => {
+							const figureData = annotation.figureData;
+							if (!figureData) return null;
+							const isClosedShape =
+								figureData.kind === "rectangle" || figureData.kind === "ellipse";
+							if (!isClosedShape) return null;
+							const fillEnabled = typeof figureData.fill === "string";
+							const fillValue = figureData.fill ?? `${figureData.color}33`;
+							const defaultFillFromColor = `${figureData.color}33`;
+							return (
+								<div>
+									<div className="flex items-center justify-between mb-2">
+										<label className="text-xs font-medium text-slate-200">
+											{t("annotation.fill.label")}
+										</label>
+										<div className="flex items-center gap-2">
+											<span className="text-[10px] text-slate-400">
+												{t("annotation.fill.toggle")}
+											</span>
+											<Switch
+												checked={fillEnabled}
+												onCheckedChange={(checked) => {
+													const next: FigureData = {
+														...figureData,
+														fill: checked ? defaultFillFromColor : undefined,
+													};
+													onFigureDataChange?.(next);
+												}}
+												className="data-[state=checked]:bg-[#34B27B] scale-90"
+											/>
+										</div>
+									</div>
+									{fillEnabled && (
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													variant="outline"
+													className="w-full h-10 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10"
+												>
+													<div className="w-5 h-5 rounded-full border border-white/20 relative overflow-hidden">
+														<div className="absolute inset-0 checkerboard-bg opacity-50" />
+														<div
+															className="absolute inset-0"
+															style={{ backgroundColor: fillValue }}
+														/>
+													</div>
+													<span className="text-xs text-slate-300 truncate flex-1 text-left">
+														{fillValue}
+													</span>
+													<ChevronDown className="h-3 w-3 opacity-50" />
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
+												<Block
+													color={fillValue}
+													colors={colorPalette}
+													onChange={(color) => {
+														const next: FigureData = {
+															...figureData,
+															fill: `${color.hex}33`,
+														};
+														onFigureDataChange?.(next);
+													}}
+													style={{
+														borderRadius: "8px",
+													}}
+												/>
+											</PopoverContent>
+										</Popover>
+									)}
+								</div>
+							);
+						})()}
 					</TabsContent>
 				</Tabs>
 
