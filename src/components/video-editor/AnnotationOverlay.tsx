@@ -13,6 +13,7 @@ import {
 	DEFAULT_BLUR_BLOCK_SIZE,
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_INTENSITY,
+	type FigureData,
 } from "./types";
 
 const FREEHAND_POINT_THRESHOLD = 1;
@@ -184,13 +185,44 @@ export function AnnotationOverlay({
 		y,
 	]);
 
-	const renderArrow = () => {
-		const direction = annotation.figureData?.arrowDirection || "right";
-		const color = annotation.figureData?.color || "#34B27B";
-		const strokeWidth = annotation.figureData?.strokeWidth || 4;
-
-		const ArrowComponent = getArrowComponent(direction);
-		return <ArrowComponent color={color} strokeWidth={strokeWidth} />;
+	const renderFigure = (figureData: FigureData) => {
+		switch (figureData.kind) {
+			case "arrow": {
+				const ArrowComponent = getArrowComponent(figureData.arrowDirection);
+				return (
+					<div className="w-full h-full flex items-center justify-center p-2">
+						<ArrowComponent color={figureData.color} strokeWidth={figureData.strokeWidth} />
+					</div>
+				);
+			}
+			case "rectangle":
+				return (
+					<svg
+						viewBox="0 0 100 100"
+						preserveAspectRatio="none"
+						className="w-full h-full"
+						style={{ overflow: "visible" }}
+					>
+						<rect
+							x={0}
+							y={0}
+							width={100}
+							height={100}
+							stroke={figureData.color}
+							strokeWidth={figureData.strokeWidth}
+							fill={figureData.fill ?? "none"}
+							vectorEffect="non-scaling-stroke"
+						/>
+					</svg>
+				);
+			case "ellipse":
+				// rendered in Commit 3
+				return null;
+			default: {
+				const _exhaustiveCheck: never = figureData.kind;
+				return _exhaustiveCheck;
+			}
+		}
 	};
 
 	const normalizePoint = (event: PointerEvent<HTMLDivElement>) => {
@@ -348,9 +380,7 @@ export function AnnotationOverlay({
 					);
 				}
 
-				return (
-					<div className="w-full h-full flex items-center justify-center p-2">{renderArrow()}</div>
-				);
+				return renderFigure(annotation.figureData);
 
 			case "blur": {
 				const shape = annotation.blurData?.shape ?? "rectangle";

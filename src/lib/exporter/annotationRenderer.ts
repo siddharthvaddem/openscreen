@@ -1,4 +1,8 @@
-import { type AnnotationRegion, type ArrowDirection } from "@/components/video-editor/types";
+import {
+	type AnnotationRegion,
+	type ArrowDirection,
+	type FigureData,
+} from "@/components/video-editor/types";
 import {
 	applyMosaicToImageData,
 	getBlurOverlayColor,
@@ -137,6 +141,75 @@ function renderArrow(
 	ctx.stroke();
 
 	ctx.restore();
+}
+
+function renderRectangle(
+	ctx: CanvasRenderingContext2D,
+	color: string,
+	strokeWidth: number,
+	fill: string | undefined,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	scaleFactor: number,
+) {
+	ctx.save();
+	if (fill) {
+		ctx.fillStyle = fill;
+		ctx.fillRect(x, y, width, height);
+	}
+	ctx.strokeStyle = color;
+	ctx.lineWidth = strokeWidth * scaleFactor;
+	ctx.lineJoin = "miter";
+	ctx.strokeRect(x, y, width, height);
+	ctx.restore();
+}
+
+function renderFigure(
+	ctx: CanvasRenderingContext2D,
+	figureData: FigureData,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	scaleFactor: number,
+) {
+	switch (figureData.kind) {
+		case "arrow":
+			renderArrow(
+				ctx,
+				figureData.arrowDirection,
+				figureData.color,
+				figureData.strokeWidth,
+				x,
+				y,
+				width,
+				height,
+				scaleFactor,
+			);
+			return;
+		case "rectangle":
+			renderRectangle(
+				ctx,
+				figureData.color,
+				figureData.strokeWidth,
+				figureData.fill,
+				x,
+				y,
+				width,
+				height,
+				scaleFactor,
+			);
+			return;
+		case "ellipse":
+			// rendered in Commit 3
+			return;
+		default: {
+			const _exhaustiveCheck: never = figureData.kind;
+			return _exhaustiveCheck;
+		}
+	}
 }
 
 function drawBlurPath(
@@ -429,17 +502,7 @@ export async function renderAnnotations(
 
 			case "figure":
 				if (annotation.figureData) {
-					renderArrow(
-						ctx,
-						annotation.figureData.arrowDirection,
-						annotation.figureData.color,
-						annotation.figureData.strokeWidth,
-						x,
-						y,
-						width,
-						height,
-						scaleFactor,
-					);
+					renderFigure(ctx, annotation.figureData, x, y, width, height, scaleFactor);
 				}
 				break;
 
