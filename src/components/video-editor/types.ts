@@ -62,9 +62,11 @@ export type ArrowDirection =
 	| "down-left";
 
 export interface FigureData {
+	kind: "arrow" | "rectangle" | "ellipse";
 	arrowDirection: ArrowDirection;
 	color: string;
 	strokeWidth: number;
+	fill?: string;
 }
 
 export type BlurShape = "rectangle" | "oval" | "freehand";
@@ -147,6 +149,7 @@ export const DEFAULT_ANNOTATION_STYLE: AnnotationTextStyle = {
 };
 
 export const DEFAULT_FIGURE_DATA: FigureData = {
+	kind: "arrow",
 	arrowDirection: "right",
 	color: "#34B27B",
 	strokeWidth: 4,

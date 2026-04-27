@@ -375,6 +375,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							? {
 									...DEFAULT_FIGURE_DATA,
 									...region.figureData,
+									kind: region.figureData.kind ?? "arrow",
 								}
 							: undefined,
 						blurData:
