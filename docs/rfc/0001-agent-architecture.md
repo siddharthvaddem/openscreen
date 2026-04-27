@@ -1,155 +1,63 @@
 ---
 RFC: 0001
-Title: Agent architecture v1
+Title: Agent architecture: long-term planning
 Author: enriquefft
 Status: Draft
 Created: 2026-04-27
 Tracking: https://github.com/siddharthvaddem/openscreen/issues/349
 ---
 
-# RFC 0001 — Agent architecture v1
+# Agent architecture: long-term planning
 
 ## Summary
 
-Shift verbs from CLI action handlers (load-mutate-save inline) to pure state transitions with metadata, so any transport — Commander CLI, MCP server, in-process IPC against the running GUI, future SDK — can fan out from one definition. PR #350 establishes the verb vocabulary and the agent-callable thesis; this RFC proposes the shape that lets that vocabulary scale past the eight verbs it ships with.
+Long-term architectural concerns exist for the agent surface beyond what PR #350 ships in scope. This RFC proposes a short planning window before the first split-PR lands, to surface and weigh these concerns properly.
 
-## Motivation
+## Why now
 
-PR #350 ships eight verbs (`project`, `zoom`, `trim`, `speed`, `annotate`, `shortcuts`, `render`, `gif`) as Commander action handlers that load the project file, mutate it, and save it. The architecture is sound for eight. It will not scale to fifty.
+PR #350 establishes the agent-surface foundation. Once verbs start landing on top, retrofit cost grows with verb count. A few days of planning before the first split-PR ships is cheap insurance against compounding decisions.
 
-The roadmap implied by issue #349 and existing GUI features pushes well past eight: keyframe animations, multi-region annotations, audio waveform editing, transitions, captions, layouts. Every one of those is at least one verb category, and most are several. The CLI surface today is already a load-bearing public contract once anyone builds tooling on top of `--json` output.
+## Designed
 
-Three forces compound per verb under the current shape:
+### State coordination
 
-1. Each new verb gets re-implemented in every transport (CLI today, MCP soon, IPC against the running GUI eventually).
-2. Each new verb writes the project file directly, which means each new verb is a new chance to desync against the running GUI (see [state coordination companion](./0001-agent-architecture/state-coordination.md)).
-3. Each new verb's argument shape and result envelope are public on first ship, so the ergonomic decisions made today are the ones agents will be coding against tomorrow.
+About 12 GUI/CLI desync, race, and attribution scenarios collapse to one decision: state source is currently hardcoded to disk. Editor-as-server + file-as-persistence + operation-log model proposed.
 
-The cost of fixing this *now*, with eight verbs and zero external consumers, is bounded. The cost of fixing it after fifty verbs and a published MCP server is not. This RFC proposes the shape; the [PR #350 audit companion](./0001-agent-architecture/audit-pr350.md) grounds the argument in concrete code.
+[Companion doc →](./0001-agent-architecture/state-coordination.md)
 
-## Architectural concerns
+## Noticed, not yet planned
 
-Nine concrete shape problems in the current design. Each is a load-bearing decision that will be expensive to revisit later.
+These surfaced during a filtered review of PR #350. They are starting points for investigation, not validated designs. Each may become a companion doc, fold into another, or be dropped after deeper review.
 
-### 1. Verbs aren't pure `(state, args) → (state', result)`
+### Verbs do load-mutate-save inline; there is no pure transition primitive
 
-`addZoomRegion(path, args)` does load-mutate-save inline (`cli/src/commands/zoom.ts:18-35`). Every verb owns its own filesystem dance. There is no way to:
+**Where:** `cli/src/core/region-manager.ts:43-73` (and recurring across the file for six verbs in ~200 lines); `cli/src/core/project-manager.ts:237-263`.
 
-- run a verb in-process against a running GUI's state (no GUI integration without re-implementation),
-- replay a verb from a log (no reproducible sessions, no cross-process undo),
-- batch verbs atomically (every verb is its own write, see #8),
-- test a verb without a real filesystem fixture.
+**Why it may compound:** every verb today inlines the same `loadProject` → mutate → `saveProject` triplet. There is no `applyOperation(state, op) → state` primitive verbs compose around. Adding cross-cutting capabilities later — `--dry-run`, batch mode, schema migration on read, transactions across multiple ops, optimistic preview — means editing every verb body. With N verbs that's N sites of retrofit, mechanically.
 
-Pure transitions buy all four for free.
+This is distinct from state coordination: even in a single-process world with no GUI running, the verb's internal transition being a side effect rather than a value still compounds with verb count.
 
-### 2. No verb registry
+### No unified verb contract across transports
 
-The CLI imports the managers (`project-manager`, `region-manager`, etc.) directly from each command handler. `cli/src/mcp-server.ts` imports neither — its only tool is `openscreen_help`, which serves concatenated skill markdown. The moment MCP needs real action verbs, every verb will be defined twice: once as a Commander handler, once as a tool. Future SDK and IPC are a third and fourth.
+**Where:** Tier-1 verbs return objects via `outputSuccess` (`cli/src/commands/zoom.ts:18-35`). Tier-2 verbs spawn Electron and stream NDJSON `__cli` envelopes (`cli/src/core/electron-bridge.ts:111-208`). MCP exposes no verbs today, only a docs lookup (`cli/src/mcp-server.ts:86-102`).
 
-A single `defineVerb({ name, args, returns, mutates, replay, exec })` is the SSOT for fan-out. Transports become thin shells over the registry.
+**Why it may compound:** a verb today is whatever its `.action(...)` body happens to do — sync return, async streaming, or subprocess IPC. There is no `VerbDefinition` (input schema, run, result schema, streaming events) that all transports bind to. Per new transport (MCP-as-command-surface, in-process IPC from a running GUI, library API, eventual HTTP), the cost is N verbs × bespoke adapter.
 
-### 3. No transport abstraction
+This is distinct from state coordination: even if there were only one writer to one project at a time, the question of whether one invocation of one verb has a portable contract — independent of who invoked it — still compounds with verb count.
 
-`outputJson(data: unknown)` at `cli/src/output.ts:16` plus a module-global `jsonMode` is welded to Commander. The contract between "verb finished" and "user sees a result" is implicit. MCP, SDK, and IPC each have to re-implement parse + dispatch + result shaping. They will diverge.
+## Likely missing
 
-### 4. GUI/CLI state coordination is unspecified
+Other concerns probably exist that nobody has surfaced yet. The point of the planning window is to find them, not just address what is listed above. Anyone reading PR #350 who notices something architectural that compounds with verb count should raise it here.
 
-There are roughly twelve desync, race, and attribution scenarios that exist or will exist once the CLI ships (see [state coordination companion](./0001-agent-architecture/state-coordination.md) for the full table). They collapse to one decision: the state source is hardcoded to disk. Every verb does `loadProject(path)`, mutates, and writes back. The running GUI is invisible to the CLI and the CLI is invisible to the GUI.
+## Proposal
 
-The verb-shape decision and the state-source decision are coupled: `defineVerb` is what makes "state source is pluggable (Disk / RunningEditor / InMemoryTest)" cheap. Without it, every verb hardcodes its source.
+A short planning period — a few days — before split-PR-A (the `src/shared/` extraction) lands. Output: expanded companion docs for any noticed items that survive scrutiny, or explicit defer decisions for items that do not warrant a doc yet. The planning is parallel to the split work; nothing about restructuring PR #350 blocks on this.
 
-### 5. `outputJson(data: unknown)` is already the public contract
+Architectural decisions identified here can land incrementally — none require the whole edifice in place before they pay rent. State coordination is the most concrete because it already has a companion doc; the others need their own work before any commitment.
 
-The first external script that depends on a current `--json` shape freezes that shape. There is no version tag, no discriminator, no schema. Today's `outputJson(data: unknown)` is tomorrow's "we can't change the result envelope without breaking three integrations."
+## References
 
-A `CommandResult<TVerb>` discriminated union (`{ ok: true, verb, data } | { ok: false, verb, error }`), with the `data` shape derived from the verb's `returns` schema, costs almost nothing to introduce *before* there are external consumers. After is a different story.
-
-### 6. No project-file migration runner
-
-`schemaVersion: 1` is declared (`src/shared/project-schema.ts`) without a `migrate(v1 → v2)` framework. When the schema first evolves — adding a field, renaming one, splitting a structure — every existing user file needs to round-trip safely. A migration runner is two functions and a registry; retrofitting it after v2 ships is a coordination problem.
-
-### 7. `useEditorHistory` is React-state-only
-
-The undo/redo stack lives in `src/hooks/useEditorHistory.ts:85` and is consumed only from `VideoEditor.tsx:87`. CLI edits today are completely invisible to it: a CLI edit followed by a GUI undo silently reverts the CLI work, because undo restores the GUI's last in-memory snapshot, which predates the CLI write.
-
-History needs to live at the state layer (where verbs commit), with React as a subscriber. This is a precondition for cross-process undo, which is a precondition for the CLI being safe to use against an open project.
-
-### 8. No batch primitive
-
-Each verb is its own load-mutate-save. A 10-verb keyframe batch is 10 reads, 10 writes, 10 history entries, 10 chances to half-apply on crash. A batch primitive — `executeBatch([verb, verb, verb])` that loads once, mutates n times, writes once, records one history entry — is something verbs *don't get for free* under the current shape.
-
-### 9. No actor in the verb signature
-
-The project file records nothing about who made an edit. Audit, attribution, per-verb permission gates (e.g. "MCP cannot delete projects"), rate limiting — all of these want `actor` as a first-class arg of `executeVerb`, not glued on by transport. Threading it later means touching every handler.
-
-## Detailed design
-
-The shape is a verb registry whose entries are pure transitions plus metadata.
-
-```ts
-defineVerb({
-  name: "zoom.add",
-  args: ZoomAddArgsSchema,           // Zod
-  returns: ZoomAddResultSchema,      // Zod
-  mutates: true,                     // false → read-only verb
-  replay: false,                     // true → safe to re-execute from log
-  exec: (state, args, ctx) => {
-    // pure: returns next state + result, no I/O, no global side effects
-    return { state: nextState, result };
-  },
-});
-```
-
-Four observations collapse out of this shape:
-
-**(a) Verbs are pure transitions.** No filesystem, no IPC, no Electron, no React. Just `(state, args, ctx) → (state', result)`. The same `exec` runs against the file, against the running GUI's in-memory state, against an in-memory test fixture, or against a replayed log entry, with no per-verb conditional code.
-
-**(b) Transports are thin shells.** Commander, MCP, SDK, and IPC each parse their input, look up the verb in the registry, validate args via the verb's Zod schema, call a shared `executeVerb(verb, args, ctx)`, and shape the return as `CommandResult<TVerb>`. None of them re-implement the verb. Adding a transport is a fixed cost, not a per-verb cost.
-
-**(c) State source is pluggable.** `executeVerb` takes a `StateSource` from `ctx`:
-
-- `DiskStateSource` — load file, run exec, save atomically with `editVersion` OCC.
-- `RunningEditorStateSource` — connect over Unix socket to the GUI, submit the verb call, get the result back. The GUI's main process runs `exec` against its in-memory state, dispatches the result through `useEditorHistory`, and replies.
-- `InMemoryStateSource` — for tests. No filesystem, no IPC.
-
-The choice happens once per process, at startup, by detecting `editor.lock` and matching project paths. Verbs do not see the difference.
-
-**(d) History at the state layer.** The reducer that owns "current state + undo stack" lives one level below React. `useEditorHistory` becomes a subscriber that re-renders on commits. CLI edits, MCP edits, IPC edits all funnel through the same commit path and produce the same history entries. Cross-process undo falls out: when the GUI launches and finds the project's `editVersion` ahead of its last-seen version, it replays log entries since that version into the history stack.
-
-The companion [state coordination doc](./0001-agent-architecture/state-coordination.md) covers the full design for the editor-as-server model, the OCC discipline on the file, and the operation log. The [PR #350 audit](./0001-agent-architecture/audit-pr350.md) grounds the per-verb concerns above in specific code references.
-
-## Drawbacks
-
-**Refactor cost on the eight existing verbs.** Each handler in `cli/src/commands/` has to be split into a pure `exec` and a thin transport shell. Estimated at one to two days for the eight, mostly mechanical.
-
-**A small abstraction layer that agents and CLI both pay for.** `defineVerb` plus `executeVerb` plus `StateSource` plus `CommandResult` is maybe 400 LOC of plumbing. Every verb pays a small indirection cost at call time. For the audience (agents and scripts) the indirection is invisible.
-
-**Possible YAGNI if MCP/SDK ambitions are scaled back.** If the project decides MCP is documentation-only forever, IPC is never needed, and the CLI is the only transport that will ever exist, then `defineVerb` is overkill and direct Commander handlers are fine. Issue #349 reads as the opposite trajectory, which is why this RFC is being written now.
-
-## Alternatives considered
-
-**(a) Keep the current shape and accept duplication across transports.** Cheapest today. Each new verb gets re-implemented in MCP, then again in IPC, then again in SDK. Each duplicate is a chance for behavior drift. Once external scripts depend on `--json` output shapes, those shapes are also frozen across all four transports independently. This is the path the codebase is on by default if no shape decision is made.
-
-**(b) CRDT model (Figma-style).** Server-mediated CRDT means all operations commute and all clients converge. Clean, well-understood. Wildly overkill for a single-user desktop tool where the second writer is an agent the same user invoked. Costs: a server, a CRDT representation of every project node, an ops-not-files persistence model. Buys nothing the proposed model doesn't already buy for our use case. See the prior-art section of the [state coordination doc](./0001-agent-architecture/state-coordination.md).
-
-**(c) Daemon-only model (Emacs-style).** The GUI is always the source of truth; the CLI cannot run standalone, only as a client of a running editor. Conceptually clean — eliminates the dual-source problem entirely. Loses the headless render path and the "edit a file from a Makefile" workflow. The hybrid (editor-as-server when the GUI is running, atomic file writes when it isn't) covers more ground for slightly more complexity. Covered in detail in the companion doc.
-
-## Rollout plan
-
-PR #350 has discussed splitting itself into smaller pieces. The RFC's preferred sequence:
-
-1. **Verb registry foundation.** Add `defineVerb`, `executeVerb`, `StateSource`, `CommandResult`. Migrate two of the eight existing verbs (e.g. `zoom.add`, `zoom.remove`) as proof. No external behavior change.
-2. **Migrate the rest of the eight verbs** to the registry. Still no external behavior change.
-3. **Wire the MCP server to the registry.** Each verb becomes an MCP tool, namespaced `openscreen.{category}.{verb}`. Long-running verbs (`render`, `gif`) get progress notifications. Skill markdowns move to MCP resources.
-4. **Add `editVersion` + atomic write on the GUI side.** Smallest piece of the state coordination work. Closes the two-CLI race and the partial-write surface. No new architecture.
-5. **Add the operation log and editor-as-server IPC.** The big unlock — closes the GUI-open-while-CLI-edits surfaces. Builds on (1)–(4).
-
-**Gate before the next verb category lands:** the next major verb category (annotations expansion, keyframes, animations) does not start until at least PRs (1) and (2) are in. The architectural cost of new verbs under the new shape is bounded; under the current shape it compounds.
-
-Each step is independently shippable and the verb count is small enough that the migration is bounded. None of the steps require the whole edifice to be in place before they pay rent.
-
-## Companion docs
-
-- **[State coordination](./0001-agent-architecture/state-coordination.md)** — full design for the twelve GUI/CLI desync surfaces, the editor-as-server model, file-as-persistence with optimistic concurrency, and the operation log. The deep dive behind concern #4.
-
-- **[Audit: PR #350](./0001-agent-architecture/audit-pr350.md)** — current-state findings from the PR review. Concrete code references that motivate this RFC's claims; not a personal review, evidence base.
+- [State coordination](./0001-agent-architecture/state-coordination.md) — companion doc.
+- PR #350 — `feat: CLI and Agent Interface for OpenScreen`.
+- Issue #349 — umbrella feature request.
+- [RFC convention](./README.md).
