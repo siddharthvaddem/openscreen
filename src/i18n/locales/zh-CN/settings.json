@@ -139,7 +139,11 @@
 		"invalidImageType": "无效的文件类型",
 		"imageFormatsOnly": "请上传 JPG、PNG、GIF 或 WebP 格式的图片文件。",
 		"imageUploadSuccess": "图片上传成功！",
-		"failedImageUpload": "上传图片失败"
+		"failedImageUpload": "上传图片失败",
+		"fill": {
+			"label": "填充",
+			"toggle": "启用填充"
+		}
 	},
 	"fontStyles": {
 		"classic": "经典",

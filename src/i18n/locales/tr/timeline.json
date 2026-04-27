@@ -4,6 +4,8 @@
 		"suggestZooms": "İmleçten Yakınlaştırma Öner",
 		"addTrim": "Kırpma Ekle (T)",
 		"addAnnotation": "Açıklama Ekle (A)",
+		"addRectangle": "Dikdörtgen ekle",
+		"addEllipse": "Elips ekle",
 		"addSpeed": "Hız Ekle (S)",
 		"addBlur": "Bulanık ekle (B)"
 	},

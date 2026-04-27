@@ -128,7 +128,11 @@
 		"invalidImageType": "Geçersiz dosya türü",
 		"imageFormatsOnly": "Lütfen bir JPG, PNG, GIF veya WebP görüntü dosyası yükleyin.",
 		"imageUploadSuccess": "Görüntü başarıyla yüklendi!",
-		"failedImageUpload": "Görüntü yüklenemedi"
+		"failedImageUpload": "Görüntü yüklenemedi",
+		"fill": {
+			"label": "Dolgu",
+			"toggle": "Dolgu açık"
+		}
 	},
 	"fontStyles": {
 		"classic": "Klasik",

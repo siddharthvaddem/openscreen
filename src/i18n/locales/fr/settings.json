@@ -146,7 +146,11 @@
 		"invalidImageType": "Type de fichier invalide",
 		"imageFormatsOnly": "Veuillez téléverser un fichier image JPG, PNG, GIF ou WebP.",
 		"imageUploadSuccess": "Image téléversée avec succès !",
-		"failedImageUpload": "Échec du téléversement de l'image"
+		"failedImageUpload": "Échec du téléversement de l'image",
+		"fill": {
+			"label": "Remplissage",
+			"toggle": "Remplissage activé"
+		}
 	},
 	"fontStyles": {
 		"classic": "Classique",

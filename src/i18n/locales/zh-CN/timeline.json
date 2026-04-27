@@ -4,6 +4,8 @@
 		"suggestZooms": "根据光标建议缩放",
 		"addTrim": "添加剪辑 (T)",
 		"addAnnotation": "添加标注 (A)",
+		"addRectangle": "添加矩形",
+		"addEllipse": "添加椭圆",
 		"addSpeed": "添加速度 (S)",
 		"addBlur": "添加模糊 (B)"
 	},

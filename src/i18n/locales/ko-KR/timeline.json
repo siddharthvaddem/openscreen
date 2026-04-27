@@ -4,6 +4,8 @@
 		"suggestZooms": "커서 기반 줌 제안",
 		"addTrim": "트림 추가 (T)",
 		"addAnnotation": "주석 추가 (A)",
+		"addRectangle": "사각형 추가",
+		"addEllipse": "타원 추가",
 		"addSpeed": "속도 추가 (S)"
 	},
 	"hints": {

@@ -4,6 +4,8 @@
 		"suggestZooms": "Suggérer des zooms depuis le curseur",
 		"addTrim": "Ajouter une coupe (T)",
 		"addAnnotation": "Ajouter une annotation (A)",
+		"addRectangle": "Ajouter un rectangle",
+		"addEllipse": "Ajouter une ellipse",
 		"addSpeed": "Ajouter une vitesse (S)",
 		"addBlur": "Ajouter un flou (B)"
 	},

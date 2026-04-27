@@ -146,7 +146,11 @@
 		"invalidImageType": "Invalid file type",
 		"imageFormatsOnly": "Please upload a JPG, PNG, GIF, or WebP image file.",
 		"imageUploadSuccess": "Image uploaded successfully!",
-		"failedImageUpload": "Failed to upload image"
+		"failedImageUpload": "Failed to upload image",
+		"fill": {
+			"label": "Fill",
+			"toggle": "Fill enabled"
+		}
 	},
 	"fontStyles": {
 		"classic": "Classic",

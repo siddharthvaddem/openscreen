@@ -125,7 +125,11 @@
 		"invalidImageType": "지원하지 않는 파일 형식입니다",
 		"imageFormatsOnly": "JPG, PNG, GIF 또는 WebP 이미지 파일을 업로드해 주세요.",
 		"imageUploadSuccess": "이미지가 성공적으로 업로드되었습니다!",
-		"failedImageUpload": "이미지 업로드에 실패했습니다"
+		"failedImageUpload": "이미지 업로드에 실패했습니다",
+		"fill": {
+			"label": "채우기",
+			"toggle": "채우기 사용"
+		}
 	},
 	"fontStyles": {
 		"classic": "클래식",

@@ -146,7 +146,11 @@
 		"invalidImageType": "Tipo de archivo no válido",
 		"imageFormatsOnly": "Por favor sube un archivo de imagen JPG, PNG, GIF o WebP.",
 		"imageUploadSuccess": "¡Imagen subida exitosamente!",
-		"failedImageUpload": "Error al subir la imagen"
+		"failedImageUpload": "Error al subir la imagen",
+		"fill": {
+			"label": "Relleno",
+			"toggle": "Relleno activado"
+		}
 	},
 	"fontStyles": {
 		"classic": "Clásico",

@@ -4,6 +4,8 @@
 		"suggestZooms": "Suggest Zooms from Cursor",
 		"addTrim": "Add Trim (T)",
 		"addAnnotation": "Add Annotation (A)",
+		"addRectangle": "Add Rectangle",
+		"addEllipse": "Add Ellipse",
 		"addBlur": "Add Blur (B)",
 		"addSpeed": "Add Speed (S)"
 	},
