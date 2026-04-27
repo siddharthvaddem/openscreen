@@ -141,8 +141,8 @@
 		"imageUploadSuccess": "圖片上傳成功！",
 		"failedImageUpload": "上傳圖片失敗",
 		"fill": {
-			"label": "填充",
-			"toggle": "啟用填充",
+			"label": "填滿",
+			"toggle": "啟用填滿",
 			"opacity": "不透明度"
 		}
 	},

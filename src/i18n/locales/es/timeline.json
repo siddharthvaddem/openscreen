@@ -4,8 +4,8 @@
 		"suggestZooms": "Sugerir zooms desde el cursor",
 		"addTrim": "Agregar recorte (T)",
 		"addAnnotation": "Agregar anotación (A)",
-		"addRectangle": "Añadir rectángulo",
-		"addEllipse": "Añadir elipse",
+		"addRectangle": "Agregar rectángulo",
+		"addEllipse": "Agregar elipse",
 		"addSpeed": "Agregar velocidad (S)",
 		"addBlur": "Agregar desenfoque (B)"
 	},
