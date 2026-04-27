@@ -62,7 +62,7 @@ export type ArrowDirection =
 	| "down-left";
 
 export interface FigureData {
-	kind: "arrow" | "rectangle" | "ellipse";
+	kind?: "arrow" | "rectangle" | "ellipse";
 	arrowDirection: ArrowDirection;
 	color: string;
 	strokeWidth: number;

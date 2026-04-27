@@ -186,7 +186,8 @@ export function AnnotationOverlay({
 	]);
 
 	const renderFigure = (figureData: FigureData) => {
-		switch (figureData.kind) {
+		const kind = figureData.kind ?? "arrow";
+		switch (kind) {
 			case "arrow": {
 				const ArrowComponent = getArrowComponent(figureData.arrowDirection);
 				return (
@@ -236,7 +237,7 @@ export function AnnotationOverlay({
 					</svg>
 				);
 			default: {
-				const _exhaustiveCheck: never = figureData.kind;
+				const _exhaustiveCheck: never = kind;
 				return _exhaustiveCheck;
 			}
 		}

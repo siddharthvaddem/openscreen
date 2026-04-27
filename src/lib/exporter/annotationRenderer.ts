@@ -203,7 +203,8 @@ function renderFigure(
 	height: number,
 	scaleFactor: number,
 ) {
-	switch (figureData.kind) {
+	const kind = figureData.kind ?? "arrow";
+	switch (kind) {
 		case "arrow":
 			renderArrow(
 				ctx,
@@ -244,7 +245,7 @@ function renderFigure(
 			);
 			return;
 		default: {
-			const _exhaustiveCheck: never = figureData.kind;
+			const _exhaustiveCheck: never = kind;
 			return _exhaustiveCheck;
 		}
 	}

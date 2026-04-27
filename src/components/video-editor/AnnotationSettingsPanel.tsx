@@ -607,8 +607,7 @@ export function AnnotationSettingsPanel({
 						{(() => {
 							const figureData = annotation.figureData;
 							if (!figureData) return null;
-							const isClosedShape =
-								figureData.kind === "rectangle" || figureData.kind === "ellipse";
+							const isClosedShape = (figureData.kind ?? "arrow") !== "arrow";
 							if (!isClosedShape) return null;
 							const fillEnabled = typeof figureData.fill === "string";
 							const fillValue = figureData.fill ?? `${figureData.color}33`;
