@@ -216,8 +216,25 @@ export function AnnotationOverlay({
 					</svg>
 				);
 			case "ellipse":
-				// rendered in Commit 3
-				return null;
+				return (
+					<svg
+						viewBox="0 0 100 100"
+						preserveAspectRatio="none"
+						className="w-full h-full"
+						style={{ overflow: "visible" }}
+					>
+						<ellipse
+							cx={50}
+							cy={50}
+							rx={50}
+							ry={50}
+							stroke={figureData.color}
+							strokeWidth={figureData.strokeWidth}
+							fill={figureData.fill ?? "none"}
+							vectorEffect="non-scaling-stroke"
+						/>
+					</svg>
+				);
 			default: {
 				const _exhaustiveCheck: never = figureData.kind;
 				return _exhaustiveCheck;

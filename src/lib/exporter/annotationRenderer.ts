@@ -166,6 +166,34 @@ function renderRectangle(
 	ctx.restore();
 }
 
+function renderEllipse(
+	ctx: CanvasRenderingContext2D,
+	color: string,
+	strokeWidth: number,
+	fill: string | undefined,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	scaleFactor: number,
+) {
+	const cx = x + width / 2;
+	const cy = y + height / 2;
+	const rx = width / 2;
+	const ry = height / 2;
+	ctx.save();
+	ctx.beginPath();
+	ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+	if (fill) {
+		ctx.fillStyle = fill;
+		ctx.fill();
+	}
+	ctx.strokeStyle = color;
+	ctx.lineWidth = strokeWidth * scaleFactor;
+	ctx.stroke();
+	ctx.restore();
+}
+
 function renderFigure(
 	ctx: CanvasRenderingContext2D,
 	figureData: FigureData,
@@ -203,7 +231,17 @@ function renderFigure(
 			);
 			return;
 		case "ellipse":
-			// rendered in Commit 3
+			renderEllipse(
+				ctx,
+				figureData.color,
+				figureData.strokeWidth,
+				figureData.fill,
+				x,
+				y,
+				width,
+				height,
+				scaleFactor,
+			);
 			return;
 		default: {
 			const _exhaustiveCheck: never = figureData.kind;
