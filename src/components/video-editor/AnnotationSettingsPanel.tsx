@@ -625,7 +625,10 @@ export function AnnotationSettingsPanel({
 							return (
 								<div>
 									<div className="flex items-center justify-between mb-2">
-										<label className="text-xs font-medium text-slate-200">
+										<label
+											id="annotation-fill-label"
+											className="text-xs font-medium text-slate-200"
+										>
 											{t("annotation.fill.label")}
 										</label>
 										<div className="flex items-center gap-2">
@@ -641,6 +644,7 @@ export function AnnotationSettingsPanel({
 													};
 													onFigureDataChange?.(next);
 												}}
+												aria-labelledby="annotation-fill-label"
 												className="data-[state=checked]:bg-[#34B27B] scale-90"
 											/>
 										</div>
