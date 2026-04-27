@@ -238,7 +238,8 @@ export function AnnotationOverlay({
 				);
 			default: {
 				const _exhaustiveCheck: never = kind;
-				return _exhaustiveCheck;
+				console.warn(`AnnotationOverlay: unsupported figure kind "${String(_exhaustiveCheck)}"`);
+				return null;
 			}
 		}
 	};

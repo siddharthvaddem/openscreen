@@ -78,19 +78,32 @@ export function getAlpha(fill: string): number {
 }
 
 /**
- * Convert an alpha byte (0-255) to an integer percent (0-100).
- * Inputs are clamped into range; the result is rounded to the nearest int.
+ * Convert an alpha byte (0-255) to an integer percent (0-100). The result is
+ * rounded to the nearest int. Throws on non-finite or out-of-range input.
  */
 export function alphaToPercent(alpha: number): number {
-	const clamped = Math.min(255, Math.max(0, alpha));
-	return Math.round((clamped / 255) * 100);
+	if (!Number.isFinite(alpha) || alpha < 0 || alpha > 255) {
+		throw new Error(`alphaToPercent: invalid alpha (expected finite 0-255): ${alpha}`);
+	}
+	return Math.round((alpha / 255) * 100);
 }
 
 /**
- * Convert an integer percent (0-100) to an alpha byte (0-255).
- * Inputs are clamped into range; the result is rounded to the nearest int.
+ * Convert an integer percent (0-100) to an alpha byte (0-255). The result is
+ * rounded to the nearest int. Throws on non-finite or out-of-range input.
  */
 export function percentToAlpha(percent: number): number {
-	const clamped = Math.min(100, Math.max(0, percent));
-	return Math.round((clamped / 100) * 255);
+	if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+		throw new Error(`percentToAlpha: invalid percent (expected finite 0-100): ${percent}`);
+	}
+	return Math.round((percent / 100) * 255);
+}
+
+/**
+ * Cheap structural check for a `#RRGGBB` or `#RRGGBBAA` hex color string.
+ * Use this to gate untrusted input before passing to `parseHexColor` /
+ * `withAlpha` (which throw on malformed input).
+ */
+export function isValidHexColor(value: unknown): value is string {
+	return typeof value === "string" && HEX_COLOR_REGEX.test(value);
 }

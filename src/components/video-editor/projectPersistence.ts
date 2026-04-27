@@ -4,6 +4,7 @@ import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { DEFAULT_WALLPAPER, WALLPAPER_PATHS } from "@/lib/wallpaper";
 import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
+import { isValidHexColor } from "./figureFill";
 import {
 	type AnnotationRegion,
 	type CropRegion,
@@ -23,6 +24,8 @@ import {
 	DEFAULT_WEBCAM_POSITION,
 	DEFAULT_WEBCAM_SIZE_PRESET,
 	DEFAULT_ZOOM_DEPTH,
+	FIGURE_KINDS,
+	type FigureKind,
 	MAX_BLUR_BLOCK_SIZE,
 	MAX_BLUR_INTENSITY,
 	MAX_PLAYBACK_SPEED,
@@ -39,6 +42,15 @@ import {
 } from "./types";
 
 const VALID_BLUR_SHAPES = new Set(["rectangle", "oval", "freehand"] as const);
+
+const VALID_FIGURE_KINDS: ReadonlySet<FigureKind> = new Set(FIGURE_KINDS);
+
+function normalizeFigureKind(value: unknown): FigureKind {
+	for (const kind of VALID_FIGURE_KINDS) {
+		if (value === kind) return kind;
+	}
+	return "arrow";
+}
 
 // Pre-fix projects could persist resolved file:// URLs (machine-specific) for
 // bundled wallpapers. Rewrite only paths that match a known install layout
@@ -375,7 +387,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							? {
 									...DEFAULT_FIGURE_DATA,
 									...region.figureData,
-									kind: region.figureData.kind ?? "arrow",
+									kind: normalizeFigureKind(region.figureData.kind),
+									fill: isValidHexColor(region.figureData.fill)
+										? region.figureData.fill
+										: undefined,
 								}
 							: undefined,
 						blurData:

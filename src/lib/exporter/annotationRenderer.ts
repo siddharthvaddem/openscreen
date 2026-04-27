@@ -246,7 +246,8 @@ function renderFigure(
 			return;
 		default: {
 			const _exhaustiveCheck: never = kind;
-			return _exhaustiveCheck;
+			console.warn(`annotationRenderer: unsupported figure kind "${String(_exhaustiveCheck)}"`);
+			return;
 		}
 	}
 }

@@ -61,8 +61,11 @@ export type ArrowDirection =
 	| "down-right"
 	| "down-left";
 
+export const FIGURE_KINDS = ["arrow", "rectangle", "ellipse"] as const;
+export type FigureKind = (typeof FIGURE_KINDS)[number];
+
 export interface FigureData {
-	kind?: "arrow" | "rectangle" | "ellipse";
+	kind?: FigureKind;
 	arrowDirection: ArrowDirection;
 	color: string;
 	strokeWidth: number;
