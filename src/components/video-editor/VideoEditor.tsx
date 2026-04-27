@@ -904,20 +904,33 @@ export default function VideoEditor() {
 	);
 
 	const handleAnnotationAdded = useCallback(
-		(span: Span) => {
+		(span: Span, figureData?: FigureData) => {
 			const id = `annotation-${nextAnnotationIdRef.current++}`;
 			const zIndex = nextAnnotationZIndexRef.current++;
-			const newRegion: AnnotationRegion = {
+			const baseRegion = {
 				id,
 				startMs: Math.round(span.start),
 				endMs: Math.round(span.end),
-				type: "text",
-				content: "Enter text...",
 				position: { ...DEFAULT_ANNOTATION_POSITION },
 				size: { ...DEFAULT_ANNOTATION_SIZE },
 				style: { ...DEFAULT_ANNOTATION_STYLE },
 				zIndex,
 			};
+			// When figureData is provided by the caller (toolbar shape buttons), it is
+			// the source of truth — the new region is a figure with that exact data.
+			// No fallback to "arrow" or DEFAULT_FIGURE_DATA on this branch.
+			const newRegion: AnnotationRegion = figureData
+				? {
+						...baseRegion,
+						type: "figure",
+						content: "",
+						figureData: { ...figureData },
+					}
+				: {
+						...baseRegion,
+						type: "text",
+						content: "Enter text...",
+					};
 			pushState((prev) => ({
 				annotationRegions: [...prev.annotationRegions, newRegion],
 			}));

@@ -3,10 +3,12 @@ import { useTimelineContext } from "dnd-timeline";
 import {
 	Check,
 	ChevronDown,
+	Circle,
 	Gauge,
 	MessageSquare,
 	Plus,
 	Scissors,
+	Square,
 	WandSparkles,
 	ZoomIn,
 } from "lucide-react";
@@ -30,6 +32,7 @@ import { TutorialHelp } from "../TutorialHelp";
 import type {
 	AnnotationRegion,
 	CursorTelemetryPoint,
+	FigureData,
 	SpeedRegion,
 	TrimRegion,
 	ZoomFocus,
@@ -70,7 +73,7 @@ interface TimelineEditorProps {
 	selectedTrimId?: string | null;
 	onSelectTrim?: (id: string | null) => void;
 	annotationRegions?: AnnotationRegion[];
-	onAnnotationAdded?: (span: Span) => void;
+	onAnnotationAdded?: (span: Span, figureData?: FigureData) => void;
 	onAnnotationSpanChange?: (id: string, span: Span) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedAnnotationId?: string | null;
@@ -1217,6 +1220,54 @@ export default function TimelineEditor({
 		onAnnotationAdded({ start: startPos, end: endPos });
 	}, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded, defaultRegionDurationMs]);
 
+	const handleAddRectangleAnnotation = useCallback(() => {
+		if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onAnnotationAdded) {
+			return;
+		}
+
+		const defaultDuration = Math.min(defaultRegionDurationMs, totalMs);
+		if (defaultDuration <= 0) {
+			return;
+		}
+
+		const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+		const endPos = Math.min(startPos + defaultDuration, totalMs);
+
+		const figureData: FigureData = {
+			kind: "rectangle",
+			arrowDirection: "right",
+			color: "#34B27B",
+			strokeWidth: 4,
+			fill: "#34B27B33",
+		};
+
+		onAnnotationAdded({ start: startPos, end: endPos }, figureData);
+	}, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded, defaultRegionDurationMs]);
+
+	const handleAddEllipseAnnotation = useCallback(() => {
+		if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onAnnotationAdded) {
+			return;
+		}
+
+		const defaultDuration = Math.min(defaultRegionDurationMs, totalMs);
+		if (defaultDuration <= 0) {
+			return;
+		}
+
+		const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
+		const endPos = Math.min(startPos + defaultDuration, totalMs);
+
+		const figureData: FigureData = {
+			kind: "ellipse",
+			arrowDirection: "right",
+			color: "#34B27B",
+			strokeWidth: 4,
+			fill: "#34B27B33",
+		};
+
+		onAnnotationAdded({ start: startPos, end: endPos }, figureData);
+	}, [videoDuration, totalMs, currentTimeMs, onAnnotationAdded, defaultRegionDurationMs]);
+
 	const handleAddBlur = useCallback(() => {
 		if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onBlurAdded) {
 			return;
@@ -1491,6 +1542,26 @@ export default function TimelineEditor({
 						title={t("buttons.addAnnotation")}
 					>
 						<MessageSquare className="w-4 h-4" />
+					</Button>
+					<Button
+						onClick={handleAddRectangleAnnotation}
+						variant="ghost"
+						size="icon"
+						className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
+						aria-label={t("buttons.addRectangle")}
+						title={t("buttons.addRectangle")}
+					>
+						<Square className="w-4 h-4" />
+					</Button>
+					<Button
+						onClick={handleAddEllipseAnnotation}
+						variant="ghost"
+						size="icon"
+						className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
+						aria-label={t("buttons.addEllipse")}
+						title={t("buttons.addEllipse")}
+					>
+						<Circle className="w-4 h-4" />
 					</Button>
 					<Button
 						onClick={handleAddBlur}
