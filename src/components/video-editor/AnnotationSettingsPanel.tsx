@@ -34,6 +34,7 @@ import { type CustomFont, getCustomFonts } from "@/lib/customFonts";
 import { cn } from "@/lib/utils";
 import { AddCustomFontDialog } from "./AddCustomFontDialog";
 import { getArrowComponent } from "./ArrowSvgs";
+import { alphaToPercent, getAlpha, percentToAlpha, withAlpha } from "./figureFill";
 import {
 	type AnnotationRegion,
 	type AnnotationType,
@@ -590,9 +591,16 @@ export function AnnotationSettingsPanel({
 										color={annotation.figureData?.color || "#34B27B"}
 										colors={colorPalette}
 										onChange={(color) => {
+											const previous = annotation.figureData;
+											if (!previous) return;
+											const nextFill =
+												typeof previous.fill === "string"
+													? withAlpha(color.hex, getAlpha(previous.fill))
+													: previous.fill;
 											const newFigureData: FigureData = {
-												...annotation.figureData!,
+												...previous,
 												color: color.hex,
+												fill: nextFill,
 											};
 											onFigureDataChange?.(newFigureData);
 										}}
@@ -610,8 +618,10 @@ export function AnnotationSettingsPanel({
 							const isClosedShape = (figureData.kind ?? "arrow") !== "arrow";
 							if (!isClosedShape) return null;
 							const fillEnabled = typeof figureData.fill === "string";
-							const fillValue = figureData.fill ?? `${figureData.color}33`;
-							const defaultFillFromColor = `${figureData.color}33`;
+							const defaultFillFromColor = withAlpha(figureData.color, percentToAlpha(20));
+							const fillValue = figureData.fill ?? defaultFillFromColor;
+							const currentAlpha = getAlpha(fillValue);
+							const opacityPercent = alphaToPercent(currentAlpha);
 							return (
 								<div>
 									<div className="flex items-center justify-between mb-2">
@@ -636,42 +646,68 @@ export function AnnotationSettingsPanel({
 										</div>
 									</div>
 									{fillEnabled && (
-										<Popover>
-											<PopoverTrigger asChild>
-												<Button
-													variant="outline"
-													className="w-full h-10 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10"
-												>
-													<div className="w-5 h-5 rounded-full border border-white/20 relative overflow-hidden">
-														<div className="absolute inset-0 checkerboard-bg opacity-50" />
-														<div
-															className="absolute inset-0"
-															style={{ backgroundColor: fillValue }}
-														/>
-													</div>
-													<span className="text-xs text-slate-300 truncate flex-1 text-left">
-														{fillValue}
+										<>
+											<Popover>
+												<PopoverTrigger asChild>
+													<Button
+														variant="outline"
+														className="w-full h-10 justify-start gap-2 bg-white/5 border-white/10 hover:bg-white/10"
+													>
+														<div className="w-5 h-5 rounded-full border border-white/20 relative overflow-hidden">
+															<div className="absolute inset-0 checkerboard-bg opacity-50" />
+															<div
+																className="absolute inset-0"
+																style={{ backgroundColor: fillValue }}
+															/>
+														</div>
+														<span className="text-xs text-slate-300 truncate flex-1 text-left">
+															{fillValue}
+														</span>
+														<ChevronDown className="h-3 w-3 opacity-50" />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
+													<Block
+														color={fillValue}
+														colors={colorPalette}
+														onChange={(color) => {
+															const next: FigureData = {
+																...figureData,
+																fill: withAlpha(color.hex, currentAlpha),
+															};
+															onFigureDataChange?.(next);
+														}}
+														style={{
+															borderRadius: "8px",
+														}}
+													/>
+												</PopoverContent>
+											</Popover>
+											<div className="mt-3">
+												<div className="flex items-center justify-between mb-2">
+													<label className="text-xs font-medium text-slate-200">
+														{t("annotation.fill.opacity")}
+													</label>
+													<span className="text-[10px] text-slate-400 tabular-nums">
+														{`${opacityPercent}%`}
 													</span>
-													<ChevronDown className="h-3 w-3 opacity-50" />
-												</Button>
-											</PopoverTrigger>
-											<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
-												<Block
-													color={fillValue}
-													colors={colorPalette}
-													onChange={(color) => {
+												</div>
+												<Slider
+													value={[opacityPercent]}
+													onValueChange={([value]) => {
 														const next: FigureData = {
 															...figureData,
-															fill: `${color.hex}33`,
+															fill: withAlpha(figureData.color, percentToAlpha(value)),
 														};
 														onFigureDataChange?.(next);
 													}}
-													style={{
-														borderRadius: "8px",
-													}}
+													min={0}
+													max={100}
+													step={1}
+													className="w-full"
 												/>
-											</PopoverContent>
-										</Popover>
+											</div>
+										</>
 									)}
 								</div>
 							);

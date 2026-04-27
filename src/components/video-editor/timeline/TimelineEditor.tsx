@@ -28,6 +28,7 @@ import { matchesShortcut } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import { ASPECT_RATIOS, type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
 import { formatShortcut } from "@/utils/platformUtils";
+import { percentToAlpha, withAlpha } from "../figureFill";
 import { TutorialHelp } from "../TutorialHelp";
 import type {
 	AnnotationRegion,
@@ -1238,7 +1239,7 @@ export default function TimelineEditor({
 			arrowDirection: "right",
 			color: "#34B27B",
 			strokeWidth: 4,
-			fill: "#34B27B33",
+			fill: withAlpha("#34B27B", percentToAlpha(20)),
 		};
 
 		onAnnotationAdded({ start: startPos, end: endPos }, figureData);
@@ -1262,7 +1263,7 @@ export default function TimelineEditor({
 			arrowDirection: "right",
 			color: "#34B27B",
 			strokeWidth: 4,
-			fill: "#34B27B33",
+			fill: withAlpha("#34B27B", percentToAlpha(20)),
 		};
 
 		onAnnotationAdded({ start: startPos, end: endPos }, figureData);
