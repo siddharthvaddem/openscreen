@@ -149,7 +149,8 @@
 		"failedImageUpload": "Échec du téléversement de l'image",
 		"fill": {
 			"label": "Remplissage",
-			"toggle": "Remplissage activé"
+			"toggle": "Remplissage activé",
+			"opacity": "Opacité"
 		}
 	},
 	"fontStyles": {

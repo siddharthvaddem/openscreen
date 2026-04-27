@@ -149,7 +149,8 @@
 		"failedImageUpload": "Failed to upload image",
 		"fill": {
 			"label": "Fill",
-			"toggle": "Fill enabled"
+			"toggle": "Fill enabled",
+			"opacity": "Opacity"
 		}
 	},
 	"fontStyles": {

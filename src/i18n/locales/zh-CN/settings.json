@@ -142,7 +142,8 @@
 		"failedImageUpload": "上传图片失败",
 		"fill": {
 			"label": "填充",
-			"toggle": "启用填充"
+			"toggle": "启用填充",
+			"opacity": "不透明度"
 		}
 	},
 	"fontStyles": {

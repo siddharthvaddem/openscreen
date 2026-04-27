@@ -131,7 +131,8 @@
 		"failedImageUpload": "Görüntü yüklenemedi",
 		"fill": {
 			"label": "Dolgu",
-			"toggle": "Dolgu açık"
+			"toggle": "Dolgu açık",
+			"opacity": "Opaklık"
 		}
 	},
 	"fontStyles": {

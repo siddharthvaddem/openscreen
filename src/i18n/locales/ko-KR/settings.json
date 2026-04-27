@@ -128,7 +128,8 @@
 		"failedImageUpload": "이미지 업로드에 실패했습니다",
 		"fill": {
 			"label": "채우기",
-			"toggle": "채우기 사용"
+			"toggle": "채우기 사용",
+			"opacity": "불투명도"
 		}
 	},
 	"fontStyles": {

@@ -149,7 +149,8 @@
 		"failedImageUpload": "Error al subir la imagen",
 		"fill": {
 			"label": "Relleno",
-			"toggle": "Relleno activado"
+			"toggle": "Relleno activado",
+			"opacity": "Opacidad"
 		}
 	},
 	"fontStyles": {
