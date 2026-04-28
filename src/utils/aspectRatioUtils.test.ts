@@ -9,8 +9,11 @@ describe("getNativeAspectRatioValue", () => {
 	});
 
 	it("applies the crop region when provided", () => {
-		const crop = { x: 0, y: 0, width: 0.5, height: 0.5 };
-		expect(getNativeAspectRatioValue(1920, 1080, crop)).toBeCloseTo(16 / 9);
+		// Use non-proportional crop dimensions so the ratio actually changes;
+		// equal width/height would cancel out and silently pass even if the
+		// crop were ignored.
+		const crop = { x: 0, y: 0, width: 0.75, height: 0.5 };
+		expect(getNativeAspectRatioValue(1920, 1080, crop)).toBeCloseTo((1920 * 0.75) / (1080 * 0.5));
 	});
 
 	it("falls back to 16/9 when video metadata is not yet loaded (height = 0)", () => {
@@ -37,16 +40,26 @@ describe("getNativeAspectRatioValue", () => {
 	});
 
 	it("never returns Infinity, NaN, or a non-positive ratio", () => {
-		const pathologicalInputs: Array<[number, number]> = [
+		const pathologicalInputs: Array<
+			[number, number, { x: number; y: number; width: number; height: number }?]
+		> = [
 			[0, 0],
 			[1920, 0],
 			[0, 1080],
 			[Number.POSITIVE_INFINITY, 1080],
 			[1920, Number.POSITIVE_INFINITY],
 			[Number.NaN, Number.NaN],
+			// Same idea, but exercising the crop-region branch so a future
+			// regression there can't slip past the dimension-only cases above.
+			[1920, 1080, { x: 0, y: 0, width: 0.5, height: 0 }],
+			[1920, 1080, { x: 0, y: 0, width: 0, height: 0.5 }],
+			[1920, 1080, { x: 0, y: 0, width: Number.NaN, height: 0.5 }],
+			[1920, 1080, { x: 0, y: 0, width: 0.5, height: Number.NaN }],
+			[1920, 1080, { x: 0, y: 0, width: Number.POSITIVE_INFINITY, height: 0.5 }],
+			[1920, 1080, { x: 0, y: 0, width: 0.5, height: -1 }],
 		];
-		for (const [w, h] of pathologicalInputs) {
-			const ratio = getNativeAspectRatioValue(w, h);
+		for (const [w, h, crop] of pathologicalInputs) {
+			const ratio = getNativeAspectRatioValue(w, h, crop);
 			expect(Number.isFinite(ratio)).toBe(true);
 			expect(ratio).toBeGreaterThan(0);
 		}
