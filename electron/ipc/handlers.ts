@@ -360,7 +360,7 @@ export function registerIpcHandlers(
 	getMainWindow: () => BrowserWindow | null,
 	getSourceSelectorWindow: () => BrowserWindow | null,
 	getCountdownOverlayWindow: () => BrowserWindow | null,
-	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
+	onRecordingStateChange?: (state: "recording" | "paused" | "stopped", sourceName: string) => void,
 	switchToHud?: () => void,
 ) {
 	const supportsWindowOpacity = process.platform !== "linux";
@@ -700,28 +700,33 @@ export function registerIpcHandlers(
 		}
 	});
 
-	ipcMain.handle("set-recording-state", (_, recording: boolean, recordingId?: number) => {
-		if (recording) {
-			stopCursorCapture();
-			// The renderer is the source of truth for the recording id (it
-			// uses the same id as the saved fileName). Fall back to a
-			// timestamp only if the renderer didn't supply one, so the
-			// buffer always has a stable key per session.
-			const id = typeof recordingId === "number" ? recordingId : Date.now();
-			cursorTelemetryBuffer.startSession(id);
-			cursorCaptureStartTimeMs = Date.now();
-			sampleCursorPoint();
-			cursorCaptureInterval = setInterval(sampleCursorPoint, CURSOR_SAMPLE_INTERVAL_MS);
-		} else {
-			stopCursorCapture();
-			cursorTelemetryBuffer.endSession();
-		}
+	ipcMain.handle(
+		"set-recording-state",
+		(_, state: "recording" | "paused" | "stopped", recordingId?: number, elapsedMs?: number) => {
+			if (state === "recording") {
+				stopCursorCapture();
+				// The renderer is the source of truth for the recording id (it
+				// uses the same id as the saved fileName). Fall back to a
+				// timestamp only if the renderer didn't supply one, so the
+				// buffer always has a stable key per session.
+				const id = typeof recordingId === "number" ? recordingId : Date.now();
+				cursorTelemetryBuffer.startSession(id);
+				cursorCaptureStartTimeMs = Date.now() - (elapsedMs || 0);
+				sampleCursorPoint();
+				cursorCaptureInterval = setInterval(sampleCursorPoint, CURSOR_SAMPLE_INTERVAL_MS);
+			} else if (state === "paused") {
+				stopCursorCapture();
+			} else {
+				stopCursorCapture();
+				cursorTelemetryBuffer.endSession();
+			}
 
-		const source = selectedSource || { name: "Screen" };
-		if (onRecordingStateChange) {
-			onRecordingStateChange(recording, source.name);
-		}
-	});
+			const source = selectedSource || { name: "Screen" };
+			if (onRecordingStateChange) {
+				onRecordingStateChange(state, source.name);
+			}
+		},
+	);
 
 	ipcMain.handle("discard-cursor-telemetry", (_, recordingId: number) => {
 		cursorTelemetryBuffer.discardBatch(recordingId);
@@ -1126,16 +1131,6 @@ export function registerIpcHandlers(
 			return JSON.parse(data);
 		} catch {
 			return null;
-		}
-	});
-
-	ipcMain.handle("save-shortcuts", async (_, shortcuts: unknown) => {
-		try {
-			await fs.writeFile(SHORTCUTS_FILE, JSON.stringify(shortcuts, null, 2), "utf-8");
-			return { success: true };
-		} catch (error) {
-			console.error("Failed to save shortcuts:", error);
-			return { success: false, error: String(error) };
 		}
 	});
 }

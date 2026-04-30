@@ -302,7 +302,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			setElapsedSeconds(0);
 			accumulatedDurationMs.current = 0;
 			segmentStartedAt.current = null;
-			window.electronAPI?.setRecordingState(false);
+			window.electronAPI?.setRecordingState("stopped");
 
 			void (async () => {
 				try {
@@ -409,17 +409,25 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	});
 
 	useEffect(() => {
-		let cleanup: (() => void) | undefined;
+		let stopCleanup: (() => void) | undefined;
+		let pauseCleanup: (() => void) | undefined;
 
 		if (window.electronAPI?.onStopRecordingFromTray) {
-			cleanup = window.electronAPI.onStopRecordingFromTray(() => {
+			stopCleanup = window.electronAPI.onStopRecordingFromTray(() => {
 				stopRecording.current();
+			});
+		}
+
+		if (window.electronAPI?.onTogglePauseRecordingFromTray) {
+			pauseCleanup = window.electronAPI.onTogglePauseRecordingFromTray(() => {
+				togglePaused();
 			});
 		}
 
 		return () => {
 			const activeRunId = countdownRunId.current;
-			if (cleanup) cleanup();
+			if (stopCleanup) stopCleanup();
+			if (pauseCleanup) pauseCleanup();
 			countdownRunId.current += 1;
 			void safeHideCountdownOverlay(activeRunId);
 			allowAutoFinalize.current = false;
@@ -773,7 +781,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			setRecording(true);
 			setPaused(false);
 			setElapsedSeconds(0);
-			window.electronAPI?.setRecordingState(true, recordingId.current);
+			window.electronAPI?.setRecordingState("recording", recordingId.current, 0);
 
 			const activeScreenRecorder = screenRecorder.current;
 			const activeWebcamRecorder = webcamRecorder.current;
@@ -830,6 +838,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				}
 				segmentStartedAt.current = Date.now();
 				setPaused(false);
+				window.electronAPI?.setRecordingState(
+					"recording",
+					recordingId.current,
+					accumulatedDurationMs.current,
+				);
 			} catch (error) {
 				console.error("Failed to resume recording:", error);
 			}
@@ -849,6 +862,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				activeWebcamRecorder.pause();
 			}
 			setPaused(true);
+			window.electronAPI?.setRecordingState(
+				"paused",
+				recordingId.current,
+				accumulatedDurationMs.current,
+			);
 		} catch (error) {
 			console.error("Failed to pause recording:", error);
 		}

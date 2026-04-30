@@ -51,8 +51,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getRecordedVideoPath: () => {
 		return ipcRenderer.invoke("get-recorded-video-path");
 	},
-	setRecordingState: (recording: boolean, recordingId?: number) => {
-		return ipcRenderer.invoke("set-recording-state", recording, recordingId);
+	setRecordingState: (
+		state: "recording" | "paused" | "stopped",
+		recordingId?: number,
+		elapsedMs?: number,
+	) => {
+		return ipcRenderer.invoke("set-recording-state", state, recordingId, elapsedMs);
 	},
 	getCursorTelemetry: (videoPath?: string) => {
 		return ipcRenderer.invoke("get-cursor-telemetry", videoPath);
@@ -64,6 +68,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		const listener = () => callback();
 		ipcRenderer.on("stop-recording-from-tray", listener);
 		return () => ipcRenderer.removeListener("stop-recording-from-tray", listener);
+	},
+	onTogglePauseRecordingFromTray: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("toggle-pause-recording-from-tray", listener);
+		return () => ipcRenderer.removeListener("toggle-pause-recording-from-tray", listener);
 	},
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);

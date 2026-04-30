@@ -5,6 +5,7 @@ import {
 	app,
 	BrowserWindow,
 	dialog,
+	globalShortcut,
 	ipcMain,
 	Menu,
 	nativeImage,
@@ -217,35 +218,59 @@ function getTrayIcon(filename: string, size: number) {
 		});
 }
 
-function updateTrayMenu(recording: boolean = false) {
+function updateTrayMenu(state: "recording" | "paused" | "stopped" = "stopped") {
 	if (!tray) return;
-	const trayIcon = recording ? recordingTrayIcon : defaultTrayIcon;
-	const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "OpenScreen";
-	const menuTemplate = recording
-		? [
-				{
-					label: mainT("common", "actions.stopRecording") || "Stop Recording",
-					click: () => {
-						if (mainWindow && !mainWindow.isDestroyed()) {
-							mainWindow.webContents.send("stop-recording-from-tray");
-						}
-					},
+
+	const isRecording = state === "recording";
+	const isPaused = state === "paused";
+	// TODO: Create an actual paused icon later, or use default/recording for now. Let's just use default or an indicator?
+	// Using default tray icon for paused visually differentiates it from the red recording dot
+	const trayIcon = isRecording ? recordingTrayIcon : defaultTrayIcon;
+
+	let trayToolTip = "OpenScreen";
+	if (isRecording) trayToolTip = `Recording: ${selectedSourceName}`;
+	if (isPaused) trayToolTip = `Paused: ${selectedSourceName}`;
+
+	let menuTemplate: Parameters<typeof Menu.buildFromTemplate>[0] = [];
+
+	if (isRecording || isPaused) {
+		menuTemplate = [
+			{
+				label: isPaused
+					? mainT("common", "actions.resumeRecording") || "Resume Recording"
+					: mainT("common", "actions.pauseRecording") || "Pause Recording",
+				click: () => {
+					if (mainWindow && !mainWindow.isDestroyed()) {
+						mainWindow.webContents.send("toggle-pause-recording-from-tray");
+					}
 				},
-			]
-		: [
-				{
-					label: mainT("common", "actions.open") || "Open",
-					click: () => {
-						showMainWindow();
-					},
+			},
+			{
+				label: mainT("common", "actions.stopRecording") || "Stop Recording",
+				click: () => {
+					if (mainWindow && !mainWindow.isDestroyed()) {
+						mainWindow.webContents.send("stop-recording-from-tray");
+					}
 				},
-				{
-					label: mainT("common", "actions.quit") || "Quit",
-					click: () => {
-						app.quit();
-					},
+			},
+		];
+	} else {
+		menuTemplate = [
+			{
+				label: mainT("common", "actions.open") || "Open",
+				click: () => {
+					showMainWindow();
 				},
-			];
+			},
+			{
+				label: mainT("common", "actions.quit") || "Quit",
+				click: () => {
+					app.quit();
+				},
+			},
+		];
+	}
+
 	tray.setImage(trayIcon);
 	tray.setToolTip(trayToolTip);
 	tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
@@ -410,6 +435,52 @@ app.whenReady().then(async () => {
 		showMainWindow();
 	}
 
+	async function updateGlobalShortcuts() {
+		globalShortcut.unregisterAll();
+		let config: any = {};
+		try {
+			const data = await fs.readFile(path.join(app.getPath("userData"), "shortcuts.json"), "utf-8");
+			config = JSON.parse(data);
+		} catch {}
+
+		const binding = config.togglePauseRecording || { key: "p", ctrl: true, alt: true };
+		const parts = [];
+		if (binding.ctrl) parts.push("CommandOrControl");
+		if (binding.alt) parts.push("Alt");
+		if (binding.shift) parts.push("Shift");
+		const key = binding.key && binding.key.length === 1 ? binding.key.toUpperCase() : binding.key;
+		if (key) {
+			parts.push(key);
+			const accelerator = parts.join("+");
+			try {
+				globalShortcut.register(accelerator, () => {
+					if (mainWindow && !mainWindow.isDestroyed()) {
+						mainWindow.webContents.send("toggle-pause-recording-from-tray");
+					}
+				});
+			} catch (e) {
+				console.error("Failed to register global shortcut:", accelerator, e);
+			}
+		}
+	}
+
+	await updateGlobalShortcuts();
+
+	ipcMain.handle("save-shortcuts", async (_, shortcuts: unknown) => {
+		try {
+			await fs.writeFile(
+				path.join(app.getPath("userData"), "shortcuts.json"),
+				JSON.stringify(shortcuts, null, 2),
+				"utf-8",
+			);
+			await updateGlobalShortcuts();
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to save shortcuts:", error);
+			return { success: false, error: String(error) };
+		}
+	});
+
 	registerIpcHandlers(
 		createEditorWindowWrapper,
 		createSourceSelectorWindowWrapper,
@@ -417,11 +488,11 @@ app.whenReady().then(async () => {
 		() => mainWindow,
 		() => sourceSelectorWindow,
 		() => countdownOverlayWindow,
-		(recording: boolean, sourceName: string) => {
+		(state: "recording" | "paused" | "stopped", sourceName: string) => {
 			selectedSourceName = sourceName;
 			if (!tray) createTray();
-			updateTrayMenu(recording);
-			if (!recording) {
+			updateTrayMenu(state);
+			if (state === "stopped") {
 				showMainWindow();
 			}
 		},

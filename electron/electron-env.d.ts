@@ -63,7 +63,11 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
-		setRecordingState: (recording: boolean, recordingId?: number) => Promise<void>;
+		setRecordingState: (
+			state: "recording" | "paused" | "stopped",
+			recordingId?: number,
+			elapsedMs?: number,
+		) => Promise<void>;
 		discardCursorTelemetry: (recordingId: number) => Promise<void>;
 		getCursorTelemetry: (videoPath?: string) => Promise<{
 			success: boolean;
@@ -72,6 +76,7 @@ interface Window {
 			error?: string;
 		}>;
 		onStopRecordingFromTray: (callback: () => void) => () => void;
+		onTogglePauseRecordingFromTray: (callback: () => void) => () => void;
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 		saveExportedVideo: (
 			videoData: ArrayBuffer,
