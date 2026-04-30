@@ -103,6 +103,25 @@ describe("createCursorTelemetryBuffer", () => {
 		expect(batch?.samples.map((s) => s.timeMs)).toEqual([1]);
 	});
 
+	it("preserves active session samples when resuming with the same recordingId", () => {
+		const buf = createCursorTelemetryBuffer({ maxActiveSamples: 10 });
+
+		buf.startSession(1);
+		buf.push(sample(1));
+		buf.push(sample(2));
+
+		// Resuming the same session (e.g. after a pause) should not clear the buffer
+		buf.startSession(1);
+		buf.push(sample(3));
+		buf.endSession();
+
+		expect(buf.pendingCount).toBe(1);
+		const batch = buf.takeNextBatch();
+		expect(batch?.recordingId).toBe(1);
+		expect(batch?.samples).toHaveLength(3);
+		expect(batch?.samples.map((s) => s.timeMs)).toEqual([1, 2, 3]);
+	});
+
 	it("discardBatch(id) drops only the batch produced by that recording id", () => {
 		const buf = createCursorTelemetryBuffer({ maxActiveSamples: 10 });
 

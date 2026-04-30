@@ -148,6 +148,9 @@ export function createCursorTelemetryBuffer(
 
 	return {
 		startSession(recordingId) {
+			if (activeRecordingId === recordingId) {
+				return;
+			}
 			active = [];
 			activeRecordingId = recordingId;
 		},
