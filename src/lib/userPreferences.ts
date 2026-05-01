@@ -23,6 +23,8 @@ export interface UserPreferences {
 	exportQuality: ExportQuality;
 	/** Default export format */
 	exportFormat: ExportFormat;
+	/** Last folder used when saving an export */
+	exportFolder?: string;
 }
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -76,6 +78,10 @@ export function loadUserPreferences(): UserPreferences {
 			raw.exportFormat === "gif" || raw.exportFormat === "mp4"
 				? (raw.exportFormat as ExportFormat)
 				: DEFAULT_PREFS.exportFormat,
+		exportFolder:
+			typeof raw.exportFolder === "string" && raw.exportFolder.length > 0
+				? raw.exportFolder
+				: undefined,
 	};
 }
 

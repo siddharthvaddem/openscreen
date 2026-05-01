@@ -133,6 +133,7 @@ export default function VideoEditor() {
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+	const [exportFolder, setExportFolder] = useState<string | undefined>(undefined);
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
 	const [gifLoop, setGifLoop] = useState(true);
 	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>("medium");
@@ -409,14 +410,15 @@ export default function VideoEditor() {
 		});
 		setExportQuality(prefs.exportQuality);
 		setExportFormat(prefs.exportFormat);
+		setExportFolder(prefs.exportFolder);
 		setPrefsHydrated(true);
 	}, [updateState]);
 
 	// Auto-save user preferences when settings change
 	useEffect(() => {
 		if (!prefsHydrated) return;
-		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat });
-	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat]);
+		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat, exportFolder });
+	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat, exportFolder]);
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
@@ -1309,10 +1311,16 @@ export default function VideoEditor() {
 			const saveResult = await window.electronAPI.saveExportedVideo(
 				unsavedExport.arrayBuffer,
 				unsavedExport.fileName,
+				exportFolder,
 			);
 			if (saveResult.canceled) {
 				toast.info("Export canceled");
 			} else if (saveResult.success && saveResult.path) {
+				const folder = saveResult.path.substring(
+					0,
+					Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
+				);
+				setExportFolder(folder);
 				setUnsavedExport(null);
 				handleExportSaved(unsavedExport.format === "gif" ? "GIF" : "Video", saveResult.path);
 			} else {
@@ -1322,7 +1330,7 @@ export default function VideoEditor() {
 			console.error("Error saving unsaved export:", error);
 			toast.error("Failed to save exported video");
 		}
-	}, [unsavedExport, handleExportSaved]);
+	}, [unsavedExport, exportFolder, handleExportSaved]);
 
 	const handleExport = useCallback(
 		async (settings: ExportSettings) => {
@@ -1410,12 +1418,21 @@ export default function VideoEditor() {
 							}
 						}
 
-						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
+						const saveResult = await window.electronAPI.saveExportedVideo(
+							arrayBuffer,
+							fileName,
+							exportFolder,
+						);
 
 						if (saveResult.canceled) {
 							setUnsavedExport({ arrayBuffer, fileName, format: "gif" });
 							toast.info("Export canceled");
 						} else if (saveResult.success && saveResult.path) {
+							const folder = saveResult.path.substring(
+								0,
+								Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
+							);
+							setExportFolder(folder);
 							setUnsavedExport(null);
 							handleExportSaved("GIF", saveResult.path);
 						} else {
@@ -1550,12 +1567,21 @@ export default function VideoEditor() {
 							}
 						}
 
-						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
+						const saveResult = await window.electronAPI.saveExportedVideo(
+							arrayBuffer,
+							fileName,
+							exportFolder,
+						);
 
 						if (saveResult.canceled) {
 							setUnsavedExport({ arrayBuffer, fileName, format: "mp4" });
 							toast.info("Export canceled");
 						} else if (saveResult.success && saveResult.path) {
+							const folder = saveResult.path.substring(
+								0,
+								Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
+							);
+							setExportFolder(folder);
 							setUnsavedExport(null);
 							handleExportSaved("Video", saveResult.path);
 						} else {
@@ -1612,6 +1638,7 @@ export default function VideoEditor() {
 			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
+			exportFolder,
 			handleExportSaved,
 			cursorTelemetry,
 			t,
