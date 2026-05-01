@@ -1316,11 +1316,7 @@ export default function VideoEditor() {
 			if (saveResult.canceled) {
 				toast.info("Export canceled");
 			} else if (saveResult.success && saveResult.path) {
-				const folder = saveResult.path.substring(
-					0,
-					Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
-				);
-				setExportFolder(folder);
+				if (saveResult.dir) setExportFolder(saveResult.dir);
 				setUnsavedExport(null);
 				handleExportSaved(unsavedExport.format === "gif" ? "GIF" : "Video", saveResult.path);
 			} else {
@@ -1428,11 +1424,7 @@ export default function VideoEditor() {
 							setUnsavedExport({ arrayBuffer, fileName, format: "gif" });
 							toast.info("Export canceled");
 						} else if (saveResult.success && saveResult.path) {
-							const folder = saveResult.path.substring(
-								0,
-								Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
-							);
-							setExportFolder(folder);
+							if (saveResult.dir) setExportFolder(saveResult.dir);
 							setUnsavedExport(null);
 							handleExportSaved("GIF", saveResult.path);
 						} else {
@@ -1577,11 +1569,7 @@ export default function VideoEditor() {
 							setUnsavedExport({ arrayBuffer, fileName, format: "mp4" });
 							toast.info("Export canceled");
 						} else if (saveResult.success && saveResult.path) {
-							const folder = saveResult.path.substring(
-								0,
-								Math.max(saveResult.path.lastIndexOf("/"), saveResult.path.lastIndexOf("\\")),
-							);
-							setExportFolder(folder);
+							if (saveResult.dir) setExportFolder(saveResult.dir);
 							setUnsavedExport(null);
 							handleExportSaved("Video", saveResult.path);
 						} else {

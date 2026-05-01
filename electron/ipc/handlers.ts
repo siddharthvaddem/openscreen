@@ -863,6 +863,7 @@ export function registerIpcHandlers(
 				return {
 					success: true,
 					path: normalizedPath,
+					dir: path.dirname(normalizedPath),
 					message: "Video exported successfully",
 				};
 			} catch (error) {

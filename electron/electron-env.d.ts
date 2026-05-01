@@ -77,7 +77,13 @@ interface Window {
 			videoData: ArrayBuffer,
 			fileName: string,
 			exportFolder?: string,
-		) => Promise<{ success: boolean; path?: string; message?: string; canceled?: boolean }>;
+		) => Promise<{
+			success: boolean;
+			path?: string;
+			dir?: string;
+			message?: string;
+			canceled?: boolean;
+		}>;
 		openVideoFilePicker: () => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
 		setCurrentVideoPath: (path: string) => Promise<{ success: boolean }>;
 		setCurrentRecordingSession: (
