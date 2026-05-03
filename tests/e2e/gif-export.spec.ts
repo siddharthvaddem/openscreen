@@ -2,12 +2,40 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { _electron as electron, expect, test } from "@playwright/test";
+import { type ElectronApplication, _electron as electron, expect, test } from "@playwright/test";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "../..");
 const MAIN_JS = path.join(ROOT, "dist-electron/main.js");
 const TEST_VIDEO = path.join(__dirname, "../fixtures/sample.webm");
+
+async function waitForProcessExit(
+	child: ReturnType<ElectronApplication["process"]>,
+	timeoutMs: number,
+) {
+	if (child.exitCode !== null || child.killed) return;
+
+	await Promise.race([
+		new Promise<void>((resolve) => child.once("exit", () => resolve())),
+		new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+	]);
+}
+
+async function closeElectronApp(app: ElectronApplication) {
+	const child = app.process();
+	await app
+		.evaluate(({ app: electronApp }) => {
+			electronApp.exit(0);
+		})
+		.catch(() => {
+			// App may already be closing.
+		});
+	await waitForProcessExit(child, 2_000);
+	if (child.exitCode === null && !child.killed) {
+		child.kill("SIGKILL");
+		await waitForProcessExit(child, 2_000);
+	}
+}
 
 test("exports a GIF from a loaded video", async () => {
 	const outputPath = path.join(os.tmpdir(), `test-gif-export-${Date.now()}.gif`);
@@ -126,7 +154,7 @@ test("exports a GIF from a loaded video", async () => {
 		const stats = fs.statSync(outputPath);
 		expect(stats.size).toBeGreaterThan(1024); // at least 1 KB
 	} finally {
-		await app.close();
+		await closeElectronApp(app);
 		if (fs.existsSync(outputPath)) {
 			fs.unlinkSync(outputPath);
 		}

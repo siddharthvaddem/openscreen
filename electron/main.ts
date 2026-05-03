@@ -82,10 +82,46 @@ let tray: Tray | null = null;
 let selectedSourceName = "";
 const isMac = process.platform === "darwin";
 const trayIconSize = isMac ? 16 : 24;
+const ALLOWED_MEDIA_PERMISSIONS = new Set([
+	"media",
+	"audioCapture",
+	"microphone",
+	"videoCapture",
+	"camera",
+]);
 
 // Tray Icons
 const defaultTrayIcon = getTrayIcon("openscreen.png", trayIconSize);
 const recordingTrayIcon = getTrayIcon("rec-button.png", trayIconSize);
+
+function isTrustedRendererUrl(url: string) {
+	if (!url) return false;
+
+	try {
+		const parsed = new URL(url);
+
+		if (VITE_DEV_SERVER_URL) {
+			return parsed.origin === new URL(VITE_DEV_SERVER_URL).origin;
+		}
+
+		if (parsed.protocol !== "file:") {
+			return false;
+		}
+
+		return path.normalize(fileURLToPath(parsed)) === path.join(RENDERER_DIST, "index.html");
+	} catch {
+		return false;
+	}
+}
+
+function isTrustedMediaPermissionRequest(
+	webContents: Electron.WebContents | null | undefined,
+	permission: string,
+) {
+	return (
+		ALLOWED_MEDIA_PERMISSIONS.has(permission) && isTrustedRendererUrl(webContents?.getURL() ?? "")
+	);
+}
 
 function createWindow() {
 	mainWindow = createHudOverlayWindow();
@@ -377,15 +413,13 @@ app.on("activate", () => {
 
 // Register all IPC handlers when app is ready
 app.whenReady().then(async () => {
-	// Allow microphone/media permission checks
-	session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
-		const allowed = ["media", "audioCapture", "microphone", "videoCapture", "camera"];
-		return allowed.includes(permission);
-	});
+	// Allow capture permissions only for first-party renderer windows.
+	session.defaultSession.setPermissionCheckHandler((webContents, permission) =>
+		isTrustedMediaPermissionRequest(webContents, permission),
+	);
 
-	session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-		const allowed = ["media", "audioCapture", "microphone", "videoCapture", "camera"];
-		callback(allowed.includes(permission));
+	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+		callback(isTrustedMediaPermissionRequest(webContents, permission));
 	});
 
 	// Request microphone permission from macOS

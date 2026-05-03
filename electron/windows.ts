@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { BrowserWindow, ipcMain, screen } from "electron";
+import { BrowserWindow, ipcMain, screen, shell } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,8 +15,58 @@ const ASSET_BASE_DIR = process.defaultApp
 	? path.join(__dirname, "..", "public")
 	: process.resourcesPath;
 const ASSET_BASE_URL_ARG = `--asset-base-url=${pathToFileURL(`${ASSET_BASE_DIR}${path.sep}`).toString()}`;
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 
 let hudOverlayWindow: BrowserWindow | null = null;
+
+function isRendererAppUrl(url: string) {
+	if (!url) return false;
+
+	try {
+		const parsed = new URL(url);
+
+		if (parsed.protocol === "about:") {
+			return parsed.href === "about:blank";
+		}
+
+		if (VITE_DEV_SERVER_URL) {
+			return parsed.origin === new URL(VITE_DEV_SERVER_URL).origin;
+		}
+
+		if (parsed.protocol !== "file:") {
+			return false;
+		}
+
+		return path.normalize(fileURLToPath(parsed)) === path.join(RENDERER_DIST, "index.html");
+	} catch {
+		return false;
+	}
+}
+
+function openExternalUrl(url: string) {
+	try {
+		const parsed = new URL(url);
+		if (ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
+			void shell.openExternal(parsed.toString());
+		}
+	} catch {
+		// Ignore malformed renderer-supplied URLs.
+	}
+}
+
+function configureNavigationGuards(win: BrowserWindow) {
+	win.webContents.setWindowOpenHandler(({ url }) => {
+		openExternalUrl(url);
+		return { action: "deny" };
+	});
+
+	win.webContents.on("will-navigate", (event, url) => {
+		if (isRendererAppUrl(url)) return;
+
+		event.preventDefault();
+		openExternalUrl(url);
+	});
+}
 
 ipcMain.on("hud-overlay-hide", () => {
 	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
@@ -63,6 +113,7 @@ export function createHudOverlayWindow(): BrowserWindow {
 			backgroundThrottling: false,
 		},
 	});
+	configureNavigationGuards(win);
 
 	// Follow the user across macOS Spaces (virtual desktops).
 	// Without this the HUD stays pinned to the Space it was first opened on.
@@ -121,10 +172,10 @@ export function createEditorWindow(): BrowserWindow {
 			additionalArguments: [ASSET_BASE_URL_ARG],
 			nodeIntegration: false,
 			contextIsolation: true,
-			webSecurity: false,
 			backgroundThrottling: false,
 		},
 	});
+	configureNavigationGuards(win);
 
 	// Maximize the window by default
 	win.maximize();
@@ -170,6 +221,7 @@ export function createSourceSelectorWindow(): BrowserWindow {
 			contextIsolation: true,
 		},
 	});
+	configureNavigationGuards(win);
 
 	// Follow the user across macOS Spaces so the selector appears on the
 	// active desktop regardless of where the HUD was originally opened.
@@ -223,6 +275,7 @@ export function createCountdownOverlayWindow(): BrowserWindow {
 			backgroundThrottling: false,
 		},
 	});
+	configureNavigationGuards(win);
 
 	win.setIgnoreMouseEvents(true);
 

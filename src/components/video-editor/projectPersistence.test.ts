@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createProjectData,
 	createProjectSnapshot,
+	fromFileUrl,
 	hasProjectUnsavedChanges,
 	normalizeProjectEditor,
 	PROJECT_VERSION,
@@ -159,6 +160,18 @@ describe("projectPersistence media compatibility", () => {
 				webcamPosition: { cx: 0.2, cy: 0.8 },
 			}).webcamPosition,
 		).toBeNull();
+	});
+});
+
+describe("fromFileUrl", () => {
+	it("preserves Windows drive letters", () => {
+		expect(fromFileUrl("file:///C:/Users/me/Videos/capture.webm")).toBe(
+			"C:/Users/me/Videos/capture.webm",
+		);
+	});
+
+	it("preserves UNC hosts", () => {
+		expect(fromFileUrl("file://server/share/capture.webm")).toBe("//server/share/capture.webm");
 	});
 });
 
