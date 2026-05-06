@@ -313,6 +313,41 @@ export function LaunchWindow() {
 		}
 	};
 
+	const recordTooltip = recording
+		? t("tooltips.stopRecording")
+		: hasSelectedSource
+			? t("tooltips.startRecording")
+			: t("recording.selectSource");
+	const recordButtonDisabled = !hasSelectedSource && !recording;
+	const recordButton = (
+		<button
+			type="button"
+			className={`flex items-center justify-center rounded-full p-2 transition-[min-width,background-color] duration-150 ${recording ? "min-w-[78px]" : "min-w-[36px]"} ${styles.electronNoDrag} ${
+				recording
+					? paused
+						? "bg-amber-500/10 hover:bg-amber-500/15"
+						: "bg-red-500/12 hover:bg-red-500/16"
+					: "bg-white/5 hover:bg-white/[0.08]"
+			}`}
+			onClick={toggleRecording}
+			disabled={recordButtonDisabled}
+			style={{ flex: "0 0 auto" }}
+		>
+			<div className={`flex items-center justify-center ${recording ? "gap-1.5" : ""}`}>
+				{recording
+					? getIcon("stop", paused ? "text-amber-400" : "text-red-400")
+					: getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")}
+				{recording && (
+					<span
+						className={`${paused ? "text-amber-400" : "text-red-400"} inline-block w-[34px] text-left text-xs font-semibold tabular-nums`}
+					>
+						{formatTimePadded(elapsedSeconds)}
+					</span>
+				)}
+			</div>
+		</button>
+	);
+
 	return (
 		// Root fills the HUD window only. Avoid w-screen/h-screen (100vw/100vh):
 		// 100vw can exceed the inner layout width when scrollbars affect the
@@ -541,32 +576,14 @@ export function LaunchWindow() {
 					</button>
 				</div>
 
-				{/* Record/Stop group */}
-				<button
-					className={`flex items-center justify-center rounded-full p-2 transition-[min-width,background-color] duration-150 ${recording ? "min-w-[78px]" : "min-w-[36px]"} ${styles.electronNoDrag} ${
-						recording
-							? paused
-								? "bg-amber-500/10 hover:bg-amber-500/15"
-								: "bg-red-500/12 hover:bg-red-500/16"
-							: "bg-white/5 hover:bg-white/[0.08]"
-					}`}
-					onClick={toggleRecording}
-					disabled={!hasSelectedSource && !recording}
-					style={{ flex: "0 0 auto" }}
-				>
-					<div className={`flex items-center justify-center ${recording ? "gap-1.5" : ""}`}>
-						{recording
-							? getIcon("stop", paused ? "text-amber-400" : "text-red-400")
-							: getIcon("record", hasSelectedSource ? "text-white/80" : "text-white/30")}
-						{recording && (
-							<span
-								className={`${paused ? "text-amber-400" : "text-red-400"} inline-block w-[34px] text-left text-xs font-semibold tabular-nums`}
-							>
-								{formatTimePadded(elapsedSeconds)}
-							</span>
-						)}
-					</div>
-				</button>
+				{/* Record/Stop — span wrapper only when disabled (Chromium skips pointer events on disabled buttons). */}
+				{recordButtonDisabled ? (
+					<Tooltip content={recordTooltip}>
+						<span className="inline-flex rounded-full">{recordButton}</span>
+					</Tooltip>
+				) : (
+					<Tooltip content={recordTooltip}>{recordButton}</Tooltip>
+				)}
 
 				{recording && (
 					<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>

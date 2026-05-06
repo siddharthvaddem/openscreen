@@ -2,6 +2,7 @@ import { Maximize, Minimize, Pause, Play } from "lucide-react";
 import { useScopedT } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { Tooltip } from "../ui/tooltip";
 
 interface PlaybackControlsProps {
 	isPlaying: boolean;
@@ -37,25 +38,30 @@ export default function PlaybackControls({
 
 	const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+	const playPauseTooltip = isPlaying ? t("playback.pause") : t("playback.play");
+	const fullscreenTooltip = isFullscreen ? t("playback.exitFullscreen") : t("playback.fullscreen");
+
 	return (
 		<div className="flex items-center gap-2 px-1 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-xl transition-all duration-300 hover:bg-black/70 hover:border-white/20">
-			<Button
-				onClick={onTogglePlayPause}
-				size="icon"
-				className={cn(
-					"w-8 h-8 rounded-full transition-all duration-200 border border-white/10",
-					isPlaying
-						? "bg-white/10 text-white hover:bg-white/20"
-						: "bg-white text-black hover:bg-white/90 hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.3)]",
-				)}
-				aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
-			>
-				{isPlaying ? (
-					<Pause className="w-3.5 h-3.5 fill-current" />
-				) : (
-					<Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-				)}
-			</Button>
+			<Tooltip content={playPauseTooltip}>
+				<Button
+					onClick={onTogglePlayPause}
+					size="icon"
+					className={cn(
+						"w-8 h-8 rounded-full transition-all duration-200 border border-white/10",
+						isPlaying
+							? "bg-white/10 text-white hover:bg-white/20"
+							: "bg-white text-black hover:bg-white/90 hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.3)]",
+					)}
+					aria-label={playPauseTooltip}
+				>
+					{isPlaying ? (
+						<Pause className="w-3.5 h-3.5 fill-current" />
+					) : (
+						<Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+					)}
+				</Button>
+			</Tooltip>
 
 			<span className="text-[9px] font-medium text-slate-300 tabular-nums w-[30px] text-right">
 				{formatTime(currentTime)}
@@ -93,18 +99,20 @@ export default function PlaybackControls({
 			</span>
 
 			{onToggleFullscreen && (
-				<Button
-					onClick={onToggleFullscreen}
-					size="icon"
-					className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent hover:bg-white/10 text-white hover:border-white/10 shrink-0 shadow-none ml-0.5"
-					aria-label={isFullscreen ? t("playback.exitFullscreen") : t("playback.fullscreen")}
-				>
-					{isFullscreen ? (
-						<Minimize className="w-3.5 h-3.5" />
-					) : (
-						<Maximize className="w-3.5 h-3.5" />
-					)}
-				</Button>
+				<Tooltip content={fullscreenTooltip}>
+					<Button
+						onClick={onToggleFullscreen}
+						size="icon"
+						className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent hover:bg-white/10 text-white hover:border-white/10 shrink-0 shadow-none ml-0.5"
+						aria-label={fullscreenTooltip}
+					>
+						{isFullscreen ? (
+							<Minimize className="w-3.5 h-3.5" />
+						) : (
+							<Maximize className="w-3.5 h-3.5" />
+						)}
+					</Button>
+				</Tooltip>
 			)}
 		</div>
 	);

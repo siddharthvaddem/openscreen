@@ -6,6 +6,8 @@
 		"cancelRecording": "Annuler l'enregistrement",
 		"pauseRecording": "Mettre en pause l'enregistrement",
 		"resumeRecording": "Reprendre l'enregistrement",
+		"startRecording": "Démarrer l'enregistrement",
+		"stopRecording": "Arrêter l'enregistrement",
 		"openVideoFile": "Ouvrir un fichier vidéo",
 		"openProject": "Ouvrir un projet"
 	},

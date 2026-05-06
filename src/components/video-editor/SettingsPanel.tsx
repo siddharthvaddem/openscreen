@@ -34,6 +34,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useScopedT } from "@/contexts/I18nContext";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
@@ -329,6 +330,7 @@ export function SettingsPanel({
 	onWebcamSizePresetCommit,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
+	const tc = useScopedT("common");
 	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
 	// `/wallpapers/wallpaperN.jpg` form in WALLPAPER_PATHS is what gets persisted
 	// on click — never the machine-specific file:// URL.
@@ -1416,14 +1418,17 @@ export function SettingsPanel({
 								<span className="text-xl font-bold text-slate-200">{t("crop.cropVideo")}</span>
 								<p className="text-sm text-slate-400 mt-2">{t("crop.dragInstruction")}</p>
 							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={handleCropCancel}
-								className="hover:bg-white/10 text-slate-400 hover:text-white"
-							>
-								<X className="w-5 h-5" />
-							</Button>
+							<Tooltip content={tc("actions.close")}>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={handleCropCancel}
+									className="hover:bg-white/10 text-slate-400 hover:text-white"
+									aria-label={tc("actions.close")}
+								>
+									<X className="w-5 h-5" />
+								</Button>
+							</Tooltip>
 						</div>
 						<CropControl
 							videoElement={videoElement || null}

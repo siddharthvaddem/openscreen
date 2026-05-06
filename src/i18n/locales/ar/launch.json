@@ -6,6 +6,8 @@
 		"cancelRecording": "إلغاء التسجيل",
 		"pauseRecording": "إيقاف التسجيل مؤقتاً",
 		"resumeRecording": "استئناف التسجيل",
+		"startRecording": "بدء التسجيل",
+		"stopRecording": "إيقاف التسجيل",
 		"openVideoFile": "فتح ملف فيديو",
 		"openProject": "فتح مشروع"
 	},

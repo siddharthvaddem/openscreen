@@ -6,6 +6,8 @@
 		"cancelRecording": "取消录制",
 		"pauseRecording": "暂停录制",
 		"resumeRecording": "继续录制",
+		"startRecording": "开始录制",
+		"stopRecording": "停止录制",
 		"openVideoFile": "打开视频文件",
 		"openProject": "打开项目"
 	},

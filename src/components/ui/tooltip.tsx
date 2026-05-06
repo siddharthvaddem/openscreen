@@ -3,6 +3,9 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/** Default gap above/beside triggers — matches HUD “Open video” spacing across app tooltips. */
+export const STANDARD_TOOLTIP_SIDE_OFFSET = 10;
+
 function TooltipProvider({
 	delayDuration = 200,
 	...props
@@ -26,7 +29,7 @@ function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimiti
 
 function TooltipContent({
 	className,
-	sideOffset = 6,
+	sideOffset = STANDARD_TOOLTIP_SIDE_OFFSET,
 	...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
 	return (
@@ -49,18 +52,20 @@ function TooltipContent({
 function Tooltip({
 	children,
 	content,
-	side,
+	side = "top",
+	sideOffset = STANDARD_TOOLTIP_SIDE_OFFSET,
 	className,
 }: {
 	children: React.ReactNode;
 	content: React.ReactNode;
 	side?: "top" | "right" | "bottom" | "left";
+	sideOffset?: number;
 	className?: string;
 }) {
 	return (
 		<TooltipRoot>
 			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side={side} className={className}>
+			<TooltipContent side={side} sideOffset={sideOffset} className={className}>
 				{content}
 			</TooltipContent>
 		</TooltipRoot>

@@ -20,6 +20,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { matchesShortcut } from "@/lib/shortcuts";
@@ -1448,70 +1449,82 @@ export default function TimelineEditor({
 		<div className="flex-1 flex flex-col bg-[#09090b] overflow-hidden">
 			<div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-[#09090b]">
 				<div className="flex items-center gap-1">
-					<Button
-						onClick={handleAddZoom}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
-						title={t("buttons.addZoom")}
-					>
-						<ZoomIn className="w-4 h-4" />
-					</Button>
-					<Button
-						onClick={handleSuggestZooms}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
-						title={t("buttons.suggestZooms")}
-					>
-						<WandSparkles className="w-4 h-4" />
-					</Button>
-					<Button
-						onClick={handleAddTrim}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
-						title={t("buttons.addTrim")}
-					>
-						<Scissors className="w-4 h-4" />
-					</Button>
-					<Button
-						onClick={handleAddAnnotation}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
-						title={t("buttons.addAnnotation")}
-					>
-						<MessageSquare className="w-4 h-4" />
-					</Button>
-					<Button
-						onClick={handleAddBlur}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#7dd3fc] hover:bg-[#7dd3fc]/10 transition-all"
-						title={t("buttons.addBlur")}
-					>
-						<svg
-							className="w-4 h-4"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
+					<Tooltip content={t("buttons.addZoom")}>
+						<Button
+							onClick={handleAddZoom}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
+							aria-label={t("buttons.addZoom")}
 						>
-							<circle cx="8" cy="12" r="3" />
-							<circle cx="16" cy="12" r="3" />
-							<path d="M6 6h12M6 18h12" />
-						</svg>
-					</Button>
-					<Button
-						onClick={handleAddSpeed}
-						variant="ghost"
-						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
-						title={t("buttons.addSpeed")}
-					>
-						<Gauge className="w-4 h-4" />
-					</Button>
+							<ZoomIn className="w-4 h-4" />
+						</Button>
+					</Tooltip>
+					<Tooltip content={t("buttons.suggestZooms")}>
+						<Button
+							onClick={handleSuggestZooms}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
+							aria-label={t("buttons.suggestZooms")}
+						>
+							<WandSparkles className="w-4 h-4" />
+						</Button>
+					</Tooltip>
+					<Tooltip content={t("buttons.addTrim")}>
+						<Button
+							onClick={handleAddTrim}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+							aria-label={t("buttons.addTrim")}
+						>
+							<Scissors className="w-4 h-4" />
+						</Button>
+					</Tooltip>
+					<Tooltip content={t("buttons.addAnnotation")}>
+						<Button
+							onClick={handleAddAnnotation}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
+							aria-label={t("buttons.addAnnotation")}
+						>
+							<MessageSquare className="w-4 h-4" />
+						</Button>
+					</Tooltip>
+					<Tooltip content={t("buttons.addBlur")}>
+						<Button
+							onClick={handleAddBlur}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#7dd3fc] hover:bg-[#7dd3fc]/10 transition-all"
+							aria-label={t("buttons.addBlur")}
+						>
+							<svg
+								className="w-4 h-4"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<circle cx="8" cy="12" r="3" />
+								<circle cx="16" cy="12" r="3" />
+								<path d="M6 6h12M6 18h12" />
+							</svg>
+						</Button>
+					</Tooltip>
+					<Tooltip content={t("buttons.addSpeed")}>
+						<Button
+							onClick={handleAddSpeed}
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
+							aria-label={t("buttons.addSpeed")}
+						>
+							<Gauge className="w-4 h-4" />
+						</Button>
+					</Tooltip>
 				</div>
 				<div className="flex items-center gap-2">
 					<DropdownMenu>

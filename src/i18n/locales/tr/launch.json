@@ -6,6 +6,8 @@
 		"cancelRecording": "Kaydı iptal et",
 		"pauseRecording": "Kaydı duraklat",
 		"resumeRecording": "Kayda devam et",
+		"startRecording": "Kaydı başlat",
+		"stopRecording": "Kaydı durdur",
 		"openVideoFile": "Video dosyası aç",
 		"openProject": "Proje aç"
 	},

@@ -6,6 +6,8 @@
 		"cancelRecording": "녹화 취소",
 		"pauseRecording": "녹화 일시정지",
 		"resumeRecording": "녹화 재개",
+		"startRecording": "녹화 시작",
+		"stopRecording": "녹화 중지",
 		"openVideoFile": "비디오 파일 열기",
 		"openProject": "프로젝트 열기"
 	},

@@ -1,6 +1,11 @@
 /* Electron-specific: no Tailwind equivalent for -webkit-app-region */
 .electronDrag {
 	-webkit-app-region: drag;
+	cursor: grab;
+}
+
+.electronDrag:active {
+	cursor: grabbing;
 }
 
 .electronNoDrag {

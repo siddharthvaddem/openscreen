@@ -6,6 +6,8 @@
 		"cancelRecording": "録画をキャンセル",
 		"pauseRecording": "録画を一時停止",
 		"resumeRecording": "録画を再開",
+		"startRecording": "録画を開始",
+		"stopRecording": "録画を停止",
 		"openVideoFile": "動画ファイルを開く",
 		"openProject": "プロジェクトを開く"
 	},

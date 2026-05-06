@@ -1,6 +1,7 @@
 import { Download, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useScopedT } from "@/contexts/I18nContext";
 import type { ExportProgress } from "@/lib/exporter";
 
@@ -28,6 +29,7 @@ export function ExportDialog({
 	onShowInFolder,
 }: ExportDialogProps) {
 	const t = useScopedT("dialogs");
+	const tc = useScopedT("common");
 	const [showSuccess, setShowSuccess] = useState(false);
 
 	// Reset showSuccess when a new export starts or dialog reopens
@@ -144,14 +146,17 @@ export function ExportDialog({
 						)}
 					</div>
 					{!isExporting && (
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={onClose}
-							className="hover:bg-white/10 text-slate-400 hover:text-white rounded-full"
-						>
-							<X className="w-5 h-5" />
-						</Button>
+						<Tooltip content={tc("actions.close")}>
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={onClose}
+								className="hover:bg-white/10 text-slate-400 hover:text-white rounded-full"
+								aria-label={tc("actions.close")}
+							>
+								<X className="w-5 h-5" />
+							</Button>
+						</Tooltip>
 					)}
 				</div>
 
