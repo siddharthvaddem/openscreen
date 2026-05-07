@@ -9,12 +9,13 @@
 			"auto": "自动",
 			"autoDescription": "摄像头跟随录制时的光标位置"
 		},
-		"speed": {
-			"title": "缩放速度",
-			"instant": "即时",
-			"fast": "快速",
-			"smooth": "平滑",
-			"lazy": "缓慢"
+		"threeD": {
+			"title": "3D 旋转",
+			"preset": {
+				"iso": "Iso",
+				"left": "左",
+				"right": "右"
+			}
 		}
 	},
 	"speed": {
@@ -52,7 +53,9 @@
 		"color": "颜色",
 		"gradient": "渐变",
 		"uploadCustom": "上传自定义",
-		"gradientLabel": "渐变 {{index}}"
+		"gradientLabel": "渐变 {{index}}",
+		"colorWheel": "颜色轮",
+		"colorPalette": "颜色调色板"
 	},
 	"crop": {
 		"title": "裁剪",
@@ -120,6 +123,8 @@
 		"background": "背景",
 		"none": "无",
 		"color": "颜色",
+		"colorWheel": "颜色轮",
+		"colorPalette": "颜色调色板",
 		"clearBackground": "清除背景",
 		"uploadImage": "上传图片",
 		"supportedFormats": "支持的格式：JPG、PNG、GIF、WebP",
@@ -144,7 +149,14 @@
 			"label": "填充",
 			"toggle": "启用填充",
 			"opacity": "不透明度"
-		}
+		},
+		"blurColor": "模糊颜色",
+		"blurColorBlack": "黑色",
+		"blurColorWhite": "白色",
+		"blurType": "模糊类型",
+		"blurTypeBlur": "模糊",
+		"blurTypeMosaic": "马赛克模糊",
+		"mosaicBlockSize": "马赛克块大小"
 	},
 	"fontStyles": {
 		"classic": "经典",

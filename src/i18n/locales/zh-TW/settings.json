@@ -15,6 +15,14 @@
 			"fast": "快速",
 			"smooth": "平滑",
 			"lazy": "緩慢"
+		},
+		"threeD": {
+			"title": "3D 旋轉",
+			"preset": {
+				"iso": "Iso",
+				"left": "左",
+				"right": "右"
+			}
 		}
 	},
 	"speed": {
@@ -52,7 +60,9 @@
 		"color": "顏色",
 		"gradient": "漸層",
 		"uploadCustom": "上傳自訂",
-		"gradientLabel": "漸層 {{index}}"
+		"gradientLabel": "漸層 {{index}}",
+		"colorWheel": "色輪",
+		"colorPalette": "調色盤"
 	},
 	"crop": {
 		"title": "裁剪",
@@ -120,6 +130,8 @@
 		"background": "背景",
 		"none": "無",
 		"color": "顏色",
+		"colorWheel": "色輪",
+		"colorPalette": "調色盤",
 		"clearBackground": "清除背景",
 		"uploadImage": "上傳圖片",
 		"supportedFormats": "支援的格式：JPG、PNG、GIF、WebP",
@@ -144,7 +156,14 @@
 			"label": "填滿",
 			"toggle": "啟用填滿",
 			"opacity": "不透明度"
-		}
+		},
+		"blurColor": "模糊顏色",
+		"blurColorBlack": "黑色",
+		"blurColorWhite": "白色",
+		"blurType": "模糊類型",
+		"blurTypeBlur": "模糊",
+		"blurTypeMosaic": "馬賽克模糊",
+		"mosaicBlockSize": "馬賽克區塊大小"
 	},
 	"fontStyles": {
 		"classic": "經典",

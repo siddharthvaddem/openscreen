@@ -9,12 +9,13 @@
 			"auto": "Auto",
 			"autoDescription": "Camera follows the recorded cursor position"
 		},
-		"speed": {
-			"title": "Zoom Speed",
-			"instant": "Instant",
-			"fast": "Fast",
-			"smooth": "Smooth",
-			"lazy": "Lazy"
+		"threeD": {
+			"title": "3D Rotation",
+			"preset": {
+				"iso": "Iso",
+				"left": "Left",
+				"right": "Right"
+			}
 		}
 	},
 	"speed": {
@@ -42,9 +43,23 @@
 		"blurBg": "Blur BG",
 		"motionBlur": "Motion Blur",
 		"off": "off",
+		"on": "on",
 		"shadow": "Shadow",
 		"roundness": "Roundness",
-		"padding": "Padding"
+		"padding": "Padding",
+		"cursorHighlight": {
+			"title": "Cursor highlight",
+			"style": "Style",
+			"dot": "Dot",
+			"ring": "Ring",
+			"size": "Size",
+			"onlyOnClicks": "Only on clicks",
+			"color": "Color",
+			"offsetX": "Offset X (window recordings)",
+			"offsetY": "Offset Y",
+			"accessibilityPermissionTitle": "Accessibility permission needed",
+			"accessibilityPermissionDescription": "Open System Settings → Privacy & Security → Accessibility, enable Openscreen, then restart the app."
+		}
 	},
 	"background": {
 		"title": "Background",
@@ -52,7 +67,9 @@
 		"color": "Color",
 		"gradient": "Gradient",
 		"uploadCustom": "Upload Custom",
-		"gradientLabel": "Gradient {{index}}"
+		"gradientLabel": "Gradient {{index}}",
+		"colorWheel": "Color Wheel",
+		"colorPalette": "Color Palette"
 	},
 	"crop": {
 		"title": "Crop",
@@ -120,6 +137,8 @@
 		"background": "Background",
 		"none": "None",
 		"color": "Color",
+		"colorWheel": "Color Wheel",
+		"colorPalette": "Color Palette",
 		"clearBackground": "Clear Background",
 		"uploadImage": "Upload Image",
 		"supportedFormats": "Supported formats: JPG, PNG, GIF, WebP",

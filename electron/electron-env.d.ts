@@ -37,6 +37,11 @@ interface Window {
 			status: string;
 			error?: string;
 		}>;
+		requestAccessibilityAccess: () => Promise<{
+			success: boolean;
+			granted: boolean;
+			error?: string;
+		}>;
 		assetBaseUrl: string;
 		storeRecordedVideo: (
 			videoData: ArrayBuffer,
@@ -63,10 +68,12 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
-		setRecordingState: (recording: boolean) => Promise<void>;
+		setRecordingState: (recording: boolean, recordingId?: number) => Promise<void>;
+		discardCursorTelemetry: (recordingId: number) => Promise<void>;
 		getCursorTelemetry: (videoPath?: string) => Promise<{
 			success: boolean;
 			samples: CursorTelemetryPoint[];
+			clicks: number[];
 			message?: string;
 			error?: string;
 		}>;

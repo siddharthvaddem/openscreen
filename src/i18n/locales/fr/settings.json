@@ -15,6 +15,14 @@
 			"fast": "Rapide",
 			"smooth": "Fluide",
 			"lazy": "Lent"
+		},
+		"threeD": {
+			"title": "Rotation 3D",
+			"preset": {
+				"iso": "Iso",
+				"left": "Gauche",
+				"right": "Droite"
+			}
 		}
 	},
 	"speed": {
@@ -52,7 +60,9 @@
 		"color": "Couleur",
 		"gradient": "Dégradé",
 		"uploadCustom": "Téléverser une image",
-		"gradientLabel": "Dégradé {{index}}"
+		"gradientLabel": "Dégradé {{index}}",
+		"colorWheel": "Roue chromatique",
+		"colorPalette": "Palette de couleurs"
 	},
 	"crop": {
 		"title": "Recadrage",
@@ -120,6 +130,8 @@
 		"background": "Arrière-plan",
 		"none": "Aucun",
 		"color": "Couleur",
+		"colorWheel": "Roue chromatique",
+		"colorPalette": "Palette de couleurs",
 		"clearBackground": "Supprimer l'arrière-plan",
 		"uploadImage": "Téléverser une image",
 		"supportedFormats": "Formats supportés : JPG, PNG, GIF, WebP",

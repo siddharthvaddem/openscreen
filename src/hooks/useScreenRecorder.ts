@@ -122,11 +122,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	}, []);
 
 	const selectMimeType = () => {
+		// H.264 first: hardware-accelerated on all modern devices, gives sharp
+		// real-time output. AV1/VP9 are great for distribution but too
+		// CPU-intensive for live 60 fps capture — they produce blurry frames
+		// when the software encoder can't keep up.
 		const preferred = [
-			"video/webm;codecs=av1",
 			"video/webm;codecs=h264",
-			"video/webm;codecs=vp9",
 			"video/webm;codecs=vp8",
+			"video/webm;codecs=vp9",
+			"video/webm;codecs=av1",
 			"video/webm",
 		];
 
@@ -304,6 +308,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				try {
 					const screenBlob = await activeScreenRecorder.recordedBlobPromise;
 					if (discardRecordingId.current === activeRecordingId) {
+						window.electronAPI?.discardCursorTelemetry(activeRecordingId);
 						return;
 					}
 					if (screenBlob.size === 0) {
@@ -768,7 +773,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			setRecording(true);
 			setPaused(false);
 			setElapsedSeconds(0);
-			window.electronAPI?.setRecordingState(true);
+			window.electronAPI?.setRecordingState(true, recordingId.current);
 
 			const activeScreenRecorder = screenRecorder.current;
 			const activeWebcamRecorder = webcamRecorder.current;

@@ -7,5 +7,10 @@
 		"allowSyntheticDefaultImports": true,
 		"strict": true
 	},
-	"include": ["vite.config.ts"]
+	"include": [
+		"vite.config.ts",
+		"electron-builder.json5",
+		"playwright.config.ts",
+		"vitest.config.ts"
+	]
 }

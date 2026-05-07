@@ -20,7 +20,8 @@
 		"addAnnotation": "주석 추가",
 		"addKeyframe": "키프레임 추가",
 		"deleteSelected": "선택 항목 삭제",
-		"playPause": "재생 / 일시정지"
+		"playPause": "재생 / 일시정지",
+		"addBlur": "블러 추가"
 	},
 	"fixedActions": {
 		"undo": "실행 취소",

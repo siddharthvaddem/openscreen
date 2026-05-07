@@ -1,0 +1,37 @@
+{
+	"title": "キーボードショートカット",
+	"customize": "カスタマイズ",
+	"configurable": "設定可能",
+	"fixed": "固定",
+	"pressKey": "キーを押してください…",
+	"clickToChange": "クリックして変更",
+	"pressEscToCancel": "Escキーを押してキャンセル",
+	"helpText": "ショートカットをクリックして新しいキーの組み合わせを押します。Escキーを押してキャンセルします。",
+	"resetToDefaults": "デフォルトにリセット",
+	"alreadyUsedBy": "すでに {{action}} に使用されています",
+	"swap": "入れ替え",
+	"reservedShortcut": "このショートカットは \"{{label}}\" に予約されており、再割り当てできません。",
+	"savedToast": "キーボードショートカットが保存されました",
+	"resetToast": "デフォルトのショートカットにリセット — 保存をクリックして適用",
+	"actions": {
+		"addZoom": "ズームを追加",
+		"addTrim": "トリムを追加",
+		"addSpeed": "速度を追加",
+		"addAnnotation": "注釈を追加",
+		"addBlur": "ぼかしを追加",
+		"addKeyframe": "キーフレームを追加",
+		"deleteSelected": "選択を削除",
+		"playPause": "再生 / 一時停止"
+	},
+	"fixedActions": {
+		"undo": "元に戻す",
+		"redo": "やり直す",
+		"cycleAnnotationsForward": "注釈を順に切り替え",
+		"cycleAnnotationsBackward": "注釈を逆順に切り替え",
+		"deleteSelectedAlt": "選択を削除 (alt)",
+		"panTimeline": "タイムラインをパン",
+		"zoomTimeline": "タイムラインをズーム",
+		"frameBack": "フレームを戻す",
+		"frameForward": "フレームを進める"
+	}
+}

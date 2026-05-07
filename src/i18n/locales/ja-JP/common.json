@@ -1,0 +1,30 @@
+{
+	"actions": {
+		"cancel": "キャンセル",
+		"save": "保存",
+		"delete": "削除",
+		"close": "閉じる",
+		"share": "共有",
+		"done": "完了",
+		"open": "開く",
+		"upload": "読み込む",
+		"export": "エクスポート",
+		"showInFolder": "フォルダに表示",
+		"file": "ファイル",
+		"edit": "編集",
+		"view": "表示",
+		"window": "ウィンドウ",
+		"quit": "終了",
+		"stopRecording": "録画を停止"
+	},
+	"playback": {
+		"play": "再生",
+		"pause": "一時停止",
+		"fullscreen": "全画面表示",
+		"exitFullscreen": "全画面表示を終了"
+	},
+	"locale": {
+		"name": "日本語",
+		"short": "JA"
+	}
+}

@@ -9,12 +9,13 @@
 			"auto": "Auto",
 			"autoDescription": "La cámara sigue la posición del cursor grabado"
 		},
-		"speed": {
-			"title": "Velocidad de zoom",
-			"instant": "Instantáneo",
-			"fast": "Rápido",
-			"smooth": "Suave",
-			"lazy": "Lento"
+		"threeD": {
+			"title": "Rotación 3D",
+			"preset": {
+				"iso": "Iso",
+				"left": "Izquierda",
+				"right": "Derecha"
+			}
 		}
 	},
 	"speed": {
@@ -52,7 +53,9 @@
 		"color": "Color",
 		"gradient": "Degradado",
 		"uploadCustom": "Subir personalizado",
-		"gradientLabel": "Degradado {{index}}"
+		"gradientLabel": "Degradado {{index}}",
+		"colorWheel": "Rueda de colores",
+		"colorPalette": "Paleta de colores"
 	},
 	"crop": {
 		"title": "Recortar",
@@ -120,6 +123,8 @@
 		"background": "Fondo",
 		"none": "Ninguno",
 		"color": "Color",
+		"colorWheel": "Rueda de colores",
+		"colorPalette": "Paleta de colores",
 		"clearBackground": "Quitar fondo",
 		"uploadImage": "Subir imagen",
 		"supportedFormats": "Formatos compatibles: JPG, PNG, GIF, WebP",

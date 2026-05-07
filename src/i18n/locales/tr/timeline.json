@@ -19,6 +19,8 @@
 	"labels": {
 		"pan": "Kaydır",
 		"zoom": "Yakınlaştır",
+		"trim": "Kırp",
+		"speed": "Hız",
 		"zoomItem": "Yakınlaştırma {{index}}",
 		"trimItem": "Kırpma {{index}}",
 		"speedItem": "Hız {{index}}",

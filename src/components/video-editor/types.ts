@@ -26,6 +26,37 @@ export interface ZoomFocus {
 	cy: number; // normalized vertical center (0-1)
 }
 
+export interface Rotation3D {
+	rotationX: number;
+	rotationY: number;
+	rotationZ: number;
+}
+
+export const DEFAULT_ROTATION_3D: Rotation3D = {
+	rotationX: 0,
+	rotationY: 0,
+	rotationZ: 0,
+};
+
+export type Rotation3DPreset = "iso" | "left" | "right";
+
+export const ROTATION_3D_PRESETS: Record<Rotation3DPreset, Rotation3D> = {
+	iso: { rotationX: -10, rotationY: -16, rotationZ: 0 },
+	left: { rotationX: 0, rotationY: -22, rotationZ: 0 },
+	right: { rotationX: 0, rotationY: 22, rotationZ: 0 },
+};
+
+export const ROTATION_3D_PRESET_ORDER: Rotation3DPreset[] = ["iso", "left", "right"];
+
+/** Perspective distance in CSS px is computed at render-time as this factor times
+ * min(viewport width, viewport height). Same factor used in preview and export so
+ * the visual look is identical regardless of canvas resolution. */
+export const ROTATION_3D_PERSPECTIVE_FACTOR = 2.6;
+
+export function rotation3DPerspective(width: number, height: number): number {
+	return Math.min(width, height) * ROTATION_3D_PERSPECTIVE_FACTOR;
+}
+
 export interface ZoomRegion {
 	id: string;
 	startMs: number;
@@ -33,8 +64,104 @@ export interface ZoomRegion {
 	depth: ZoomDepth;
 	focus: ZoomFocus;
 	focusMode?: ZoomFocusMode;
-	zoomInDurationMs?: number;
-	zoomOutDurationMs?: number;
+	rotationPreset?: Rotation3DPreset;
+}
+
+export function getRotation3D(region: Pick<ZoomRegion, "rotationPreset">): Rotation3D {
+	if (!region.rotationPreset) return DEFAULT_ROTATION_3D;
+	return ROTATION_3D_PRESETS[region.rotationPreset];
+}
+
+export function isRotation3DIdentity(r: Rotation3D, eps = 0.01): boolean {
+	return Math.abs(r.rotationX) < eps && Math.abs(r.rotationY) < eps && Math.abs(r.rotationZ) < eps;
+}
+
+export function lerpRotation3D(a: Rotation3D, b: Rotation3D, t: number): Rotation3D {
+	return {
+		rotationX: a.rotationX + (b.rotationX - a.rotationX) * t,
+		rotationY: a.rotationY + (b.rotationY - a.rotationY) * t,
+		rotationZ: a.rotationZ + (b.rotationZ - a.rotationZ) * t,
+	};
+}
+
+/**
+ * Compute the maximum uniform scale that, when applied alongside `rot` and a perspective
+ * of `perspective` CSS px, keeps the projected bounding box of a `width × height` element
+ * inside its original `width × height` rectangle. Returns 1 when no scaling is needed.
+ *
+ * Math: project each rotated corner onto the screen via x' = x·P/(P−z); take the worst-case
+ * |x'|/|y'| against the half-extents and return the limiting ratio. This makes the rotated
+ * recording sit *inside* the zoom window instead of bleeding past it.
+ */
+export function computeRotation3DContainScale(
+	rot: Rotation3D,
+	width: number,
+	height: number,
+	perspective: number,
+): number {
+	const a = (rot.rotationX * Math.PI) / 180;
+	const b = (rot.rotationY * Math.PI) / 180;
+	const g = (rot.rotationZ * Math.PI) / 180;
+	const ca = Math.cos(a);
+	const sa = Math.sin(a);
+	const cb = Math.cos(b);
+	const sb = Math.sin(b);
+	const cg = Math.cos(g);
+	const sg = Math.sin(g);
+	const halfW = width / 2;
+	const halfH = height / 2;
+	const corners: Array<[number, number]> = [
+		[-halfW, -halfH],
+		[halfW, -halfH],
+		[halfW, halfH],
+		[-halfW, halfH],
+	];
+
+	let maxAbsX = 0;
+	let maxAbsY = 0;
+
+	for (const [x0, y0] of corners) {
+		// CSS "rotateX(α) rotateY(β) rotateZ(γ)" reads right-to-left: Z first, then Y, then X.
+		let px = x0;
+		let py = y0;
+		let pz = 0;
+
+		// rotateZ
+		const zx = px * cg - py * sg;
+		const zy = px * sg + py * cg;
+		px = zx;
+		py = zy;
+
+		// rotateY
+		const yx = px * cb + pz * sb;
+		const yz = -px * sb + pz * cb;
+		px = yx;
+		pz = yz;
+
+		// rotateX
+		const xy = py * ca - pz * sa;
+		const xz = py * sa + pz * ca;
+		py = xy;
+		pz = xz;
+
+		// Perspective projection: viewer at (0, 0, P), looking toward −z. A point at z=pz
+		// is scaled by P / (P − pz). When perspective ≤ 0 we treat as orthographic.
+		if (perspective > 0) {
+			const denom = perspective - pz;
+			if (denom <= 0) return 1; // pathological — skip scaling rather than crash
+			const f = perspective / denom;
+			px *= f;
+			py *= f;
+		}
+
+		if (Math.abs(px) > maxAbsX) maxAbsX = Math.abs(px);
+		if (Math.abs(py) > maxAbsY) maxAbsY = Math.abs(py);
+	}
+
+	if (maxAbsX === 0 || maxAbsY === 0) return 1;
+	const sx = halfW / maxAbsX;
+	const sy = halfH / maxAbsY;
+	return Math.min(sx, sy, 1);
 }
 
 export interface CursorTelemetryPoint {

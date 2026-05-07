@@ -25,6 +25,20 @@ export default function App() {
 			document.documentElement.style.background = "transparent";
 			document.getElementById("root")?.style.setProperty("background", "transparent");
 		}
+
+		// HUD is a fixed-size BrowserWindow; pin the document shell and hide overflow
+		// so the renderer can't introduce scrollbars (see issue #305).
+		if (type === "hud-overlay") {
+			document.documentElement.style.height = "100%";
+			document.documentElement.style.overflow = "hidden";
+			document.body.style.height = "100%";
+			document.body.style.margin = "0";
+			document.body.style.overflow = "hidden";
+			const root = document.getElementById("root");
+			root?.style.setProperty("height", "100%");
+			root?.style.setProperty("min-height", "0");
+			root?.style.setProperty("overflow", "hidden");
+		}
 	}, [windowType]);
 
 	useEffect(() => {

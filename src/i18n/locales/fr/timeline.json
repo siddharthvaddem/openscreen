@@ -19,6 +19,8 @@
 	"labels": {
 		"pan": "Panoramique",
 		"zoom": "Zoom",
+		"trim": "Couper",
+		"speed": "Vitesse",
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Coupe {{index}}",
 		"speedItem": "Vitesse {{index}}",

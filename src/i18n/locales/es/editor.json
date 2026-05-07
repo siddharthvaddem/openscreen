@@ -34,5 +34,12 @@
 		"cameraDisconnected": "Cámara web desconectada.",
 		"cameraNotFound": "Cámara no encontrada.",
 		"permissionDenied": "Permiso de grabación denegado. Por favor permite la grabación de pantalla."
+	},
+	"loadingVideo": "Cargando video...",
+	"newRecording": {
+		"title": "Volver a la grabadora",
+		"description": "Tu sesión actual ha sido guardada.",
+		"cancel": "Cancelar",
+		"confirm": "Confirmar"
 	}
 }

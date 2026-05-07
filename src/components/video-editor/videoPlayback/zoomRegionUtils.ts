@@ -1,5 +1,5 @@
-import type { CursorTelemetryPoint, ZoomFocus, ZoomRegion } from "../types";
-import { ZOOM_DEPTH_SCALES } from "../types";
+import type { CursorTelemetryPoint, Rotation3D, ZoomFocus, ZoomRegion } from "../types";
+import { DEFAULT_ROTATION_3D, getRotation3D, lerpRotation3D, ZOOM_DEPTH_SCALES } from "../types";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./constants";
 import { interpolateCursorAt } from "./cursorFollowUtils";
 import { clampFocusToScale } from "./focusUtils";
@@ -7,6 +7,7 @@ import { clamp01, cubicBezier, easeOutScreenStudio } from "./mathUtils";
 
 const CHAINED_ZOOM_PAN_GAP_MS = 1500;
 const CONNECTED_ZOOM_PAN_DURATION_MS = 1000;
+const ZOOM_IN_OVERLAP_MS = 500;
 
 type DominantRegionOptions = {
 	connectZooms?: boolean;
@@ -37,49 +38,26 @@ function easeConnectedPan(value: number) {
 	return cubicBezier(0.1, 0.0, 0.2, 1.0, value);
 }
 
-export const DEFAULT_ZOOM_OUT_MS = TRANSITION_WINDOW_MS;
-export const DEFAULT_ZOOM_IN_MS = ZOOM_IN_TRANSITION_WINDOW_MS;
-
-export function getDurations(region: {
-	startMs: number;
-	endMs: number;
-	zoomInDurationMs?: number;
-	zoomOutDurationMs?: number;
-}) {
-	let zoomIn = region.zoomInDurationMs ?? DEFAULT_ZOOM_IN_MS;
-	let zoomOut = region.zoomOutDurationMs ?? DEFAULT_ZOOM_OUT_MS;
-
-	const duration = region.endMs - region.startMs;
-	if (zoomIn + zoomOut > duration) {
-		const scale = duration / (zoomIn + zoomOut);
-		zoomIn *= scale;
-		zoomOut *= scale;
-	}
-
-	return { zoomIn, zoomOut };
-}
-
 export function computeRegionStrength(region: ZoomRegion, timeMs: number) {
-	const { zoomIn, zoomOut } = getDurations(region);
+	const zoomInEnd = region.startMs + ZOOM_IN_OVERLAP_MS;
+	const leadInStart = zoomInEnd - ZOOM_IN_TRANSITION_WINDOW_MS;
+	const leadOutEnd = region.endMs + TRANSITION_WINDOW_MS;
 
-	if (timeMs < region.startMs || timeMs > region.endMs) {
+	if (timeMs < leadInStart || timeMs > leadOutEnd) {
 		return 0;
 	}
 
-	// Zooming in
-	if (timeMs < region.startMs + zoomIn) {
-		const progress = Math.max(0, Math.min(1, (timeMs - region.startMs) / zoomIn));
+	if (timeMs < zoomInEnd) {
+		const progress = (timeMs - leadInStart) / ZOOM_IN_TRANSITION_WINDOW_MS;
 		return easeOutScreenStudio(progress);
 	}
 
-	// Zooming out
-	if (timeMs > region.endMs - zoomOut) {
-		const progress = Math.max(0, Math.min(1, (region.endMs - timeMs) / zoomOut));
-		return easeOutScreenStudio(progress);
+	if (timeMs <= region.endMs) {
+		return 1;
 	}
 
-	// Full zoom
-	return 1;
+	const progress = clamp01((timeMs - region.endMs) / TRANSITION_WINDOW_MS);
+	return 1 - easeOutScreenStudio(progress);
 }
 
 function getLinearFocus(start: ZoomFocus, end: ZoomFocus, amount: number): ZoomFocus {
@@ -186,6 +164,7 @@ function getActiveRegion(
 		},
 		strength: activeRegions[0].strength,
 		blendedScale: null,
+		rotation3D: getRotation3D(activeRegion),
 	};
 }
 
@@ -211,6 +190,7 @@ function getConnectedRegionHold(
 				},
 				strength: 1,
 				blendedScale: null,
+				rotation3D: getRotation3D(pair.nextRegion),
 			};
 		}
 	}
@@ -255,6 +235,11 @@ function getConnectedRegionTransition(
 			viewportRatio,
 		);
 		const transitionFocus = getLinearFocus(currentFocus, nextFocus, transitionProgress);
+		const transitionRotation = lerpRotation3D(
+			getRotation3D(currentRegion),
+			getRotation3D(nextRegion),
+			transitionProgress,
+		);
 
 		return {
 			region: {
@@ -263,6 +248,7 @@ function getConnectedRegionTransition(
 			},
 			strength: 1,
 			blendedScale: transitionScale,
+			rotation3D: transitionRotation,
 			transition: {
 				progress: transitionProgress,
 				startFocus: currentFocus,
@@ -276,34 +262,92 @@ function getConnectedRegionTransition(
 	return null;
 }
 
+type DominantRegionResult = {
+	region: ZoomRegion | null;
+	strength: number;
+	blendedScale: number | null;
+	rotation3D: Rotation3D;
+	transition: ConnectedPanTransition | null;
+};
+
+// Single-slot cache: the ticker calls findDominantRegion at 60fps with mostly
+// unchanged inputs (especially while paused). Reusing the previous result when
+// inputs match avoids the per-frame O(N) region scan + allocations.
+let dominantRegionCache: {
+	regions: ZoomRegion[];
+	timeMsKey: number;
+	telemetry: CursorTelemetryPoint[] | undefined;
+	connectZooms: boolean;
+	viewportRatio: ViewportRatio | undefined;
+	result: DominantRegionResult;
+} | null = null;
+
 export function findDominantRegion(
 	regions: ZoomRegion[],
 	timeMs: number,
 	options: DominantRegionOptions = {},
-): {
-	region: ZoomRegion | null;
-	strength: number;
-	blendedScale: number | null;
-	transition: ConnectedPanTransition | null;
-} {
-	const connectedPairs = options.connectZooms ? getConnectedRegionPairs(regions) : [];
+): DominantRegionResult {
+	const connectZooms = !!options.connectZooms;
 	const telemetry = options.cursorTelemetry;
 	const vr = options.viewportRatio;
+	const timeMsKey = Math.round(timeMs);
 
-	if (options.connectZooms) {
-		const connectedTransition = getConnectedRegionTransition(connectedPairs, timeMs, telemetry, vr);
-		if (connectedTransition) {
-			return connectedTransition;
-		}
-
-		const connectedHold = getConnectedRegionHold(timeMs, connectedPairs, telemetry, vr);
-		if (connectedHold) {
-			return { ...connectedHold, transition: null };
-		}
+	if (
+		dominantRegionCache &&
+		dominantRegionCache.regions === regions &&
+		dominantRegionCache.timeMsKey === timeMsKey &&
+		dominantRegionCache.telemetry === telemetry &&
+		dominantRegionCache.connectZooms === connectZooms &&
+		dominantRegionCache.viewportRatio === vr
+	) {
+		return dominantRegionCache.result;
 	}
 
-	const activeRegion = getActiveRegion(regions, timeMs, connectedPairs, telemetry, vr);
-	return activeRegion
-		? { ...activeRegion, transition: null }
-		: { region: null, strength: 0, blendedScale: null, transition: null };
+	const connectedPairs = connectZooms ? getConnectedRegionPairs(regions) : [];
+
+	let result: DominantRegionResult;
+	if (connectZooms) {
+		const connectedTransition = getConnectedRegionTransition(connectedPairs, timeMs, telemetry, vr);
+		if (connectedTransition) {
+			result = connectedTransition;
+		} else {
+			const connectedHold = getConnectedRegionHold(timeMs, connectedPairs, telemetry, vr);
+			if (connectedHold) {
+				result = { ...connectedHold, transition: null };
+			} else {
+				const activeRegion = getActiveRegion(regions, timeMs, connectedPairs, telemetry, vr);
+				result = activeRegion
+					? { ...activeRegion, transition: null }
+					: {
+							region: null,
+							strength: 0,
+							blendedScale: null,
+							rotation3D: DEFAULT_ROTATION_3D,
+							transition: null,
+						};
+			}
+		}
+	} else {
+		const activeRegion = getActiveRegion(regions, timeMs, connectedPairs, telemetry, vr);
+		result = activeRegion
+			? { ...activeRegion, transition: null }
+			: {
+					region: null,
+					strength: 0,
+					blendedScale: null,
+					rotation3D: DEFAULT_ROTATION_3D,
+					transition: null,
+				};
+	}
+
+	dominantRegionCache = {
+		regions,
+		timeMsKey,
+		telemetry,
+		connectZooms,
+		viewportRatio: vr,
+		result,
+	};
+
+	return result;
 }

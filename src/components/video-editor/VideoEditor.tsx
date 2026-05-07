@@ -67,6 +67,7 @@ import {
 	DEFAULT_ZOOM_DEPTH,
 	type FigureData,
 	type PlaybackSpeed,
+	type Rotation3DPreset,
 	type SpeedRegion,
 	type TrimRegion,
 	type ZoomDepth,
@@ -75,7 +76,6 @@ import {
 	type ZoomRegion,
 } from "./types";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
-import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayback/constants";
 
 export default function VideoEditor() {
 	const {
@@ -104,6 +104,7 @@ export default function VideoEditor() {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		cursorHighlight,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -122,6 +123,7 @@ export default function VideoEditor() {
 	const durationRef = useRef(duration);
 	durationRef.current = duration;
 	const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
+	const [cursorClickTimestamps, setCursorClickTimestamps] = useState<number[]>([]);
 	const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
 	const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
 	const [selectedSpeedId, setSelectedSpeedId] = useState<string | null>(null);
@@ -154,10 +156,16 @@ export default function VideoEditor() {
 	const nextSpeedIdRef = useRef(1);
 
 	const { shortcuts, isMac } = useShortcuts();
+	// Off-Mac doesn't have click telemetry, so force `onlyOnClicks` off for
+	// renderers while keeping the persisted value intact for round-tripping.
+	const effectiveCursorHighlight = useMemo(
+		() => (isMac ? cursorHighlight : { ...cursorHighlight, onlyOnClicks: false }),
+		[cursorHighlight, isMac],
+	);
+	const { locale, setLocale, t: rawT } = useI18n();
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
 	const availableLocales = getAvailableLocales();
-	const { locale, setLocale } = useI18n();
 
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
@@ -362,7 +370,10 @@ export default function VideoEditor() {
 					setLastSavedSnapshot(
 						createProjectSnapshot(
 							webcamSourcePath
-								? { screenVideoPath: sourcePath, webcamVideoPath: webcamSourcePath }
+								? {
+										screenVideoPath: sourcePath,
+										webcamVideoPath: webcamSourcePath,
+									}
 								: { screenVideoPath: sourcePath },
 							INITIAL_EDITOR_STATE,
 						),
@@ -428,7 +439,7 @@ export default function VideoEditor() {
 				return false;
 			}
 
-			const projectData = createProjectData(currentProjectMedia, {
+			const editorState = {
 				wallpaper,
 				shadowIntensity,
 				showBlur,
@@ -450,14 +461,18 @@ export default function VideoEditor() {
 				gifFrameRate,
 				gifLoop,
 				gifSizePreset,
-			});
+				cursorHighlight,
+			};
+			const projectData = createProjectData(currentProjectMedia, editorState);
 
 			const fileNameBase =
 				currentProjectMedia.screenVideoPath
 					.split(/[\\/]/)
 					.pop()
 					?.replace(/\.[^.]+$/, "") || `project-${Date.now()}`;
-			const projectSnapshot = JSON.stringify(projectData);
+			// Match the normalization path used by `currentProjectSnapshot` so the
+			// post-save baseline compares equal and `hasUnsavedChanges` clears.
+			const projectSnapshot = createProjectSnapshot(currentProjectMedia, editorState);
 			const result = await window.electronAPI.saveProjectFile(
 				projectData,
 				fileNameBase,
@@ -508,6 +523,7 @@ export default function VideoEditor() {
 			videoPath,
 			t,
 			webcamSizePreset,
+			cursorHighlight,
 		],
 	);
 
@@ -548,18 +564,18 @@ export default function VideoEditor() {
 		}
 
 		if (!result.success) {
-			toast.error(result.message || "Failed to load project");
+			toast.error(result.message || t("project.failedToLoad"));
 			return;
 		}
 
 		const restored = await applyLoadedProject(result.project, result.path ?? null);
 		if (!restored) {
-			toast.error("Invalid project file format");
+			toast.error(t("project.invalidFormat"));
 			return;
 		}
 
-		toast.success(`Project loaded from ${result.path}`);
-	}, [applyLoadedProject]);
+		toast.success(t("project.loadedFrom", { path: result.path ?? "" }));
+	}, [applyLoadedProject, t]);
 
 	useEffect(() => {
 		const removeLoadListener = window.electronAPI.onMenuLoadProject(handleLoadProject);
@@ -582,6 +598,7 @@ export default function VideoEditor() {
 			if (!sourcePath) {
 				if (mounted) {
 					setCursorTelemetry([]);
+					setCursorClickTimestamps([]);
 				}
 				return;
 			}
@@ -590,11 +607,13 @@ export default function VideoEditor() {
 				const result = await window.electronAPI.getCursorTelemetry(sourcePath);
 				if (mounted) {
 					setCursorTelemetry(result.success ? result.samples : []);
+					setCursorClickTimestamps(result.success ? (result.clicks ?? []) : []);
 				}
 			} catch (telemetryError) {
 				console.warn("Unable to load cursor telemetry:", telemetryError);
 				if (mounted) {
 					setCursorTelemetry([]);
+					setCursorClickTimestamps([]);
 				}
 			}
 		}
@@ -819,6 +838,23 @@ export default function VideoEditor() {
 		[selectedZoomId, pushState],
 	);
 
+	const handleZoomRotationPresetChange = useCallback(
+		(preset: Rotation3DPreset | null) => {
+			if (!selectedZoomId) return;
+			pushState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((region) => {
+					if (region.id !== selectedZoomId) return region;
+					if (preset === null) {
+						const { rotationPreset: _p, ...rest } = region;
+						return rest;
+					}
+					return { ...region, rotationPreset: preset };
+				}),
+			}));
+		},
+		[selectedZoomId, pushState],
+	);
+
 	const handleTrimDelete = useCallback(
 		(id: string) => {
 			pushState((prev) => ({
@@ -966,19 +1002,6 @@ export default function VideoEditor() {
 			setSelectedZoomId(null);
 			setSelectedTrimId(null);
 			setSelectedSpeedId(null);
-		},
-		[pushState],
-	);
-
-	const handleZoomDurationChange = useCallback(
-		(id: string, zoomIn: number, zoomOut: number) => {
-			pushState((prev) => ({
-				zoomRegions: prev.zoomRegions.map((region) =>
-					region.id === id
-						? { ...region, zoomInDurationMs: zoomIn, zoomOutDurationMs: zoomOut }
-						: region,
-				),
-			}));
 		},
 		[pushState],
 	);
@@ -1309,17 +1332,22 @@ export default function VideoEditor() {
 	const handleExportSaved = useCallback(
 		(formatLabel: "GIF" | "Video", filePath: string) => {
 			setExportedFilePath(filePath);
-			toast.success(`${formatLabel} exported successfully`, {
-				description: filePath,
-				action: {
-					label: "Show in Folder",
-					onClick: () => {
-						void handleShowExportedFile(filePath);
+			toast.success(
+				t("export.exportedSuccessfully", {
+					format: formatLabel,
+				}),
+				{
+					description: filePath,
+					action: {
+						label: rawT("common.actions.showInFolder"),
+						onClick: () => {
+							void handleShowExportedFile(filePath);
+						},
 					},
 				},
-			});
+			);
 		},
-		[handleShowExportedFile],
+		[handleShowExportedFile, t, rawT],
 	);
 
 	const handleSaveUnsavedExport = useCallback(async () => {
@@ -1410,6 +1438,8 @@ export default function VideoEditor() {
 						previewWidth,
 						previewHeight,
 						cursorTelemetry,
+						cursorClickTimestamps,
+						cursorHighlight: effectiveCursorHighlight,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1422,6 +1452,12 @@ export default function VideoEditor() {
 						const arrayBuffer = await result.blob.arrayBuffer();
 						const timestamp = Date.now();
 						const fileName = `export-${timestamp}.gif`;
+
+						if (result.warnings) {
+							for (const warning of result.warnings) {
+								toast.warning(warning);
+							}
+						}
 
 						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
 
@@ -1544,6 +1580,8 @@ export default function VideoEditor() {
 						previewWidth,
 						previewHeight,
 						cursorTelemetry,
+						cursorClickTimestamps,
+						cursorHighlight: effectiveCursorHighlight,
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1556,6 +1594,12 @@ export default function VideoEditor() {
 						const arrayBuffer = await result.blob.arrayBuffer();
 						const timestamp = Date.now();
 						const fileName = `export-${timestamp}.mp4`;
+
+						if (result.warnings) {
+							for (const warning of result.warnings) {
+								toast.warning(warning);
+							}
+						}
 
 						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
 
@@ -1621,6 +1665,8 @@ export default function VideoEditor() {
 			exportQuality,
 			handleExportSaved,
 			cursorTelemetry,
+			cursorClickTimestamps,
+			effectiveCursorHighlight,
 			t,
 		],
 	);
@@ -1700,7 +1746,7 @@ export default function VideoEditor() {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-screen bg-background">
-				<div className="text-foreground">Loading video...</div>
+				<div className="text-foreground">{t("loadingVideo")}</div>
 			</div>
 		);
 	}
@@ -1714,7 +1760,7 @@ export default function VideoEditor() {
 						onClick={handleLoadProject}
 						className="px-3 py-1.5 rounded-md bg-[#34B27B] text-white text-sm hover:bg-[#34B27B]/90"
 					>
-						Load Project File
+						{ts("project.load")}
 					</button>
 				</div>
 			</div>
@@ -1878,6 +1924,8 @@ export default function VideoEditor() {
 											onBlurDataChange={handleBlurDataPreviewChange}
 											onBlurDataCommit={commitState}
 											cursorTelemetry={cursorTelemetry}
+											cursorHighlight={effectiveCursorHighlight}
+											cursorClickTimestamps={cursorClickTimestamps}
 										/>
 									</div>
 								</div>
@@ -1914,7 +1962,6 @@ export default function VideoEditor() {
 									onZoomAdded={handleZoomAdded}
 									onZoomSuggested={handleZoomSuggested}
 									onZoomSpanChange={handleZoomSpanChange}
-									onZoomDurationChange={handleZoomDurationChange}
 									onZoomDelete={handleZoomDelete}
 									selectedZoomId={selectedZoomId}
 									onSelectZoom={handleSelectZoom}
@@ -1962,6 +2009,9 @@ export default function VideoEditor() {
 				{/* Right section: settings panel */}
 				<div className="flex-[3] min-w-[280px] max-w-[420px] h-full">
 					<SettingsPanel
+						cursorHighlight={cursorHighlight}
+						onCursorHighlightChange={(next) => pushState({ cursorHighlight: next })}
+						cursorHighlightSupportsClicks={isMac}
 						selected={wallpaper}
 						onWallpaperChange={(w) => pushState({ wallpaper: w })}
 						selectedZoomDepth={
@@ -1977,6 +2027,12 @@ export default function VideoEditor() {
 						hasCursorTelemetry={cursorTelemetry.length > 0}
 						selectedZoomId={selectedZoomId}
 						onZoomDelete={handleZoomDelete}
+						selectedZoomRotationPreset={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.rotationPreset ?? null)
+								: null
+						}
+						onZoomRotationPresetChange={handleZoomRotationPresetChange}
 						selectedTrimId={selectedTrimId}
 						onTrimDelete={handleTrimDelete}
 						shadowIntensity={shadowIntensity}
@@ -2057,21 +2113,6 @@ export default function VideoEditor() {
 						onSpeedDelete={handleSpeedDelete}
 						unsavedExport={unsavedExport}
 						onSaveUnsavedExport={handleSaveUnsavedExport}
-						selectedZoomInDuration={
-							selectedZoomId
-								? (zoomRegions.find((z) => z.id === selectedZoomId)?.zoomInDurationMs ??
-									Math.round(ZOOM_IN_TRANSITION_WINDOW_MS))
-								: undefined
-						}
-						selectedZoomOutDuration={
-							selectedZoomId
-								? (zoomRegions.find((z) => z.id === selectedZoomId)?.zoomOutDurationMs ??
-									Math.round(TRANSITION_WINDOW_MS))
-								: undefined
-						}
-						onZoomDurationChange={(zoomIn, zoomOut) =>
-							selectedZoomId && handleZoomDurationChange(selectedZoomId, zoomIn, zoomOut)
-						}
 					/>
 				</div>
 			</div>

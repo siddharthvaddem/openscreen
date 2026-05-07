@@ -33,5 +33,11 @@
 	"recording": {
 		"selectSource": "녹화할 소스를 선택해 주세요"
 	},
-	"language": "언어"
+	"language": "언어",
+	"systemLanguagePrompt": {
+		"title": "시스템 언어를 사용하시겠습니까?",
+		"description": "시스템 언어가 {{language}}(으)로 감지되었습니다. OpenScreen을 {{language}}(으)로 전환하시겠습니까?",
+		"switch": "{{language}}(으)로 전환",
+		"keepDefault": "현재 언어 유지"
+	}
 }

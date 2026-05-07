@@ -5,7 +5,6 @@
  *
  * Usage: node scripts/i18n-check.mjs
  */
-
 import fs from "node:fs";
 import path from "node:path";
 

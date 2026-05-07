@@ -19,6 +19,8 @@
 	"labels": {
 		"pan": "Pan",
 		"zoom": "Zoom",
+		"trim": "Trim",
+		"speed": "Speed",
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Trim {{index}}",
 		"speedItem": "Speed {{index}}",

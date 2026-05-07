@@ -1,0 +1,50 @@
+{
+	"actions": {
+		"cancel": "الغاء",
+		"save": "حفظ",
+		"delete": "حذف",
+		"close": "اغلاق",
+		"share": "مشاركة",
+		"done": "تم",
+		"open": "فتح",
+		"upload": "رفع",
+		"export": "تصدير",
+		"showInFolder": "عرض في المجلد",
+		"file": "ملف",
+		"edit": "تعديل",
+		"view": "عرض",
+		"window": "نافذة",
+		"quit": "خروج",
+		"stopRecording": "إيقاف التسجيل",
+		"undo": "تراجع",
+		"redo": "إعادة",
+		"cut": "قص",
+		"copy": "نسخ",
+		"paste": "لصق",
+		"selectAll": "تحديد الكل",
+		"minimize": "تصغير",
+		"reload": "إعادة تحميل",
+		"forceReload": "إعادة تحميل إجبارية",
+		"toggleDevTools": "أدوات المطور",
+		"actualSize": "الحجم الفعلي",
+		"zoomIn": "تكبير",
+		"zoomOut": "تصغير",
+		"toggleFullScreen": "ملء الشاشة",
+		"recordingStatus": "جاري التسجيل: {{source}}",
+		"about": "حول OpenScreen",
+		"services": "خدمات",
+		"hide": "إخفاء OpenScreen",
+		"hideOthers": "إخفاء الآخرين",
+		"unhide": "إظهار الكل"
+	},
+	"playback": {
+		"play": "تشغيل",
+		"pause": "ايقاف مؤقت",
+		"fullscreen": "ملء الشاشة",
+		"exitFullscreen": "خروج من ملء الشاشة"
+	},
+	"locale": {
+		"name": "عربي",
+		"short": "AR"
+	}
+}

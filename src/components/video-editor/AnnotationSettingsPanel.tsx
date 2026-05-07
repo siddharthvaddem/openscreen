@@ -32,6 +32,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useScopedT } from "@/contexts/I18nContext";
 import { type CustomFont, getCustomFonts } from "@/lib/customFonts";
 import { cn } from "@/lib/utils";
+import ColorPicker from "../ui/color-picker";
 import { AddCustomFontDialog } from "./AddCustomFontDialog";
 import { getArrowComponent } from "./ArrowSvgs";
 import { alphaToPercent, getAlpha, percentToAlpha, withAlpha } from "./figureFill";
@@ -77,7 +78,6 @@ export function AnnotationSettingsPanel({
 	const t = useScopedT("settings");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
-
 	const fontStyleLabels: Record<string, string> = {
 		classic: t("fontStyles.classic"),
 		editor: t("fontStyles.editor"),
@@ -390,15 +390,19 @@ export function AnnotationSettingsPanel({
 												<ChevronDown className="h-3 w-3 opacity-50" />
 											</Button>
 										</PopoverTrigger>
-										<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
-											<Block
-												color={annotation.style.color}
-												colors={colorPalette}
-												onChange={(color) => {
-													onStyleChange({ color: color.hex });
+										<PopoverContent
+											side="top"
+											className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl"
+										>
+											<ColorPicker
+												selectedColor={annotation.style.color}
+												colorPalette={colorPalette}
+												translations={{
+													colorWheel: t("annotation.colorWheel"),
+													colorPalette: t("annotation.colorPalette"),
 												}}
-												style={{
-													borderRadius: "8px",
+												onUpdateColor={(color) => {
+													onStyleChange({ color: color });
 												}}
 											/>
 										</PopoverContent>
@@ -429,31 +433,23 @@ export function AnnotationSettingsPanel({
 												<ChevronDown className="h-3 w-3 opacity-50" />
 											</Button>
 										</PopoverTrigger>
-										<PopoverContent className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl">
-											<Block
-												color={
-													annotation.style.backgroundColor === "transparent"
-														? "#000000"
-														: annotation.style.backgroundColor
-												}
-												colors={colorPalette}
-												onChange={(color) => {
-													onStyleChange({ backgroundColor: color.hex });
+										<PopoverContent
+											side="top"
+											className="w-[260px] p-3 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl"
+										>
+											<ColorPicker
+												selectedColor={annotation.style.backgroundColor}
+												colorPalette={colorPalette}
+												translations={{
+													colorWheel: t("annotation.colorWheel"),
+													colorPalette: t("annotation.colorPalette"),
+													clearBackground: t("annotation.clearBackground"),
 												}}
-												style={{
-													borderRadius: "8px",
+												clearBackgroundOption={true}
+												onUpdateColor={(color) => {
+													onStyleChange({ backgroundColor: color });
 												}}
 											/>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="w-full mt-2 text-xs h-7 hover:bg-white/5 text-slate-400"
-												onClick={() => {
-													onStyleChange({ backgroundColor: "transparent" });
-												}}
-											>
-												{t("annotation.clearBackground")}
-											</Button>
 										</PopoverContent>
 									</Popover>
 								</div>

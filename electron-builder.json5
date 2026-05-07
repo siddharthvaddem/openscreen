@@ -3,6 +3,11 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "com.siddharthvaddem.openscreen",
   "asar": true,
+  // .node binaries can't be dlopen'd from inside an asar — must live unpacked.
+  "asarUnpack": [
+    "node_modules/uiohook-napi/**/*",
+    "**/*.node"
+  ],
   "productName": "Openscreen",
   "npmRebuild": true,
   "buildDependenciesFromSource": true,
@@ -52,7 +57,9 @@
   },
   "linux": {
     "target": [
-      "AppImage"
+      "AppImage",
+      "deb",
+      "pacman"
     ],
     "icon": "icons/icons/png",
     "artifactName": "${productName}-Linux-${version}.${ext}",

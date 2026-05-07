@@ -19,6 +19,8 @@
 	"labels": {
 		"pan": "Desplazar",
 		"zoom": "Zoom",
+		"trim": "Recortar",
+		"speed": "Velocidad",
 		"zoomItem": "Zoom {{index}}",
 		"trimItem": "Recorte {{index}}",
 		"speedItem": "Velocidad {{index}}",

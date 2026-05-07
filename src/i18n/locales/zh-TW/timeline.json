@@ -19,6 +19,8 @@
 	"labels": {
 		"pan": "平移",
 		"zoom": "縮放",
+		"trim": "剪輯",
+		"speed": "速度",
 		"zoomItem": "縮放 {{index}}",
 		"trimItem": "剪輯 {{index}}",
 		"speedItem": "速度 {{index}}",

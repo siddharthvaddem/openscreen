@@ -8,12 +8,22 @@
 			"manual": "Manuel",
 			"auto": "Otomatik",
 			"autoDescription": "Kamera kaydedilen imleç konumunu takip eder"
+		},
+		"threeD": {
+			"title": "3D Döndürme",
+			"preset": {
+				"iso": "Iso",
+				"left": "Sol",
+				"right": "Sağ"
+			}
 		}
 	},
 	"speed": {
 		"playbackSpeed": "Oynatma Hızı",
 		"selectRegion": "Ayarlamak için bir hız bölgesi seçin",
-		"deleteRegion": "Hız Bölgesini Sil"
+		"deleteRegion": "Hız Bölgesini Sil",
+		"customPlaybackSpeed": "Özel Oynatma Hızı",
+		"maxSpeedError": "Hız 16× değerinden yüksek olamaz"
 	},
 	"trim": {
 		"deleteRegion": "Kırpma Bölgesini Sil"
@@ -24,7 +34,9 @@
 		"selectPreset": "Ön ayar seçin",
 		"pictureInPicture": "Resim İçinde Resim",
 		"verticalStack": "Dikey Yığın",
-		"webcamShape": "Kamera Şekli"
+		"webcamShape": "Kamera Şekli",
+		"dualFrame": "Çift Kare",
+		"webcamSize": "Webcam Boyutu"
 	},
 	"effects": {
 		"title": "Video Efektleri",
@@ -41,7 +53,9 @@
 		"color": "Renk",
 		"gradient": "Gradyan",
 		"uploadCustom": "Özel Yükle",
-		"gradientLabel": "Gradyan {{index}}"
+		"gradientLabel": "Gradyan {{index}}",
+		"colorWheel": "Renk çarkı",
+		"colorPalette": "Renk paleti"
 	},
 	"crop": {
 		"title": "Kırpma",
@@ -109,6 +123,8 @@
 		"background": "Arka Plan",
 		"none": "Yok",
 		"color": "Renk",
+		"colorWheel": "Renk çarkı",
+		"colorPalette": "Renk paleti",
 		"clearBackground": "Arka Planı Temizle",
 		"uploadImage": "Görüntü Yükle",
 		"supportedFormats": "Desteklenen biçimler: JPG, PNG, GIF, WebP",
@@ -133,7 +149,14 @@
 			"label": "Dolgu",
 			"toggle": "Dolgu açık",
 			"opacity": "Opaklık"
-		}
+		},
+		"blurColor": "Bulanıklık Rengi",
+		"blurColorBlack": "Siyah",
+		"blurColorWhite": "Beyaz",
+		"blurType": "Bulanıklık Türü",
+		"blurTypeBlur": "Bulanık",
+		"blurTypeMosaic": "Mozaik Bulanıklık",
+		"mosaicBlockSize": "Mozaik Blok Boyutu"
 	},
 	"fontStyles": {
 		"classic": "Klasik",

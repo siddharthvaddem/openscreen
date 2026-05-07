@@ -44,5 +44,11 @@
 	"recording": {
 		"selectSource": "Lütfen kayıt için bir kaynak seçin"
 	},
-	"language": "Dil"
+	"language": "Dil",
+	"systemLanguagePrompt": {
+		"title": "Sistem dilinizi kullanmak ister misiniz?",
+		"description": "Sistem diliniz {{language}} olarak algılandı. OpenScreen i {{language}} diline geçirmek ister misiniz?",
+		"switch": "{{language}} diline geç",
+		"keepDefault": "Mevcut dili koru"
+	}
 }

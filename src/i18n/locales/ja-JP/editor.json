@@ -1,0 +1,45 @@
+{
+	"newRecording": {
+		"title": "レコーダーに戻る",
+		"description": "現在の作業内容が保存されました。",
+		"cancel": "キャンセル",
+		"confirm": "確認"
+	},
+	"loadingVideo": "動画を読み込み中...",
+	"errors": {
+		"noVideoLoaded": "動画が読み込まれていません",
+		"videoNotReady": "動画の準備ができていません",
+		"unableToDetermineSourcePath": "元動画のパスを特定できません",
+		"failedToSaveGif": "GIFの保存に失敗しました",
+		"gifExportFailed": "GIFのエクスポートに失敗しました",
+		"failedToSaveVideo": "動画の保存に失敗しました",
+		"exportFailed": "エクスポートに失敗しました",
+		"exportFailedWithError": "エクスポートに失敗しました: {{error}}",
+		"failedToSaveExport": "エクスポートの保存に失敗しました",
+		"failedToSaveExportedVideo": "エクスポートした動画の保存に失敗しました",
+		"failedToRevealInFolder": "フォルダの表示に失敗しました: {{error}}",
+		"exportBackgroundLoadFailed": "エクスポートに失敗しました: 背景画像を読み込めませんでした ({{url}})"
+	},
+	"export": {
+		"canceled": "エクスポートがキャンセルされました",
+		"exportedSuccessfully": "{{format}}を正常にエクスポートしました"
+	},
+	"project": {
+		"saveCanceled": "プロジェクトの保存がキャンセルされました",
+		"failedToSave": "プロジェクトの保存に失敗しました",
+		"savedTo": "プロジェクトを保存しました: {{path}}",
+		"failedToLoad": "プロジェクトの読み込みに失敗しました",
+		"invalidFormat": "無効なプロジェクトファイル形式です",
+		"loadedFrom": "プロジェクトを読み込みました: {{path}}"
+	},
+	"recording": {
+		"failedCameraAccess": "カメラのアクセス要求に失敗しました。",
+		"cameraBlocked": "カメラのアクセスがブロックされています。システム設定で有効にして、ウェブカメラを使用してください。",
+		"systemAudioUnavailable": "システム音声を利用できません。システム音声なしで録画します。",
+		"microphoneDenied": "マイクへのアクセスが拒否されました。音声なしで録画を続行します。",
+		"cameraDenied": "カメラのアクセスが拒否されました。ウェブカメラなしで録画を続行します。",
+		"permissionDenied": "録画の権限が拒否されました。画面録画を許可してください。",
+		"cameraDisconnected": "ウェブカメラが切断されました。",
+		"cameraNotFound": "カメラが見つかりません。"
+	}
+}

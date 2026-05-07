@@ -314,7 +314,13 @@ export function LaunchWindow() {
 	};
 
 	return (
-		<div className={`w-screen h-screen overflow-x-hidden bg-transparent ${styles.electronDrag}`}>
+		// Root fills the HUD window only. Avoid w-screen/h-screen (100vw/100vh):
+		// 100vw can exceed the inner layout width when scrollbars affect the
+		// viewport (notably on Windows), causing a horizontal scrollbar once the
+		// recording toolbar widened (issue #305).
+		<div
+			className={`h-full w-full min-w-0 max-w-full overflow-x-hidden overflow-y-hidden bg-transparent ${styles.electronDrag}`}
+		>
 			{systemLocaleSuggestion && (
 				<div
 					className={`fixed top-8 left-1/2 z-30 w-[calc(100vw-1rem)] max-w-[520px] -translate-x-1/2 rounded-xl border border-white/15 bg-[rgba(20,20,28,0.95)] p-3 shadow-2xl backdrop-blur-xl text-white animate-in fade-in-0 zoom-in-95 duration-200 ${styles.electronNoDrag}`}

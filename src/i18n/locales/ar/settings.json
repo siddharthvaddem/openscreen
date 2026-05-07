@@ -1,0 +1,199 @@
+{
+	"zoom": {
+		"level": "مستوى التكبير",
+		"selectRegion": "حدد منطقة التكبير للتعديل",
+		"deleteZoom": "حذف التكبير",
+		"focusMode": {
+			"title": "وضع التركيز",
+			"manual": "يدوي",
+			"auto": "تلقائي",
+			"autoDescription": "الكاميرا تتبع موضع المؤشر المسجل"
+		}
+	},
+	"speed": {
+		"playbackSpeed": "سرعة التشغيل",
+		"selectRegion": "حدد منطقة السرعة للتعديل",
+		"deleteRegion": "حذف منطقة السرعة",
+		"customPlaybackSpeed": "سرعة تشغيل مخصصة",
+		"maxSpeedError": "لا يمكن للسرعة أن تتجاوز 16×"
+	},
+	"trim": {
+		"deleteRegion": "حذف منطقة القص"
+	},
+	"layout": {
+		"title": "التخطيط",
+		"preset": "الإعداد المسبق",
+		"selectPreset": "حدد إعدادًا مسبقًا",
+		"pictureInPicture": "صورة داخل صورة",
+		"verticalStack": "تكدس عمودي",
+		"dualFrame": "إطار مزدوج",
+		"webcamShape": "شكل الكاميرا",
+		"webcamSize": "حجم كاميرا الويب"
+	},
+	"effects": {
+		"title": "تأثيرات الفيديو",
+		"blurBg": "تمويه الخلفية",
+		"motionBlur": "ضبابية الحركة",
+		"off": "إيقاف",
+		"on": "تشغيل",
+		"shadow": "ظل",
+		"roundness": "الاستدارة",
+		"padding": "المسافة البادئة",
+		"cursorHighlight": {
+			"title": "تمييز المؤشر",
+			"style": "النمط",
+			"dot": "نقطة",
+			"ring": "حلقة",
+			"size": "الحجم",
+			"onlyOnClicks": "عند النقر فقط",
+			"color": "اللون",
+			"offsetX": "إزاحة X (لتسجيلات النوافذ)",
+			"offsetY": "إزاحة Y",
+			"accessibilityPermissionTitle": "مطلوب إذن الوصول",
+			"accessibilityPermissionDescription": "افتح إعدادات النظام ← الخصوصية والأمان ← إمكانية الوصول، وقم بتفعيل Openscreen، ثم أعد تشغيل التطبيق."
+		}
+	},
+	"background": {
+		"title": "الخلفية",
+		"image": "صورة",
+		"color": "لون",
+		"gradient": "تدرج لوني",
+		"uploadCustom": "رفع صورة مخصصة",
+		"gradientLabel": "تدرج لوني {{index}}",
+		"colorWheel": "عجلة الألوان",
+		"colorPalette": "لوحة الألوان"
+	},
+	"crop": {
+		"title": "اقتصاص",
+		"cropVideo": "اقتصاص الفيديو",
+		"dragInstruction": "اسحب من كل جانب لضبط منطقة الاقتصاص",
+		"ratio": "النسبة",
+		"free": "حر",
+		"done": "تم",
+		"lockAspectRatio": "قفل نسبة العرض إلى الارتفاع",
+		"unlockAspectRatio": "إلغاء قفل نسبة العرض إلى الارتفاع"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "فيديو MP4",
+		"mp4Description": "ملف فيديو عالي الجودة",
+		"gifAnimation": "صورة GIF متحركة",
+		"gifDescription": "صورة متحركة للمشاركة"
+	},
+	"exportQuality": {
+		"title": "جودة التصدير",
+		"low": "منخفضة",
+		"medium": "متوسطة",
+		"high": "عالية"
+	},
+	"gifSettings": {
+		"frameRate": "معدل إطارات GIF",
+		"size": "حجم GIF",
+		"loop": "تكرار GIF"
+	},
+	"project": {
+		"save": "حفظ المشروع",
+		"load": "تحميل المشروع"
+	},
+	"export": {
+		"videoButton": "تصدير الفيديو",
+		"gifButton": "تصدير GIF",
+		"chooseSaveLocation": "اختيار موقع الحفظ"
+	},
+	"links": {
+		"reportBug": "الإبلاغ عن خطأ",
+		"starOnGithub": "إعطاء نجمة على GitHub"
+	},
+	"imageUpload": {
+		"invalidFileType": "نوع ملف غير صالح",
+		"jpgOnly": "يرجى رفع ملف صورة JPG أو JPEG.",
+		"uploadSuccess": "تم رفع الصورة المخصصة بنجاح!",
+		"failedToUpload": "فشل رفع الصورة",
+		"errorReading": "حدث خطأ أثناء قراءة الملف."
+	},
+	"annotation": {
+		"title": "إعدادات الشروح",
+		"active": "نشط",
+		"typeText": "نص",
+		"typeImage": "صورة",
+		"typeArrow": "سهم",
+		"typeBlur": "تمويه",
+		"textContent": "محتوى النص",
+		"textPlaceholder": "أدخل النص هنا...",
+		"fontStyle": "نمط الخط",
+		"selectStyle": "حدد النمط",
+		"size": "الحجم",
+		"customFonts": "خطوط مخصصة",
+		"textColor": "لون النص",
+		"background": "الخلفية",
+		"none": "بدون",
+		"color": "لون",
+		"colorWheel": "عجلة الألوان",
+		"colorPalette": "لوحة الألوان",
+		"clearBackground": "مسح الخلفية",
+		"uploadImage": "رفع صورة",
+		"supportedFormats": "الصيغ المدعومة: JPG, PNG, GIF, WebP",
+		"arrowDirection": "اتجاه السهم",
+		"strokeWidth": "عرض الخط: {{width}}px",
+		"arrowColor": "لون السهم",
+		"blurType": "نوع التمويه",
+		"blurTypeBlur": "تمويه",
+		"blurTypeMosaic": "فسيفساء",
+		"blurColor": "لون التمويه",
+		"blurColorWhite": "أبيض",
+		"blurColorBlack": "أسود",
+		"blurShape": "شكل التمويه",
+		"blurIntensity": "كثافة التمويه",
+		"mosaicBlockSize": "حجم كتلة الفسيفساء",
+		"blurShapeRectangle": "مستطيل",
+		"blurShapeOval": "بيضاوي",
+		"blurShapeFreehand": "رسم حر",
+		"deleteAnnotation": "حذف الشرح",
+		"shortcutsAndTips": "اختصارات ونصائح",
+		"tipMovePlayhead": "انقل رأس التشغيل إلى قسم الشروح المتداخلة وحدد عنصرًا.",
+		"tipTabCycle": "استخدم Tab للتنقل بين العناصر المتداخلة.",
+		"tipShiftTabCycle": "استخدم Shift+Tab للتنقل للخلف.",
+		"invalidImageType": "نوع ملف غير صالح",
+		"imageFormatsOnly": "يرجى رفع ملف صورة JPG أو PNG أو GIF أو WebP.",
+		"imageUploadSuccess": "تم رفع الصورة بنجاح!",
+		"failedImageUpload": "فشل في رفع الصورة",
+		"fill": {
+			"label": "تعبئة",
+			"toggle": "تفعيل التعبئة",
+			"opacity": "الشفافية"
+		}
+	},
+	"fontStyles": {
+		"classic": "كلاسيكي",
+		"editor": "محرر",
+		"strong": "قوي",
+		"typewriter": "آلة كاتبة",
+		"deco": "ديكو",
+		"simple": "بسيط",
+		"modern": "حديث",
+		"clean": "نظيف"
+	},
+	"customFont": {
+		"dialogTitle": "إضافة خط Google",
+		"urlLabel": "رابط استيراد خطوط Google",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "احصل على هذا من خطوط Google: حدد خطًا → انقر على \"احصل على الخط\" → انسخ رابط `@import`",
+		"nameLabel": "اسم العرض",
+		"namePlaceholder": "خطي المخصص",
+		"nameHelp": "هكذا سيظهر الخط في محدد الخطوط",
+		"addButton": "إضافة خط",
+		"addingButton": "جاري الإضافة...",
+		"errorEmptyUrl": "يرجى إدخال رابط استيراد لخطوط Google",
+		"errorInvalidUrl": "يرجى إدخال رابط صحيح لخطوط Google",
+		"errorEmptyName": "يرجى إدخال اسم الخط",
+		"errorExtractFailed": "تعذر استخراج عائلة الخط من الرابط",
+		"successMessage": "تم إضافة الخط \"{{fontName}}\" بنجاح",
+		"failedToAdd": "فشل في إضافة الخط",
+		"errorTimeout": "استغرق تحميل الخط وقتًا طويلاً. يرجى التحقق من الرابط والمحاولة مرة أخرى.",
+		"errorLoadFailed": "تعذر تحميل الخط. يرجى التحقق من صحة رابط خطوط Google."
+	},
+	"language": {
+		"title": "اللغة"
+	}
+}

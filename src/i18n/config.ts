@@ -1,5 +1,15 @@
 export const DEFAULT_LOCALE = "en" as const;
-export const SUPPORTED_LOCALES = ["en", "zh-CN", "zh-TW", "es", "fr", "tr", "ko-KR"] as const;
+export const SUPPORTED_LOCALES = [
+	"en",
+	"zh-CN",
+	"zh-TW",
+	"es",
+	"fr",
+	"tr",
+	"ko-KR",
+	"ja-JP",
+	"ar",
+] as const;
 export const I18N_NAMESPACES = [
 	"common",
 	"dialogs",

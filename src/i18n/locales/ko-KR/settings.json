@@ -8,6 +8,14 @@
 			"manual": "수동",
 			"auto": "자동",
 			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다"
+		},
+		"threeD": {
+			"title": "3D 회전",
+			"preset": {
+				"iso": "Iso",
+				"left": "왼쪽",
+				"right": "오른쪽"
+			}
 		}
 	},
 	"speed": {
@@ -27,7 +35,8 @@
 		"pictureInPicture": "화면 속 화면",
 		"verticalStack": "세로 배치",
 		"webcamShape": "카메라 모양",
-		"webcamSize": "웹캠 크기"
+		"webcamSize": "웹캠 크기",
+		"dualFrame": "듀얼 프레임"
 	},
 	"effects": {
 		"title": "비디오 효과",
@@ -44,7 +53,9 @@
 		"color": "색상",
 		"gradient": "그라디언트",
 		"uploadCustom": "직접 업로드",
-		"gradientLabel": "그라디언트 {{index}}"
+		"gradientLabel": "그라디언트 {{index}}",
+		"colorWheel": "색상 휠",
+		"colorPalette": "색상 팔레트"
 	},
 	"crop": {
 		"title": "자르기",
@@ -111,6 +122,8 @@
 		"background": "배경",
 		"none": "없음",
 		"color": "색상",
+		"colorWheel": "색상 휠",
+		"colorPalette": "색상 팔레트",
 		"clearBackground": "배경 지우기",
 		"uploadImage": "이미지 업로드",
 		"supportedFormats": "지원 형식: JPG, PNG, GIF, WebP",
@@ -130,7 +143,20 @@
 			"label": "채우기",
 			"toggle": "채우기 사용",
 			"opacity": "불투명도"
-		}
+		},
+		"blurColor": "블러 색상",
+		"blurColorBlack": "검정",
+		"blurColorWhite": "흰색",
+		"blurIntensity": "블러 강도",
+		"blurShape": "블러 모양",
+		"blurShapeFreehand": "자유 곡선",
+		"blurShapeOval": "타원",
+		"blurShapeRectangle": "사각형",
+		"blurType": "블러 종류",
+		"blurTypeBlur": "블러",
+		"blurTypeMosaic": "모자이크 블러",
+		"mosaicBlockSize": "모자이크 블록 크기",
+		"typeBlur": "블러"
 	},
 	"fontStyles": {
 		"classic": "클래식",

@@ -5,6 +5,7 @@
 		"cancel": "Cancel",
 		"confirm": "Confirm"
 	},
+	"loadingVideo": "Loading video...",
 	"errors": {
 		"noVideoLoaded": "No video loaded",
 		"videoNotReady": "Video not ready",

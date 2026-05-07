@@ -6,23 +6,28 @@
 		"addAnnotation": "주석 추가 (A)",
 		"addRectangle": "사각형 추가",
 		"addEllipse": "타원 추가",
-		"addSpeed": "속도 추가 (S)"
+		"addSpeed": "속도 추가 (S)",
+		"addBlur": "블러 추가 (B)"
 	},
 	"hints": {
 		"pressZoom": "Z를 눌러 줌 추가",
 		"pressTrim": "T를 눌러 트림 추가",
 		"pressAnnotation": "A를 눌러 주석 추가",
-		"pressSpeed": "S를 눌러 속도 추가"
+		"pressSpeed": "S를 눌러 속도 추가",
+		"pressBlur": "B 키를 눌러 블러 영역을 추가하세요"
 	},
 	"labels": {
 		"pan": "이동",
 		"zoom": "줌",
+		"trim": "트림",
+		"speed": "속도",
 		"zoomItem": "줌 {{index}}",
 		"trimItem": "트림 {{index}}",
 		"speedItem": "속도 {{index}}",
 		"annotationItem": "주석",
 		"imageItem": "이미지",
-		"emptyText": "빈 텍스트"
+		"emptyText": "빈 텍스트",
+		"blurItem": "블러 {{index}}"
 	},
 	"emptyState": {
 		"noVideo": "불러온 비디오 없음",

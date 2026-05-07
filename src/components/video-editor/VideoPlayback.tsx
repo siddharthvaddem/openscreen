@@ -36,6 +36,11 @@ import { AnnotationOverlay } from "./AnnotationOverlay";
 import {
 	type AnnotationRegion,
 	type BlurData,
+	computeRotation3DContainScale,
+	DEFAULT_ROTATION_3D,
+	isRotation3DIdentity,
+	lerpRotation3D,
+	rotation3DPerspective,
 	type SpeedRegion,
 	type TrimRegion,
 	ZOOM_DEPTH_SCALES,
@@ -51,7 +56,17 @@ import {
 	ZOOM_SCALE_DEADZONE,
 	ZOOM_TRANSLATION_DEADZONE_PX,
 } from "./videoPlayback/constants";
-import { adaptiveSmoothFactor, smoothCursorFocus } from "./videoPlayback/cursorFollowUtils";
+import {
+	adaptiveSmoothFactor,
+	interpolateCursorAt,
+	smoothCursorFocus,
+} from "./videoPlayback/cursorFollowUtils";
+import {
+	type CursorHighlightConfig,
+	clickEmphasisAlpha,
+	DEFAULT_CURSOR_HIGHLIGHT,
+	drawCursorHighlightGraphics,
+} from "./videoPlayback/cursorHighlight";
 import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { clamp01 } from "./videoPlayback/mathUtils";
@@ -110,6 +125,8 @@ interface VideoPlaybackProps {
 	onBlurDataChange?: (id: string, blurData: BlurData) => void;
 	onBlurDataCommit?: () => void;
 	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
+	cursorHighlight?: CursorHighlightConfig;
+	cursorClickTimestamps?: number[];
 }
 
 export interface VideoPlaybackRef {
@@ -168,6 +185,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onBlurDataChange,
 			onBlurDataCommit,
 			cursorTelemetry = [],
+			cursorHighlight = DEFAULT_CURSOR_HIGHLIGHT,
+			cursorClickTimestamps = [],
 		},
 		ref,
 	) => {
@@ -184,12 +203,18 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const [overlaySize, setOverlaySize] = useState({ width: 800, height: 600 });
 		const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
 		const overlayRef = useRef<HTMLDivElement | null>(null);
+
 		const focusIndicatorRef = useRef<HTMLDivElement | null>(null);
+		const composite3DRef = useRef<HTMLDivElement | null>(null);
+		const outerWrapperRef = useRef<HTMLDivElement | null>(null);
 		const [webcamLayout, setWebcamLayout] = useState<StyledRenderRect | null>(null);
 		const [webcamDimensions, setWebcamDimensions] = useState<Size | null>(null);
 		const currentTimeRef = useRef(0);
 		const zoomRegionsRef = useRef<ZoomRegion[]>([]);
 		const cursorTelemetryRef = useRef<import("./types").CursorTelemetryPoint[]>([]);
+		const cursorHighlightRef = useRef<CursorHighlightConfig>(DEFAULT_CURSOR_HIGHLIGHT);
+		const cursorClickTimestampsRef = useRef<number[]>([]);
+		const cursorHighlightGraphicsRef = useRef<Graphics | null>(null);
 		const selectedZoomIdRef = useRef<string | null>(null);
 		const animationStateRef = useRef({
 			scale: 1,
@@ -214,6 +239,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const maskGraphicsRef = useRef<Graphics | null>(null);
 		const isPlayingRef = useRef(isPlaying);
 		const isSeekingRef = useRef(false);
+		const isScrubbingRef = useRef(false);
+		const scrubEndTimerRef = useRef<number | null>(null);
+		const [isScrubbing, setIsScrubbing] = useState(false);
 		const allowPlaybackRef = useRef(false);
 		const lockedVideoDimensionsRef = useRef<{
 			width: number;
@@ -368,7 +396,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				if (!vid) return;
 				try {
 					allowPlaybackRef.current = true;
-					await vid.play();
+					await vid.play().catch((err) => {
+						console.log("PLAY ERROR:", err);
+						throw err;
+					});
 				} catch (error) {
 					allowPlaybackRef.current = false;
 					throw error;
@@ -512,6 +543,17 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		}, [cursorTelemetry]);
 
 		useEffect(() => {
+			cursorHighlightRef.current = cursorHighlight;
+			if (cursorHighlightGraphicsRef.current) {
+				drawCursorHighlightGraphics(cursorHighlightGraphicsRef.current, cursorHighlight);
+			}
+		}, [cursorHighlight]);
+
+		useEffect(() => {
+			cursorClickTimestampsRef.current = cursorClickTimestamps;
+		}, [cursorClickTimestamps]);
+
+		useEffect(() => {
 			selectedZoomIdRef.current = selectedZoomId;
 		}, [selectedZoomId]);
 
@@ -541,84 +583,24 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
+			const el = overlayRef.current;
+			if (!el) return;
 
-			const app = appRef.current;
-			const cameraContainer = cameraContainerRef.current;
-			const video = videoRef.current;
+			// Seed immediately so overlays never start at 800×600
+			setOverlaySize({ width: el.clientWidth, height: el.clientHeight });
 
-			if (!app || !cameraContainer || !video) return;
-
-			const tickerWasStarted = app.ticker?.started || false;
-			if (tickerWasStarted && app.ticker) {
-				app.ticker.stop();
-			}
-
-			const wasPlaying = !video.paused;
-			if (wasPlaying) {
-				video.pause();
-			}
-
-			animationStateRef.current = {
-				scale: 1,
-				focusX: DEFAULT_FOCUS.cx,
-				focusY: DEFAULT_FOCUS.cy,
-				progress: 0,
-				x: 0,
-				y: 0,
-				appliedScale: 1,
-			};
-
-			// Reset motion blur state for clean transitions
-			motionBlurStateRef.current = createMotionBlurState();
-
-			if (blurFilterRef.current) {
-				blurFilterRef.current.blur = 0;
-			}
-
-			requestAnimationFrame(() => {
-				const container = cameraContainerRef.current;
-				const videoStage = videoContainerRef.current;
-				const sprite = videoSpriteRef.current;
-				const currentApp = appRef.current;
-				if (!container || !videoStage || !sprite || !currentApp) {
-					return;
-				}
-
-				container.scale.set(1);
-				container.position.set(0, 0);
-				videoStage.scale.set(1);
-				videoStage.position.set(0, 0);
-				sprite.scale.set(1);
-				sprite.position.set(0, 0);
-
-				layoutVideoContent();
-
-				applyZoomTransform({
-					cameraContainer: container,
-					blurFilter: blurFilterRef.current,
-					stageSize: stageSizeRef.current,
-					baseMask: baseMaskRef.current,
-					zoomScale: 1,
-					focusX: DEFAULT_FOCUS.cx,
-					focusY: DEFAULT_FOCUS.cy,
-					motionIntensity: 0,
-					isPlaying: false,
-					motionBlurAmount: motionBlurAmountRef.current,
-				});
-
-				requestAnimationFrame(() => {
-					const finalApp = appRef.current;
-					if (wasPlaying && video) {
-						video.play().catch(() => {
-							// Ignore autoplay restoration failures.
-						});
-					}
-					if (tickerWasStarted && finalApp?.ticker) {
-						finalApp.ticker.start();
-					}
+			const observer = new ResizeObserver((entries) => {
+				if (!entries[0]) return;
+				const { width, height } = entries[0].contentRect;
+				setOverlaySize((prev) => {
+					if (prev.width === width && prev.height === height) return prev;
+					return { width, height };
 				});
 			});
-		}, [pixiReady, videoReady, layoutVideoContent]);
+
+			observer.observe(el);
+			return () => observer.disconnect();
+		}, [pixiReady, videoReady]);
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
@@ -638,6 +620,24 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				observer.disconnect();
 			};
 		}, [pixiReady, videoReady, layoutVideoContent]);
+
+		// Drop the PIXI canvas resolution to 1.0 while scrubbing (the user is
+		// navigating, not previewing) and restore native DPR on play/idle so the
+		// preview stays faithful. Mutating renderer.resolution per-frame would
+		// thrash texture uploads; we only do it on scrub-state transitions.
+		useEffect(() => {
+			if (!pixiReady) return;
+			const app = appRef.current;
+			const container = containerRef.current;
+			if (!app || !container) return;
+
+			const targetResolution = isScrubbing ? 1 : window.devicePixelRatio || 1;
+			if (app.renderer.resolution === targetResolution) return;
+
+			app.renderer.resolution = targetResolution;
+			app.renderer.resize(container.clientWidth, container.clientHeight);
+			layoutVideoContentRef.current?.();
+		}, [isScrubbing, pixiReady]);
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
@@ -794,6 +794,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoContainer.mask = maskGraphics;
 			maskGraphicsRef.current = maskGraphics;
 
+			const cursorHighlightGraphics = new Graphics();
+			cursorHighlightGraphics.visible = false;
+			videoContainer.addChild(cursorHighlightGraphics);
+			cursorHighlightGraphicsRef.current = cursorHighlightGraphics;
+			drawCursorHighlightGraphics(cursorHighlightGraphics, cursorHighlightRef.current);
+
 			animationStateRef.current = {
 				scale: 1,
 				focusX: DEFAULT_FOCUS.cx,
@@ -809,7 +815,6 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			blurFilter.resolution = app.renderer.resolution;
 			blurFilter.blur = 0;
 			const motionBlurFilter = new MotionBlurFilter([0, 0], 5, 0);
-			videoContainer.filters = [blurFilter, motionBlurFilter];
 			blurFilterRef.current = blurFilter;
 			motionBlurFilterRef.current = motionBlurFilter;
 
@@ -827,6 +832,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				onTimeUpdate: (time) => onTimeUpdateRef.current(time),
 				trimRegionsRef,
 				speedRegionsRef,
+				isScrubbingRef,
+				scrubEndTimerRef,
+				onScrubChange: (scrubbing) => setIsScrubbing(scrubbing),
 			});
 
 			video.addEventListener("play", handlePlay);
@@ -854,10 +862,15 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					videoContainer.removeChild(maskGraphics);
 					maskGraphics.destroy();
 				}
+				if (cursorHighlightGraphicsRef.current) {
+					videoContainer.removeChild(cursorHighlightGraphicsRef.current);
+					cursorHighlightGraphicsRef.current.destroy();
+					cursorHighlightGraphicsRef.current = null;
+				}
 				videoContainer.mask = null;
 				maskGraphicsRef.current = null;
 				if (blurFilterRef.current) {
-					videoContainer.filters = [];
+					videoContainer.filters = null;
 					blurFilterRef.current.destroy();
 					blurFilterRef.current = null;
 				}
@@ -914,8 +927,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				state.appliedScale = appliedTransform.scale;
 			};
 
+			let lastMotionBlurActive: boolean | null = null;
+			let lastTransformIsIdentity = true;
+			let lastPerspectiveValue = 0;
 			const ticker = () => {
-				const { region, strength, blendedScale, transition } = findDominantRegion(
+				const { region, strength, blendedScale, rotation3D, transition } = findDominantRegion(
 					zoomRegionsRef.current,
 					currentTimeRef.current,
 					{
@@ -1071,6 +1087,95 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					motionIntensity,
 					motionVector,
 				);
+
+				const cursorGraphics = cursorHighlightGraphicsRef.current;
+				const cursorConfig = cursorHighlightRef.current;
+				const lockedDims = lockedVideoDimensionsRef.current;
+				if (cursorGraphics) {
+					if (cursorConfig.enabled && lockedDims && cursorTelemetryRef.current.length > 0) {
+						const emphasisAlpha = clickEmphasisAlpha(
+							currentTimeRef.current,
+							cursorClickTimestampsRef.current,
+							cursorConfig,
+						);
+						const cursorPoint =
+							emphasisAlpha > 0
+								? interpolateCursorAt(cursorTelemetryRef.current, currentTimeRef.current)
+								: null;
+						if (cursorPoint) {
+							const baseScale = baseScaleRef.current;
+							const baseOffset = baseOffsetRef.current;
+							const cx = cursorPoint.cx + cursorConfig.offsetXNorm;
+							const cy = cursorPoint.cy + cursorConfig.offsetYNorm;
+							cursorGraphics.position.set(
+								baseOffset.x + cx * lockedDims.width * baseScale,
+								baseOffset.y + cy * lockedDims.height * baseScale,
+							);
+							cursorGraphics.alpha = emphasisAlpha;
+							cursorGraphics.visible = true;
+						} else {
+							cursorGraphics.visible = false;
+						}
+					} else {
+						cursorGraphics.visible = false;
+					}
+				}
+
+				const isMotionBlurActive =
+					(motionBlurAmountRef.current || 0) > 0 && isPlayingRef.current && !isScrubbingRef.current;
+
+				if (isMotionBlurActive !== lastMotionBlurActive && videoContainerRef.current) {
+					if (isMotionBlurActive) {
+						if (blurFilterRef.current && motionBlurFilterRef.current) {
+							videoContainerRef.current.filters = [
+								blurFilterRef.current,
+								motionBlurFilterRef.current,
+							];
+							lastMotionBlurActive = true;
+						}
+					} else {
+						videoContainerRef.current.filters = null;
+						lastMotionBlurActive = false;
+					}
+				}
+
+				const composite3D = composite3DRef.current;
+				const outerWrapper = outerWrapperRef.current;
+				if (composite3D && outerWrapper) {
+					const effectiveRotation =
+						region && targetProgress > 0 && !shouldShowUnzoomedView
+							? lerpRotation3D(DEFAULT_ROTATION_3D, rotation3D, targetProgress)
+							: DEFAULT_ROTATION_3D;
+					const isIdentity = isRotation3DIdentity(effectiveRotation);
+					if (isIdentity) {
+						if (!lastTransformIsIdentity) {
+							composite3D.style.transform = "";
+							composite3D.style.willChange = "auto";
+							lastTransformIsIdentity = true;
+						}
+						if (lastPerspectiveValue !== 0) {
+							outerWrapper.style.perspective = "";
+							lastPerspectiveValue = 0;
+						}
+					} else {
+						const wrapperW = outerWrapper.clientWidth || 1;
+						const wrapperH = outerWrapper.clientHeight || 1;
+						const persp = rotation3DPerspective(wrapperW, wrapperH);
+						const containScale = computeRotation3DContainScale(
+							effectiveRotation,
+							wrapperW,
+							wrapperH,
+							persp,
+						);
+						composite3D.style.transform = `scale(${containScale}) rotateX(${effectiveRotation.rotationX}deg) rotateY(${effectiveRotation.rotationY}deg) rotateZ(${effectiveRotation.rotationZ}deg)`;
+						composite3D.style.willChange = "transform";
+						lastTransformIsIdentity = false;
+						if (persp !== lastPerspectiveValue) {
+							outerWrapper.style.perspective = `${persp}px`;
+							lastPerspectiveValue = persp;
+						}
+					}
+				}
 			};
 
 			app.ticker.add(ticker);
@@ -1192,6 +1297,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					cancelAnimationFrame(videoReadyRafRef.current);
 					videoReadyRafRef.current = null;
 				}
+				if (scrubEndTimerRef.current !== null) {
+					window.clearTimeout(scrubEndTimerRef.current);
+					scrubEndTimerRef.current = null;
+				}
 			};
 		}, []);
 
@@ -1208,6 +1317,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		return (
 			<div
+				ref={outerWrapperRef}
 				className="relative rounded-sm overflow-hidden"
 				style={{
 					width: "100%",
@@ -1232,186 +1342,204 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					}}
 				/>
 				<div
-					ref={containerRef}
+					ref={composite3DRef}
 					className="absolute inset-0"
 					style={{
-						filter:
-							showShadow && shadowIntensity > 0
-								? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
-								: "none",
+						transformStyle: "preserve-3d",
+						transformOrigin: "center center",
 					}}
-				/>
-				{webcamVideoPath &&
-					(() => {
-						const clipPath = getCssClipPath(webcamLayout?.maskShape ?? "rectangle");
-						const useClipPath = !!clipPath;
-						return (
-							<div
-								className="absolute"
-								style={{
-									left: webcamLayout?.x ?? 0,
-									top: webcamLayout?.y ?? 0,
-									width: webcamLayout?.width ?? 0,
-									height: webcamLayout?.height ?? 0,
-									zIndex: 20,
-									opacity: webcamLayout ? 1 : 0,
-									filter:
-										useClipPath && webcamCssBoxShadow !== "none"
-											? `drop-shadow(${webcamCssBoxShadow})`
-											: undefined,
-								}}
-							>
-								<video
-									ref={webcamVideoRef}
-									src={webcamVideoPath}
-									className={`w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
-									style={{
-										borderRadius: useClipPath ? 0 : (webcamLayout?.borderRadius ?? 0),
-										clipPath: clipPath ?? undefined,
-										boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
-										backgroundColor: "#000",
-									}}
-									onPointerDown={handleWebcamPointerDown}
-									onPointerMove={handleWebcamPointerMove}
-									onPointerUp={handleWebcamPointerUp}
-									onPointerLeave={handleWebcamPointerUp}
-									muted
-									preload="metadata"
-									playsInline
-								/>
-							</div>
-						);
-					})()}
-				{/* Only render overlay after PIXI and video are fully initialized */}
-				{pixiReady && videoReady && (
+				>
 					<div
-						ref={setOverlayRefs}
-						className="absolute inset-0 select-none"
-						style={{ pointerEvents: "none", zIndex: 30 }}
-						onPointerDown={handleOverlayPointerDown}
-						onPointerMove={handleOverlayPointerMove}
-						onPointerUp={handleOverlayPointerUp}
-						onPointerLeave={handleOverlayPointerLeave}
-					>
-						<div
-							ref={focusIndicatorRef}
-							className="absolute rounded-md border border-[#34B27B]/80 bg-[#34B27B]/20 shadow-[0_0_0_1px_rgba(52,178,123,0.35)]"
-							style={{ display: "none", pointerEvents: "none" }}
-						/>
-						{(() => {
-							const filteredAnnotations = (annotationRegions || []).filter((annotation) => {
-								if (typeof annotation.startMs !== "number" || typeof annotation.endMs !== "number")
-									return false;
-
-								if (annotation.id === selectedAnnotationId) return true;
-
-								const timeMs = Math.round(currentTime * 1000);
-								return timeMs >= annotation.startMs && timeMs < annotation.endMs;
-							});
-
-							const filteredBlurRegions = (blurRegions || []).filter((blurRegion) => {
-								if (typeof blurRegion.startMs !== "number" || typeof blurRegion.endMs !== "number")
-									return false;
-
-								if (blurRegion.id === selectedBlurId) return true;
-
-								const timeMs = Math.round(currentTime * 1000);
-								return timeMs >= blurRegion.startMs && timeMs < blurRegion.endMs;
-							});
-
-							const sorted = [
-								...filteredAnnotations.map((annotation) => ({
-									kind: "annotation" as const,
-									region: annotation,
-								})),
-								...filteredBlurRegions.map((blurRegion) => ({
-									kind: "blur" as const,
-									region: blurRegion,
-								})),
-							].sort((a, b) => a.region.zIndex - b.region.zIndex);
-							const previewSnapshotCanvas = (() => {
-								const app = appRef.current;
-								if (!app?.renderer?.extract) return null;
-								try {
-									return app.renderer.extract.canvas(app.stage);
-								} catch {
-									return null;
-								}
-							})();
-
-							// Handle click-through cycling: when clicking same annotation, cycle to next
-							const handleAnnotationClick = (clickedId: string) => {
-								if (!onSelectAnnotation) return;
-
-								// If clicking on already selected annotation and there are multiple overlapping
-								if (clickedId === selectedAnnotationId && filteredAnnotations.length > 1) {
-									// Find current index and cycle to next
-									const currentIndex = filteredAnnotations.findIndex((a) => a.id === clickedId);
-									const nextIndex = (currentIndex + 1) % filteredAnnotations.length;
-									onSelectAnnotation(filteredAnnotations[nextIndex].id);
-								} else {
-									// First click or clicking different annotation
-									onSelectAnnotation(clickedId);
-								}
-							};
-
-							const handleBlurClick = (clickedId: string) => {
-								if (!onSelectBlur) return;
-
-								if (clickedId === selectedBlurId && filteredBlurRegions.length > 1) {
-									const currentIndex = filteredBlurRegions.findIndex((a) => a.id === clickedId);
-									const nextIndex = (currentIndex + 1) % filteredBlurRegions.length;
-									onSelectBlur(filteredBlurRegions[nextIndex].id);
-								} else {
-									onSelectBlur(clickedId);
-								}
-							};
-
-							return sorted.map((item) => (
-								<AnnotationOverlay
-									key={
-										item.kind === "blur"
-											? `${item.region.id}-${overlaySize.width}-${overlaySize.height}-${item.region.blurData?.type ?? "blur"}-${item.region.blurData?.shape ?? "rectangle"}-${item.region.blurData?.color ?? "white"}-${Math.round(item.region.blurData?.blockSize ?? 0)}-${Math.round(item.region.blurData?.intensity ?? 0)}-${(item.region.blurData?.freehandPoints ?? []).map((p) => `${Math.round(p.x)}_${Math.round(p.y)}`).join("-")}`
-											: `${item.region.id}-${overlaySize.width}-${overlaySize.height}`
-									}
-									annotation={item.region}
-									isSelected={
-										item.kind === "blur"
-											? item.region.id === selectedBlurId
-											: item.region.id === selectedAnnotationId
-									}
-									containerWidth={overlaySize.width}
-									containerHeight={overlaySize.height}
-									onPositionChange={(id, position) =>
-										item.kind === "blur"
-											? onBlurPositionChange?.(id, position)
-											: onAnnotationPositionChange?.(id, position)
-									}
-									onSizeChange={(id, size) =>
-										item.kind === "blur"
-											? onBlurSizeChange?.(id, size)
-											: onAnnotationSizeChange?.(id, size)
-									}
-									onBlurDataChange={
-										item.kind === "blur"
-											? (id, blurData) => onBlurDataChange?.(id, blurData)
-											: undefined
-									}
-									onBlurDataCommit={item.kind === "blur" ? onBlurDataCommit : undefined}
-									onClick={item.kind === "blur" ? handleBlurClick : handleAnnotationClick}
-									zIndex={item.region.zIndex}
-									isSelectedBoost={
-										item.kind === "blur"
-											? item.region.id === selectedBlurId
-											: item.region.id === selectedAnnotationId
-									}
-									previewSourceCanvas={previewSnapshotCanvas}
-									previewFrameVersion={Math.round(currentTime * 1000)}
-								/>
-							));
+						ref={containerRef}
+						className="absolute inset-0"
+						style={{
+							filter:
+								showShadow && shadowIntensity > 0
+									? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
+									: "none",
+						}}
+					/>
+					{webcamVideoPath &&
+						(() => {
+							const clipPath = getCssClipPath(webcamLayout?.maskShape ?? "rectangle");
+							const useClipPath = !!clipPath;
+							return (
+								<div
+									className="absolute"
+									style={{
+										left: webcamLayout?.x ?? 0,
+										top: webcamLayout?.y ?? 0,
+										width: webcamLayout?.width ?? 0,
+										height: webcamLayout?.height ?? 0,
+										zIndex: 20,
+										opacity: webcamLayout ? 1 : 0,
+										filter:
+											useClipPath && webcamCssBoxShadow !== "none"
+												? `drop-shadow(${webcamCssBoxShadow})`
+												: undefined,
+									}}
+								>
+									<video
+										ref={webcamVideoRef}
+										src={webcamVideoPath}
+										className={`w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+										style={{
+											borderRadius: useClipPath ? 0 : (webcamLayout?.borderRadius ?? 0),
+											clipPath: clipPath ?? undefined,
+											boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
+											backgroundColor: "#000",
+										}}
+										onPointerDown={handleWebcamPointerDown}
+										onPointerMove={handleWebcamPointerMove}
+										onPointerUp={handleWebcamPointerUp}
+										onPointerLeave={handleWebcamPointerUp}
+										muted
+										preload="metadata"
+										playsInline
+									/>
+								</div>
+							);
 						})()}
-					</div>
-				)}
+					{/* Only render overlay after PIXI and video are fully initialized */}
+					{pixiReady && videoReady && (
+						<div
+							ref={setOverlayRefs}
+							className="absolute inset-0 select-none"
+							style={{ pointerEvents: "auto", zIndex: 30 }}
+							onPointerDown={handleOverlayPointerDown}
+							onPointerMove={handleOverlayPointerMove}
+							onPointerUp={handleOverlayPointerUp}
+							onPointerLeave={handleOverlayPointerLeave}
+						>
+							<div
+								ref={focusIndicatorRef}
+								className="absolute rounded-md border border-[#34B27B]/80 bg-[#34B27B]/20 shadow-[0_0_0_1px_rgba(52,178,123,0.35)]"
+								style={{ display: "none", pointerEvents: "none" }}
+							/>
+							{(() => {
+								const filteredAnnotations = (annotationRegions || []).filter((annotation) => {
+									if (
+										typeof annotation.startMs !== "number" ||
+										typeof annotation.endMs !== "number"
+									)
+										return false;
+
+									if (annotation.id === selectedAnnotationId) return true;
+
+									const timeMs = Math.round(currentTime * 1000);
+									return timeMs >= annotation.startMs && timeMs < annotation.endMs;
+								});
+
+								const filteredBlurRegions = (blurRegions || []).filter((blurRegion) => {
+									if (
+										typeof blurRegion.startMs !== "number" ||
+										typeof blurRegion.endMs !== "number"
+									)
+										return false;
+
+									if (blurRegion.id === selectedBlurId) return true;
+
+									const timeMs = Math.round(currentTime * 1000);
+									return timeMs >= blurRegion.startMs && timeMs < blurRegion.endMs;
+								});
+
+								const sorted = [
+									...filteredAnnotations.map((annotation) => ({
+										kind: "annotation" as const,
+										region: annotation,
+									})),
+									...filteredBlurRegions.map((blurRegion) => ({
+										kind: "blur" as const,
+										region: blurRegion,
+									})),
+								].sort((a, b) => a.region.zIndex - b.region.zIndex);
+								const previewSnapshotCanvas =
+									filteredBlurRegions.length > 0
+										? (() => {
+												const app = appRef.current;
+												if (!app?.renderer?.extract) return null;
+												try {
+													return app.renderer.extract.canvas(app.stage);
+												} catch {
+													return null;
+												}
+											})()
+										: null;
+
+								// Handle click-through cycling: when clicking same annotation, cycle to next
+								const handleAnnotationClick = (clickedId: string) => {
+									if (!onSelectAnnotation) return;
+
+									// If clicking on already selected annotation and there are multiple overlapping
+									if (clickedId === selectedAnnotationId && filteredAnnotations.length > 1) {
+										// Find current index and cycle to next
+										const currentIndex = filteredAnnotations.findIndex((a) => a.id === clickedId);
+										const nextIndex = (currentIndex + 1) % filteredAnnotations.length;
+										onSelectAnnotation(filteredAnnotations[nextIndex].id);
+									} else {
+										// First click or clicking different annotation
+										onSelectAnnotation(clickedId);
+									}
+								};
+
+								const handleBlurClick = (clickedId: string) => {
+									if (!onSelectBlur) return;
+
+									if (clickedId === selectedBlurId && filteredBlurRegions.length > 1) {
+										const currentIndex = filteredBlurRegions.findIndex((a) => a.id === clickedId);
+										const nextIndex = (currentIndex + 1) % filteredBlurRegions.length;
+										onSelectBlur(filteredBlurRegions[nextIndex].id);
+									} else {
+										onSelectBlur(clickedId);
+									}
+								};
+
+								return sorted.map((item) => (
+									<AnnotationOverlay
+										key={
+											item.kind === "blur"
+												? `${item.region.id}-${overlaySize.width}-${overlaySize.height}-${item.region.blurData?.type ?? "blur"}-${item.region.blurData?.shape ?? "rectangle"}-${item.region.blurData?.color ?? "white"}-${Math.round(item.region.blurData?.blockSize ?? 0)}-${Math.round(item.region.blurData?.intensity ?? 0)}-${(item.region.blurData?.freehandPoints ?? []).map((p) => `${Math.round(p.x)}_${Math.round(p.y)}`).join("-")}`
+												: `${item.region.id}-${overlaySize.width}-${overlaySize.height}`
+										}
+										annotation={item.region}
+										isSelected={
+											item.kind === "blur"
+												? item.region.id === selectedBlurId
+												: item.region.id === selectedAnnotationId
+										}
+										containerWidth={overlaySize.width}
+										containerHeight={overlaySize.height}
+										onPositionChange={(id, position) =>
+											item.kind === "blur"
+												? onBlurPositionChange?.(id, position)
+												: onAnnotationPositionChange?.(id, position)
+										}
+										onSizeChange={(id, size) =>
+											item.kind === "blur"
+												? onBlurSizeChange?.(id, size)
+												: onAnnotationSizeChange?.(id, size)
+										}
+										onBlurDataChange={
+											item.kind === "blur"
+												? (id, blurData) => onBlurDataChange?.(id, blurData)
+												: undefined
+										}
+										onBlurDataCommit={item.kind === "blur" ? onBlurDataCommit : undefined}
+										onClick={item.kind === "blur" ? handleBlurClick : handleAnnotationClick}
+										zIndex={item.region.zIndex}
+										isSelectedBoost={
+											item.kind === "blur"
+												? item.region.id === selectedBlurId
+												: item.region.id === selectedAnnotationId
+										}
+										previewSourceCanvas={previewSnapshotCanvas}
+										previewFrameVersion={Math.round(currentTime * 1000)}
+									/>
+								));
+							})()}
+						</div>
+					)}
+				</div>
 				<video
 					ref={videoRef}
 					src={videoPath}

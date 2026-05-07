@@ -1,5 +1,5 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserWindow, ipcMain, screen } from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -8,6 +8,13 @@ const APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const RENDERER_DIST = path.join(APP_ROOT, "dist");
 const HEADLESS = process.env["HEADLESS"] === "true";
+
+// Asset base URL for renderer (wallpapers, etc.). Packaged: extraResources copies
+// public/wallpapers -> resources/wallpapers. Unpackaged: <appRoot>/public/.
+const ASSET_BASE_DIR = process.defaultApp
+	? path.join(__dirname, "..", "public")
+	: process.resourcesPath;
+const ASSET_BASE_URL_ARG = `--asset-base-url=${pathToFileURL(`${ASSET_BASE_DIR}${path.sep}`).toString()}`;
 
 let hudOverlayWindow: BrowserWindow | null = null;
 
@@ -50,6 +57,7 @@ export function createHudOverlayWindow(): BrowserWindow {
 		show: !HEADLESS,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
 			nodeIntegration: false,
 			contextIsolation: true,
 			backgroundThrottling: false,
@@ -110,6 +118,7 @@ export function createEditorWindow(): BrowserWindow {
 		show: !HEADLESS,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
 			nodeIntegration: false,
 			contextIsolation: true,
 			webSecurity: false,
@@ -156,6 +165,7 @@ export function createSourceSelectorWindow(): BrowserWindow {
 		backgroundColor: "#00000000",
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
 			nodeIntegration: false,
 			contextIsolation: true,
 		},
@@ -207,6 +217,7 @@ export function createCountdownOverlayWindow(): BrowserWindow {
 		show: false,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
 			nodeIntegration: false,
 			contextIsolation: true,
 			backgroundThrottling: false,

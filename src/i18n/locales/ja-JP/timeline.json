@@ -1,0 +1,57 @@
+{
+	"buttons": {
+		"addZoom": "ズームを追加 (Z)",
+		"suggestZooms": "カーソル位置からズームを提案",
+		"addTrim": "トリムを追加 (T)",
+		"addAnnotation": "注釈を追加 (A)",
+		"addRectangle": "長方形を追加",
+		"addEllipse": "楕円を追加",
+		"addBlur": "ぼかしを追加 (B)",
+		"addSpeed": "再生速度を追加 (S)"
+	},
+	"hints": {
+		"pressZoom": "Zキーを押してズームを追加",
+		"pressTrim": "Tキーを押してトリムを追加",
+		"pressAnnotation": "Aキーを押して注釈を追加",
+		"pressBlur": "Bキーを押してぼかしを追加",
+		"pressSpeed": "Sキーを押して再生速度を追加"
+	},
+	"labels": {
+		"pan": "移動",
+		"zoom": "ズーム",
+		"trim": "トリム",
+		"speed": "再生速度",
+		"zoomItem": "ズーム {{index}}",
+		"trimItem": "トリム {{index}}",
+		"speedItem": "再生速度 {{index}}",
+		"annotationItem": "注釈",
+		"blurItem": "ぼかし {{index}}",
+		"imageItem": "画像",
+		"emptyText": "空のテキスト"
+	},
+	"emptyState": {
+		"noVideo": "ビデオが読み込まれていません",
+		"dragAndDrop": "ビデオをドラッグアンドドロップして編集を開始してください"
+	},
+	"errors": {
+		"cannotPlaceZoom": "ここにズームを配置できません",
+		"zoomExistsAtLocation": "この場所にはすでにズームが存在するか、十分なスペースがありません。",
+		"zoomSuggestionUnavailable": "ズームの自動提案機能が利用できません",
+		"noCursorTelemetry": "カーソルの動きが記録されていません",
+		"noCursorTelemetryDescription": "まず画面録画を行い、カーソルに基づく提案を生成してください。",
+		"noUsableTelemetry": "使用可能なカーソルの動きデータがありません",
+		"noUsableTelemetryDescription": "録画には十分なカーソルの動きデータが含まれていません。",
+		"noDwellMoments": "カーソルが静止したポイントが見つかりません",
+		"noDwellMomentsDescription": "強調したい操作の際に、カーソルを一時停止させて録画してみてください。",
+		"noAutoZoomSlots": "自動ズームを適用できる箇所がありません",
+		"noAutoZoomSlotsDescription": "検出された滞留ポイントが既存のズーム領域と重なっています。",
+		"cannotPlaceTrim": "ここにトリムを配置できません",
+		"trimExistsAtLocation": "この場所にはすでにトリムが存在するか、十分なスペースがありません。",
+		"cannotPlaceSpeed": "ここに再生速度を配置できません",
+		"speedExistsAtLocation": "この場所にはすでに再生速度の範囲が存在するか、十分なスペースがありません。"
+	},
+	"success": {
+		"addedZoomSuggestions": "カーソルに基づくズーム提案を {{count}} 件追加しました",
+		"addedZoomSuggestionsPlural": "カーソルに基づくズーム提案を {{count}} 件追加しました"
+	}
+}

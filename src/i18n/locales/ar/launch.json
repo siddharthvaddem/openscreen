@@ -1,0 +1,43 @@
+{
+	"tooltips": {
+		"hideHUD": "إخفاء واجهة العرض",
+		"closeApp": "إغلاق التطبيق",
+		"restartRecording": "إعادة تشغيل التسجيل",
+		"cancelRecording": "إلغاء التسجيل",
+		"pauseRecording": "إيقاف التسجيل مؤقتاً",
+		"resumeRecording": "استئناف التسجيل",
+		"openVideoFile": "فتح ملف فيديو",
+		"openProject": "فتح مشروع"
+	},
+	"audio": {
+		"enableSystemAudio": "تفعيل صوت النظام",
+		"disableSystemAudio": "تعطيل صوت النظام",
+		"enableMicrophone": "تفعيل الميكروفون",
+		"disableMicrophone": "تعطيل الميكروفون",
+		"defaultMicrophone": "الميكروفون الافتراضي"
+	},
+	"webcam": {
+		"enableWebcam": "تفعيل كاميرا الويب",
+		"disableWebcam": "تعطيل كاميرا الويب",
+		"defaultCamera": "الكاميرا الافتراضية",
+		"searching": "جاري البحث...",
+		"noneFound": "لم يتم العثور على كاميرا",
+		"unavailable": "الكاميرا غير متوفرة"
+	},
+	"sourceSelector": {
+		"loading": "جاري تحميل المصادر...",
+		"screens": "الشاشات ({{count}})",
+		"windows": "النوافذ ({{count}})",
+		"defaultSourceName": "الشاشة"
+	},
+	"recording": {
+		"selectSource": "يرجى تحديد مصدر للتسجيل"
+	},
+	"language": "اللغة",
+	"systemLanguagePrompt": {
+		"title": "هل تريد استخدام لغة نظامك؟",
+		"description": "اكتشفنا أن {{language}} هي لغة نظامك. هل تريد تبديل OpenScreen إلى {{language}}؟",
+		"switch": "التبديل إلى {{language}}",
+		"keepDefault": "الاحتفاظ باللغة الحالية"
+	}
+}

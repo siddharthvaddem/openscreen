@@ -40,5 +40,6 @@
 		"cameraDisconnected": "Webcam déconnectée.",
 		"cameraNotFound": "Caméra introuvable.",
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran."
-	}
+	},
+	"loadingVideo": "Chargement de la vidéo..."
 }

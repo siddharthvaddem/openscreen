@@ -1,6 +1,11 @@
 import type React from "react";
 import type { SpeedRegion, TrimRegion } from "../types";
 
+// Keep "scrub mode" on for a brief tail after `seeked` — rapid drag-scrubbing
+// fires `seeking`/`seeked` dozens of times per second, and toggling effects
+// each time would flicker.
+const SCRUB_END_DEBOUNCE_MS = 150;
+
 interface VideoEventHandlersParams {
 	video: HTMLVideoElement;
 	isSeekingRef: React.MutableRefObject<boolean>;
@@ -12,6 +17,9 @@ interface VideoEventHandlersParams {
 	onTimeUpdate: (time: number) => void;
 	trimRegionsRef: React.MutableRefObject<TrimRegion[]>;
 	speedRegionsRef: React.MutableRefObject<SpeedRegion[]>;
+	isScrubbingRef?: React.MutableRefObject<boolean>;
+	scrubEndTimerRef?: React.MutableRefObject<number | null>;
+	onScrubChange?: (scrubbing: boolean) => void;
 }
 
 export function createVideoEventHandlers(params: VideoEventHandlersParams) {
@@ -26,7 +34,17 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		onTimeUpdate,
 		trimRegionsRef,
 		speedRegionsRef,
+		isScrubbingRef,
+		scrubEndTimerRef,
+		onScrubChange,
 	} = params;
+
+	const clearScrubEndTimer = () => {
+		if (scrubEndTimerRef && scrubEndTimerRef.current !== null) {
+			window.clearTimeout(scrubEndTimerRef.current);
+			scrubEndTimerRef.current = null;
+		}
+	};
 
 	const emitTime = (timeValue: number) => {
 		currentTimeRef.current = timeValue * 1000;
@@ -113,6 +131,15 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 	const handleSeeked = () => {
 		isSeekingRef.current = false;
 
+		if (isScrubbingRef && scrubEndTimerRef) {
+			clearScrubEndTimer();
+			scrubEndTimerRef.current = window.setTimeout(() => {
+				isScrubbingRef.current = false;
+				scrubEndTimerRef.current = null;
+				onScrubChange?.(false);
+			}, SCRUB_END_DEBOUNCE_MS);
+		}
+
 		const currentTimeMs = video.currentTime * 1000;
 		const activeTrimRegion = findActiveTrimRegion(currentTimeMs);
 
@@ -136,6 +163,14 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 
 	const handleSeeking = () => {
 		isSeekingRef.current = true;
+
+		if (isScrubbingRef) {
+			clearScrubEndTimer();
+			if (!isScrubbingRef.current) {
+				isScrubbingRef.current = true;
+				onScrubChange?.(true);
+			}
+		}
 
 		if (!isPlayingRef.current && !video.paused) {
 			video.pause();

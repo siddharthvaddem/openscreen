@@ -5,6 +5,7 @@
 		"cancel": "取消",
 		"confirm": "確認"
 	},
+	"loadingVideo": "正在載入影片...",
 	"errors": {
 		"noVideoLoaded": "未載入影片",
 		"videoNotReady": "影片未就緒",
@@ -37,6 +38,8 @@
 		"systemAudioUnavailable": "系統音訊不可用。將在無系統音訊的情況下錄製。",
 		"microphoneDenied": "麥克風權限被拒絕。錄製將繼續，但不包含音訊。",
 		"cameraDenied": "攝影機權限被拒絕。錄製將繼續，但不包含攝影機畫面。",
-		"permissionDenied": "錄影權限被拒絕。請允許螢幕錄製。"
+		"permissionDenied": "錄影權限被拒絕。請允許螢幕錄製。",
+		"cameraDisconnected": "網路攝影機已中斷連線。",
+		"cameraNotFound": "找不到攝影機。"
 	}
 }

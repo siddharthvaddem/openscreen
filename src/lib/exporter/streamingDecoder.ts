@@ -68,7 +68,7 @@ type EarlyDecodeEndCheck = {
 };
 
 const EARLY_DECODE_END_THRESHOLD_SEC = 1;
-const METADATA_TAIL_TOLERANCE_SEC = 1.5;
+const METADATA_TAIL_TOLERANCE_SEC = 2;
 const STREAM_DURATION_MATCH_TOLERANCE_SEC = 0.25;
 const DURATION_DIVERGENCE_THRESHOLD_SEC = 1.5;
 // Fallback upper bound for the packet scan when no reliable duration hint is
@@ -129,11 +129,8 @@ export function shouldFailDecodeEndedEarly({
 	const decodedNearStreamEnd =
 		Math.abs(lastDecodedFrameSec - streamDurationSec) <= STREAM_DURATION_MATCH_TOLERANCE_SEC;
 
-	if (
-		decodedNearStreamEnd &&
-		metadataTailSec > 0 &&
-		metadataTailSec <= METADATA_TAIL_TOLERANCE_SEC
-	) {
+	const maxTailSec = Math.max(METADATA_TAIL_TOLERANCE_SEC, requiredEndSec * 0.01);
+	if (decodedNearStreamEnd && metadataTailSec > 0 && metadataTailSec <= maxTailSec) {
 		return false;
 	}
 
@@ -295,6 +292,7 @@ export class StreamingVideoDecoder {
 		trimRegions: TrimRegion[] | undefined,
 		speedRegions: SpeedRegion[] | undefined,
 		onFrame: OnFrameCallback,
+		onWarning?: (message: string) => void,
 	): Promise<void> {
 		if (!this.demuxer || !this.metadata) {
 			throw new Error("Must call loadMetadata() before decodeAll()");
@@ -302,17 +300,38 @@ export class StreamingVideoDecoder {
 
 		const decoderConfig = await this.demuxer.getDecoderConfig("video");
 
-		// web-demuxer may return a bare "av01" for AV1 in WebM containers when the
-		// extradata isn't in the expected ISOBMFF format. WebCodecs requires the
-		// full parametrized form (e.g. "av01.0.05M.08").
+		console.log("[StreamingVideoDecoder] decoderConfig.codec:", decoderConfig.codec);
+		console.log("[StreamingVideoDecoder] decoderConfig.description:", decoderConfig.description);
+
+		// web-demuxer may return bare four-character code strings ("av01", "vp08",
+		// "vp09", "avc1") that WebCodecs rejects. Normalize them to the short or
+		// full parametrized forms that VideoDecoder accepts.
 		if (/^av01$/i.test(decoderConfig.codec)) {
 			decoderConfig.codec = buildAV1CodecString(
 				decoderConfig.description as BufferSource | undefined,
 			);
 		}
 
+		if (/^vp08$/i.test(decoderConfig.codec)) {
+			decoderConfig.codec = "vp8";
+		}
+		if (/^vp09$/i.test(decoderConfig.codec)) {
+			decoderConfig.codec = "vp9";
+		}
+
+		if (/^avc1$/i.test(decoderConfig.codec)) {
+			decoderConfig.codec = "avc1.640033";
+		}
+		if (/^h264$/i.test(decoderConfig.codec)) {
+			decoderConfig.codec = "avc1.640033";
+		}
+
 		const codec = decoderConfig.codec.toLowerCase();
-		const shouldPreferSoftwareDecode = codec.includes("av01") || codec.includes("av1");
+		const shouldPreferSoftwareDecode =
+			codec.includes("av01") ||
+			codec.includes("av1") ||
+			codec.includes("vp09") ||
+			codec.includes("vp9");
 		const segments = this.splitBySpeed(
 			this.computeSegments(this.metadata.duration, trimRegions),
 			speedRegions,
@@ -343,6 +362,10 @@ export class StreamingVideoDecoder {
 				}
 			},
 			error: (e: DOMException) => {
+				console.warn(
+					`[StreamingVideoDecoder] decoder error for codec "${decoderConfig.codec}":`,
+					e.message,
+				);
 				decodeError = new Error(`VideoDecoder error: ${e.message}`);
 				if (frameResolve) {
 					const resolve = frameResolve;
@@ -359,13 +382,28 @@ export class StreamingVideoDecoder {
 			: decoderConfig;
 
 		try {
+			const support = await VideoDecoder.isConfigSupported(preferredDecoderConfig);
+			console.log(
+				`[StreamingVideoDecoder] isConfigSupported for "${preferredDecoderConfig.codec}":`,
+				support.supported,
+			);
+			if (!support.supported) {
+				throw new Error(`Unsupported codec: ${preferredDecoderConfig.codec}`);
+			}
 			this.decoder.configure(preferredDecoderConfig);
 		} catch (error) {
-			if (!shouldPreferSoftwareDecode) {
+			if (shouldPreferSoftwareDecode) {
+				this.decoder.configure(decoderConfig);
+			} else if (/^avc1/i.test(codec)) {
+				const fallback = { ...decoderConfig, codec: "avc1.640033" };
+				console.warn(
+					`[StreamingVideoDecoder] codec "${codec}" unsupported, ` +
+						`falling back to "${fallback.codec}"`,
+				);
+				this.decoder.configure(fallback);
+			} else {
 				throw error;
 			}
-			// Fall back to default decoder config if software preference isn't supported.
-			this.decoder.configure(decoderConfig);
 		}
 
 		const getNextFrame = (): Promise<VideoFrame | null> => {
@@ -566,8 +604,6 @@ export class StreamingVideoDecoder {
 		}
 		this.decoder = null;
 
-		const isWindows = typeof navigator !== "undefined" && /Windows/.test(navigator.userAgent);
-
 		if (
 			shouldFailDecodeEndedEarly({
 				cancelled: this.cancelled,
@@ -578,22 +614,9 @@ export class StreamingVideoDecoder {
 		) {
 			const decodedAtLabel =
 				lastDecodedFrameSec === null ? "no decoded frame" : `${lastDecodedFrameSec.toFixed(3)}s`;
-			const decodeGapSec =
-				lastDecodedFrameSec === null ? Infinity : requiredEndSec - lastDecodedFrameSec;
-
-			// On Windows, tolerate a small decode gap: up to 10% of required duration, capped at 3 seconds.
-			const maxToleratedGap = Math.min(3.0, requiredEndSec * 0.1);
-
-			if (isWindows && lastDecodedFrameSec !== null && decodeGapSec <= maxToleratedGap) {
-				console.warn(
-					`[StreamingVideoDecoder] Decode ended early on Windows with a gap of ${decodeGapSec.toFixed(2)}s ` +
-						`(max tolerated: ${maxToleratedGap.toFixed(2)}s) – proceeding anyway.`,
-				);
-			} else {
-				throw new Error(
-					`Video decode ended early at ${decodedAtLabel} (needed ${requiredEndSec.toFixed(3)}s).`,
-				);
-			}
+			const message = `Decode ended early at ${decodedAtLabel} (needed ${requiredEndSec.toFixed(3)}s) – export may be slightly shorter than expected.`;
+			console.warn(`[StreamingVideoDecoder] ${message}`);
+			onWarning?.(message);
 		}
 	}
 

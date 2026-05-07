@@ -11,7 +11,7 @@
 buildNpmPackage {
   nodejs = nodejs_22;
   pname = "openscreen";
-  version = "1.3.0";
+  version = "1.4.0";
 
   src =
     let

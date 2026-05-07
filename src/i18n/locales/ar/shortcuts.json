@@ -1,0 +1,37 @@
+{
+	"title": "اختصارات لوحة المفاتيح",
+	"customize": "تخصيص",
+	"configurable": "قابل للتكوين",
+	"fixed": "ثابت",
+	"pressKey": "اضغط على مفتاح...",
+	"clickToChange": "انقر للتغيير",
+	"pressEscToCancel": "اضغط على Esc للإلغاء",
+	"helpText": "انقر على اختصار ثم اضغط على مجموعة المفاتيح الجديدة. اضغط على Esc للإلغاء.",
+	"resetToDefaults": "إعادة تعيين إلى الافتراضيات",
+	"alreadyUsedBy": "مستخدم بالفعل بواسطة {{action}}",
+	"swap": "تبديل",
+	"reservedShortcut": "هذا الاختصار محجوز لـ \"{{label}}\" ولا يمكن إعادة تعيينه.",
+	"savedToast": "تم حفظ اختصارات لوحة المفاتيح",
+	"resetToast": "إعادة تعيين إلى الاختصارات الافتراضية — انقر فوق حفظ للتطبيق",
+	"actions": {
+		"addZoom": "إضافة تكبير",
+		"addTrim": "إضافة قص",
+		"addSpeed": "إضافة سرعة",
+		"addAnnotation": "إضافة شرح",
+		"addBlur": "إضافة تمويه",
+		"addKeyframe": "إضافة إطار رئيسي",
+		"deleteSelected": "حذف المحدد",
+		"playPause": "تشغيل / إيقاف مؤقت"
+	},
+	"fixedActions": {
+		"undo": "تراجع",
+		"redo": "إعادة",
+		"cycleAnnotationsForward": "التنقل بين الشروح للأمام",
+		"cycleAnnotationsBackward": "التنقل بين الشروح للخلف",
+		"deleteSelectedAlt": "حذف المحدد (alt)",
+		"panTimeline": "تحريك المخطط الزمني",
+		"zoomTimeline": "تكبير المخطط الزمني",
+		"frameBack": "إطار للخلف",
+		"frameForward": "إطار للأمام"
+	}
+}
