@@ -4,10 +4,6 @@
 	cursor: grab;
 }
 
-.electronDrag:active {
-	cursor: grabbing;
-}
-
 .electronNoDrag {
 	-webkit-app-region: no-drag;
 }

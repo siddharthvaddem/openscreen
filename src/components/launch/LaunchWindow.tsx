@@ -331,6 +331,7 @@ export function LaunchWindow() {
 			}`}
 			onClick={toggleRecording}
 			disabled={recordButtonDisabled}
+			aria-label={recordTooltip}
 			style={{ flex: "0 0 auto" }}
 		>
 			<div className={`flex items-center justify-center ${recording ? "gap-1.5" : ""}`}>
