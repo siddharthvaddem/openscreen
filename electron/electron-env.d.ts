@@ -79,6 +79,7 @@ interface Window {
 		}>;
 		onStopRecordingFromTray: (callback: () => void) => () => void;
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+		getAppVersion: () => Promise<string>;
 		saveExportedVideo: (
 			videoData: ArrayBuffer,
 			fileName: string,
@@ -134,6 +135,7 @@ interface Window {
 		onMenuLoadProject: (callback: () => void) => () => void;
 		onMenuSaveProject: (callback: () => void) => () => void;
 		onMenuSaveProjectAs: (callback: () => void) => () => void;
+		onMenuCheckForUpdates: (callback: () => void) => () => void;
 		getPlatform: () => Promise<string>;
 		revealInFolder: (
 			filePath: string,

@@ -953,6 +953,8 @@ export function registerIpcHandlers(
 		}
 	});
 
+	ipcMain.handle("get-app-version", () => app.getVersion());
+
 	ipcMain.handle("open-external-url", async (_, url: string) => {
 		try {
 			const ALLOWED_SCHEMES = ["http:", "https:", "mailto:"];

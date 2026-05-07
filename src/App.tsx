@@ -7,7 +7,10 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
 import VideoEditor from "./components/video-editor/VideoEditor";
 import { ShortcutsProvider } from "./contexts/ShortcutsContext";
+import { forceCheckForUpdate, maybeShowUpdateToast } from "./lib/checkForUpdate";
 import { loadAllCustomFonts } from "./lib/customFonts";
+
+const UPDATE_CHECK_DELAY_MS = 3000;
 
 export default function App() {
 	const [windowType, setWindowType] = useState(
@@ -47,6 +50,38 @@ export default function App() {
 			console.error("Failed to load custom fonts:", error);
 		});
 	}, []);
+
+	useEffect(() => {
+		if (windowType !== "") return;
+		const id = setTimeout(async () => {
+			try {
+				const version = await window.electronAPI.getAppVersion();
+				await maybeShowUpdateToast(version);
+			} catch (error) {
+				console.error("Error during on-start update check in App useEffect:", error);
+			}
+		}, UPDATE_CHECK_DELAY_MS);
+		return () => clearTimeout(id);
+	}, [windowType]);
+
+	useEffect(() => {
+		if (
+			windowType === "hud-overlay" ||
+			windowType === "source-selector" ||
+			windowType === "countdown-overlay"
+		) {
+			return;
+		}
+		const unsubscribe = window.electronAPI.onMenuCheckForUpdates(async () => {
+			try {
+				const version = await window.electronAPI.getAppVersion();
+				forceCheckForUpdate(version);
+			} catch (error) {
+				console.error("Error handling onMenuCheckForUpdates in App:", error);
+			}
+		});
+		return unsubscribe;
+	}, [windowType]);
 
 	const content = (() => {
 		switch (windowType) {

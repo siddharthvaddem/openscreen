@@ -71,6 +71,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},
+	getAppVersion: () => {
+		return ipcRenderer.invoke("get-app-version");
+	},
 	saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => {
 		return ipcRenderer.invoke("save-exported-video", videoData, fileName);
 	},
@@ -118,6 +121,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		const listener = () => callback();
 		ipcRenderer.on("menu-save-project-as", listener);
 		return () => ipcRenderer.removeListener("menu-save-project-as", listener);
+	},
+	onMenuCheckForUpdates: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("menu-check-for-updates", listener);
+		return () => ipcRenderer.removeListener("menu-check-for-updates", listener);
 	},
 	getPlatform: () => {
 		return ipcRenderer.invoke("get-platform");

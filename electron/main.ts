@@ -128,6 +128,21 @@ function sendEditorMenuAction(
 	targetWindow.webContents.send(channel);
 }
 
+function sendCheckForUpdates() {
+	const target = BrowserWindow.getFocusedWindow() ?? mainWindow;
+	if (target && !target.isDestroyed()) {
+		target.webContents.send("menu-check-for-updates");
+		return;
+	}
+	showMainWindow();
+	const dispatchTarget = mainWindow;
+	if (!dispatchTarget || dispatchTarget.isDestroyed()) return;
+	dispatchTarget.webContents.once("did-finish-load", () => {
+		if (dispatchTarget.isDestroyed()) return;
+		dispatchTarget.webContents.send("menu-check-for-updates");
+	});
+}
+
 function setupApplicationMenu() {
 	const isMac = process.platform === "darwin";
 	const template: Electron.MenuItemConstructorOptions[] = [];
@@ -266,6 +281,15 @@ function setupApplicationMenu() {
 							label: mainT("common", "actions.close") || "Close",
 						},
 					],
+		},
+		{
+			role: "help",
+			submenu: [
+				{
+					label: mainT("common", "actions.checkForUpdates") || "Check for Updates…",
+					click: () => sendCheckForUpdates(),
+				},
+			],
 		},
 	);
 
