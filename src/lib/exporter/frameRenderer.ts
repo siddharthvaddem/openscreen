@@ -116,6 +116,99 @@ interface LayoutCache {
 	webcamRect: StyledRenderRect | null;
 }
 
+function isFinitePositiveRect(r: { x: number; y: number; width: number; height: number }): boolean {
+	return (
+		Number.isFinite(r.x) &&
+		Number.isFinite(r.y) &&
+		Number.isFinite(r.width) &&
+		Number.isFinite(r.height) &&
+		r.width > 0 &&
+		r.height > 0
+	);
+}
+
+/** True when every derived export-layout number is finite (and scale / crop / screen rect are usable). */
+function isVideoExportLayoutGeometryValid(params: {
+	croppedVideoWidth: number;
+	croppedVideoHeight: number;
+	paddingScale: number;
+	viewportWidth: number;
+	viewportHeight: number;
+	screenRect: { x: number; y: number; width: number; height: number };
+	scale: number;
+	croppedDisplayWidth: number;
+	croppedDisplayHeight: number;
+	coverOffsetX: number;
+	coverOffsetY: number;
+	cropPixelX: number;
+	cropPixelY: number;
+	spriteW: number;
+	spriteH: number;
+	canvasScaleFactor: number;
+	scaledBorderRadius: number;
+	baseOffset: { x: number; y: number };
+	webcamRect: StyledRenderRect | null;
+	screenBorderRadius: number | undefined;
+}): boolean {
+	if (
+		!Number.isFinite(params.croppedVideoWidth) ||
+		!Number.isFinite(params.croppedVideoHeight) ||
+		params.croppedVideoWidth <= 0 ||
+		params.croppedVideoHeight <= 0
+	) {
+		return false;
+	}
+	if (
+		!Number.isFinite(params.paddingScale) ||
+		!Number.isFinite(params.viewportWidth) ||
+		!Number.isFinite(params.viewportHeight)
+	) {
+		return false;
+	}
+	if (!isFinitePositiveRect(params.screenRect)) return false;
+	if (!Number.isFinite(params.scale) || params.scale <= 0) return false;
+	if (
+		!Number.isFinite(params.croppedDisplayWidth) ||
+		!Number.isFinite(params.croppedDisplayHeight) ||
+		!Number.isFinite(params.coverOffsetX) ||
+		!Number.isFinite(params.coverOffsetY) ||
+		!Number.isFinite(params.cropPixelX) ||
+		!Number.isFinite(params.cropPixelY)
+	) {
+		return false;
+	}
+	if (
+		!Number.isFinite(params.spriteW) ||
+		!Number.isFinite(params.spriteH) ||
+		params.spriteW <= 0 ||
+		params.spriteH <= 0
+	) {
+		return false;
+	}
+	if (!Number.isFinite(params.canvasScaleFactor) || params.canvasScaleFactor < 0) return false;
+	if (!Number.isFinite(params.scaledBorderRadius) || params.scaledBorderRadius < 0) return false;
+	if (params.screenBorderRadius != null && !Number.isFinite(params.screenBorderRadius))
+		return false;
+	if (!Number.isFinite(params.baseOffset.x) || !Number.isFinite(params.baseOffset.y)) return false;
+
+	const cam = params.webcamRect;
+	if (cam) {
+		if (
+			!Number.isFinite(cam.x) ||
+			!Number.isFinite(cam.y) ||
+			!Number.isFinite(cam.width) ||
+			!Number.isFinite(cam.height) ||
+			!Number.isFinite(cam.borderRadius) ||
+			cam.width < 0 ||
+			cam.height < 0 ||
+			cam.borderRadius < 0
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // Renders video frames with all effects (background, zoom, crop, blur, shadow) to an offscreen canvas for export.
 
 export class FrameRenderer {
@@ -578,7 +671,10 @@ export class FrameRenderer {
 			webcamPosition: this.config.webcamPosition,
 			webcamMaskShape: this.config.webcamMaskShape,
 		});
-		if (!compositeLayout) return;
+		if (!compositeLayout) {
+			this.layoutCache = null;
+			return;
+		}
 
 		const screenRect = compositeLayout.screenRect;
 
@@ -601,8 +697,49 @@ export class FrameRenderer {
 		const cropPixelX = cropStartX * videoWidth * scale;
 		const cropPixelY = cropStartY * videoHeight * scale;
 
-		if (!Number.isFinite(coverOffsetX + coverOffsetY + cropPixelX + cropPixelY)) {
-			console.error("[FrameRenderer] Invalid layout: NaN");
+		const previewWidth = this.config.previewWidth ?? this.config.width;
+		const previewHeight = this.config.previewHeight ?? this.config.height;
+		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
+		const scaledBorderRadius =
+			compositeLayout.screenBorderRadius != null
+				? compositeLayout.screenBorderRadius
+				: compositeLayout.screenCover
+					? 0
+					: borderRadius * canvasScaleFactor;
+
+		const baseOffset = {
+			x: compositeLayout.screenRect.x + coverOffsetX - cropPixelX,
+			y: compositeLayout.screenRect.y + coverOffsetY - cropPixelY,
+		};
+		const spriteW = videoWidth * scale;
+		const spriteH = videoHeight * scale;
+
+		if (
+			!isVideoExportLayoutGeometryValid({
+				croppedVideoWidth,
+				croppedVideoHeight,
+				paddingScale,
+				viewportWidth,
+				viewportHeight,
+				screenRect,
+				scale,
+				croppedDisplayWidth,
+				croppedDisplayHeight,
+				coverOffsetX,
+				coverOffsetY,
+				cropPixelX,
+				cropPixelY,
+				spriteW,
+				spriteH,
+				canvasScaleFactor,
+				scaledBorderRadius,
+				baseOffset,
+				webcamRect: compositeLayout.webcamRect,
+				screenBorderRadius: compositeLayout.screenBorderRadius,
+			})
+		) {
+			this.layoutCache = null;
+			console.error("[FrameRenderer] Invalid layout geometry; cleared layout cache");
 			return;
 		}
 
@@ -616,17 +753,6 @@ export class FrameRenderer {
 		// Position video container
 		this.videoContainer.x = screenRect.x;
 		this.videoContainer.y = screenRect.y;
-
-		// scale border radius by export/preview canvas ratio
-		const previewWidth = this.config.previewWidth ?? this.config.width;
-		const previewHeight = this.config.previewHeight ?? this.config.height;
-		const canvasScaleFactor = Math.min(width / previewWidth, height / previewHeight);
-		const scaledBorderRadius =
-			compositeLayout.screenBorderRadius != null
-				? compositeLayout.screenBorderRadius
-				: compositeLayout.screenCover
-					? 0
-					: borderRadius * canvasScaleFactor;
 
 		this.maskGraphics.clear();
 		this.maskGraphics.roundRect(0, 0, screenRect.width, screenRect.height, scaledBorderRadius);
@@ -643,10 +769,7 @@ export class FrameRenderer {
 			stageSize: { width, height },
 			videoSize: { width: croppedVideoWidth, height: croppedVideoHeight },
 			baseScale: scale,
-			baseOffset: {
-				x: compositeLayout.screenRect.x + coverOffsetX - cropPixelX,
-				y: compositeLayout.screenRect.y + coverOffsetY - cropPixelY,
-			},
+			baseOffset,
 			maskRect: compositeLayout.screenRect,
 			webcamRect: compositeLayout.webcamRect,
 		};
