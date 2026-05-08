@@ -44,6 +44,10 @@ function approveFilePath(filePath: string): void {
 	approvedPaths.add(path.resolve(filePath));
 }
 
+export function approveReadablePath(filePath: string): void {
+	approveFilePath(filePath);
+}
+
 function getAllowedReadDirs(): string[] {
 	return [RECORDINGS_DIR];
 }

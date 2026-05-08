@@ -29,9 +29,13 @@
 		"test:browser": "vitest --config vitest.browser.config.ts --run",
 		"test:browser:install": "playwright install --with-deps chromium-headless-shell",
 		"test:e2e": "playwright test",
+		"cli": "node cli/openscreen.mjs",
 		"prepare": "husky",
 		"rebuild:native": "node ./scripts/rebuild-native.mjs",
 		"postinstall": "npm run rebuild:native"
+	},
+	"bin": {
+		"openscreen": "cli/openscreen.mjs"
 	},
 	"dependencies": {
 		"@fix-webm-duration/fix": "^1.0.1",

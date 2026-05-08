@@ -145,6 +145,30 @@ interface Window {
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
 		hideCountdownOverlay: (runId: number) => Promise<void>;
+		getCliRecordConfig: () => Promise<{
+			durationMs: number;
+			source?: string;
+			sourceType?: "screen" | "window" | "any";
+			systemAudio?: boolean;
+		}>;
+		cliRecordMessage: (message: { type: string; data: unknown }) => void;
+		getCliRenderConfig: () => Promise<{
+			project: {
+				media?: {
+					screenVideoPath?: string;
+					webcamVideoPath?: string;
+				};
+				videoPath?: string;
+				editor: unknown;
+			};
+			output: string;
+			format: "mp4" | "gif";
+			quality?: "medium" | "good" | "source";
+			gifFrameRate?: 15 | 20 | 25 | 30;
+			gifSizePreset?: "medium" | "large" | "original";
+			gifLoop?: boolean;
+		}>;
+		cliRenderMessage: (message: { type: string; data: unknown }) => void;
 		onCountdownOverlayValue: (callback: (value: number | null) => void) => () => void;
 		setMicrophoneExpanded: (expanded: boolean) => void;
 		setHasUnsavedChanges: (hasChanges: boolean) => void;

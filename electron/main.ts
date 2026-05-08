@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
 	app,
 	BrowserWindow,
@@ -13,7 +13,7 @@ import {
 	Tray,
 } from "electron";
 import { mainT, setMainLocale } from "./i18n";
-import { registerIpcHandlers } from "./ipc/handlers";
+import { approveReadablePath, registerIpcHandlers } from "./ipc/handlers";
 import {
 	createCountdownOverlayWindow,
 	createEditorWindow,
@@ -73,6 +73,10 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 	? path.join(process.env.APP_ROOT, "public")
 	: RENDERER_DIST;
+
+function getAssetBaseUrlArg() {
+	return `--asset-base-url=${pathToFileURL(`${process.env.VITE_PUBLIC}${path.sep}`).toString()}`;
+}
 
 // Window references
 let mainWindow: BrowserWindow | null = null;
@@ -444,8 +448,289 @@ app.on("activate", () => {
 	}
 });
 
+// CLI record mode runs the existing Electron capture stack without showing the HUD.
+// The Node CLI owns argument parsing and project output; the renderer owns
+// getUserMedia/MediaRecorder so capture behavior stays aligned with the app.
+const isCliRecord = process.argv.includes("--cli-record");
+const isCliRender = process.argv.includes("--cli-render");
+
+type CliRecordConfig = {
+	durationMs: number;
+	source?: string;
+	sourceType?: "screen" | "window" | "any";
+	systemAudio?: boolean;
+};
+
+type CliRenderConfig = {
+	project: {
+		media?: {
+			screenVideoPath?: string;
+			webcamVideoPath?: string;
+		};
+		videoPath?: string;
+		editor: unknown;
+	};
+	output: string;
+	format: "mp4" | "gif";
+	quality?: "medium" | "good" | "source";
+	gifFrameRate?: 15 | 20 | 25 | 30;
+	gifSizePreset?: "medium" | "large" | "original";
+	gifLoop?: boolean;
+};
+
+function getCliArg(name: string): string | undefined {
+	const index = process.argv.indexOf(name);
+	return index !== -1 && index + 1 < process.argv.length ? process.argv[index + 1] : undefined;
+}
+
+function writeCliMessage(type: string, data: unknown) {
+	process.stdout.write(`${JSON.stringify({ __cli: true, type, data })}\n`);
+}
+
+async function readCliRecordConfig(): Promise<CliRecordConfig> {
+	const configPath = getCliArg("--config");
+	if (!configPath) {
+		throw new Error("Missing --config argument.");
+	}
+
+	const rawConfig = await fs.readFile(configPath, "utf8");
+	const parsed = JSON.parse(rawConfig) as Partial<CliRecordConfig>;
+	const durationMs = Number(parsed.durationMs);
+	if (!Number.isFinite(durationMs) || durationMs <= 0) {
+		throw new Error("CLI record config requires a positive durationMs.");
+	}
+
+	const sourceType =
+		parsed.sourceType === "screen" || parsed.sourceType === "window" || parsed.sourceType === "any"
+			? parsed.sourceType
+			: "any";
+
+	return {
+		durationMs,
+		source: typeof parsed.source === "string" ? parsed.source : undefined,
+		sourceType,
+		systemAudio: parsed.systemAudio === true,
+	};
+}
+
+async function runCliRecord() {
+	const config = await readCliRecordConfig();
+	await ensureRecordingsDir();
+
+	const createHiddenWindow = () =>
+		new BrowserWindow({
+			width: 1,
+			height: 1,
+			show: false,
+			webPreferences: {
+				preload: path.join(__dirname, "preload.mjs"),
+				nodeIntegration: false,
+				contextIsolation: true,
+			},
+		});
+
+	registerIpcHandlers(
+		() => {
+			/* no editor window in CLI mode */
+		},
+		createHiddenWindow,
+		createHiddenWindow,
+		() => null,
+		() => null,
+		() => null,
+	);
+
+	ipcMain.handle("get-cli-record-config", () => config);
+
+	let exiting = false;
+	let safetyTimer: ReturnType<typeof setTimeout> | undefined;
+	const finish = (exitCode: number) => {
+		if (exiting) return;
+		exiting = true;
+		if (safetyTimer) clearTimeout(safetyTimer);
+		setTimeout(() => app.exit(exitCode), 250);
+	};
+
+	ipcMain.on("cli-record-message", (_, message: { type: string; data: unknown }) => {
+		writeCliMessage(message.type, message.data);
+		if (message.type === "done") finish(0);
+		if (message.type === "error") finish(1);
+	});
+
+	const win = new BrowserWindow({
+		width: 1280,
+		height: 720,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			nodeIntegration: false,
+			contextIsolation: true,
+			webSecurity: false,
+			backgroundThrottling: false,
+		},
+	});
+
+	if (VITE_DEV_SERVER_URL) {
+		await win.loadURL(`${VITE_DEV_SERVER_URL}?windowType=cli-record`);
+	} else {
+		await win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "cli-record" },
+		});
+	}
+
+	safetyTimer = setTimeout(
+		() => {
+			writeCliMessage("error", { message: "Recording timed out." });
+			finish(1);
+		},
+		Math.max(config.durationMs + 120_000, 180_000),
+	);
+}
+
+async function readCliRenderConfig(): Promise<CliRenderConfig> {
+	const configPath = getCliArg("--config");
+	if (!configPath) {
+		throw new Error("Missing --config argument.");
+	}
+
+	approveReadablePath(configPath);
+	const rawConfig = await fs.readFile(configPath, "utf8");
+	const parsed = JSON.parse(rawConfig) as Partial<CliRenderConfig>;
+	if (!parsed.project || typeof parsed.project !== "object") {
+		throw new Error("CLI render config requires a project.");
+	}
+	if (typeof parsed.output !== "string" || !parsed.output.trim()) {
+		throw new Error("CLI render config requires an output path.");
+	}
+
+	const output = path.resolve(parsed.output);
+	await fs.mkdir(path.dirname(output), { recursive: true });
+
+	const screenVideoPath =
+		typeof parsed.project.media?.screenVideoPath === "string"
+			? parsed.project.media.screenVideoPath
+			: typeof parsed.project.videoPath === "string"
+				? parsed.project.videoPath
+				: undefined;
+	if (screenVideoPath) {
+		approveReadablePath(screenVideoPath);
+	}
+	if (typeof parsed.project.media?.webcamVideoPath === "string") {
+		approveReadablePath(parsed.project.media.webcamVideoPath);
+	}
+
+	return {
+		project: parsed.project as CliRenderConfig["project"],
+		output,
+		format: parsed.format === "gif" ? "gif" : "mp4",
+		quality: parsed.quality === "medium" || parsed.quality === "source" ? parsed.quality : "good",
+		gifFrameRate: parsed.gifFrameRate,
+		gifSizePreset:
+			parsed.gifSizePreset === "large" || parsed.gifSizePreset === "original"
+				? parsed.gifSizePreset
+				: "medium",
+		gifLoop: parsed.gifLoop,
+	};
+}
+
+async function runCliRender() {
+	const config = await readCliRenderConfig();
+	await ensureRecordingsDir();
+
+	registerIpcHandlers(
+		() => {
+			/* no editor window in CLI mode */
+		},
+		() => new BrowserWindow({ show: false }),
+		() => new BrowserWindow({ show: false }),
+		() => null,
+		() => null,
+		() => null,
+	);
+
+	ipcMain.handle("get-cli-render-config", () => config);
+	ipcMain.removeHandler("save-exported-video");
+	ipcMain.handle("save-exported-video", async (_, videoData: ArrayBuffer) => {
+		try {
+			await fs.writeFile(config.output, Buffer.from(videoData));
+			return { success: true, path: config.output, message: "Export saved" };
+		} catch (error) {
+			return { success: false, message: String(error) };
+		}
+	});
+
+	let exiting = false;
+	let safetyTimer: ReturnType<typeof setTimeout> | undefined;
+	const finish = (exitCode: number) => {
+		if (exiting) return;
+		exiting = true;
+		if (safetyTimer) clearTimeout(safetyTimer);
+		setTimeout(() => app.exit(exitCode), 250);
+	};
+
+	ipcMain.on("cli-render-message", (_, message: { type: string; data: unknown }) => {
+		writeCliMessage(message.type, message.data);
+		if (message.type === "done") finish(0);
+		if (message.type === "error") finish(1);
+	});
+
+	const win = new BrowserWindow({
+		width: 1920,
+		height: 1080,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [getAssetBaseUrlArg()],
+			nodeIntegration: false,
+			contextIsolation: true,
+			webSecurity: false,
+			backgroundThrottling: false,
+		},
+	});
+
+	if (VITE_DEV_SERVER_URL) {
+		await win.loadURL(`${VITE_DEV_SERVER_URL}?windowType=cli-render`);
+	} else {
+		await win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "cli-render" },
+		});
+	}
+
+	safetyTimer = setTimeout(
+		() => {
+			writeCliMessage("error", { message: "Render timed out." });
+			finish(1);
+		},
+		10 * 60 * 1000,
+	);
+}
+
 // Register all IPC handlers when app is ready
 app.whenReady().then(async () => {
+	if (isCliRecord) {
+		try {
+			await runCliRecord();
+		} catch (error) {
+			writeCliMessage("error", {
+				message: error instanceof Error ? error.message : String(error),
+			});
+			app.exit(1);
+		}
+		return;
+	}
+
+	if (isCliRender) {
+		try {
+			await runCliRender();
+		} catch (error) {
+			writeCliMessage("error", {
+				message: error instanceof Error ? error.message : String(error),
+			});
+			app.exit(1);
+		}
+		return;
+	}
+
 	// Force the app into "regular" activation policy so the Dock icon appears.
 	// The HUD overlay (transparent + frameless + skipTaskbar) is the first
 	// window we open, and AppKit otherwise classifies us as an accessory app.

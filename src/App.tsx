@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { CliRecordRenderer } from "./components/cli-record/CliRecordRenderer";
+import { CliRenderRenderer } from "./components/cli-render/CliRenderRenderer";
 import { CountdownOverlay } from "./components/launch/CountdownOverlay.tsx";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
@@ -56,6 +58,10 @@ export default function App() {
 				return <SourceSelector />;
 			case "countdown-overlay":
 				return <CountdownOverlay />;
+			case "cli-record":
+				return <CliRecordRenderer />;
+			case "cli-render":
+				return <CliRenderRenderer />;
 			case "editor":
 				return (
 					<ShortcutsProvider>
