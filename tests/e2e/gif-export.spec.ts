@@ -2,12 +2,58 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { _electron as electron, expect, test } from "@playwright/test";
+import { type ElectronApplication, _electron as electron, expect, test } from "@playwright/test";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "../..");
 const MAIN_JS = path.join(ROOT, "dist-electron/main.js");
 const TEST_VIDEO = path.join(__dirname, "../fixtures/sample.webm");
+
+async function waitForProcessExit(
+	child: ReturnType<ElectronApplication["process"]>,
+	timeoutMs: number,
+) {
+	if (child.exitCode !== null) return true;
+
+	return new Promise<boolean>((resolve) => {
+		let timer: ReturnType<typeof setTimeout>;
+		const cleanup = () => {
+			clearTimeout(timer);
+			child.removeListener("exit", onExit);
+		};
+		const finish = (exited: boolean) => {
+			cleanup();
+			resolve(exited);
+		};
+		const onExit = () => finish(true);
+		const onTimeout = () => finish(false);
+
+		timer = setTimeout(onTimeout, timeoutMs);
+		child.once("exit", onExit);
+		if (child.exitCode !== null) finish(true);
+	});
+}
+
+async function closeElectronApp(app: ElectronApplication) {
+	const child = app.process();
+	await app
+		.evaluate(({ app: electronApp }) => {
+			electronApp.exit(0);
+		})
+		.catch(() => {
+			// App may already be closing.
+		});
+	const exited = await waitForProcessExit(child, 2_000);
+	if (child.exitCode === null) {
+		child.kill("SIGKILL");
+		const killed = await waitForProcessExit(child, 2_000);
+		if (!killed) {
+			throw new Error("Electron process did not exit after SIGKILL");
+		}
+	} else if (!exited) {
+		throw new Error("Electron process exit timed out");
+	}
+}
 
 test("exports a GIF from a loaded video", async () => {
 	const outputPath = path.join(os.tmpdir(), `test-gif-export-${Date.now()}.gif`);
@@ -126,7 +172,7 @@ test("exports a GIF from a loaded video", async () => {
 		const stats = fs.statSync(outputPath);
 		expect(stats.size).toBeGreaterThan(1024); // at least 1 KB
 	} finally {
-		await app.close();
+		await closeElectronApp(app);
 		if (fs.existsSync(outputPath)) {
 			fs.unlinkSync(outputPath);
 		}

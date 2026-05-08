@@ -56,3 +56,26 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx vite build
+
+  electron-e2e:
+    name: Electron E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build-vite
+      - run: npx playwright install --with-deps
+      - run: xvfb-run -a npm run test:e2e
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-e2e-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
