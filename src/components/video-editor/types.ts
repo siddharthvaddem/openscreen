@@ -1,4 +1,5 @@
 import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
+import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
 export type ZoomFocusMode = "manual" | "auto";
@@ -65,6 +66,8 @@ export interface ZoomRegion {
 	focus: ZoomFocus;
 	focusMode?: ZoomFocusMode;
 	rotationPreset?: Rotation3DPreset;
+	customScale?: number;
+	zoomAspectRatio?: AspectRatio;
 }
 
 export function getRotation3D(region: Pick<ZoomRegion, "rotationPreset">): Rotation3D {
@@ -357,6 +360,10 @@ export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
 };
 
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
+
+export function getZoomScale(region: Pick<ZoomRegion, "depth" | "customScale">): number {
+	return region.customScale ?? ZOOM_DEPTH_SCALES[region.depth];
+}
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {

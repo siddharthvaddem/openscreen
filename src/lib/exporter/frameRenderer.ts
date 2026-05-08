@@ -22,7 +22,7 @@ import {
 	DEFAULT_ROTATION_3D,
 	isRotation3DIdentity,
 	lerpRotation3D,
-	ZOOM_DEPTH_SCALES,
+	getZoomScale,
 } from "@/components/video-editor/types";
 import {
 	AUTO_FOLLOW_RAMP_DISTANCE,
@@ -42,7 +42,7 @@ import {
 	clickEmphasisAlpha,
 	drawCursorHighlightCanvas,
 } from "@/components/video-editor/videoPlayback/cursorHighlight";
-import { clampFocusToStage as clampFocusToStageUtil } from "@/components/video-editor/videoPlayback/focusUtils";
+import { clampFocusToScale, clampFocusToStage as clampFocusToStageUtil } from "@/components/video-editor/videoPlayback/focusUtils";
 import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
 	applyZoomTransform,
@@ -278,7 +278,11 @@ export class FrameRenderer {
 
 		const classified = classifyWallpaper(wallpaper);
 
-		if (classified.kind === "color") {
+		if (classified.kind === "transparent") {
+			// White fill ensures MP4 export doesn't show black where background is absent.
+			bgCtx.fillStyle = "#ffffff";
+			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
+		} else if (classified.kind === "color") {
 			bgCtx.fillStyle = classified.value;
 			bgCtx.fillRect(0, 0, this.config.width, this.config.height);
 		} else if (classified.kind === "gradient") {
@@ -673,8 +677,10 @@ export class FrameRenderer {
 				: { ...DEFAULT_ROTATION_3D };
 
 		if (region && strength > 0) {
-			const zoomScale = blendedScale ?? ZOOM_DEPTH_SCALES[region.depth];
-			const regionFocus = this.clampFocusToStage(region.focus, region.depth);
+			const zoomScale = blendedScale ?? getZoomScale(region);
+			const regionFocus = region.customScale != null
+				? clampFocusToScale(region.focus, zoomScale)
+				: this.clampFocusToStage(region.focus, region.depth);
 
 			targetScaleFactor = zoomScale;
 			targetFocus = regionFocus;

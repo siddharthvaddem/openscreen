@@ -28,6 +28,8 @@ import { requestCameraAccess } from "../../lib/requestCameraAccess";
 import { formatTimePadded } from "../../utils/timeUtils";
 import { AudioLevelMeter } from "../ui/audio-level-meter";
 import { Button } from "../ui/button";
+import Colorful from "@uiw/react-color-colorful";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Tooltip } from "../ui/tooltip";
 import styles from "./LaunchWindow.module.css";
 
@@ -106,7 +108,13 @@ export function LaunchWindow() {
 		setWebcamEnabled,
 		webcamDeviceId,
 		setWebcamDeviceId,
+		captureBackgroundColor,
+		setCaptureBackgroundColor,
 	} = useScreenRecorder();
+
+	const [isBgPickerOpen, setIsBgPickerOpen] = useState(false);
+	const [showCustomWheel, setShowCustomWheel] = useState(false);
+	const BG_PRESETS = ["#000000", "#ffffff", "#1e90ff", "#00b140"] as const;
 
 	const showMicControls = microphoneEnabled && !recording;
 	const showWebcamControls = webcamEnabled && !recording;
@@ -540,6 +548,123 @@ export function LaunchWindow() {
 							: getIcon("webcamOff", "text-white/40")}
 					</button>
 				</div>
+
+				{/* Background color for compositing */}
+				{!recording && (
+					<Popover open={isBgPickerOpen} onOpenChange={setIsBgPickerOpen}>
+						<PopoverTrigger asChild>
+							<div className={`${hudGroupClasses} px-2 ${styles.electronNoDrag}`}>
+								<button
+									className={hudIconBtnClasses}
+									title="Recording background color"
+								>
+									<span
+										className="w-5 h-5 rounded-full border-2 border-white/50 ring-1 ring-white/15 flex-shrink-0 overflow-hidden"
+										style={
+											captureBackgroundColor === null
+												? {
+													backgroundImage:
+														"linear-gradient(45deg,#888 25%,transparent 25%),linear-gradient(-45deg,#888 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#888 75%),linear-gradient(-45deg,transparent 75%,#888 75%)",
+													backgroundSize: "6px 6px",
+													backgroundPosition: "0 0,0 3px,3px -3px,-3px 0",
+													backgroundColor: "#ddd",
+												}
+												: { background: captureBackgroundColor }
+										}
+									/>
+								</button>
+							</div>
+						</PopoverTrigger>
+						<PopoverContent
+							side="top"
+							align="center"
+							className={`w-auto p-3 bg-[rgba(22,22,30,0.98)] border-white/10 text-white shadow-2xl ${styles.electronNoDrag}`}
+						>
+							<div className="text-[11px] text-white/50 mb-2.5 font-medium">Recording Background</div>
+							<div className="flex items-center gap-3">
+								{/* Transparent swatch */}
+								<button
+									className={`w-8 h-8 rounded-full flex-shrink-0 transition-all outline-none overflow-hidden border border-white/10 ${
+										captureBackgroundColor === null
+											? "ring-2 ring-white ring-offset-2 ring-offset-[#16161e]"
+											: "opacity-90 hover:opacity-100"
+									}`}
+									style={{
+										backgroundImage:
+											"linear-gradient(45deg,#888 25%,transparent 25%),linear-gradient(-45deg,#888 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#888 75%),linear-gradient(-45deg,transparent 75%,#888 75%)",
+										backgroundSize: "8px 8px",
+										backgroundPosition: "0 0,0 4px,4px -4px,-4px 0",
+										backgroundColor: "#ddd",
+									}}
+									onClick={() => {
+										setCaptureBackgroundColor(null);
+										setShowCustomWheel(false);
+										setIsBgPickerOpen(false);
+									}}
+									title="Transparent"
+								/>
+								{/* Preset swatches */}
+								{BG_PRESETS.map((color) => (
+									<button
+										key={color}
+										className={`w-8 h-8 rounded-full flex-shrink-0 transition-all outline-none border border-white/10 ${
+											captureBackgroundColor === color
+												? "ring-2 ring-white ring-offset-2 ring-offset-[#16161e]"
+												: "opacity-90 hover:opacity-100"
+										}`}
+										style={{ background: color }}
+										onClick={() => {
+											setCaptureBackgroundColor(color);
+											setShowCustomWheel(false);
+											setIsBgPickerOpen(false);
+										}}
+										title={color}
+									/>
+								))}
+
+								{/* Custom color swatch */}
+								{(() => {
+									const isCustom =
+										captureBackgroundColor !== null &&
+										!(BG_PRESETS as readonly string[]).includes(captureBackgroundColor);
+									return (
+										<button
+											className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-all overflow-hidden outline-none border border-dashed ${
+												isCustom || showCustomWheel
+													? "ring-2 ring-white ring-offset-2 ring-offset-[#16161e] border-white/40 opacity-100"
+													: "border-white/30 opacity-90 hover:opacity-100"
+											}`}
+											style={isCustom ? { background: captureBackgroundColor! } : {}}
+											onClick={() => setShowCustomWheel((v) => !v)}
+											title="Custom color"
+										>
+											{!isCustom && (
+												<span className="text-white/60 text-base leading-none">+</span>
+											)}
+										</button>
+									);
+								})()}
+							</div>
+
+							{/* Inline color wheel */}
+							{showCustomWheel && (
+								<div className="mt-3">
+									<Colorful
+										color={
+											captureBackgroundColor !== null &&
+											!(BG_PRESETS as readonly string[]).includes(captureBackgroundColor)
+												? captureBackgroundColor
+												: "#ff6600"
+										}
+										onChange={(c) => setCaptureBackgroundColor(c.hex)}
+										disableAlpha={true}
+										style={{ borderRadius: "8px", width: "220px" }}
+									/>
+								</div>
+							)}
+						</PopoverContent>
+					</Popover>
+				)}
 
 				{/* Record/Stop group */}
 				<button

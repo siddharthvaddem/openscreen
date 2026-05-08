@@ -58,7 +58,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	motionBlurAmount: 0,
 	borderRadius: 0,
 	padding: 50,
-	aspectRatio: "16:9",
+	aspectRatio: "native",
 	webcamLayoutPreset: DEFAULT_WEBCAM_LAYOUT_PRESET,
 	webcamMaskShape: DEFAULT_WEBCAM_MASK_SHAPE,
 	webcamSizePreset: DEFAULT_WEBCAM_SIZE_PRESET,

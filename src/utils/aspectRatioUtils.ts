@@ -67,6 +67,20 @@ export function getAspectRatioLabel(aspectRatio: AspectRatio): string {
 	return aspectRatio;
 }
 
+export function getAspectRatioDisplayName(aspectRatio: AspectRatio): string {
+	const names: Record<AspectRatio, string> = {
+		"16:9": "Desktop  16:9",
+		"9:16": "Phone  9:16",
+		"1:1": "Square  1:1",
+		"4:3": "Tablet  4:3",
+		"4:5": "Instagram  4:5",
+		"16:10": "Widescreen  16:10",
+		"10:16": "Tall  10:16",
+		native: "Native — match recording",
+	};
+	return names[aspectRatio];
+}
+
 export function isPortraitAspectRatio(aspectRatio: AspectRatio): boolean {
 	return getAspectRatioValue(aspectRatio) < 1;
 }

@@ -9,10 +9,13 @@ export const WALLPAPER_PATHS: readonly string[] = Array.from(
 
 export const DEFAULT_WALLPAPER = WALLPAPER_PATHS[0];
 
+export const WALLPAPER_NONE = "none";
+
 export type WallpaperClassification =
 	| { kind: "color"; value: string }
 	| { kind: "gradient"; value: string }
-	| { kind: "image"; path: string };
+	| { kind: "image"; path: string }
+	| { kind: "transparent" };
 
 const GRADIENT_RE = /^(repeating-)?(linear|radial|conic)-gradient\(/;
 const COLOR_FUNC_RE = /^(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/;
@@ -20,8 +23,8 @@ const IMAGE_URL_RE = /^(\/|https?:\/\/|file:\/\/|data:)/;
 
 export function classifyWallpaper(value: string): WallpaperClassification {
 	const trimmed = value.trim();
-	if (trimmed === "") {
-		return { kind: "color", value: "#000000" };
+	if (trimmed === "" || trimmed === "none") {
+		return { kind: "transparent" };
 	}
 	if (trimmed.startsWith("#") || COLOR_FUNC_RE.test(trimmed)) {
 		return { kind: "color", value: trimmed };

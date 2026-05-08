@@ -30,6 +30,7 @@ import { getCssClipPath } from "@/lib/webcamMaskShapes";
 import {
 	type AspectRatio,
 	formatAspectRatioForCSS,
+	getAspectRatioValue,
 	getNativeAspectRatioValue,
 } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
@@ -38,13 +39,12 @@ import {
 	type BlurData,
 	computeRotation3DContainScale,
 	DEFAULT_ROTATION_3D,
+	getZoomScale,
 	isRotation3DIdentity,
 	lerpRotation3D,
 	rotation3DPerspective,
 	type SpeedRegion,
 	type TrimRegion,
-	ZOOM_DEPTH_SCALES,
-	type ZoomDepth,
 	type ZoomFocus,
 	type ZoomRegion,
 } from "./types";
@@ -67,7 +67,6 @@ import {
 	DEFAULT_CURSOR_HIGHLIGHT,
 	drawCursorHighlightGraphics,
 } from "./videoPlayback/cursorHighlight";
-import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { updateOverlayIndicator } from "./videoPlayback/overlayUtils";
@@ -258,10 +257,6 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const smoothedAutoFocusRef = useRef<ZoomFocus | null>(null);
 		const prevTargetProgressRef = useRef(0);
 
-		const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
-			return clampFocusToStageUtil(focus, depth, stageSizeRef.current);
-		}, []);
-
 		const updateOverlayForRegion = useCallback(
 			(region: ZoomRegion | null, focusOverride?: ZoomFocus) => {
 				const overlayEl = overlayRef.current;
@@ -442,7 +437,41 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				cx: clamp01(localX / stageWidth),
 				cy: clamp01(localY / stageHeight),
 			};
-			const clampedFocus = clampFocusToStage(unclampedFocus, region.depth);
+			const zoomScale = getZoomScale(region);
+			const zoomAR = region.zoomAspectRatio
+				? getAspectRatioValue(region.zoomAspectRatio)
+				: stageWidth / stageHeight;
+			const canvasAR = stageWidth / stageHeight;
+			let indW: number, indH: number;
+			if (Math.abs(zoomAR - canvasAR) < 0.01) {
+				indW = stageWidth / zoomScale;
+				indH = stageHeight / zoomScale;
+			} else if (zoomAR < canvasAR) {
+				indH = stageHeight / zoomScale;
+				indW = indH * zoomAR;
+			} else {
+				indW = stageWidth / zoomScale;
+				indH = indW / zoomAR;
+			}
+			const hfx = indW / (2 * stageWidth);
+			const hfy = indH / (2 * stageHeight);
+
+			// Clamp focus center to the actual video content rect so the indicator
+			// can't drag into letterbox/background areas outside the recording.
+			const boX = baseOffsetRef.current?.x ?? 0;
+			const boY = baseOffsetRef.current?.y ?? 0;
+			const vW = videoSizeRef.current?.width ?? stageWidth;
+			const vH = videoSizeRef.current?.height ?? stageHeight;
+			const bs = baseScaleRef.current ?? 1;
+			const contentMinX = boX / stageWidth;
+			const contentMaxX = (boX + vW * bs) / stageWidth;
+			const contentMinY = boY / stageHeight;
+			const contentMaxY = (boY + vH * bs) / stageHeight;
+
+			const clampedFocus: ZoomFocus = {
+				cx: Math.max(contentMinX + hfx, Math.min(contentMaxX - hfx, unclampedFocus.cx)),
+				cy: Math.max(contentMinY + hfy, Math.min(contentMaxY - hfy, unclampedFocus.cy)),
+			};
 
 			onZoomFocusChange(region.id, clampedFocus);
 			updateOverlayForRegion({ ...region, focus: clampedFocus }, clampedFocus);
@@ -951,7 +980,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				const shouldShowUnzoomedView = hasSelectedZoom && !isPlayingRef.current;
 
 				if (region && strength > 0 && !shouldShowUnzoomedView) {
-					const zoomScale = blendedScale ?? ZOOM_DEPTH_SCALES[region.depth];
+					const zoomScale = blendedScale ?? getZoomScale(region);
 					const regionFocus = region.focus;
 
 					targetScaleFactor = zoomScale;
@@ -998,6 +1027,45 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						smoothedAutoFocusRef.current = null;
 					}
 					prevTargetProgressRef.current = targetProgress;
+
+					// Clamp auto-focus targetFocus to video content rect so the zoom
+					// indicator never drifts into letterbox areas outside the recording.
+					if (region.focusMode === "auto" && !transition) {
+						const mask = baseMaskRef.current;
+						const stageW = stageSizeRef.current.width;
+						const stageH = stageSizeRef.current.height;
+						if (mask.width > 0 && mask.height > 0 && stageW > 0 && stageH > 0) {
+							const zoomScaleLocal = targetScaleFactor;
+							const zoomAR = region.zoomAspectRatio
+								? getAspectRatioValue(region.zoomAspectRatio)
+								: stageW / stageH;
+							const canvasAR = stageW / stageH;
+							let indW: number, indH: number;
+							if (Math.abs(zoomAR - canvasAR) < 0.01) {
+								indW = stageW / zoomScaleLocal;
+								indH = stageH / zoomScaleLocal;
+							} else if (zoomAR < canvasAR) {
+								indH = stageH / zoomScaleLocal;
+								indW = indH * zoomAR;
+							} else {
+								indW = stageW / zoomScaleLocal;
+								indH = indW / zoomAR;
+							}
+							const hfx = indW / (2 * stageW);
+							const hfy = indH / (2 * stageH);
+							const contentMinX = mask.x / stageW;
+							const contentMaxX = (mask.x + mask.width) / stageW;
+							const contentMinY = mask.y / stageH;
+							const contentMaxY = (mask.y + mask.height) / stageH;
+							targetFocus = {
+								cx: Math.max(contentMinX + hfx, Math.min(contentMaxX - hfx, targetFocus.cx)),
+								cy: Math.max(contentMinY + hfy, Math.min(contentMaxY - hfy, targetFocus.cy)),
+							};
+							// Anchor next tick's smoothing to the clamped position so the smooth
+							// path never starts outside the content rect.
+							smoothedAutoFocusRef.current = targetFocus;
+						}
+					}
 
 					// Handle connected zoom transitions (pan between adjacent zoom regions)
 					if (transition) {
@@ -1216,6 +1284,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const resolvedWallpaper = useMemo<string | null>(() => {
 			const source = wallpaper || DEFAULT_WALLPAPER;
 			const classified = classifyWallpaper(source);
+			if (classified.kind === "transparent") return null;
 			if (classified.kind !== "image") return classified.value;
 			try {
 				return resolveImageWallpaperUrl(classified.path);
@@ -1311,9 +1380,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					resolvedWallpaper.startsWith("/") ||
 					resolvedWallpaper.startsWith("data:")),
 		);
-		const backgroundStyle = isImageUrl
-			? { backgroundImage: `url(${resolvedWallpaper || ""})` }
-			: { background: resolvedWallpaper || "" };
+		const backgroundStyle: React.CSSProperties = resolvedWallpaper
+			? isImageUrl
+				? { backgroundImage: `url(${resolvedWallpaper})` }
+				: { background: resolvedWallpaper }
+			: {};
 
 		return (
 			<div

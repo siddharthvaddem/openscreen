@@ -1,6 +1,7 @@
 import type { CursorTelemetryPoint, ZoomFocus } from "../types";
+import { interpolateCursorAt } from "../videoPlayback/cursorFollowUtils";
 
-export const MIN_DWELL_DURATION_MS = 450;
+export const MIN_DWELL_DURATION_MS = 120;
 export const MAX_DWELL_DURATION_MS = 2600;
 export const DWELL_MOVE_THRESHOLD = 0.02;
 
@@ -8,6 +9,10 @@ export interface ZoomDwellCandidate {
 	centerTimeMs: number;
 	focus: ZoomFocus;
 	strength: number;
+	/** Fixed duration for this region; overrides the timeline's defaultRegionDurationMs */
+	durationMs?: number;
+	/** ms offset from centerTimeMs to compute region start (default: -durationMs/2, i.e. centered) */
+	startOffsetMs?: number;
 }
 
 function normalizeTelemetrySample(
@@ -78,4 +83,38 @@ export function detectZoomDwellCandidates(samples: CursorTelemetryPoint[]): Zoom
 	pushRunIfDwell(runStart, samples.length);
 
 	return dwellCandidates;
+}
+
+export const MIN_CLICK_GAP_MS = 200;
+export const CLICK_CANDIDATE_STRENGTH = 300;
+export const CLICK_REGION_DURATION_MS = 1000;
+// Anchor slightly before the click so the zoom captures the result of the tap, not what came before.
+export const CLICK_REGION_START_OFFSET_MS = -100;
+
+export function detectClickCandidates(
+	telemetry: CursorTelemetryPoint[],
+	clickTimestamps: number[],
+): ZoomDwellCandidate[] {
+	if (telemetry.length === 0 || clickTimestamps.length === 0) return [];
+
+	const sorted = [...clickTimestamps].sort((a, b) => a - b);
+	const candidates: ZoomDwellCandidate[] = [];
+
+	for (const timeMs of sorted) {
+		const lastMs = candidates.length > 0 ? candidates[candidates.length - 1].centerTimeMs : -Infinity;
+		if (timeMs - lastMs < MIN_CLICK_GAP_MS) continue;
+
+		const focus = interpolateCursorAt(telemetry, timeMs);
+		if (!focus) continue;
+
+		candidates.push({
+			centerTimeMs: timeMs,
+			focus,
+			strength: CLICK_CANDIDATE_STRENGTH,
+			durationMs: CLICK_REGION_DURATION_MS,
+			startOffsetMs: CLICK_REGION_START_OFFSET_MS,
+		});
+	}
+
+	return candidates;
 }
