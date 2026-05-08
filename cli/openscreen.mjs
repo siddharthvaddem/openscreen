@@ -54,6 +54,8 @@ Project/edit options:
 Render options:
   --format <format>           mp4 or gif. Defaults from output extension/project.
   --quality <q>               medium, good, source.
+  --width <px>                MP4 output width. Requires --height.
+  --height <px>               MP4 output height. Requires --width.
   --gif-frame-rate <fps>      15, 20, 25, 30.
   --gif-size-preset <preset>  medium, large, original.
   --gif-loop / --no-gif-loop
@@ -160,6 +162,15 @@ function parseExportFormat(value) {
 		throw new Error("--format/--export-format must be mp4 or gif.");
 	}
 	return value;
+}
+
+function parseDimensionOption(options, name) {
+	if (options[name] === undefined) return undefined;
+	const dimension = parseNumber(options[name], name);
+	if (!Number.isInteger(dimension) || dimension < 2) {
+		throw new Error(`--${name} must be an integer greater than 1.`);
+	}
+	return Math.floor(dimension / 2) * 2;
 }
 
 function findElectronBinary() {
@@ -582,6 +593,14 @@ async function commandRender(options) {
 		parseExportFormat(options.format) ??
 		(extension === ".gif" ? "gif" : project.editor.exportFormat);
 	const quality = parseExportQuality(options.quality) ?? project.editor.exportQuality;
+	const width = parseDimensionOption(options, "width");
+	const height = parseDimensionOption(options, "height");
+	if ((width === undefined) !== (height === undefined)) {
+		throw new Error("--width and --height must be provided together.");
+	}
+	if (format !== "mp4" && (width !== undefined || height !== undefined)) {
+		throw new Error("--width/--height are only supported for MP4 renders.");
+	}
 	const gifFrameRate =
 		options["gif-frame-rate"] !== undefined
 			? Number(options["gif-frame-rate"])
@@ -601,6 +620,8 @@ async function commandRender(options) {
 			output: outputPath,
 			format,
 			quality,
+			width,
+			height,
 			gifFrameRate,
 			gifSizePreset,
 			gifLoop: options["gif-loop"] ?? project.editor.gifLoop,

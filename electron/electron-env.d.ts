@@ -164,6 +164,8 @@ interface Window {
 			output: string;
 			format: "mp4" | "gif";
 			quality?: "medium" | "good" | "source";
+			width?: number;
+			height?: number;
 			gifFrameRate?: 15 | 20 | 25 | 30;
 			gifSizePreset?: "medium" | "large" | "original";
 			gifLoop?: boolean;

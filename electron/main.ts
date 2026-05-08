@@ -473,6 +473,8 @@ type CliRenderConfig = {
 	output: string;
 	format: "mp4" | "gif";
 	quality?: "medium" | "good" | "source";
+	width?: number;
+	height?: number;
 	gifFrameRate?: 15 | 20 | 25 | 30;
 	gifSizePreset?: "medium" | "large" | "original";
 	gifLoop?: boolean;
@@ -624,6 +626,8 @@ async function readCliRenderConfig(): Promise<CliRenderConfig> {
 		output,
 		format: parsed.format === "gif" ? "gif" : "mp4",
 		quality: parsed.quality === "medium" || parsed.quality === "source" ? parsed.quality : "good",
+		width: Number.isFinite(parsed.width) ? Math.floor(Number(parsed.width) / 2) * 2 : undefined,
+		height: Number.isFinite(parsed.height) ? Math.floor(Number(parsed.height) / 2) * 2 : undefined,
 		gifFrameRate: parsed.gifFrameRate,
 		gifSizePreset:
 			parsed.gifSizePreset === "large" || parsed.gifSizePreset === "original"

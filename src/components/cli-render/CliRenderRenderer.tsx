@@ -57,6 +57,13 @@ function even(value: number) {
 	return Math.max(2, Math.floor(value / 2) * 2);
 }
 
+function calculateMp4Bitrate(width: number, height: number) {
+	const pixels = width * height;
+	if (pixels > 2560 * 1440) return 80_000_000;
+	if (pixels > 1920 * 1080) return 50_000_000;
+	return 30_000_000;
+}
+
 function calculateMp4Dimensions(
 	sourceWidth: number,
 	sourceHeight: number,
@@ -103,9 +110,7 @@ function calculateMp4Dimensions(
 			}
 		}
 
-		const pixels = exportWidth * exportHeight;
-		const bitrate =
-			pixels > 2560 * 1440 ? 80_000_000 : pixels > 1920 * 1080 ? 50_000_000 : 30_000_000;
+		const bitrate = calculateMp4Bitrate(exportWidth, exportHeight);
 		return { width: exportWidth, height: exportHeight, bitrate };
 	}
 
@@ -117,6 +122,16 @@ function calculateMp4Dimensions(
 		pixels <= 1280 * 720 ? 10_000_000 : pixels <= 1920 * 1080 ? 20_000_000 : 30_000_000;
 
 	return { width, height, bitrate };
+}
+
+function calculateCustomMp4Dimensions(width: number, height: number) {
+	const outputWidth = even(width);
+	const outputHeight = even(height);
+	return {
+		width: outputWidth,
+		height: outputHeight,
+		bitrate: calculateMp4Bitrate(outputWidth, outputHeight),
+	};
 }
 
 function buildBaseConfig(
@@ -244,7 +259,10 @@ async function runRender(config: CliRenderConfig) {
 	}
 
 	const quality = config.quality ?? editor.exportQuality;
-	const dimensions = calculateMp4Dimensions(sourceWidth, sourceHeight, aspectRatioValue, quality);
+	const dimensions =
+		typeof config.width === "number" && typeof config.height === "number"
+			? calculateCustomMp4Dimensions(config.width, config.height)
+			: calculateMp4Dimensions(sourceWidth, sourceHeight, aspectRatioValue, quality);
 	const exporter = new VideoExporter({
 		...base,
 		width: dimensions.width,
