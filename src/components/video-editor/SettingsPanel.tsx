@@ -3,10 +3,10 @@ import {
 	ChevronDown,
 	Crop,
 	Download,
-	FileDown,
 	Film,
 	Image,
 	Lock,
+	Monitor,
 	Palette,
 	Sparkles,
 	Star,
@@ -40,8 +40,8 @@ import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS } from "@/lib/exporter";
 import { cn } from "@/lib/utils";
-import { resolveImageWallpaperUrl, WALLPAPER_PATHS } from "@/lib/wallpaper";
-import { type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
+import { resolveImageWallpaperUrl, WALLPAPER_NONE, WALLPAPER_PATHS } from "@/lib/wallpaper";
+import { ASPECT_RATIOS, type AspectRatio, getAspectRatioDisplayName, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
 import { getTestId } from "@/utils/getTestId";
 import ColorPicker from "../ui/color-picker";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
@@ -170,6 +170,11 @@ interface SettingsPanelProps {
 	onWallpaperChange: (path: string) => void;
 	selectedZoomDepth?: ZoomDepth | null;
 	onZoomDepthChange?: (depth: ZoomDepth) => void;
+	selectedZoomScale?: number | null;
+	onZoomScaleChange?: (scale: number) => void;
+	onZoomScaleCommit?: () => void;
+	selectedZoomAspectRatio?: AspectRatio | null;
+	onZoomAspectRatioChange?: (ratio: AspectRatio) => void;
 	selectedZoomFocusMode?: ZoomFocusMode | null;
 	onZoomFocusModeChange?: (mode: ZoomFocusMode) => void;
 	hasCursorTelemetry?: boolean;
@@ -196,6 +201,7 @@ interface SettingsPanelProps {
 	cropRegion?: CropRegion;
 	onCropChange?: (region: CropRegion) => void;
 	aspectRatio: AspectRatio;
+	onAspectRatioChange?: (ratio: AspectRatio) => void;
 	videoElement?: HTMLVideoElement | null;
 	exportQuality?: ExportQuality;
 	onExportQualityChange?: (quality: ExportQuality) => void;
@@ -241,19 +247,9 @@ interface SettingsPanelProps {
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
-	onSaveDiagnostic?: () => Promise<void>;
 }
 
 export default SettingsPanel;
-
-const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
-	{ depth: 1, label: "1.25×" },
-	{ depth: 2, label: "1.5×" },
-	{ depth: 3, label: "1.8×" },
-	{ depth: 4, label: "2.2×" },
-	{ depth: 5, label: "3.5×" },
-	{ depth: 6, label: "5×" },
-];
 
 export function SettingsPanel({
 	cursorHighlight,
@@ -261,8 +257,11 @@ export function SettingsPanel({
 	cursorHighlightSupportsClicks = false,
 	selected,
 	onWallpaperChange,
-	selectedZoomDepth,
-	onZoomDepthChange,
+	selectedZoomScale,
+	onZoomScaleChange,
+	onZoomScaleCommit,
+	selectedZoomAspectRatio,
+	onZoomAspectRatioChange,
 	selectedZoomFocusMode,
 	onZoomFocusModeChange,
 	hasCursorTelemetry = false,
@@ -289,6 +288,7 @@ export function SettingsPanel({
 	cropRegion,
 	onCropChange,
 	aspectRatio,
+	onAspectRatioChange,
 	videoElement,
 	exportQuality = "good",
 	onExportQualityChange,
@@ -329,7 +329,6 @@ export function SettingsPanel({
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
-	onSaveDiagnostic,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
@@ -462,7 +461,7 @@ export function SettingsPanel({
 		[cropRegion, videoWidth, videoHeight],
 	);
 
-	const zoomEnabled = Boolean(selectedZoomDepth);
+	const zoomEnabled = Boolean(selectedZoomId);
 	const trimEnabled = Boolean(selectedTrimId);
 
 	const handleDeleteClick = () => {
@@ -591,37 +590,56 @@ export function SettingsPanel({
 					<div className="flex items-center justify-between mb-3">
 						<span className="text-sm font-medium text-slate-200">{t("zoom.level")}</span>
 						<div className="flex items-center gap-2">
-							{zoomEnabled && selectedZoomDepth && (
+							{zoomEnabled && selectedZoomScale != null && (
 								<span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-0.5 rounded-full">
-									{ZOOM_DEPTH_OPTIONS.find((o) => o.depth === selectedZoomDepth)?.label}
+									{Math.round(selectedZoomScale * 100)}%
 								</span>
 							)}
 							<KeyboardShortcutsHelp />
 						</div>
 					</div>
-					<div className="grid grid-cols-6 gap-1.5">
-						{ZOOM_DEPTH_OPTIONS.map((option) => {
-							const isActive = selectedZoomDepth === option.depth;
-							return (
-								<Button
-									key={option.depth}
-									type="button"
-									disabled={!zoomEnabled}
-									onClick={() => onZoomDepthChange?.(option.depth)}
-									className={cn(
-										"h-auto w-full rounded-lg border px-1 py-2 text-center shadow-sm transition-all",
-										"duration-200 ease-out",
-										zoomEnabled ? "opacity-100 cursor-pointer" : "opacity-40 cursor-not-allowed",
-										isActive
-											? "border-[#34B27B] bg-[#34B27B] text-white shadow-[#34B27B]/20"
-											: "border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-slate-200",
-									)}
-								>
-									<span className="text-xs font-semibold">{option.label}</span>
-								</Button>
-							);
-						})}
+					<div className={cn("p-2 rounded-lg bg-white/5 border border-white/5", !zoomEnabled && "opacity-40 pointer-events-none")}>
+						<div className="flex items-center justify-between mb-1.5">
+							<span className="text-[10px] font-medium text-slate-300">Zoom size</span>
+							<span className="text-[10px] text-slate-400 font-mono">
+								{selectedZoomScale != null ? `${Math.round(selectedZoomScale * 100)}%` : "—"}
+							</span>
+						</div>
+						<Slider
+							min={1.1}
+							max={5.0}
+							step={0.05}
+							value={[selectedZoomScale ?? 1.8]}
+							onValueChange={([v]) => onZoomScaleChange?.(v)}
+							onValueCommit={() => onZoomScaleCommit?.()}
+							disabled={!zoomEnabled}
+							className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+						/>
+						<div className="flex justify-between text-[9px] text-slate-500 mt-1">
+							<span>Less</span>
+							<span>More</span>
+						</div>
 					</div>
+					{zoomEnabled && (
+						<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
+							<div className="text-[10px] font-medium text-slate-300 mb-1.5">Zoom shape</div>
+							<Select
+								value={selectedZoomAspectRatio ?? "native"}
+								onValueChange={(v) => onZoomAspectRatioChange?.(v as AspectRatio)}
+							>
+								<SelectTrigger className="h-8 bg-black/20 border-white/10 text-xs">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent className="bg-[#1a1a1a] border-white/10">
+									{ASPECT_RATIOS.map((ratio) => (
+										<SelectItem key={ratio} value={ratio} className="text-xs text-slate-300 hover:text-white focus:text-white focus:bg-white/10">
+											{getAspectRatioDisplayName(ratio)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 					{!zoomEnabled && (
 						<p className="text-[10px] text-slate-500 mt-2 text-center">{t("zoom.selectRegion")}</p>
 					)}
@@ -689,7 +707,6 @@ export function SettingsPanel({
 							</div>
 						</div>
 					)}
-
 					{zoomEnabled && (
 						<Button
 							onClick={handleDeleteClick}
@@ -793,7 +810,7 @@ export function SettingsPanel({
 
 				<Accordion
 					type="multiple"
-					defaultValue={hasWebcam ? ["layout", "effects", "background"] : ["effects", "background"]}
+					defaultValue={hasWebcam ? ["layout", "effects", "canvas", "background"] : ["effects", "canvas", "background"]}
 					className="space-y-1"
 				>
 					{hasWebcam && (
@@ -1212,8 +1229,8 @@ export function SettingsPanel({
 													offsetXNorm: values[0],
 												})
 											}
-											min={-0.25}
-											max={0.25}
+											min={-1.0}
+											max={1.0}
 											step={0.005}
 											className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 										/>
@@ -1235,8 +1252,8 @@ export function SettingsPanel({
 													offsetYNorm: values[0],
 												})
 											}
-											min={-0.25}
-											max={0.25}
+											min={-1.0}
+											max={1.0}
 											step={0.005}
 											className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 										/>
@@ -1255,6 +1272,34 @@ export function SettingsPanel({
 						</AccordionContent>
 					</AccordionItem>
 
+					{onAspectRatioChange && (
+						<AccordionItem
+							value="canvas"
+							className="border-white/5 rounded-xl bg-white/[0.02] px-3"
+						>
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2">
+									<Monitor className="w-4 h-4 text-[#34B27B]" />
+									<span className="text-xs font-medium">Canvas Size</span>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent className="pb-3">
+								<Select value={aspectRatio} onValueChange={onAspectRatioChange}>
+									<SelectTrigger className="h-8 bg-black/20 border-white/10 text-xs">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent className="bg-[#1a1a1a] border-white/10">
+										{ASPECT_RATIOS.map((ratio) => (
+											<SelectItem key={ratio} value={ratio} className="text-xs text-slate-300 hover:text-white focus:text-white focus:bg-white/10">
+												{getAspectRatioDisplayName(ratio)}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</AccordionContent>
+						</AccordionItem>
+					)}
+
 					<AccordionItem
 						value="background"
 						className="border-white/5 rounded-xl bg-white/[0.02] px-3"
@@ -1266,8 +1311,22 @@ export function SettingsPanel({
 							</div>
 						</AccordionTrigger>
 						<AccordionContent className="pb-3">
-							<Tabs defaultValue="image" className="w-full">
-								<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
+							<div className="mb-2">
+							<button
+								type="button"
+								onClick={() => onWallpaperChange(WALLPAPER_NONE)}
+								className={cn(
+									"w-full h-7 text-[10px] rounded-lg border transition-all",
+									selected === WALLPAPER_NONE
+										? "bg-[#34B27B] border-[#34B27B] text-white"
+										: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
+								)}
+							>
+								None (transparent)
+							</button>
+						</div>
+						<Tabs defaultValue="image" className="w-full">
+							<TabsList className="mb-2 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-3 h-7 rounded-lg">
 									<TabsTrigger
 										value="image"
 										className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 text-[10px] py-1 rounded-md transition-all"
@@ -1685,16 +1744,6 @@ export function SettingsPanel({
 						<Bug className="w-3 h-3 text-[#34B27B]" />
 						{t("links.reportBug")}
 					</button>
-					{onSaveDiagnostic && (
-						<button
-							type="button"
-							onClick={onSaveDiagnostic}
-							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
-						>
-							<FileDown className="w-3 h-3 text-slate-400" />
-							Save Diagnostics
-						</button>
-					)}
 					<button
 						type="button"
 						onClick={() => {

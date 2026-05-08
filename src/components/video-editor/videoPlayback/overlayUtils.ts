@@ -1,5 +1,5 @@
-import { ZOOM_DEPTH_SCALES, type ZoomFocus, type ZoomRegion } from "../types";
-import { clampFocusToStage } from "./focusUtils";
+import { getAspectRatioValue } from "@/utils/aspectRatioUtils";
+import { getZoomScale, type ZoomFocus, type ZoomRegion } from "../types";
 
 interface OverlayUpdateParams {
 	overlayEl: HTMLDivElement;
@@ -35,15 +35,38 @@ export function updateOverlayIndicator(params: OverlayUpdateParams) {
 		return;
 	}
 
-	const zoomScale = ZOOM_DEPTH_SCALES[region.depth];
-	const focus = clampFocusToStage(focusOverride ?? region.focus, region.depth, {
-		width: stageWidth,
-		height: stageHeight,
-	});
+	const zoomScale = getZoomScale(region);
 
-	// Zoom window shows the stage area that will be visible after zooming (1/zoomScale of stage dimensions)
-	const indicatorWidth = stageWidth / zoomScale;
-	const indicatorHeight = stageHeight / zoomScale;
+	// Compute indicator dimensions, respecting a custom zoom aspect ratio if set.
+	const zoomAR = region.zoomAspectRatio
+		? getAspectRatioValue(region.zoomAspectRatio)
+		: stageWidth / stageHeight;
+	const canvasAR = stageWidth / stageHeight;
+
+	let indicatorWidth: number;
+	let indicatorHeight: number;
+
+	if (Math.abs(zoomAR - canvasAR) < 0.01) {
+		indicatorWidth = stageWidth / zoomScale;
+		indicatorHeight = stageHeight / zoomScale;
+	} else if (zoomAR < canvasAR) {
+		// Portrait indicator inside landscape canvas — constrain by height
+		indicatorHeight = stageHeight / zoomScale;
+		indicatorWidth = indicatorHeight * zoomAR;
+	} else {
+		// Wider indicator — constrain by width
+		indicatorWidth = stageWidth / zoomScale;
+		indicatorHeight = indicatorWidth / zoomAR;
+	}
+
+	// Clamp focus center so the indicator box stays within stage bounds.
+	const rawFocus = focusOverride ?? region.focus;
+	const halfFocusX = indicatorWidth / (2 * stageWidth);
+	const halfFocusY = indicatorHeight / (2 * stageHeight);
+	const focus = {
+		cx: Math.max(halfFocusX, Math.min(1 - halfFocusX, rawFocus.cx)),
+		cy: Math.max(halfFocusY, Math.min(1 - halfFocusY, rawFocus.cy)),
+	};
 
 	const rawLeft = focus.cx * stageWidth - indicatorWidth / 2;
 	const rawTop = focus.cy * stageHeight - indicatorHeight / 2;
