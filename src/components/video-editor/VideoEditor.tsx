@@ -34,6 +34,7 @@ import { matchesShortcut } from "@/lib/shortcuts";
 import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
 import { BackgroundLoadError } from "@/lib/wallpaper";
 import {
+	type AspectRatio,
 	getAspectRatioValue,
 	getNativeAspectRatioValue,
 	isPortraitAspectRatio,
@@ -66,6 +67,7 @@ import {
 	DEFAULT_PLAYBACK_SPEED,
 	DEFAULT_ZOOM_DEPTH,
 	type FigureData,
+	getZoomScale,
 	type PlaybackSpeed,
 	type Rotation3DPreset,
 	type SpeedRegion,
@@ -814,6 +816,17 @@ export default function VideoEditor() {
 		[selectedZoomId, pushState],
 	);
 
+	const handleZoomScaleChange = useCallback(
+		(id: string, scale: number) => {
+			updateState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((region) =>
+					region.id === id ? { ...region, customScale: scale } : region,
+				),
+			}));
+		},
+		[updateState],
+	);
+
 	const handleZoomFocusModeChange = useCallback(
 		(focusMode: ZoomFocusMode) => {
 			if (!selectedZoomId) return;
@@ -850,6 +863,20 @@ export default function VideoEditor() {
 					}
 					return { ...region, rotationPreset: preset };
 				}),
+			}));
+		},
+		[selectedZoomId, pushState],
+	);
+
+	const handleZoomAspectRatioChange = useCallback(
+		(ratio: AspectRatio) => {
+			if (!selectedZoomId) return;
+			pushState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((z) =>
+					z.id === selectedZoomId
+						? { ...z, zoomAspectRatio: ratio === "native" ? undefined : ratio }
+						: z,
+				),
 			}));
 		},
 		[selectedZoomId, pushState],
@@ -1730,19 +1757,6 @@ export default function VideoEditor() {
 		}
 	}, []);
 
-	const handleSaveDiagnostic = useCallback(async () => {
-		const result = await window.electronAPI.saveDiagnostic({
-			error: exportError ?? "Manual diagnostic export",
-			projectState: editorState,
-			logs: [],
-		});
-		if (result.success) {
-			toast.success("Diagnostic file saved");
-		} else if (!result.canceled) {
-			toast.error("Failed to save diagnostic file");
-		}
-	}, [exportError, editorState]);
-
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-screen bg-background">
@@ -1958,6 +1972,7 @@ export default function VideoEditor() {
 									currentTime={currentTime}
 									onSeek={handleSeek}
 									cursorTelemetry={cursorTelemetry}
+									cursorClickTimestamps={cursorClickTimestamps}
 									zoomRegions={zoomRegions}
 									onZoomAdded={handleZoomAdded}
 									onZoomSuggested={handleZoomSuggested}
@@ -2018,6 +2033,19 @@ export default function VideoEditor() {
 							selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
 						}
 						onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
+						selectedZoomScale={
+							selectedZoomId
+								? getZoomScale(zoomRegions.find((z) => z.id === selectedZoomId) ?? { depth: DEFAULT_ZOOM_DEPTH })
+								: null
+						}
+						onZoomScaleChange={(scale) => selectedZoomId && handleZoomScaleChange(selectedZoomId, scale)}
+						onZoomScaleCommit={commitState}
+						selectedZoomAspectRatio={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.zoomAspectRatio ?? "native")
+								: null
+						}
+						onZoomAspectRatioChange={handleZoomAspectRatioChange}
 						selectedZoomFocusMode={
 							selectedZoomId
 								? (zoomRegions.find((z) => z.id === selectedZoomId)?.focusMode ?? "manual")
@@ -2052,6 +2080,16 @@ export default function VideoEditor() {
 						cropRegion={cropRegion}
 						onCropChange={(r) => pushState({ cropRegion: r })}
 						aspectRatio={aspectRatio}
+						onAspectRatioChange={(ar) =>
+							pushState({
+								aspectRatio: ar,
+								webcamLayoutPreset:
+									(isPortraitAspectRatio(ar) && webcamLayoutPreset === "dual-frame") ||
+									(!isPortraitAspectRatio(ar) && webcamLayoutPreset === "vertical-stack")
+										? "picture-in-picture"
+										: webcamLayoutPreset,
+							})
+						}
 						hasWebcam={Boolean(webcamVideoPath)}
 						webcamLayoutPreset={webcamLayoutPreset}
 						onWebcamLayoutPresetChange={(preset) =>
@@ -2113,7 +2151,6 @@ export default function VideoEditor() {
 						onSpeedDelete={handleSpeedDelete}
 						unsavedExport={unsavedExport}
 						onSaveUnsavedExport={handleSaveUnsavedExport}
-						onSaveDiagnostic={handleSaveDiagnostic}
 					/>
 				</div>
 			</div>

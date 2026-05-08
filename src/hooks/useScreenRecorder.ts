@@ -57,6 +57,8 @@ type UseScreenRecorderReturn = {
 	setSystemAudioEnabled: (enabled: boolean) => void;
 	webcamEnabled: boolean;
 	setWebcamEnabled: (enabled: boolean) => Promise<boolean>;
+	captureBackgroundColor: string | null;
+	setCaptureBackgroundColor: (color: string | null) => void;
 };
 
 type RecorderHandle = {
@@ -114,6 +116,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const [countdownActive, setCountdownActive] = useState(false);
 	const webcamReady = useRef(false);
 	const webcamAcquireId = useRef(0);
+	const [captureBackgroundColor, setCaptureBackgroundColor] = useState<string | null>("#000000");
+	const compositeAnimFrameRef = useRef<number | null>(null);
+	const compositeVideoRef = useRef<HTMLVideoElement | null>(null);
 
 	const getRecordingDurationMs = useCallback(() => {
 		const segmentDuration =
@@ -154,6 +159,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	};
 
 	const teardownMedia = useCallback(() => {
+		if (compositeAnimFrameRef.current !== null) {
+			cancelAnimationFrame(compositeAnimFrameRef.current);
+			compositeAnimFrameRef.current = null;
+		}
+		if (compositeVideoRef.current) {
+			compositeVideoRef.current.pause();
+			compositeVideoRef.current.srcObject = null;
+			compositeVideoRef.current = null;
+		}
 		if (stream.current) {
 			stream.current.getTracks().forEach((track) => track.stop());
 			stream.current = null;
@@ -680,7 +694,38 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			if (!videoTrack) {
 				throw new Error("Video track is not available.");
 			}
-			stream.current.addTrack(videoTrack);
+
+			if (captureBackgroundColor) {
+				const bgCanvas = document.createElement("canvas");
+				const bgCtx = bgCanvas.getContext("2d")!;
+				const videoEl = document.createElement("video");
+				videoEl.srcObject = new MediaStream([videoTrack]);
+				videoEl.muted = true;
+				videoEl.playsInline = true;
+				compositeVideoRef.current = videoEl;
+
+				await new Promise<void>((resolve) => {
+					videoEl.onloadedmetadata = () => resolve();
+					void videoEl.play().catch(() => resolve());
+				});
+
+				bgCanvas.width = videoEl.videoWidth || DEFAULT_WIDTH;
+				bgCanvas.height = videoEl.videoHeight || DEFAULT_HEIGHT;
+
+				const bgColor = captureBackgroundColor;
+				const drawFrame = () => {
+					bgCtx.fillStyle = bgColor;
+					bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+					bgCtx.drawImage(videoEl, 0, 0);
+					compositeAnimFrameRef.current = requestAnimationFrame(drawFrame);
+				};
+				compositeAnimFrameRef.current = requestAnimationFrame(drawFrame);
+
+				const canvasStream = bgCanvas.captureStream(TARGET_FRAME_RATE);
+				stream.current.addTrack(canvasStream.getVideoTracks()[0]);
+			} else {
+				stream.current.addTrack(videoTrack);
+			}
 
 			const systemAudioTrack = screenMediaStream.getAudioTracks()[0];
 			const micAudioTrack = microphoneStream.current?.getAudioTracks()[0];
@@ -965,5 +1010,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		setSystemAudioEnabled,
 		webcamEnabled,
 		setWebcamEnabled,
+		captureBackgroundColor,
+		setCaptureBackgroundColor,
 	};
 }

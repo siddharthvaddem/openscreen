@@ -39,7 +39,7 @@ import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import Row from "./Row";
 import TimelineWrapper from "./TimelineWrapper";
-import { detectZoomDwellCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
+import { detectClickCandidates, detectZoomDwellCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
@@ -48,13 +48,13 @@ const BLUR_ROW_ID = "row-blur";
 const SPEED_ROW_ID = "row-speed";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
-const SUGGESTION_SPACING_MS = 1800;
 
 interface TimelineEditorProps {
 	videoDuration: number;
 	currentTime: number;
 	onSeek?: (time: number) => void;
 	cursorTelemetry?: CursorTelemetryPoint[];
+	cursorClickTimestamps?: number[];
 	zoomRegions: ZoomRegion[];
 	onZoomAdded: (span: Span) => void;
 	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
@@ -768,6 +768,7 @@ export default function TimelineEditor({
 	currentTime,
 	onSeek,
 	cursorTelemetry = [],
+	cursorClickTimestamps = [],
 	zoomRegions,
 	onZoomAdded,
 	onZoomSuggested,
@@ -1060,31 +1061,28 @@ export default function TimelineEditor({
 		}
 
 		const dwellCandidates = detectZoomDwellCandidates(normalizedSamples);
+		const clickCandidates = detectClickCandidates(normalizedSamples, cursorClickTimestamps);
+		const allCandidates = [...dwellCandidates, ...clickCandidates];
 
-		if (dwellCandidates.length === 0) {
+		if (allCandidates.length === 0) {
 			toast.info(t("errors.noDwellMoments"), {
 				description: t("errors.noDwellMomentsDescription"),
 			});
 			return;
 		}
 
-		const sortedCandidates = [...dwellCandidates].sort((a, b) => b.strength - a.strength);
-		const acceptedCenters: number[] = [];
+		const sortedCandidates = [...allCandidates].sort((a, b) => b.strength - a.strength);
 
 		let addedCount = 0;
 
 		sortedCandidates.forEach((candidate) => {
-			const tooCloseToAccepted = acceptedCenters.some(
-				(center) => Math.abs(center - candidate.centerTimeMs) < SUGGESTION_SPACING_MS,
-			);
+			const effectiveDuration = candidate.durationMs ?? defaultDuration;
+			const startOffset = candidate.startOffsetMs ?? -effectiveDuration / 2;
+			const rawStart = Math.round(candidate.centerTimeMs + startOffset);
+			const candidateStart = Math.max(0, Math.min(rawStart, totalMs - effectiveDuration));
+			const candidateEnd = candidateStart + effectiveDuration;
 
-			if (tooCloseToAccepted) {
-				return;
-			}
-
-			const centeredStart = Math.round(candidate.centerTimeMs - defaultDuration / 2);
-			const candidateStart = Math.max(0, Math.min(centeredStart, totalMs - defaultDuration));
-			const candidateEnd = candidateStart + defaultDuration;
+			// Only block against pre-existing user-created regions, not other suggestions.
 			const hasOverlap = reservedSpans.some(
 				(span) => candidateEnd > span.start && candidateStart < span.end,
 			);
@@ -1093,8 +1091,6 @@ export default function TimelineEditor({
 				return;
 			}
 
-			reservedSpans.push({ start: candidateStart, end: candidateEnd });
-			acceptedCenters.push(candidate.centerTimeMs);
 			onZoomSuggested({ start: candidateStart, end: candidateEnd }, candidate.focus);
 			addedCount += 1;
 		});
@@ -1118,6 +1114,7 @@ export default function TimelineEditor({
 		zoomRegions,
 		onZoomSuggested,
 		cursorTelemetry,
+		cursorClickTimestamps,
 		t,
 	]);
 
