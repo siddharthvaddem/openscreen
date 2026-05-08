@@ -106,12 +106,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 			// localStorage may be unavailable
 		}
 		document.documentElement.lang = newLocale;
+		document.documentElement.dir = newLocale === "ar" ? "rtl" : "ltr";
 		// Notify Electron main process
 		window.electronAPI?.setLocale?.(newLocale);
 	}, []);
 
 	useEffect(() => {
 		document.documentElement.lang = locale;
+		document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
 	}, [locale]);
 
 	useEffect(() => {

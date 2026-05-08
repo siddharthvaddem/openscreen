@@ -31,6 +31,7 @@ import {
 import { computeFrameStepTime } from "@/lib/frameStep";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { matchesShortcut } from "@/lib/shortcuts";
+import { Z_INDEX_VIDEO_EDITOR_FULLSCREEN } from "@/lib/uiZIndex";
 import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
 import { BackgroundLoadError } from "@/lib/wallpaper";
 import {
@@ -1846,9 +1847,10 @@ export default function VideoEditor() {
 								ref={playerContainerRef}
 								className={
 									isFullscreen
-										? "fixed inset-0 z-[99999] w-full h-full flex flex-col items-center justify-center bg-[#09090b]"
+										? "fixed inset-0 w-full h-full flex flex-col items-center justify-center bg-[#09090b]"
 										: "w-full h-full flex flex-col items-center justify-center bg-black/40 rounded-2xl border border-white/5 shadow-2xl overflow-hidden relative"
 								}
+								style={isFullscreen ? { zIndex: Z_INDEX_VIDEO_EDITOR_FULLSCREEN } : undefined}
 							>
 								{/* Video preview */}
 								<div className="w-full flex justify-center items-center flex-auto mt-1.5">

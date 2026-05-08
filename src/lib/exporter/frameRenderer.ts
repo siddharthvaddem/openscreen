@@ -593,11 +593,6 @@ export class FrameRenderer {
 			scale = screenRect.width / croppedVideoWidth;
 		}
 
-		// Position video sprite
-		this.videoSprite.width = videoWidth * scale;
-		this.videoSprite.height = videoHeight * scale;
-
-		// Center the cropped region within the screenRect
 		const croppedDisplayWidth = croppedVideoWidth * scale;
 		const croppedDisplayHeight = croppedVideoHeight * scale;
 		const coverOffsetX = (screenRect.width - croppedDisplayWidth) / 2;
@@ -605,6 +600,16 @@ export class FrameRenderer {
 
 		const cropPixelX = cropStartX * videoWidth * scale;
 		const cropPixelY = cropStartY * videoHeight * scale;
+
+		if (!Number.isFinite(coverOffsetX + coverOffsetY + cropPixelX + cropPixelY)) {
+			console.error("[FrameRenderer] Invalid layout: NaN");
+			return;
+		}
+
+		// Position video sprite (offsets center the cropped region within screenRect)
+		this.videoSprite.width = videoWidth * scale;
+		this.videoSprite.height = videoHeight * scale;
+
 		this.videoSprite.x = -cropPixelX + coverOffsetX;
 		this.videoSprite.y = -cropPixelY + coverOffsetY;
 
@@ -630,7 +635,9 @@ export class FrameRenderer {
 		// Cache layout info. baseOffset is the stage position of the FULL
 		// (uncropped) video sprite's top-left — matches preview semantics so
 		// downstream consumers (e.g. cursor highlight) can map normalized
-		// recording-space coordinates to stage coordinates uniformly:
+		// recording-space coordinates to stage coordinates uniformly. Use full
+		// source dimensions (videoWidth/videoHeight) in that mapping, not layoutCache.videoSize
+		// (which is the cropped region).
 		//   stagePos = baseOffset + (cx, cy) * (videoWidth, videoHeight) * baseScale
 		this.layoutCache = {
 			stageSize: { width, height },

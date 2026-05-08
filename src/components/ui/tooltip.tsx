@@ -1,9 +1,10 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as React from "react";
 
+import { Z_INDEX_TOOLTIP } from "@/lib/uiZIndex";
 import { cn } from "@/lib/utils";
 
-/** Default gap above/beside triggers — matches HUD “Open video” spacing across app tooltips. */
+/** Default gap above/beside triggers — standardizes spacing across app tooltips. */
 export const STANDARD_TOOLTIP_SIDE_OFFSET = 10;
 
 function TooltipProvider({
@@ -30,6 +31,7 @@ function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimiti
 function TooltipContent({
 	className,
 	sideOffset = STANDARD_TOOLTIP_SIDE_OFFSET,
+	style,
 	...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
 	return (
@@ -37,8 +39,9 @@ function TooltipContent({
 			<TooltipPrimitive.Content
 				data-slot="tooltip-content"
 				sideOffset={sideOffset}
+				style={{ zIndex: Z_INDEX_TOOLTIP, ...style }}
 				className={cn(
-					"px-2 py-1 text-[11px] leading-none text-white/90 bg-black/85 border border-white/10 rounded-md z-[100000]",
+					"px-2 py-1 text-[11px] leading-none text-white/90 bg-black/85 border border-white/10 rounded-md",
 					"animate-in fade-in-0 zoom-in-95",
 					"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 					className,

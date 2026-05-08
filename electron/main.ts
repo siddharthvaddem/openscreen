@@ -12,7 +12,7 @@ import {
 	systemPreferences,
 	Tray,
 } from "electron";
-import { mainT, setMainLocale } from "./i18n";
+import { mainT, mainTCurrentLocale, setMainLocale } from "./i18n";
 import { registerIpcHandlers } from "./ipc/handlers";
 import {
 	createCountdownOverlayWindow,
@@ -128,6 +128,14 @@ function sendEditorMenuAction(
 	targetWindow.webContents.send(channel);
 }
 
+function menuRole(
+	role: NonNullable<Electron.MenuItemConstructorOptions["role"]>,
+	labelKey: string,
+): Electron.MenuItemConstructorOptions {
+	const label = mainTCurrentLocale("common", labelKey);
+	return label != null ? { role, label } : { role };
+}
+
 function setupApplicationMenu() {
 	const isMac = process.platform === "darwin";
 	const template: Electron.MenuItemConstructorOptions[] = [];
@@ -136,136 +144,77 @@ function setupApplicationMenu() {
 		template.push({
 			label: app.name,
 			submenu: [
-				{
-					role: "about",
-					label: mainT("common", "actions.about") || "About OpenScreen",
-				},
+				menuRole("about", "actions.about"),
 				{ type: "separator" },
-				{
-					role: "services",
-					label: mainT("common", "actions.services") || "Services",
-				},
+				menuRole("services", "actions.services"),
 				{ type: "separator" },
-				{
-					role: "hide",
-					label: mainT("common", "actions.hide") || "Hide OpenScreen",
-				},
-				{
-					role: "hideOthers",
-					label: mainT("common", "actions.hideOthers") || "Hide Others",
-				},
-				{
-					role: "unhide",
-					label: mainT("common", "actions.unhide") || "Show All",
-				},
+				menuRole("hide", "actions.hide"),
+				menuRole("hideOthers", "actions.hideOthers"),
+				menuRole("unhide", "actions.unhide"),
 				{ type: "separator" },
-				{ role: "quit", label: mainT("common", "actions.quit") || "Quit" },
+				menuRole("quit", "actions.quit"),
 			],
 		});
 	}
 
 	template.push(
 		{
-			label: mainT("common", "actions.file") || "File",
+			label: mainT("common", "actions.file") ?? "File",
 			submenu: [
 				{
-					label: mainT("dialogs", "unsavedChanges.loadProject") || "Load Project…",
+					label: mainT("dialogs", "unsavedChanges.loadProject") ?? "Load Project…",
 					accelerator: "CmdOrCtrl+O",
 					click: () => sendEditorMenuAction("menu-load-project"),
 				},
 				{
-					label: mainT("dialogs", "unsavedChanges.saveProject") || "Save Project…",
+					label: mainT("dialogs", "unsavedChanges.saveProject") ?? "Save Project…",
 					accelerator: "CmdOrCtrl+S",
 					click: () => sendEditorMenuAction("menu-save-project"),
 				},
 				{
-					label: mainT("dialogs", "unsavedChanges.saveProjectAs") || "Save Project As…",
+					label: mainT("dialogs", "unsavedChanges.saveProjectAs") ?? "Save Project As…",
 					accelerator: "CmdOrCtrl+Shift+S",
 					click: () => sendEditorMenuAction("menu-save-project-as"),
 				},
-				...(isMac
-					? []
-					: [
-							{ type: "separator" as const },
-							{
-								role: "quit" as const,
-								label: mainT("common", "actions.quit") || "Quit",
-							},
-						]),
+				...(isMac ? [] : [{ type: "separator" as const }, menuRole("quit", "actions.quit")]),
 			],
 		},
 		{
-			label: mainT("common", "actions.edit") || "Edit",
+			label: mainT("common", "actions.edit") ?? "Edit",
 			submenu: [
-				{ role: "undo", label: mainT("common", "actions.undo") || "Undo" },
-				{ role: "redo", label: mainT("common", "actions.redo") || "Redo" },
+				menuRole("undo", "actions.undo"),
+				menuRole("redo", "actions.redo"),
 				{ type: "separator" },
-				{ role: "cut", label: mainT("common", "actions.cut") || "Cut" },
-				{ role: "copy", label: mainT("common", "actions.copy") || "Copy" },
-				{ role: "paste", label: mainT("common", "actions.paste") || "Paste" },
-				{
-					role: "selectAll",
-					label: mainT("common", "actions.selectAll") || "Select All",
-				},
+				menuRole("cut", "actions.cut"),
+				menuRole("copy", "actions.copy"),
+				menuRole("paste", "actions.paste"),
+				menuRole("selectAll", "actions.selectAll"),
 			],
 		},
 		{
-			label: mainT("common", "actions.view") || "View",
+			label: mainT("common", "actions.view") ?? "View",
 			submenu: [
-				{
-					role: "reload",
-					label: mainT("common", "actions.reload") || "Reload",
-				},
-				{
-					role: "forceReload",
-					label: mainT("common", "actions.forceReload") || "Force Reload",
-				},
-				{
-					role: "toggleDevTools",
-					label: mainT("common", "actions.toggleDevTools") || "Toggle Developer Tools",
-				},
+				menuRole("reload", "actions.reload"),
+				menuRole("forceReload", "actions.forceReload"),
+				menuRole("toggleDevTools", "actions.toggleDevTools"),
 				{ type: "separator" },
-				{
-					role: "resetZoom",
-					label: mainT("common", "actions.actualSize") || "Actual Size",
-				},
-				{
-					role: "zoomIn",
-					label: mainT("common", "actions.zoomIn") || "Zoom In",
-				},
-				{
-					role: "zoomOut",
-					label: mainT("common", "actions.zoomOut") || "Zoom Out",
-				},
+				menuRole("resetZoom", "actions.actualSize"),
+				menuRole("zoomIn", "actions.zoomIn"),
+				menuRole("zoomOut", "actions.zoomOut"),
 				{ type: "separator" },
-				{
-					role: "togglefullscreen",
-					label: mainT("common", "actions.toggleFullScreen") || "Toggle Full Screen",
-				},
+				menuRole("togglefullscreen", "actions.toggleFullScreen"),
 			],
 		},
 		{
-			label: mainT("common", "actions.window") || "Window",
+			label: mainT("common", "actions.window") ?? "Window",
 			submenu: isMac
 				? [
-						{
-							role: "minimize",
-							label: mainT("common", "actions.minimize") || "Minimize",
-						},
+						menuRole("minimize", "actions.minimize"),
 						{ role: "zoom" },
 						{ type: "separator" },
 						{ role: "front" },
 					]
-				: [
-						{
-							role: "minimize",
-							label: mainT("common", "actions.minimize") || "Minimize",
-						},
-						{
-							role: "close",
-							label: mainT("common", "actions.close") || "Close",
-						},
-					],
+				: [menuRole("minimize", "actions.minimize"), menuRole("close", "actions.close")],
 		},
 	);
 
@@ -297,14 +246,14 @@ function updateTrayMenu(recording: boolean = false) {
 	if (!tray) return;
 	const trayIcon = recording ? recordingTrayIcon : defaultTrayIcon;
 	const trayToolTip = recording
-		? mainT("common", "actions.recordingStatus", {
+		? (mainT("common", "actions.recordingStatus", {
 				source: selectedSourceName,
-			}) || `Recording: ${selectedSourceName}`
+			}) ?? `Recording: ${selectedSourceName}`)
 		: "OpenScreen";
 	const menuTemplate = recording
 		? [
 				{
-					label: mainT("common", "actions.stopRecording") || "Stop Recording",
+					label: mainT("common", "actions.stopRecording") ?? "Stop Recording",
 					click: () => {
 						if (mainWindow && !mainWindow.isDestroyed()) {
 							mainWindow.webContents.send("stop-recording-from-tray");
@@ -314,13 +263,13 @@ function updateTrayMenu(recording: boolean = false) {
 			]
 		: [
 				{
-					label: mainT("common", "actions.open") || "Open",
+					label: mainT("common", "actions.open") ?? "Open",
 					click: () => {
 						showMainWindow();
 					},
 				},
 				{
-					label: mainT("common", "actions.quit") || "Quit",
+					label: mainT("common", "actions.quit") ?? "Quit",
 					click: () => {
 						app.quit();
 					},
@@ -371,15 +320,17 @@ function createEditorWindowWrapper() {
 		const choice = dialog.showMessageBoxSync(mainWindow!, {
 			type: "warning",
 			buttons: [
-				mainT("dialogs", "unsavedChanges.saveAndClose"),
-				mainT("dialogs", "unsavedChanges.discardAndClose"),
-				mainT("common", "actions.cancel"),
+				mainT("dialogs", "unsavedChanges.saveAndClose") ?? "Save & Close",
+				mainT("dialogs", "unsavedChanges.discardAndClose") ?? "Discard & Close",
+				mainT("common", "actions.cancel") ?? "Cancel",
 			],
 			defaultId: 0,
 			cancelId: 2,
-			title: mainT("dialogs", "unsavedChanges.title"),
-			message: mainT("dialogs", "unsavedChanges.message"),
-			detail: mainT("dialogs", "unsavedChanges.detail"),
+			title: mainT("dialogs", "unsavedChanges.title") ?? "Unsaved Changes",
+			message: mainT("dialogs", "unsavedChanges.message") ?? "You have unsaved changes.",
+			detail:
+				mainT("dialogs", "unsavedChanges.detail") ??
+				"Do you want to save your project before closing?",
 		});
 
 		const windowToClose = mainWindow;

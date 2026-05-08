@@ -73,15 +73,26 @@ function interpolate(str: string, vars?: Record<string, string | number>): strin
 	return str.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(vars[key] ?? `{{${key}}}`));
 }
 
+/** Translation for the active locale only (no English fallback). Use for Electron menu roles so the OS can supply a native label when the locale has no entry. */
+export function mainTCurrentLocale(
+	namespace: Namespace,
+	key: string,
+	vars?: Record<string, string | number>,
+): string | undefined {
+	const value = getMessageValue(messages[currentLocale]?.[namespace], key);
+	if (value == null) return undefined;
+	return interpolate(value, vars);
+}
+
 export function mainT(
 	namespace: Namespace,
 	key: string,
 	vars?: Record<string, string | number>,
-): string {
+): string | undefined {
 	const value =
 		getMessageValue(messages[currentLocale]?.[namespace], key) ??
 		getMessageValue(messages.en?.[namespace], key);
 
-	if (value == null) return `${namespace}.${key}`;
+	if (value == null) return undefined;
 	return interpolate(value, vars);
 }

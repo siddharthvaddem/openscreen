@@ -577,14 +577,10 @@ export function LaunchWindow() {
 					</button>
 				</div>
 
-				{/* Record/Stop — span wrapper only when disabled (Chromium skips pointer events on disabled buttons). */}
-				{recordButtonDisabled ? (
-					<Tooltip content={recordTooltip}>
-						<span className="inline-flex rounded-full">{recordButton}</span>
-					</Tooltip>
-				) : (
-					<Tooltip content={recordTooltip}>{recordButton}</Tooltip>
-				)}
+				{/* Record/Stop — span wrapper so tooltips work when the button is disabled (Chromium skips pointer events on disabled controls). */}
+				<Tooltip content={recordTooltip}>
+					<span className="inline-flex rounded-full">{recordButton}</span>
+				</Tooltip>
 
 				{recording && (
 					<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>

@@ -990,14 +990,14 @@ export function registerIpcHandlers(
 			// Determine file type from extension
 			const isGif = fileName.toLowerCase().endsWith(".gif");
 			const filters = isGif
-				? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
-				: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
+				? [{ name: mainT("dialogs", "fileDialogs.gifImage") ?? "GIF Image", extensions: ["gif"] }]
+				: [{ name: mainT("dialogs", "fileDialogs.mp4Video") ?? "MP4 Video", extensions: ["mp4"] }];
 
 			const dialogOptions = buildDialogOptions(
 				{
 					title: isGif
-						? mainT("dialogs", "fileDialogs.saveGif")
-						: mainT("dialogs", "fileDialogs.saveVideo"),
+						? (mainT("dialogs", "fileDialogs.saveGif") ?? "Save Exported GIF")
+						: (mainT("dialogs", "fileDialogs.saveVideo") ?? "Save Exported Video"),
 					defaultPath: path.join(app.getPath("downloads"), fileName),
 					filters,
 					properties: ["createDirectory", "showOverwriteConfirmation"],
@@ -1041,14 +1041,14 @@ export function registerIpcHandlers(
 		try {
 			const dialogOptions = buildDialogOptions(
 				{
-					title: mainT("dialogs", "fileDialogs.selectVideo"),
+					title: mainT("dialogs", "fileDialogs.selectVideo") ?? "Select Video File",
 					defaultPath: RECORDINGS_DIR,
 					filters: [
 						{
-							name: mainT("dialogs", "fileDialogs.videoFiles"),
+							name: mainT("dialogs", "fileDialogs.videoFiles") ?? "Video Files",
 							extensions: ["webm", "mp4", "mov", "avi", "mkv"],
 						},
-						{ name: mainT("dialogs", "fileDialogs.allFiles"), extensions: ["*"] },
+						{ name: mainT("dialogs", "fileDialogs.allFiles") ?? "All Files", extensions: ["*"] },
 					],
 					properties: ["openFile"],
 				},
@@ -1135,11 +1135,11 @@ export function registerIpcHandlers(
 
 				const dialogOptions = buildDialogOptions(
 					{
-						title: mainT("dialogs", "fileDialogs.saveProject"),
+						title: mainT("dialogs", "fileDialogs.saveProject") ?? "Save OpenScreen Project",
 						defaultPath: path.join(RECORDINGS_DIR, defaultName),
 						filters: [
 							{
-								name: mainT("dialogs", "fileDialogs.openscreenProject"),
+								name: mainT("dialogs", "fileDialogs.openscreenProject") ?? "OpenScreen Project",
 								extensions: [PROJECT_FILE_EXTENSION],
 							},
 							{ name: "JSON", extensions: ["json"] },
@@ -1181,15 +1181,15 @@ export function registerIpcHandlers(
 		try {
 			const dialogOptions = buildDialogOptions(
 				{
-					title: mainT("dialogs", "fileDialogs.openProject"),
+					title: mainT("dialogs", "fileDialogs.openProject") ?? "Open OpenScreen Project",
 					defaultPath: RECORDINGS_DIR,
 					filters: [
 						{
-							name: mainT("dialogs", "fileDialogs.openscreenProject"),
+							name: mainT("dialogs", "fileDialogs.openscreenProject") ?? "OpenScreen Project",
 							extensions: [PROJECT_FILE_EXTENSION],
 						},
 						{ name: "JSON", extensions: ["json"] },
-						{ name: mainT("dialogs", "fileDialogs.allFiles"), extensions: ["*"] },
+						{ name: mainT("dialogs", "fileDialogs.allFiles") ?? "All Files", extensions: ["*"] },
 					],
 					properties: ["openFile"],
 				},

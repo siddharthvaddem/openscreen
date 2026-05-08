@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
+import arDialogs from "@/i18n/locales/ar/dialogs.json";
 import enDialogs from "@/i18n/locales/en/dialogs.json";
 import esDialogs from "@/i18n/locales/es/dialogs.json";
 import frDialogs from "@/i18n/locales/fr/dialogs.json";
+import jaJPDialogs from "@/i18n/locales/ja-JP/dialogs.json";
 import koKRDialogs from "@/i18n/locales/ko-KR/dialogs.json";
 import trDialogs from "@/i18n/locales/tr/dialogs.json";
 import zhCNDialogs from "@/i18n/locales/zh-CN/dialogs.json";
+import zhTWDialogs from "@/i18n/locales/zh-TW/dialogs.json";
 
 const tutorialHelpKeys = [
 	"triggerLabel",
@@ -34,11 +37,14 @@ const keysThatMayBeEmpty = new Set<(typeof tutorialHelpKeys)[number]>(["step1Des
 
 const dialogsByLocale = {
 	en: enDialogs,
+	ar: arDialogs,
 	"zh-CN": zhCNDialogs,
+	"zh-TW": zhTWDialogs,
 	es: esDialogs,
 	fr: frDialogs,
 	tr: trDialogs,
 	"ko-KR": koKRDialogs,
+	"ja-JP": jaJPDialogs,
 } satisfies Record<Locale, { tutorial: Record<string, unknown> }>;
 
 describe("TutorialHelp translations", () => {
