@@ -1,4 +1,4 @@
-const SUPPORTED_BACKGROUND_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png"]);
+const SUPPORTED_BACKGROUND_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
 const SUPPORTED_BACKGROUND_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png"]);
 
 export const BACKGROUND_IMAGE_ACCEPT = ".jpg,.jpeg,.png,image/jpeg,image/png";

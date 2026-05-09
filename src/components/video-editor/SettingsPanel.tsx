@@ -485,7 +485,7 @@ export function SettingsPanel({
 		}
 	};
 
-	const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files;
 		if (!files || files.length === 0) return;
 
@@ -499,26 +499,26 @@ export function SettingsPanel({
 			return;
 		}
 
-		const reader = new FileReader();
-
-		reader.onload = (e) => {
-			const dataUrl = e.target?.result as string;
-			if (dataUrl) {
-				onCustomImagesChange?.([...customImages, dataUrl]);
-				onWallpaperChange(dataUrl);
-				toast.success(t("imageUpload.uploadSuccess"));
+		try {
+			const imageData = await file.arrayBuffer();
+			const result = await window.electronAPI.storeBackgroundImage(imageData, file.name, file.type);
+			if (!result.success || !result.url) {
+				toast.error(t("imageUpload.failedToUpload"), {
+					description: result.message || result.error || t("imageUpload.errorReading"),
+				});
+				return;
 			}
-		};
-
-		reader.onerror = () => {
+			onCustomImagesChange?.([...customImages, result.url]);
+			onWallpaperChange(result.url);
+			toast.success(t("imageUpload.uploadSuccess"));
+		} catch {
 			toast.error(t("imageUpload.failedToUpload"), {
 				description: t("imageUpload.errorReading"),
 			});
-		};
-
-		reader.readAsDataURL(file);
-		// Reset input so the same file can be selected again
-		event.target.value = "";
+		} finally {
+			// Reset input so the same file can be selected again
+			event.target.value = "";
+		}
 	};
 
 	const handleRemoveCustomImage = (imageUrl: string, event: React.MouseEvent) => {
@@ -1658,16 +1658,18 @@ export function SettingsPanel({
 
 				<div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 p-3">
 					<div className="min-w-0">
-						<div className="text-xs font-medium text-slate-200">
+						<div id="autosave-downloads-label" className="text-xs font-medium text-slate-200">
 							{t("export.autoSaveToDownloads")}
 						</div>
-						<div className="text-[10px] text-slate-500 mt-0.5">
+						<div id="autosave-downloads-desc" className="text-[10px] text-slate-500 mt-0.5">
 							{t("export.autoSaveToDownloadsDescription")}
 						</div>
 					</div>
 					<Switch
 						checked={autoSaveExportToDownloads}
 						onCheckedChange={onAutoSaveExportToDownloadsChange}
+						aria-labelledby="autosave-downloads-label"
+						aria-describedby="autosave-downloads-desc"
 						className="data-[state=checked]:bg-[#34B27B]"
 					/>
 				</div>

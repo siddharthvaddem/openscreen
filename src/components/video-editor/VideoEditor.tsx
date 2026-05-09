@@ -384,7 +384,6 @@ export default function VideoEditor() {
 				...defaultEditorState,
 				exportQuality: prefs.exportQuality,
 				exportFormat: prefs.exportFormat,
-				autoSaveExportToDownloads: prefs.autoSaveExportToDownloads,
 				gifFrameRate: prefs.gifFrameRate,
 				gifLoop: prefs.gifLoop,
 				gifSizePreset: prefs.gifSizePreset,

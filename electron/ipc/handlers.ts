@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -32,8 +33,11 @@ import { RECORDINGS_DIR } from "../main";
 
 const PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
+const BACKGROUND_IMAGES_DIR = path.join(app.getPath("userData"), "background-images");
 const RECORDING_SESSION_SUFFIX = ".session.json";
 const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+const ALLOWED_BACKGROUND_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png"]);
+const ALLOWED_BACKGROUND_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
 
 /**
  * Paths explicitly approved by the user via file picker dialogs or project loads.
@@ -78,6 +82,21 @@ function buildDialogOptions<T extends Electron.OpenDialogOptions | Electron.Save
 
 function hasAllowedImportVideoExtension(filePath: string): boolean {
 	return ALLOWED_IMPORT_VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+function resolveBackgroundImageOutputPath(fileName: string, mimeType?: string): string {
+	const normalizedType = mimeType?.trim().toLowerCase() ?? "";
+	const extension = path.extname(fileName).toLowerCase();
+
+	if (normalizedType && !ALLOWED_BACKGROUND_IMAGE_TYPES.has(normalizedType)) {
+		throw new Error("Unsupported background image type");
+	}
+
+	if (!ALLOWED_BACKGROUND_IMAGE_EXTENSIONS.has(extension)) {
+		throw new Error("Unsupported background image extension");
+	}
+
+	return path.join(BACKGROUND_IMAGES_DIR, `${randomUUID()}${extension}`);
 }
 
 async function approveReadableVideoPath(
@@ -780,6 +799,30 @@ export function registerIpcHandlers(
 		}
 	});
 
+	ipcMain.handle(
+		"store-background-image",
+		async (_, imageData: ArrayBuffer, fileName: string, mimeType?: string) => {
+			try {
+				const targetPath = resolveBackgroundImageOutputPath(fileName, mimeType);
+				await fs.mkdir(path.dirname(targetPath), { recursive: true });
+				await fs.writeFile(targetPath, Buffer.from(imageData));
+				return {
+					success: true,
+					path: targetPath,
+					url: pathToFileURL(targetPath).toString(),
+					message: "Background image stored successfully",
+				};
+			} catch (error) {
+				console.error("Failed to store background image:", error);
+				return {
+					success: false,
+					message: "Failed to store background image",
+					error: String(error),
+				};
+			}
+		},
+	);
+
 	ipcMain.handle("get-recorded-video-path", async () => {
 		try {
 			if (currentRecordingSession?.screenVideoPath) {
@@ -1001,9 +1044,11 @@ export function registerIpcHandlers(
 					? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
 					: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
 
-				let targetPath = path.join(app.getPath("downloads"), fileName);
+				let targetPath: string;
 
-				if (!options?.autoSaveToDownloads) {
+				if (options?.autoSaveToDownloads) {
+					targetPath = path.join(app.getPath("downloads"), fileName);
+				} else {
 					const exportFolder = options?.exportFolder;
 					let defaultDir = app.getPath("downloads");
 					if (exportFolder) {

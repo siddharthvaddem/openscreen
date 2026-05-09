@@ -62,6 +62,17 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		storeBackgroundImage: (
+			imageData: ArrayBuffer,
+			fileName: string,
+			mimeType?: string,
+		) => Promise<{
+			success: boolean;
+			path?: string;
+			url?: string;
+			message?: string;
+			error?: string;
+		}>;
 		getRecordedVideoPath: () => Promise<{
 			success: boolean;
 			path?: string;

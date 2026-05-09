@@ -25,7 +25,8 @@ describe("userPreferences", () => {
 	});
 
 	it("persists visual editor defaults and uploaded background images", () => {
-		const uploadedBackground = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ";
+		const uploadedBackground =
+			"file:///Users/me/Library/Application%20Support/Openscreen/background-images/bg.png";
 
 		saveUserPreferences({
 			wallpaper: uploadedBackground,
@@ -72,6 +73,18 @@ describe("userPreferences", () => {
 			gifLoop: false,
 			gifSizePreset: "large",
 		});
+	});
+
+	it("returns fresh object and array instances for defaults", () => {
+		const first = loadUserPreferences();
+		first.customImages.push("file:///tmp/mutated.png");
+		first.cropRegion.x = 0.5;
+		first.cursorHighlight.enabled = !first.cursorHighlight.enabled;
+
+		const second = loadUserPreferences();
+		expect(second.customImages).toEqual([]);
+		expect(second.cropRegion.x).toBe(0);
+		expect(second.cursorHighlight.enabled).toBe(false);
 	});
 });
 

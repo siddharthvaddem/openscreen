@@ -7,7 +7,8 @@ describe("userPreferences browser persistence", () => {
 	});
 
 	it("round-trips uploaded backgrounds and visual defaults through browser localStorage", () => {
-		const uploadedBackground = "data:image/jpeg;base64,/9j/browser-round-trip";
+		const uploadedBackground =
+			"file:///Users/me/Library/Application%20Support/Openscreen/background-images/bg.png";
 
 		saveUserPreferences({
 			wallpaper: uploadedBackground,

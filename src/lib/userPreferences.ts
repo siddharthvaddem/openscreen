@@ -100,6 +100,16 @@ const DEFAULT_PREFS: UserPreferences = {
 	exportFolder: null,
 };
 
+function cloneDefaultPreferences(): UserPreferences {
+	return {
+		...DEFAULT_PREFS,
+		customImages: [...DEFAULT_PREFS.customImages],
+		cropRegion: { ...DEFAULT_PREFS.cropRegion },
+		webcamPosition: DEFAULT_PREFS.webcamPosition ? { ...DEFAULT_PREFS.webcamPosition } : null,
+		cursorHighlight: { ...DEFAULT_PREFS.cursorHighlight },
+	};
+}
+
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
 	if (!text) return null;
 	try {
@@ -118,7 +128,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function normalizeCropRegion(value: unknown): CropRegion {
-	if (!value || typeof value !== "object") return DEFAULT_PREFS.cropRegion;
+	if (!value || typeof value !== "object") return { ...DEFAULT_PREFS.cropRegion };
 	const crop = value as Partial<CropRegion>;
 	const x = finiteNumber(crop.x) ? clamp(crop.x, 0, 1) : DEFAULT_PREFS.cropRegion.x;
 	const y = finiteNumber(crop.y) ? clamp(crop.y, 0, 1) : DEFAULT_PREFS.cropRegion.y;
@@ -132,15 +142,19 @@ function normalizeCropRegion(value: unknown): CropRegion {
 }
 
 function normalizeWebcamPosition(value: unknown): WebcamPosition | null {
-	if (!value || typeof value !== "object") return DEFAULT_PREFS.webcamPosition;
+	if (!value || typeof value !== "object") {
+		return DEFAULT_PREFS.webcamPosition ? { ...DEFAULT_PREFS.webcamPosition } : null;
+	}
 	const position = value as Partial<WebcamPosition>;
 	return finiteNumber(position.cx) && finiteNumber(position.cy)
 		? { cx: clamp(position.cx, 0, 1), cy: clamp(position.cy, 0, 1) }
-		: DEFAULT_PREFS.webcamPosition;
+		: DEFAULT_PREFS.webcamPosition
+			? { ...DEFAULT_PREFS.webcamPosition }
+			: null;
 }
 
 function normalizeCursorHighlight(value: unknown): CursorHighlightConfig {
-	if (!value || typeof value !== "object") return DEFAULT_PREFS.cursorHighlight;
+	if (!value || typeof value !== "object") return { ...DEFAULT_PREFS.cursorHighlight };
 	const highlight = value as Partial<CursorHighlightConfig>;
 	return {
 		enabled:
@@ -180,7 +194,7 @@ function normalizeCursorHighlight(value: unknown): CursorHighlightConfig {
 }
 
 function normalizeCustomImages(value: unknown): string[] {
-	if (!Array.isArray(value)) return DEFAULT_PREFS.customImages;
+	if (!Array.isArray(value)) return [...DEFAULT_PREFS.customImages];
 	return Array.from(
 		new Set(
 			value.filter(
@@ -201,9 +215,9 @@ export function loadUserPreferences(): UserPreferences {
 	try {
 		raw = safeJsonParse(localStorage.getItem(PREFS_KEY));
 	} catch {
-		return { ...DEFAULT_PREFS };
+		return cloneDefaultPreferences();
 	}
-	if (!raw || typeof raw !== "object") return { ...DEFAULT_PREFS };
+	if (!raw || typeof raw !== "object") return cloneDefaultPreferences();
 
 	return {
 		wallpaper:

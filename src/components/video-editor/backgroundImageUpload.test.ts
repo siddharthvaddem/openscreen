@@ -14,6 +14,10 @@ describe("background image upload validation", () => {
 		expect(isSupportedBackgroundImageType("text/plain", "notes.txt")).toBe(false);
 	});
 
+	it("rejects non-standard JPEG MIME aliases", () => {
+		expect(isSupportedBackgroundImageType("image/jpg", "photo.jpg")).toBe(false);
+	});
+
 	it("does not allow extension fallback for explicit unsupported MIME types", () => {
 		expect(isSupportedBackgroundImageType("text/plain", "notes.png")).toBe(false);
 	});
