@@ -3,6 +3,7 @@ import {
 	ChevronDown,
 	Crop,
 	Download,
+	FileDown,
 	Film,
 	Image,
 	Lock,
@@ -245,6 +246,7 @@ interface SettingsPanelProps {
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
+	onSaveDiagnostic?: () => Promise<void>;
 }
 
 export default SettingsPanel;
@@ -336,6 +338,7 @@ export function SettingsPanel({
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
+	onSaveDiagnostic,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
@@ -1704,6 +1707,16 @@ export function SettingsPanel({
 						<Bug className="w-3 h-3 text-[#34B27B]" />
 						{t("links.reportBug")}
 					</button>
+					{onSaveDiagnostic && (
+						<button
+							type="button"
+							onClick={onSaveDiagnostic}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<FileDown className="w-3 h-3 text-slate-400" />
+							Save Diagnostics
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={() => {

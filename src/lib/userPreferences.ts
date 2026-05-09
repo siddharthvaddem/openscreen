@@ -72,6 +72,8 @@ export interface UserPreferences {
 	gifSizePreset: GifSizePreset;
 	/** Default cursor highlight settings */
 	cursorHighlight: CursorHighlightConfig;
+	/** Folder used for the most recent successful export, if any */
+	exportFolder: string | null;
 }
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -95,6 +97,7 @@ const DEFAULT_PREFS: UserPreferences = {
 	gifLoop: true,
 	gifSizePreset: "medium",
 	cursorHighlight: DEFAULT_CURSOR_HIGHLIGHT,
+	exportFolder: null,
 };
 
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
@@ -274,7 +277,45 @@ export function loadUserPreferences(): UserPreferences {
 				? raw.gifSizePreset
 				: DEFAULT_PREFS.gifSizePreset,
 		cursorHighlight: normalizeCursorHighlight(raw.cursorHighlight),
+		exportFolder:
+			typeof raw.exportFolder === "string" && raw.exportFolder.length > 0
+				? raw.exportFolder
+				: DEFAULT_PREFS.exportFolder,
 	};
+}
+
+/**
+ * Extracts the parent directory from a saved file path. Handles both POSIX
+ * and Windows separators since the path comes from the OS save dialog.
+ *
+ * Root directories are preserved with their trailing separator so that the
+ * value is still a valid directory path:
+ *   "/video.mp4"      -> "/"
+ *   "C:\\video.mp4"   -> "C:\\"
+ *
+ * Returns null if no separator is found.
+ */
+export function parentDirectoryOf(filePath: string): string | null {
+	const lastSep = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+	if (lastSep < 0) return null;
+
+	// POSIX root, e.g. "/video.mp4" -> "/"
+	if (lastSep === 0) return filePath[0];
+
+	// Windows drive root, e.g. "C:\\video.mp4" -> "C:\\"
+	if (lastSep === 2 && /^[A-Za-z]:[/\\]/.test(filePath)) {
+		return filePath.slice(0, lastSep + 1);
+	}
+
+	return filePath.slice(0, lastSep);
+}
+
+/**
+ * Returns the remembered export folder as `string | undefined`, suitable for
+ * passing directly to IPC handlers that treat absence as "use the default".
+ */
+export function getExportFolder(): string | undefined {
+	return loadUserPreferences().exportFolder ?? undefined;
 }
 
 /**

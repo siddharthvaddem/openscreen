@@ -41,6 +41,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run test
       - run: npm run test:browser:install
       - run: npm run test:browser
 

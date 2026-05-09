@@ -21,5 +21,9 @@
     <!-- Camera (webcam capture) -->
     <key>com.apple.security.device.camera</key>
     <true/>
+
+    <!-- Screen recording (required for desktopCapturer.getSources() on macOS 10.15+) -->
+    <key>com.apple.security.device.screen-capture</key>
+    <true/>
 </dict>
 </plist>

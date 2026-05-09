@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -991,7 +992,7 @@ export function registerIpcHandlers(
 			_,
 			videoData: ArrayBuffer,
 			fileName: string,
-			options?: { autoSaveToDownloads?: boolean },
+			options?: { autoSaveToDownloads?: boolean; exportFolder?: string },
 		) => {
 			try {
 				// Determine file type from extension
@@ -1003,12 +1004,30 @@ export function registerIpcHandlers(
 				let targetPath = path.join(app.getPath("downloads"), fileName);
 
 				if (!options?.autoSaveToDownloads) {
+					const exportFolder = options?.exportFolder;
+					let defaultDir = app.getPath("downloads");
+					if (exportFolder) {
+						try {
+							const stats = await fs.stat(exportFolder);
+							if (stats.isDirectory()) {
+								defaultDir = exportFolder;
+							}
+						} catch (err) {
+							// Stat can fail because the folder was moved/deleted (expected) or
+							// because of a permission error (worth surfacing). Either way we
+							// fall back to Downloads, but log so debugging isn't blind.
+							console.warn(
+								`Could not access remembered export folder "${exportFolder}", falling back to Downloads:`,
+								err,
+							);
+						}
+					}
 					const dialogOptions = buildDialogOptions(
 						{
 							title: isGif
 								? mainT("dialogs", "fileDialogs.saveGif")
 								: mainT("dialogs", "fileDialogs.saveVideo"),
-							defaultPath: targetPath,
+							defaultPath: path.join(defaultDir, fileName),
 							filters,
 							properties: ["createDirectory", "showOverwriteConfirmation"],
 						},
@@ -1331,4 +1350,45 @@ export function registerIpcHandlers(
 			return { success: false, error: String(error) };
 		}
 	});
+
+	ipcMain.handle(
+		"save-diagnostic",
+		async (
+			_,
+			payload: { error: string; stack?: string; projectState: unknown; logs: string[] },
+		) => {
+			const { filePath, canceled } = await dialog.showSaveDialog({
+				title: "Save Diagnostic File",
+				defaultPath: `openscreen-diagnostic-${Date.now()}.json`,
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			});
+
+			if (canceled || !filePath) return { success: false, canceled: true };
+
+			const diagnostic = {
+				timestamp: new Date().toISOString(),
+				appVersion: app.getVersion(),
+				platform: process.platform,
+				arch: process.arch,
+				osRelease: os.release(),
+				osVersion: os.version(),
+				totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
+				nodeVersion: process.versions.node,
+				electronVersion: process.versions.electron,
+				chromeVersion: process.versions.chrome,
+				error: payload.error,
+				stack: payload.stack,
+				projectState: payload.projectState,
+				recentLogs: payload.logs,
+			};
+
+			try {
+				await fs.writeFile(filePath, JSON.stringify(diagnostic, null, 2), "utf-8");
+				return { success: true, path: filePath };
+			} catch (error) {
+				console.error("Failed to write diagnostic file:", error);
+				return { success: false, error: String(error) };
+			}
+		},
+	);
 }

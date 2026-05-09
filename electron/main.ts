@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import {
 	app,
 	BrowserWindow,
-	dialog,
 	ipcMain,
 	Menu,
 	nativeImage,
@@ -333,6 +332,7 @@ function updateTrayMenu(recording: boolean = false) {
 
 let editorHasUnsavedChanges = false;
 let isForceClosing = false;
+let isCloseConfirmInFlight = false;
 
 ipcMain.on("set-has-unsaved-changes", (_, hasChanges: boolean) => {
 	editorHasUnsavedChanges = hasChanges;
@@ -364,39 +364,35 @@ function createEditorWindowWrapper() {
 	editorHasUnsavedChanges = false;
 
 	mainWindow.on("close", (event) => {
-		if (isForceClosing || !editorHasUnsavedChanges) return;
+		if (isForceClosing || !editorHasUnsavedChanges || isCloseConfirmInFlight) return;
 
 		event.preventDefault();
-
-		const choice = dialog.showMessageBoxSync(mainWindow!, {
-			type: "warning",
-			buttons: [
-				mainT("dialogs", "unsavedChanges.saveAndClose"),
-				mainT("dialogs", "unsavedChanges.discardAndClose"),
-				mainT("common", "actions.cancel"),
-			],
-			defaultId: 0,
-			cancelId: 2,
-			title: mainT("dialogs", "unsavedChanges.title"),
-			message: mainT("dialogs", "unsavedChanges.message"),
-			detail: mainT("dialogs", "unsavedChanges.detail"),
-		});
+		isCloseConfirmInFlight = true;
 
 		const windowToClose = mainWindow;
 		if (!windowToClose || windowToClose.isDestroyed()) return;
 
-		if (choice === 0) {
-			// Save & Close — tell renderer to save, then close
-			windowToClose.webContents.send("request-save-before-close");
-			ipcMain.once("save-before-close-done", (_, shouldClose: boolean) => {
-				if (!shouldClose) return;
+		// Ask renderer to show the custom in-app dialog
+		windowToClose.webContents.send("request-close-confirm");
+
+		ipcMain.once("close-confirm-response", (event, choice: "save" | "discard" | "cancel") => {
+			if (event.sender.id !== windowToClose?.webContents.id) return;
+			isCloseConfirmInFlight = false;
+			if (!windowToClose || windowToClose.isDestroyed()) return;
+
+			if (choice === "save") {
+				// Tell renderer to save the project, then close when done
+				windowToClose.webContents.send("request-save-before-close");
+				ipcMain.once("save-before-close-done", (event, shouldClose: boolean) => {
+					if (event.sender.id !== windowToClose?.webContents.id) return;
+					if (!shouldClose) return;
+					forceCloseEditorWindow(windowToClose);
+				});
+			} else if (choice === "discard") {
 				forceCloseEditorWindow(windowToClose);
-			});
-		} else if (choice === 1) {
-			// Discard & Close
-			forceCloseEditorWindow(windowToClose);
-		}
-		// choice === 2: Cancel — do nothing, window stays open
+			}
+			// "cancel": flag reset, window stays open
+		});
 	});
 }
 
