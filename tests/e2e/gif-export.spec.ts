@@ -3,6 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron, expect, test } from "@playwright/test";
+import {
+	closeElectronApp,
+	copyFixtureToRecordings,
+	interceptExportSave,
+	readCapturedExportBuffer,
+} from "./helpers";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "../..");
@@ -49,27 +55,11 @@ test("exports a GIF from a loaded video", async () => {
 		// main process is ESM and Playwright runs the callback via eval(), which
 		// has no dynamic-import hook.  We retrieve and write the file below after
 		// the export finishes.
-		await app.evaluate(({ ipcMain }) => {
-			ipcMain.removeHandler("save-exported-video");
-			ipcMain.handle(
-				"save-exported-video",
-				(_event: Electron.IpcMainInvokeEvent, buffer: ArrayBuffer) => {
-					(globalThis as Record<string, unknown>)["__testExportData"] =
-						Buffer.from(buffer).toString("base64");
-					return { success: true, path: "pending" };
-				},
-			);
-		});
+		await interceptExportSave(app);
 
 		// Copy the test fixture into the app's recordings directory so it passes
 		// the path security check in set-current-video-path.
-		const userDataDir = await app.evaluate(({ app: electronApp }) => {
-			return electronApp.getPath("userData");
-		});
-		const recordingsDir = path.join(userDataDir, "recordings");
-		testVideoInRecordings = path.join(recordingsDir, "test-sample.webm");
-		fs.mkdirSync(recordingsDir, { recursive: true });
-		fs.copyFileSync(TEST_VIDEO, testVideoInRecordings);
+		testVideoInRecordings = await copyFixtureToRecordings(app, TEST_VIDEO, "test-sample.webm");
 
 		try {
 			await hudWindow.evaluate((videoPath: string) => {
@@ -107,10 +97,7 @@ test("exports a GIF from a loaded video", async () => {
 		});
 
 		// ── 7. Write the captured buffer from the main-process global to disk.
-		const base64 = await app.evaluate(
-			() => (globalThis as Record<string, unknown>)["__testExportData"] as string,
-		);
-		fs.writeFileSync(outputPath, Buffer.from(base64, "base64"));
+		fs.writeFileSync(outputPath, await readCapturedExportBuffer(app));
 
 		// ── 8. Verify the file on disk is a valid GIF.
 		expect(fs.existsSync(outputPath), `GIF not found at ${outputPath}`).toBe(true);
@@ -126,7 +113,7 @@ test("exports a GIF from a loaded video", async () => {
 		const stats = fs.statSync(outputPath);
 		expect(stats.size).toBeGreaterThan(1024); // at least 1 KB
 	} finally {
-		await app.close();
+		await closeElectronApp(app);
 		if (fs.existsSync(outputPath)) {
 			fs.unlinkSync(outputPath);
 		}

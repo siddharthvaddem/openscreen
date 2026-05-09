@@ -1734,6 +1734,7 @@ export function SettingsPanel({
 			<div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
 				<div className="flex items-center gap-2 mb-3">
 					<button
+						data-testid={getTestId("mp4-format-button")}
 						onClick={() => onExportFormatChange?.("mp4")}
 						className={cn(
 							"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
