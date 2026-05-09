@@ -93,7 +93,9 @@
 	"export": {
 		"videoButton": "Videoyu Dışa Aktar",
 		"gifButton": "GIF Olarak Dışa Aktar",
-		"chooseSaveLocation": "Kayıt Konumu Seç"
+		"chooseSaveLocation": "Kayıt Konumu Seç",
+		"autoSaveToDownloads": "İndirilenler'e otomatik kaydet",
+		"autoSaveToDownloadsDescription": "Dışa aktarmadan sonra kaydetme penceresini atla."
 	},
 	"links": {
 		"reportBug": "Hata Bildir",
@@ -101,7 +103,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Geçersiz dosya türü",
-		"jpgOnly": "Lütfen bir JPG veya JPEG görüntü dosyası yükleyin.",
+		"jpgOnly": "Lütfen bir JPG, JPEG veya PNG görüntü dosyası yükleyin.",
 		"uploadSuccess": "Özel görüntü başarıyla yüklendi!",
 		"failedToUpload": "Görüntü yüklenemedi",
 		"errorReading": "Dosya okunurken bir hata oluştu."

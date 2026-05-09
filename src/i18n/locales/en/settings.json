@@ -107,7 +107,9 @@
 	"export": {
 		"videoButton": "Export Video",
 		"gifButton": "Export GIF",
-		"chooseSaveLocation": "Choose Save Location"
+		"chooseSaveLocation": "Choose Save Location",
+		"autoSaveToDownloads": "Auto-save to Downloads",
+		"autoSaveToDownloadsDescription": "Skip the save dialog after export."
 	},
 	"links": {
 		"reportBug": "Report Bug",
@@ -115,7 +117,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Invalid file type",
-		"jpgOnly": "Please upload a JPG or JPEG image file.",
+		"jpgOnly": "Please upload a JPG, JPEG, or PNG image file.",
 		"uploadSuccess": "Custom image uploaded successfully!",
 		"failedToUpload": "Failed to upload image",
 		"errorReading": "There was an error reading the file."

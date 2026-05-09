@@ -82,6 +82,7 @@ interface Window {
 		saveExportedVideo: (
 			videoData: ArrayBuffer,
 			fileName: string,
+			options?: { autoSaveToDownloads?: boolean },
 		) => Promise<{ success: boolean; path?: string; message?: string; canceled?: boolean }>;
 		openVideoFilePicker: () => Promise<{ success: boolean; path?: string; canceled?: boolean }>;
 		setCurrentVideoPath: (path: string) => Promise<{ success: boolean }>;

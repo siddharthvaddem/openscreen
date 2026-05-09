@@ -45,6 +45,7 @@ import { getTestId } from "@/utils/getTestId";
 import ColorPicker from "../ui/color-picker";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { BlurSettingsPanel } from "./BlurSettingsPanel";
+import { BACKGROUND_IMAGE_ACCEPT, isSupportedBackgroundImageType } from "./backgroundImageUpload";
 import { CropControl } from "./CropControl";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
@@ -167,6 +168,8 @@ interface SettingsPanelProps {
 	cursorHighlightSupportsClicks?: boolean;
 	selected: string;
 	onWallpaperChange: (path: string) => void;
+	customImages?: string[];
+	onCustomImagesChange?: (images: string[]) => void;
 	selectedZoomDepth?: ZoomDepth | null;
 	onZoomDepthChange?: (depth: ZoomDepth) => void;
 	selectedZoomFocusMode?: ZoomFocusMode | null;
@@ -201,6 +204,8 @@ interface SettingsPanelProps {
 	// Export format settings
 	exportFormat?: ExportFormat;
 	onExportFormatChange?: (format: ExportFormat) => void;
+	autoSaveExportToDownloads?: boolean;
+	onAutoSaveExportToDownloadsChange?: (enabled: boolean) => void;
 	gifFrameRate?: GifFrameRate;
 	onGifFrameRateChange?: (rate: GifFrameRate) => void;
 	gifLoop?: boolean;
@@ -259,6 +264,8 @@ export function SettingsPanel({
 	cursorHighlightSupportsClicks = false,
 	selected,
 	onWallpaperChange,
+	customImages = [],
+	onCustomImagesChange,
 	selectedZoomDepth,
 	onZoomDepthChange,
 	selectedZoomFocusMode,
@@ -292,6 +299,8 @@ export function SettingsPanel({
 	onExportQualityChange,
 	exportFormat = "mp4",
 	onExportFormatChange,
+	autoSaveExportToDownloads = false,
+	onAutoSaveExportToDownloadsChange,
 	gifFrameRate = 15,
 	onGifFrameRateChange,
 	gifLoop = true,
@@ -333,7 +342,6 @@ export function SettingsPanel({
 	// `/wallpapers/wallpaperN.jpg` form in WALLPAPER_PATHS is what gets persisted
 	// on click — never the machine-specific file:// URL.
 	const wallpaperPreviewUrls = useMemo(() => WALLPAPER_PATHS.map(resolveImageWallpaperUrl), []);
-	const [customImages, setCustomImages] = useState<string[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const colorPalette = [
 		"#FF0000",
@@ -480,9 +488,7 @@ export function SettingsPanel({
 
 		const file = files[0];
 
-		// Validate file type - only allow JPG/JPEG
-		const validTypes = ["image/jpeg", "image/jpg"];
-		if (!validTypes.includes(file.type)) {
+		if (!isSupportedBackgroundImageType(file.type, file.name)) {
 			toast.error(t("imageUpload.invalidFileType"), {
 				description: t("imageUpload.jpgOnly"),
 			});
@@ -495,7 +501,7 @@ export function SettingsPanel({
 		reader.onload = (e) => {
 			const dataUrl = e.target?.result as string;
 			if (dataUrl) {
-				setCustomImages((prev) => [...prev, dataUrl]);
+				onCustomImagesChange?.([...customImages, dataUrl]);
 				onWallpaperChange(dataUrl);
 				toast.success(t("imageUpload.uploadSuccess"));
 			}
@@ -514,7 +520,7 @@ export function SettingsPanel({
 
 	const handleRemoveCustomImage = (imageUrl: string, event: React.MouseEvent) => {
 		event.stopPropagation();
-		setCustomImages((prev) => prev.filter((img) => img !== imageUrl));
+		onCustomImagesChange?.(customImages.filter((img) => img !== imageUrl));
 		// If the removed image was selected, clear selection
 		if (selected === imageUrl) {
 			onWallpaperChange(WALLPAPER_PATHS[0]);
@@ -1291,7 +1297,7 @@ export function SettingsPanel({
 											type="file"
 											ref={fileInputRef}
 											onChange={handleImageUpload}
-											accept=".jpg,.jpeg,image/jpeg"
+											accept={BACKGROUND_IMAGE_ACCEPT}
 											className="hidden"
 										/>
 										<Button
@@ -1646,6 +1652,22 @@ export function SettingsPanel({
 						</div>
 					</div>
 				)}
+
+				<div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] border border-white/5 p-3">
+					<div className="min-w-0">
+						<div className="text-xs font-medium text-slate-200">
+							{t("export.autoSaveToDownloads")}
+						</div>
+						<div className="text-[10px] text-slate-500 mt-0.5">
+							{t("export.autoSaveToDownloadsDescription")}
+						</div>
+					</div>
+					<Switch
+						checked={autoSaveExportToDownloads}
+						onCheckedChange={onAutoSaveExportToDownloadsChange}
+						className="data-[state=checked]:bg-[#34B27B]"
+					/>
+				</div>
 
 				{unsavedExport && (
 					<Button
