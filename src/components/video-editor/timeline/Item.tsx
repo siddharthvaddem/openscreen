@@ -101,7 +101,7 @@ export default function Item({
 						"w-full h-full overflow-hidden flex items-center justify-center gap-1.5 cursor-grab active:cursor-grabbing relative",
 						isSelected && glassStyles.selected,
 					)}
-					style={{ height: 40, color: "#fff", minWidth: 24 }}
+					style={{ height: 30, color: "#fff", minWidth: 24 }}
 					onClick={(event) => {
 						event.stopPropagation();
 						onSelect?.();
@@ -130,12 +130,12 @@ export default function Item({
 						title="Resize right"
 					/>
 					{/* Content */}
-					<div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
+					<div className="relative z-10 flex min-w-0 flex-col items-center justify-center text-white/90 opacity-85 group-hover:opacity-100 transition-opacity select-none overflow-hidden px-3">
 						<div className="flex items-center gap-1.5">
 							{isZoom ? (
 								<>
 									<ZoomIn className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold whitespace-nowrap">
 										{zoomCustomScale != null
 											? `${zoomCustomScale.toFixed(2)}×`
 											: ZOOM_LABELS[zoomDepth] || `${zoomDepth}×`}
@@ -150,21 +150,21 @@ export default function Item({
 							) : isTrim ? (
 								<>
 									<Scissors className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold whitespace-nowrap">
 										{t("labels.trim")}
 									</span>
 								</>
 							) : isSpeed ? (
 								<>
 									<Gauge className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold whitespace-nowrap">
 										{speedValue !== undefined ? `${speedValue}×` : t("labels.speed")}
 									</span>
 								</>
 							) : (
 								<>
 									<MessageSquare className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold truncate whitespace-nowrap">
 										{children}
 									</span>
 								</>

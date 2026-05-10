@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	hudOverlayClose: () => {
 		ipcRenderer.send("hud-overlay-close");
 	},
+	setHudOverlayIgnoreMouseEvents: (ignore: boolean) => {
+		ipcRenderer.send("hud-overlay-ignore-mouse-events", ignore);
+	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
 	},

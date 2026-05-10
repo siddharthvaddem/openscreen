@@ -44,13 +44,13 @@
 	position: fixed;
 	right: 0;
 	top: 0;
-	width: 12rem;
-	padding: 0.375rem;
-	border-radius: 0.75rem;
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	background: linear-gradient(160deg, rgba(28, 29, 42, 0.98), rgba(18, 19, 28, 0.98));
-	box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
-	backdrop-filter: blur(14px);
+	width: 11rem;
+	padding: 0.25rem;
+	border-radius: 0.625rem;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(8, 9, 12, 0.96);
+	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+	backdrop-filter: blur(18px) saturate(140%);
 	pointer-events: auto;
 	box-sizing: border-box;
 }
@@ -60,10 +60,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0.5rem 0.625rem;
-	border-radius: 0.5rem;
+	padding: 0.425rem 0.5rem;
+	border-radius: 0.45rem;
 	font-size: 11px;
-	color: rgba(255, 255, 255, 0.88);
+	color: rgba(255, 255, 255, 0.72);
 	background: transparent;
 	border: 0;
 	cursor: pointer;
@@ -72,12 +72,12 @@
 
 .languageMenuItem:hover,
 .languageMenuItem:focus-visible {
-	background: rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.075);
 	color: #ffffff;
 	outline: none;
 }
 
 .languageMenuItemActive {
-	background: rgba(255, 255, 255, 0.12);
+	background: rgba(52, 178, 123, 0.14);
 	color: #ffffff;
 }

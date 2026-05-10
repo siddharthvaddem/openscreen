@@ -294,7 +294,7 @@ export const DEFAULT_BLUR_FREEHAND_POINTS: Array<{ x: number; y: number }> = [
 ];
 
 export const DEFAULT_BLUR_DATA: BlurData = {
-	type: "blur",
+	type: "mosaic",
 	shape: "rectangle",
 	color: "white",
 	intensity: DEFAULT_BLUR_INTENSITY,

@@ -7,7 +7,6 @@ import {
 	ChevronDown,
 	Copy,
 	Image as ImageIcon,
-	Info,
 	Italic,
 	Trash2,
 	Type,
@@ -148,39 +147,39 @@ export function AnnotationSettingsPanel({
 	};
 
 	return (
-		<div className="flex-[2] min-w-0 bg-[#09090b] border border-white/5 rounded-2xl p-4 flex flex-col shadow-xl h-full overflow-y-auto custom-scrollbar">
-			<div className="mb-6">
-				<div className="flex items-center justify-between mb-4">
-					<span className="text-sm font-medium text-slate-200">{t("annotation.title")}</span>
-					<span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-1 rounded-full">
+		<div className="min-w-0 p-4 flex flex-col h-full overflow-y-auto custom-scrollbar">
+			<div className="mb-3">
+				<div className="mb-4">
+					<span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
 						{t("annotation.active")}
 					</span>
+					<div className="mt-1 text-xl font-semibold text-slate-100">{t("annotation.title")}</div>
 				</div>
 
 				{/* Type Selector */}
 				<Tabs
 					value={annotation.type}
 					onValueChange={(value) => onTypeChange(value as AnnotationType)}
-					className="mb-6"
+					className="mb-4"
 				>
-					<TabsList className="mb-4 bg-white/5 border border-white/5 p-1 w-full grid grid-cols-3 h-auto rounded-xl">
+					<TabsList className="mb-4 bg-white/[0.035] border border-white/[0.06] p-0.5 w-full grid grid-cols-3 h-9 rounded-xl">
 						<TabsTrigger
 							value="text"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 rounded-lg transition-all gap-1.5 text-[11px]"
 						>
 							<Type className="w-4 h-4" />
 							{t("annotation.typeText")}
 						</TabsTrigger>
 						<TabsTrigger
 							value="image"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 rounded-lg transition-all gap-1.5 text-[11px]"
 						>
 							<ImageIcon className="w-4 h-4" />
 							{t("annotation.typeImage")}
 						</TabsTrigger>
 						<TabsTrigger
 							value="figure"
-							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 py-2 rounded-lg transition-all gap-2"
+							className="data-[state=active]:bg-[#34B27B] data-[state=active]:text-white text-slate-400 rounded-lg transition-all gap-1.5 text-[11px]"
 						>
 							<svg
 								className="w-4 h-4"
@@ -622,18 +621,6 @@ export function AnnotationSettingsPanel({
 						<Trash2 className="w-4 h-4" />
 						{t("annotation.deleteAnnotation")}
 					</Button>
-				</div>
-
-				<div className="mt-6 p-3 bg-white/5 rounded-lg border border-white/5">
-					<div className="flex items-center gap-2 mb-2 text-slate-300">
-						<Info className="w-3.5 h-3.5" />
-						<span className="text-xs font-medium">{t("annotation.shortcutsAndTips")}</span>
-					</div>
-					<ul className="text-[10px] text-slate-400 space-y-1.5 list-disc pl-3 leading-relaxed">
-						<li>{t("annotation.tipMovePlayhead")}</li>
-						<li>{t("annotation.tipTabCycle")}</li>
-						<li>{t("annotation.tipShiftTabCycle")}</li>
-					</ul>
 				</div>
 			</div>
 		</div>

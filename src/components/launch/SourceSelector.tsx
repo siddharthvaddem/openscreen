@@ -77,24 +77,24 @@ export function SourceSelector() {
 		return (
 			<div
 				key={source.id}
-				className={`${styles.sourceCard} ${isSelected ? styles.selected : ""} p-2`}
+				className={`${styles.sourceCard} ${isSelected ? styles.selected : ""} p-1.5`}
 				onClick={() => handleSourceSelect(source)}
 			>
-				<div className="relative mb-1.5">
+				<div className="relative mb-1.5 overflow-hidden rounded-lg border border-white/[0.06] bg-black/30">
 					<img
 						src={source.thumbnail || ""}
 						alt={source.name}
-						className="w-full aspect-video object-cover rounded-xl [corner-shape:squircle] "
+						className="w-full aspect-video object-cover"
 					/>
 					{isSelected && (
-						<div className="absolute -top-1 -right-1">
+						<div className="absolute right-1.5 top-1.5">
 							<div className={styles.checkBadge}>
-								<MdCheck size={12} className="text-white" />
+								<MdCheck size={11} className="text-white" />
 							</div>
 						</div>
 					)}
 				</div>
-				<div className="flex items-center gap-1.5">
+				<div className="flex items-center gap-1.5 px-1 pb-0.5">
 					{source.appIcon && (
 						<img src={source.appIcon} alt="" className={`${styles.icon} flex-shrink-0`} />
 					)}
@@ -106,21 +106,21 @@ export function SourceSelector() {
 
 	return (
 		<div className={`min-h-screen flex flex-col ${styles.glassContainer}`}>
-			<div className="flex-1 flex flex-col w-full px-4 pt-4">
+			<div className="flex-1 flex flex-col w-full px-3.5 pt-3.5">
 				<Tabs
 					defaultValue={screenSources.length === 0 ? "windows" : "screens"}
 					className="flex-1 flex flex-col"
 				>
-					<TabsList className="grid grid-cols-2 mb-3 bg-white/5 rounded-[14px] squircle ">
+					<TabsList className="mb-3 grid h-8 grid-cols-2 rounded-xl border border-white/[0.06] bg-white/[0.04] p-0.5">
 						<TabsTrigger
 							value="screens"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-[12px] squircle text-xs py-1.5 transition-all"
+							className="rounded-lg py-1 text-[11px] text-zinc-400 transition-all data-[state=active]:bg-white/[0.12] data-[state=active]:text-white"
 						>
 							{t("sourceSelector.screens", { count: String(screenSources.length) })}
 						</TabsTrigger>
 						<TabsTrigger
 							value="windows"
-							className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-zinc-400 rounded-[12px] squircle text-xs py-1.5 transition-all"
+							className="rounded-lg py-1 text-[11px] text-zinc-400 transition-all data-[state=active]:bg-white/[0.12] data-[state=active]:text-white"
 						>
 							{t("sourceSelector.windows", { count: String(windowSources.length) })}
 						</TabsTrigger>
@@ -128,14 +128,14 @@ export function SourceSelector() {
 					<div className="flex-1 min-h-0">
 						<TabsContent value="screens" className="h-full mt-0">
 							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pt-1 pr-1.5 auto-rows-min ${styles.sourceGridScroll}`}
+								className={`grid h-[282px] auto-rows-min grid-cols-2 gap-2.5 overflow-y-auto pr-1.5 pt-1 ${styles.sourceGridScroll}`}
 							>
 								{screenSources.map(renderSourceCard)}
 							</div>
 						</TabsContent>
 						<TabsContent value="windows" className="h-full mt-0">
 							<div
-								className={`grid grid-cols-2 gap-3 h-[280px] overflow-y-auto pt-1 pr-1.5 auto-rows-min ${styles.sourceGridScroll}`}
+								className={`grid h-[282px] auto-rows-min grid-cols-2 gap-2.5 overflow-y-auto pr-1.5 pt-1 ${styles.sourceGridScroll}`}
 							>
 								{windowSources.map(renderSourceCard)}
 							</div>
@@ -143,18 +143,18 @@ export function SourceSelector() {
 					</div>
 				</Tabs>
 			</div>
-			<div className="p-3 justify-center flex gap-2">
+			<div className="flex justify-center gap-2 border-t border-white/[0.06] p-3">
 				<Button
 					variant="ghost"
 					onClick={() => window.close()}
-					className="px-5 py-1 text-xs text-zinc-400 hover:text-white active:scale-95 transition-transform duration-150 hover:bg-white/5 rounded-full"
+					className="h-8 rounded-lg px-5 text-[11px] text-zinc-400 transition-transform duration-150 hover:bg-white/5 hover:text-white active:scale-95"
 				>
 					{tc("actions.cancel")}
 				</Button>
 				<Button
 					onClick={handleShare}
 					disabled={!selectedSource}
-					className="px-5 py-1 text-xs bg-[#34B27B] text-white active:scale-95 transition-transform duration-150 hover:bg-[#34B27B]/80 disabled:opacity-30 disabled:bg-zinc-700 rounded-full"
+					className="h-8 rounded-lg bg-[#34B27B] px-5 text-[11px] font-semibold text-white transition-transform duration-150 hover:bg-[#34B27B]/85 active:scale-95 disabled:bg-zinc-700 disabled:opacity-30"
 				>
 					{tc("actions.share")}
 				</Button>

@@ -168,6 +168,7 @@ interface Window {
 		saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>;
 		hudOverlayHide: () => void;
 		hudOverlayClose: () => void;
+		setHudOverlayIgnoreMouseEvents: (ignore: boolean) => void;
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
 		hideCountdownOverlay: (runId: number) => Promise<void>;

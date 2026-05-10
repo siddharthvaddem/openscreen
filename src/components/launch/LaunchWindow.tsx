@@ -62,16 +62,16 @@ function getIcon(name: IconName, className?: string) {
 }
 
 const hudGroupClasses =
-	"flex items-center gap-0.5 bg-white/5 rounded-full transition-colors duration-150 hover:bg-white/[0.08]";
+	"flex items-center gap-0.5 rounded-xl border border-white/[0.07] bg-white/[0.045] transition-colors duration-150 hover:bg-white/[0.075]";
 
 const hudIconBtnClasses =
-	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer text-white hover:bg-white/10 hover:scale-[1.08] active:scale-95";
+	"flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer text-white hover:bg-white/10 active:scale-95";
 
 const hudAuxIconBtnClasses =
-	"flex items-center justify-center p-1.5 rounded-full transition-colors duration-150 text-white/55 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed";
+	"flex h-7 w-7 items-center justify-center rounded-lg transition-colors duration-150 text-white/55 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed";
 
 const windowBtnClasses =
-	"flex items-center justify-center p-2 rounded-full transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-white/[0.08]";
+	"flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-white/[0.08]";
 
 const hudSidebarClasses = "ml-0.5 pl-1.5 border-l border-white/10 flex items-center gap-0.5";
 
@@ -87,6 +87,7 @@ export function LaunchWindow() {
 		resolveSystemLocaleSuggestion,
 	} = useI18n();
 	const suggestedLanguageName = systemLocaleSuggestion ? getLocaleName(systemLocaleSuggestion) : "";
+	const activeLanguageLabel = getLocaleName(locale).split(/\s+/)[0] || locale.toUpperCase();
 
 	const {
 		recording,
@@ -248,6 +249,13 @@ export function LaunchWindow() {
 		return () => cancelAnimationFrame(id);
 	}, [isLanguageMenuOpen]);
 
+	useEffect(() => {
+		window.electronAPI?.setHudOverlayIgnoreMouseEvents?.(true);
+		return () => {
+			window.electronAPI?.setHudOverlayIgnoreMouseEvents?.(false);
+		};
+	}, []);
+
 	const [selectedSource, setSelectedSource] = useState("Screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 
@@ -320,6 +328,12 @@ export function LaunchWindow() {
 		// recording toolbar widened (issue #305).
 		<div
 			className={`h-full w-full min-w-0 max-w-full overflow-x-hidden overflow-y-hidden bg-transparent ${styles.electronDrag}`}
+			onPointerMove={(event) => {
+				const target = event.target as HTMLElement | null;
+				const shouldCapture = Boolean(target?.closest("[data-hud-interactive='true']"));
+				window.electronAPI?.setHudOverlayIgnoreMouseEvents?.(!shouldCapture);
+			}}
+			onPointerLeave={() => window.electronAPI?.setHudOverlayIgnoreMouseEvents?.(true)}
 		>
 			{systemLocaleSuggestion && (
 				<div
@@ -360,12 +374,13 @@ export function LaunchWindow() {
 			{/* Device selectors — fixed above HUD bar, viewport-relative, never clipped */}
 			{(showMicControls || showWebcamControls) && (
 				<div
-					className={`fixed bottom-[60px] left-1/2 -translate-x-1/2 flex items-center gap-2 animate-mic-panel-in ${styles.electronNoDrag}`}
+					data-hud-interactive="true"
+					className={`fixed bottom-[68px] left-1/2 -translate-x-1/2 flex items-center gap-2 animate-mic-panel-in ${styles.electronNoDrag}`}
 				>
 					{/* Mic selector */}
 					{showMicControls && (
 						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!micExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
+							className={`flex h-9 items-center gap-2 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0c10]/90 px-3 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.4)] backdrop-blur-2xl transition-all duration-300 ${!micExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
 							onMouseEnter={() => setIsMicHovered(true)}
 							onMouseLeave={() => setIsMicHovered(false)}
 							onFocus={() => setIsMicFocused(true)}
@@ -409,7 +424,7 @@ export function LaunchWindow() {
 					{/* Webcam selector */}
 					{showWebcamControls && (
 						<div
-							className={`flex items-center gap-2 px-3 py-1.5 h-[36px] bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[24px] border border-white/10 rounded-xl shadow-2xl transition-all duration-300 overflow-hidden ${!webcamExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
+							className={`flex h-9 items-center gap-2 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0c10]/90 px-3 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.4)] backdrop-blur-2xl transition-all duration-300 ${!webcamExpanded ? "opacity-60 grayscale-[0.5]" : "opacity-100"}`}
 							onMouseEnter={() => setIsWebcamHovered(true)}
 							onMouseLeave={() => setIsWebcamHovered(false)}
 							onFocus={() => setIsWebcamFocused(true)}
@@ -485,7 +500,8 @@ export function LaunchWindow() {
 
 			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
 			<div
-				className={`fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full shadow-hud-bar bg-gradient-to-br from-[rgba(28,28,36,0.97)] to-[rgba(18,18,26,0.96)] backdrop-blur-[16px] backdrop-saturate-[140%] border border-[rgba(80,80,120,0.25)]`}
+				data-hud-interactive="true"
+				className={`fixed bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-2xl border border-white/[0.10] bg-[#07080a]/90 px-2 py-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl backdrop-saturate-[140%]`}
 			>
 				{/* Drag handle */}
 				<div className={`flex items-center px-1 ${styles.electronDrag}`}>
@@ -494,13 +510,15 @@ export function LaunchWindow() {
 
 				{/* Source selector */}
 				<button
-					className={`${hudGroupClasses} p-2 ${styles.electronNoDrag}`}
+					className={`${hudGroupClasses} h-8 px-2.5 ${styles.electronNoDrag}`}
 					onClick={openSourceSelector}
 					disabled={recording}
 					title={selectedSource}
 				>
 					{getIcon("monitor", "text-white/80")}
-					<span className="text-white/70 text-[11px] max-w-[72px] truncate">{selectedSource}</span>
+					<span className="max-w-[86px] truncate text-[11px] font-medium text-white/75">
+						{selectedSource}
+					</span>
 				</button>
 
 				{/* Audio controls group */}
@@ -548,7 +566,7 @@ export function LaunchWindow() {
 							? paused
 								? "bg-amber-500/10 hover:bg-amber-500/15"
 								: "bg-red-500/12 hover:bg-red-500/16"
-							: "bg-white/5 hover:bg-white/[0.08]"
+							: "bg-white/[0.06] hover:bg-white/[0.10]"
 					}`}
 					onClick={toggleRecording}
 					disabled={!hasSelectedSource && !recording}
@@ -624,11 +642,12 @@ export function LaunchWindow() {
 							aria-expanded={isLanguageMenuOpen}
 							aria-haspopup="menu"
 							onClick={() => setIsLanguageMenuOpen((open) => !open)}
-							className={`h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
+							className={`flex h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
 						>
-							<div className="flex w-full items-center justify-center">
-								<Languages size={13} className="text-white/75" />
-							</div>
+							<Languages size={13} className="text-white/70" />
+							<span className="max-w-[54px] truncate text-[10px] font-semibold text-white/75">
+								{activeLanguageLabel}
+							</span>
 						</button>
 					</div>
 

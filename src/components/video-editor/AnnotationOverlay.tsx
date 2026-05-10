@@ -82,7 +82,7 @@ export function AnnotationOverlay({
 	);
 	const [livePointerPoint, setLivePointerPoint] = useState<{ x: number; y: number } | null>(null);
 	const mosaicCanvasRef = useRef<HTMLCanvasElement | null>(null);
-	const blurType = annotation.type === "blur" ? (annotation.blurData?.type ?? "blur") : "blur";
+	const blurType = "mosaic";
 	const blurOverlayColor =
 		annotation.type === "blur" ? getBlurOverlayColor(annotation.blurData) : "";
 	const mosaicGridOverlayColor =
@@ -106,7 +106,7 @@ export function AnnotationOverlay({
 	const { x, y, width, height } = liveRect;
 
 	useEffect(() => {
-		if (annotation.type !== "blur" || blurType !== "mosaic") {
+		if (annotation.type !== "blur") {
 			return;
 		}
 		void previewFrameVersion;
@@ -173,7 +173,6 @@ export function AnnotationOverlay({
 		);
 	}, [
 		annotation,
-		blurType,
 		containerHeight,
 		containerWidth,
 		height,

@@ -80,6 +80,13 @@ import {
 	type MotionBlurState,
 } from "./videoPlayback/zoomTransform";
 
+type BlurPreviewCanvasSource = {
+	clientHeight?: number;
+	clientWidth?: number;
+	height: number;
+	width: number;
+};
+
 interface VideoPlaybackProps {
 	videoPath: string;
 	webcamVideoPath?: string;
@@ -256,6 +263,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const videoReadyRafRef = useRef<number | null>(null);
 		const smoothedAutoFocusRef = useRef<ZoomFocus | null>(null);
 		const prevTargetProgressRef = useRef(0);
+		const blurPreviewSnapshotRef = useRef<{
+			bucket: number;
+			canvas: BlurPreviewCanvasSource | null;
+			height: number;
+			width: number;
+		}>({ bucket: -1, canvas: null, height: 0, width: 0 });
 
 		const updateOverlayForRegion = useCallback(
 			(region: ZoomRegion | null, focusOverride?: ZoomFocus) => {
@@ -1448,15 +1461,32 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										region: blurRegion,
 									})),
 								].sort((a, b) => a.region.zIndex - b.region.zIndex);
+								const previewSnapshotBucket = Math.floor(currentTime * 10);
 								const previewSnapshotCanvas =
 									filteredBlurRegions.length > 0
 										? (() => {
+												const cached = blurPreviewSnapshotRef.current;
+												if (
+													cached.bucket === previewSnapshotBucket &&
+													cached.width === overlaySize.width &&
+													cached.height === overlaySize.height
+												) {
+													return cached.canvas;
+												}
+
 												const app = appRef.current;
-												if (!app?.renderer?.extract) return null;
+												if (!app?.renderer?.extract) return cached.canvas;
 												try {
-													return app.renderer.extract.canvas(app.stage);
+													const canvas = app.renderer.extract.canvas(app.stage);
+													blurPreviewSnapshotRef.current = {
+														bucket: previewSnapshotBucket,
+														canvas,
+														height: overlaySize.height,
+														width: overlaySize.width,
+													};
+													return canvas;
 												} catch {
-													return null;
+													return cached.canvas;
 												}
 											})()
 										: null;
@@ -1528,7 +1558,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 												: item.region.id === selectedAnnotationId
 										}
 										previewSourceCanvas={previewSnapshotCanvas}
-										previewFrameVersion={Math.round(currentTime * 1000)}
+										previewFrameVersion={previewSnapshotBucket}
 									/>
 								));
 							})()}

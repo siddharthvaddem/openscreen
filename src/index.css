@@ -66,11 +66,154 @@
 		@apply bg-background text-foreground;
 		-webkit-user-select: none;
 		user-select: none;
+		overflow: hidden;
+		text-rendering: geometricPrecision;
 	}
 }
 
 /* Smooth timeline cursor animations */
 @layer utilities {
+	.editor-workspace {
+		display: flex;
+		flex-direction: column;
+		padding: 14px;
+		background:
+			radial-gradient(circle at 18% 0%, rgba(52, 178, 123, 0.08), transparent 30%),
+			linear-gradient(180deg, #08090b 0%, #050606 100%);
+	}
+
+	.editor-main-deck {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) clamp(286px, 20vw, 352px);
+		gap: 14px;
+		min-height: 0;
+	}
+
+	.editor-preview-zone,
+	.editor-settings-rail {
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.editor-preview-panel,
+	.editor-timeline-panel,
+	.editor-inspector-shell {
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+			#090a0c;
+		border: 1px solid rgba(255, 255, 255, 0.075);
+		border-radius: 18px;
+		box-shadow:
+			0 24px 70px rgba(0, 0, 0, 0.42),
+			inset 0 1px 0 rgba(255, 255, 255, 0.045);
+	}
+
+	.editor-timeline-panel {
+		border-radius: 16px;
+		background:
+			linear-gradient(180deg, rgba(18, 20, 24, 0.96), rgba(8, 9, 11, 0.98)),
+			#090a0c;
+	}
+
+	.editor-resize-handle {
+		height: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		transition:
+			background-color 160ms ease,
+			opacity 160ms ease;
+		opacity: 0.8;
+	}
+
+	.editor-resize-handle:hover {
+		background: rgba(255, 255, 255, 0.035);
+		opacity: 1;
+	}
+
+	.editor-panel-section {
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		box-shadow: none;
+	}
+
+	.editor-control-surface {
+		border: 1px solid rgba(255, 255, 255, 0.055);
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.032);
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+	}
+
+	.editor-inspector-shell {
+		color: #d9e2ee;
+	}
+
+	.editor-inspector-shell button,
+	.editor-inspector-shell [role="button"] {
+		letter-spacing: 0;
+	}
+
+	.editor-inspector-shell button:focus-visible,
+	.editor-inspector-shell [role="button"]:focus-visible {
+		outline: 1px solid rgba(52, 178, 123, 0.68);
+		outline-offset: 2px;
+	}
+
+	.editor-inspector-shell [data-radix-collection-item],
+	.editor-inspector-shell input,
+	.editor-inspector-shell textarea {
+		letter-spacing: 0;
+	}
+
+	.editor-inspector-shell [role="slider"] {
+		box-shadow: 0 0 0 4px rgba(52, 178, 123, 0.12);
+	}
+
+	.editor-inspector-shell .editor-panel-section > h3 {
+		display: none;
+	}
+
+	.editor-inspector-shell .editor-panel-section > div {
+		overflow: visible;
+	}
+
+	@media (max-width: 1240px) {
+		.editor-workspace {
+			gap: 10px;
+			padding: 10px;
+		}
+
+		.editor-main-deck {
+			grid-template-columns: minmax(0, 1fr) 286px;
+			gap: 10px;
+		}
+	}
+
+	@media (max-width: 1020px) {
+		.editor-main-deck {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-rows: minmax(0, 1fr) 180px;
+		}
+
+		.editor-settings-rail {
+			min-height: 180px;
+		}
+	}
+
+	@media (min-width: 1900px) {
+		.editor-workspace {
+			padding: 18px;
+			gap: 18px;
+		}
+
+		.editor-main-deck {
+			grid-template-columns: minmax(0, 1fr) 372px;
+			gap: 18px;
+		}
+	}
+
 	.timeline-cursor-smooth {
 		will-change: transform;
 		transition:
@@ -78,14 +221,31 @@
 			right 33ms linear;
 	}
 
-	/* Hidden scrollbar - still scrollable but invisible */
 	.custom-scrollbar {
-		scrollbar-width: none; /* Firefox */
-		-ms-overflow-style: none; /* IE/Edge */
+		scrollbar-width: thin;
+		scrollbar-color: rgba(148, 163, 184, 0.32) transparent;
 	}
 
 	.custom-scrollbar::-webkit-scrollbar {
-		display: none; /* Chrome, Safari, Opera */
+		width: 10px;
+		height: 10px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background: rgba(148, 163, 184, 0.22);
+		border: 3px solid transparent;
+		border-radius: 999px;
+		background-clip: content-box;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: rgba(52, 178, 123, 0.55);
+		border: 3px solid transparent;
+		background-clip: content-box;
 	}
 
 	.squircle {

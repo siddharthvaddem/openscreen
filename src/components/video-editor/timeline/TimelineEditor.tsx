@@ -26,7 +26,6 @@ import { matchesShortcut } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import { ASPECT_RATIOS, type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
 import { formatShortcut } from "@/utils/platformUtils";
-import { TutorialHelp } from "../TutorialHelp";
 import type {
 	AnnotationRegion,
 	CursorTelemetryPoint,
@@ -378,7 +377,7 @@ function PlaybackCursor({
 			}}
 		>
 			<div
-				className="absolute top-0 bottom-0 w-[2px] bg-[#34B27B] shadow-[0_0_10px_rgba(52,178,123,0.5)] cursor-ew-resize pointer-events-auto hover:shadow-[0_0_15px_rgba(52,178,123,0.7)] transition-shadow"
+				className="absolute top-0 bottom-0 w-[2px] bg-[#6C55FF] shadow-[0_0_18px_rgba(108,85,255,0.68)] cursor-ew-resize pointer-events-auto hover:shadow-[0_0_24px_rgba(108,85,255,0.85)] transition-shadow"
 				style={{
 					[sideProperty]: `${offset}px`,
 				}}
@@ -389,10 +388,10 @@ function PlaybackCursor({
 				}}
 			>
 				<div
-					className="absolute -top-1 left-1/2 -translate-x-1/2 hover:scale-125 transition-transform"
-					style={{ width: "16px", height: "16px" }}
+					className="absolute -top-2 left-1/2 -translate-x-1/2 hover:scale-110 transition-transform"
+					style={{ width: "20px", height: "20px" }}
 				>
-					<div className="w-3 h-3 mx-auto mt-[2px] bg-[#34B27B] rotate-45 rounded-sm shadow-lg border border-white/20" />
+					<div className="w-4 h-4 mx-auto mt-[2px] bg-[#6C55FF] rotate-45 rounded-[5px] shadow-lg shadow-[#6C55FF]/30 border border-white/30" />
 				</div>
 				{isDragging && (
 					<div className="absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-white/90 font-medium tabular-nums whitespace-nowrap border border-white/10 shadow-lg pointer-events-none">
@@ -475,7 +474,7 @@ function TimelineAxis({
 
 	return (
 		<div
-			className="h-8 bg-[#09090b] border-b border-white/5 relative overflow-hidden select-none"
+			className="h-9 bg-[#0c0d10] border-b border-white/[0.07] relative overflow-hidden select-none"
 			style={{
 				[sideProperty === "right" ? "marginRight" : "marginLeft"]: `${sidebarWidth}px`,
 			}}
@@ -486,7 +485,7 @@ function TimelineAxis({
 				return (
 					<div
 						key={`minor-${time}`}
-						className="absolute bottom-0 h-1 w-[1px] bg-white/5"
+						className="absolute bottom-0 h-1.5 w-[1px] bg-white/[0.07]"
 						style={{ [sideProperty]: `${offset}px` }}
 					/>
 				);
@@ -508,7 +507,7 @@ function TimelineAxis({
 				return (
 					<div key={marker.time} style={markerStyle}>
 						<div className="flex flex-col items-center pb-1">
-							<div className="h-2 w-[1px] bg-white/20 mb-1" />
+							<div className="h-2.5 w-[1px] bg-white/20 mb-1" />
 							<span
 								className={cn(
 									"text-[10px] font-medium tabular-nums tracking-tight",
@@ -659,11 +658,11 @@ function Timeline({
 		<div
 			ref={setRefs}
 			style={style}
-			className="select-none bg-[#09090b] min-h-[140px] relative cursor-pointer group"
+			className="select-none bg-[#0b0c0f] min-h-[190px] relative cursor-pointer group"
 			onClick={handleTimelineClick}
 			onWheel={handleTimelineWheel}
 		>
-			<div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px)] bg-[length:20px_100%] pointer-events-none" />
+			<div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px)] bg-[length:24px_100%] pointer-events-none" />
 			<TimelineAxis videoDurationMs={videoDurationMs} currentTimeMs={currentTimeMs} />
 			<PlaybackCursor
 				currentTimeMs={currentTimeMs}
@@ -1448,14 +1447,14 @@ export default function TimelineEditor({
 	}
 
 	return (
-		<div className="flex-1 flex flex-col bg-[#09090b] overflow-hidden">
-			<div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-[#09090b]">
-				<div className="flex items-center gap-1">
+		<div className="flex-1 min-h-0 flex flex-col bg-[#09090b] overflow-hidden">
+			<div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-[#08090b]/95">
+				<div className="flex items-center gap-0.5 rounded-xl border border-white/[0.06] bg-white/[0.025] p-0.5">
 					<Button
 						onClick={handleAddZoom}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
 						title={t("buttons.addZoom")}
 					>
 						<ZoomIn className="w-4 h-4" />
@@ -1464,7 +1463,7 @@ export default function TimelineEditor({
 						onClick={handleSuggestZooms}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#34B27B] hover:bg-[#34B27B]/10 transition-all"
 						title={t("buttons.suggestZooms")}
 					>
 						<WandSparkles className="w-4 h-4" />
@@ -1473,7 +1472,7 @@ export default function TimelineEditor({
 						onClick={handleAddTrim}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
 						title={t("buttons.addTrim")}
 					>
 						<Scissors className="w-4 h-4" />
@@ -1482,7 +1481,7 @@ export default function TimelineEditor({
 						onClick={handleAddAnnotation}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
 						title={t("buttons.addAnnotation")}
 					>
 						<MessageSquare className="w-4 h-4" />
@@ -1491,7 +1490,7 @@ export default function TimelineEditor({
 						onClick={handleAddBlur}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#7dd3fc] hover:bg-[#7dd3fc]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#7dd3fc] hover:bg-[#7dd3fc]/10 transition-all"
 						title={t("buttons.addBlur")}
 					>
 						<svg
@@ -1510,19 +1509,19 @@ export default function TimelineEditor({
 						onClick={handleAddSpeed}
 						variant="ghost"
 						size="icon"
-						className="h-7 w-7 text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
+						className="h-7 w-7 rounded-lg text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
 						title={t("buttons.addSpeed")}
 					>
 						<Gauge className="w-4 h-4" />
 					</Button>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1.5 min-w-0">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-7 px-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all gap-1"
+								className="h-7 px-2 rounded-lg text-[11px] text-slate-400 hover:text-slate-200 hover:bg-white/[0.07] transition-all gap-1"
 							>
 								<span className="font-medium">{getAspectRatioLabel(aspectRatio)}</span>
 								<ChevronDown className="w-3 h-3" />
@@ -1541,11 +1540,9 @@ export default function TimelineEditor({
 							))}
 						</DropdownMenuContent>
 					</DropdownMenu>
-					<div className="w-[1px] h-4 bg-white/10" />
-					<TutorialHelp />
 				</div>
 				<div className="flex-1" />
-				<div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
+				<div className="hidden md:flex items-center gap-3 text-[10px] text-slate-500 font-medium">
 					<span className="flex items-center gap-1.5">
 						<kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-sans">
 							{scrollLabels.pan}
@@ -1562,7 +1559,7 @@ export default function TimelineEditor({
 			</div>
 			<div
 				ref={timelineContainerRef}
-				className="flex-1 overflow-hidden bg-[#09090b] relative"
+				className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-[#09090b] relative"
 				onClick={() => setSelectedKeyframeId(null)}
 			>
 				<TimelineWrapper

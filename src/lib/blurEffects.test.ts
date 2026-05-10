@@ -69,12 +69,12 @@ describe("blur color helpers", () => {
 	it("returns a dark overlay when black blur color is selected", () => {
 		expect(
 			getBlurOverlayColor({
-				type: "blur",
+				type: "mosaic",
 				shape: "rectangle",
 				color: "black",
 				intensity: 12,
 				blockSize: 12,
 			}),
-		).toBe("rgba(0, 0, 0, 0.56)");
+		).toBe("rgba(0, 0, 0, 0.72)");
 	});
 });

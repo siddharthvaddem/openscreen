@@ -1,39 +1,39 @@
 .glassGreen {
 	position: relative;
-	border-radius: 8px;
+	border-radius: 10px;
 	-corner-smoothing: antialiased;
-	background: rgba(52, 178, 123, 0.15);
-	border: 1px solid rgba(52, 178, 123, 0.3);
-	box-shadow: 0 2px 12px 0 rgba(52, 178, 123, 0.1) inset;
-	margin: 2px 0;
-	backdrop-filter: blur(4px);
-	-webkit-backdrop-filter: blur(4px);
+	background: linear-gradient(180deg, rgba(52, 178, 123, 0.28), rgba(31, 115, 82, 0.2));
+	border: 1px solid rgba(77, 221, 157, 0.36);
+	box-shadow:
+		0 1px 0 rgba(255, 255, 255, 0.1) inset,
+		0 8px 22px rgba(0, 0, 0, 0.22);
+	margin: 3px 0;
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glassGreen:hover {
-	background: rgba(52, 178, 123, 0.25);
-	border-color: rgba(52, 178, 123, 0.5);
-	box-shadow: 0 4px 20px 0 rgba(52, 178, 123, 0.2) inset;
+	background: linear-gradient(180deg, rgba(52, 178, 123, 0.36), rgba(31, 115, 82, 0.25));
+	border-color: rgba(77, 221, 157, 0.62);
 }
 
 .glassGreen.selected {
-	background: rgba(52, 178, 123, 0.35);
+	background: linear-gradient(180deg, rgba(52, 178, 123, 0.48), rgba(31, 115, 82, 0.32));
 	border-color: #34b27b;
 	box-shadow:
-		0 0 0 1px #34b27b,
-		0 4px 20px 0 rgba(52, 178, 123, 0.3) inset;
+		0 0 0 1px rgba(52, 178, 123, 0.95),
+		0 0 0 4px rgba(52, 178, 123, 0.14),
+		0 12px 26px rgba(0, 0, 0, 0.28);
 	z-index: 10;
 }
 
 .glassRed {
 	position: relative;
-	border-radius: 8px;
+	border-radius: 10px;
 	-corner-smoothing: antialiased;
 	background: rgba(239, 68, 68, 0.15);
 	border: 1px solid rgba(239, 68, 68, 0.3);
 	box-shadow: 0 2px 12px 0 rgba(239, 68, 68, 0.1) inset;
-	margin: 2px 0;
+	margin: 3px 0;
 	backdrop-filter: blur(4px);
 	-webkit-backdrop-filter: blur(4px);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -56,12 +56,12 @@
 
 .glassYellow {
 	position: relative;
-	border-radius: 8px;
+	border-radius: 10px;
 	-corner-smoothing: antialiased;
 	background: rgba(180, 160, 70, 0.15);
 	border: 1px solid rgba(180, 160, 70, 0.3);
 	box-shadow: 0 2px 12px 0 rgba(180, 160, 70, 0.1) inset;
-	margin: 2px 0;
+	margin: 3px 0;
 	backdrop-filter: blur(4px);
 	-webkit-backdrop-filter: blur(4px);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -84,12 +84,12 @@
 
 .glassAmber {
 	position: relative;
-	border-radius: 8px;
+	border-radius: 10px;
 	-corner-smoothing: antialiased;
 	background: rgba(245, 158, 11, 0.15);
 	border: 1px solid rgba(245, 158, 11, 0.3);
 	box-shadow: 0 2px 12px 0 rgba(245, 158, 11, 0.1) inset;
-	margin: 2px 0;
+	margin: 3px 0;
 	backdrop-filter: blur(4px);
 	-webkit-backdrop-filter: blur(4px);
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -137,13 +137,13 @@
 .zoomEndCap.left {
 	left: 0;
 	cursor: ew-resize;
-	border-top-left-radius: 7px;
-	border-bottom-left-radius: 7px;
+	border-top-left-radius: 9px;
+	border-bottom-left-radius: 9px;
 }
 
 .zoomEndCap.right {
 	right: 0;
 	cursor: ew-resize;
-	border-top-right-radius: 7px;
-	border-bottom-right-radius: 7px;
+	border-top-right-radius: 9px;
+	border-bottom-right-radius: 9px;
 }

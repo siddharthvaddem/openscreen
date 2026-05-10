@@ -16,7 +16,8 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export function normalizeBlurType(value: unknown): BlurType {
-	return value === "mosaic" ? "mosaic" : "blur";
+	void value;
+	return "mosaic";
 }
 
 export function normalizeBlurColor(value: unknown): BlurColor {
@@ -42,13 +43,8 @@ export function getNormalizedMosaicBlockSize(blurData?: BlurData | null, scaleFa
 
 export function getBlurOverlayColor(blurData?: BlurData | null): string {
 	const blurColor = normalizeBlurColor(blurData?.color);
-	const blurType = normalizeBlurType(blurData?.type);
 
-	if (blurColor === "black") {
-		return blurType === "mosaic" ? "rgba(0, 0, 0, 0.72)" : "rgba(0, 0, 0, 0.56)";
-	}
-
-	return blurType === "mosaic" ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.02)";
+	return blurColor === "black" ? "rgba(0, 0, 0, 0.72)" : "rgba(255, 255, 255, 0.06)";
 }
 
 export function getMosaicGridOverlayColor(blurData?: BlurData | null): string {
