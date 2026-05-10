@@ -36,6 +36,7 @@ import {
 	loadUserPreferences,
 	parentDirectoryOf,
 	saveUserPreferences,
+	type UserPreferences,
 } from "@/lib/userPreferences";
 import { BackgroundLoadError } from "@/lib/wallpaper";
 import {
@@ -84,6 +85,25 @@ import {
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 
+function createDefaultEditorStateFromPreferences(prefs: UserPreferences) {
+	return {
+		...INITIAL_EDITOR_STATE,
+		wallpaper: prefs.wallpaper,
+		shadowIntensity: prefs.shadowIntensity,
+		showBlur: prefs.showBlur,
+		motionBlurAmount: prefs.motionBlurAmount,
+		borderRadius: prefs.borderRadius,
+		padding: prefs.padding,
+		cropRegion: prefs.cropRegion,
+		aspectRatio: prefs.aspectRatio,
+		webcamLayoutPreset: prefs.webcamLayoutPreset,
+		webcamMaskShape: prefs.webcamMaskShape,
+		webcamSizePreset: prefs.webcamSizePreset,
+		webcamPosition: prefs.webcamPosition,
+		cursorHighlight: prefs.cursorHighlight,
+	};
+}
+
 export default function VideoEditor() {
 	const {
 		state: editorState,
@@ -120,6 +140,7 @@ export default function VideoEditor() {
 	const [webcamVideoPath, setWebcamVideoPath] = useState<string | null>(null);
 	const [webcamVideoSourcePath, setWebcamVideoSourcePath] = useState<string | null>(null);
 	const [currentProjectPath, setCurrentProjectPath] = useState<string | null>(null);
+	const [customImages, setCustomImages] = useState<string[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -143,6 +164,7 @@ export default function VideoEditor() {
 	const [showNewRecordingDialog, setShowNewRecordingDialog] = useState(false);
 	const [exportQuality, setExportQuality] = useState<ExportQuality>("good");
 	const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+	const [autoSaveExportToDownloads, setAutoSaveExportToDownloads] = useState(false);
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
 	const [gifLoop, setGifLoop] = useState(true);
 	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>("medium");
@@ -249,6 +271,7 @@ export default function VideoEditor() {
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamSizePreset: normalizedEditor.webcamSizePreset,
 				webcamPosition: normalizedEditor.webcamPosition,
+				cursorHighlight: normalizedEditor.cursorHighlight,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -316,12 +339,14 @@ export default function VideoEditor() {
 			aspectRatio,
 			webcamLayoutPreset,
 			webcamMaskShape,
+			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
 			gifLoop,
 			gifSizePreset,
+			cursorHighlight,
 		});
 	}, [
 		currentProjectMedia,
@@ -339,19 +364,35 @@ export default function VideoEditor() {
 		aspectRatio,
 		webcamLayoutPreset,
 		webcamMaskShape,
+		webcamSizePreset,
 		webcamPosition,
 		exportQuality,
 		exportFormat,
 		gifFrameRate,
 		gifLoop,
 		gifSizePreset,
+		cursorHighlight,
 	]);
 
 	const hasUnsavedChanges = hasProjectUnsavedChanges(currentProjectSnapshot, lastSavedSnapshot);
 
 	useEffect(() => {
 		async function loadInitialData() {
+			let shouldPersistPrefs = false;
+			const prefs = loadUserPreferences();
+			const defaultEditorState = createDefaultEditorStateFromPreferences(prefs);
+			const defaultProjectEditorState = {
+				...defaultEditorState,
+				exportQuality: prefs.exportQuality,
+				exportFormat: prefs.exportFormat,
+				gifFrameRate: prefs.gifFrameRate,
+				gifLoop: prefs.gifLoop,
+				gifSizePreset: prefs.gifSizePreset,
+			};
+
 			try {
+				setCustomImages(prefs.customImages);
+
 				const currentProjectResult = await window.electronAPI.loadCurrentProjectFile();
 				if (currentProjectResult.success && currentProjectResult.project) {
 					const restored = await applyLoadedProject(
@@ -359,6 +400,8 @@ export default function VideoEditor() {
 						currentProjectResult.path ?? null,
 					);
 					if (restored) {
+						setAutoSaveExportToDownloads(prefs.autoSaveExportToDownloads);
+						shouldPersistPrefs = true;
 						return;
 					}
 				}
@@ -375,6 +418,13 @@ export default function VideoEditor() {
 					setWebcamVideoSourcePath(webcamSourcePath);
 					setWebcamVideoPath(webcamSourcePath ? toFileUrl(webcamSourcePath) : null);
 					setCurrentProjectPath(null);
+					pushState(defaultEditorState);
+					setExportQuality(prefs.exportQuality);
+					setExportFormat(prefs.exportFormat);
+					setAutoSaveExportToDownloads(prefs.autoSaveExportToDownloads);
+					setGifFrameRate(prefs.gifFrameRate);
+					setGifLoop(prefs.gifLoop);
+					setGifSizePreset(prefs.gifSizePreset);
 					setLastSavedSnapshot(
 						createProjectSnapshot(
 							webcamSourcePath
@@ -383,9 +433,10 @@ export default function VideoEditor() {
 										webcamVideoPath: webcamSourcePath,
 									}
 								: { screenVideoPath: sourcePath },
-							INITIAL_EDITOR_STATE,
+							defaultProjectEditorState,
 						),
 					);
+					shouldPersistPrefs = true;
 					return;
 				}
 
@@ -397,43 +448,85 @@ export default function VideoEditor() {
 					setWebcamVideoSourcePath(null);
 					setWebcamVideoPath(null);
 					setCurrentProjectPath(null);
+					pushState(defaultEditorState);
+					setExportQuality(prefs.exportQuality);
+					setExportFormat(prefs.exportFormat);
+					setAutoSaveExportToDownloads(prefs.autoSaveExportToDownloads);
+					setGifFrameRate(prefs.gifFrameRate);
+					setGifLoop(prefs.gifLoop);
+					setGifSizePreset(prefs.gifSizePreset);
 					setLastSavedSnapshot(
-						createProjectSnapshot({ screenVideoPath: sourcePath }, INITIAL_EDITOR_STATE),
+						createProjectSnapshot({ screenVideoPath: sourcePath }, defaultProjectEditorState),
 					);
+					shouldPersistPrefs = true;
 				} else {
 					setError("No video to load. Please record or select a video.");
 				}
 			} catch (err) {
 				setError("Error loading video: " + String(err));
 			} finally {
+				if (shouldPersistPrefs) {
+					setPrefsHydrated(true);
+				}
 				setLoading(false);
 			}
 		}
 
 		loadInitialData();
-	}, [applyLoadedProject]);
+	}, [applyLoadedProject, pushState]);
 
 	// Track whether user preferences have been loaded to avoid
 	// overwriting saved prefs with defaults on the first render
 	const [prefsHydrated, setPrefsHydrated] = useState(false);
 
-	// Load persisted user preferences on mount (intentionally runs once)
-	useEffect(() => {
-		const prefs = loadUserPreferences();
-		updateState({
-			padding: prefs.padding,
-			aspectRatio: prefs.aspectRatio,
-		});
-		setExportQuality(prefs.exportQuality);
-		setExportFormat(prefs.exportFormat);
-		setPrefsHydrated(true);
-	}, [updateState]);
-
 	// Auto-save user preferences when settings change
 	useEffect(() => {
 		if (!prefsHydrated) return;
-		saveUserPreferences({ padding, aspectRatio, exportQuality, exportFormat });
-	}, [prefsHydrated, padding, aspectRatio, exportQuality, exportFormat]);
+		saveUserPreferences({
+			wallpaper,
+			customImages,
+			shadowIntensity,
+			showBlur,
+			motionBlurAmount,
+			borderRadius,
+			padding,
+			cropRegion,
+			aspectRatio,
+			webcamLayoutPreset,
+			webcamMaskShape,
+			webcamSizePreset,
+			webcamPosition,
+			exportQuality,
+			exportFormat,
+			autoSaveExportToDownloads,
+			gifFrameRate,
+			gifLoop,
+			gifSizePreset,
+			cursorHighlight,
+		});
+	}, [
+		prefsHydrated,
+		wallpaper,
+		customImages,
+		shadowIntensity,
+		showBlur,
+		motionBlurAmount,
+		borderRadius,
+		padding,
+		cropRegion,
+		aspectRatio,
+		webcamLayoutPreset,
+		webcamMaskShape,
+		webcamSizePreset,
+		webcamPosition,
+		exportQuality,
+		exportFormat,
+		autoSaveExportToDownloads,
+		gifFrameRate,
+		gifLoop,
+		gifSizePreset,
+		cursorHighlight,
+	]);
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean) => {
@@ -1395,10 +1488,10 @@ export default function VideoEditor() {
 	const handleSaveUnsavedExport = useCallback(async () => {
 		if (!unsavedExport) return;
 		try {
-			const pickResult = await window.electronAPI.pickExportSavePath(
-				unsavedExport.fileName,
-				getExportFolder(),
-			);
+			const pickResult = await window.electronAPI.pickExportSavePath(unsavedExport.fileName, {
+				autoSaveToDownloads: autoSaveExportToDownloads,
+				exportFolder: getExportFolder(),
+			});
 			if (pickResult.canceled || !pickResult.success || !pickResult.path) {
 				toast.info("Export canceled");
 				return;
@@ -1417,7 +1510,7 @@ export default function VideoEditor() {
 			console.error("Error saving unsaved export:", error);
 			toast.error("Failed to save exported video");
 		}
-	}, [unsavedExport, handleExportSaved]);
+	}, [unsavedExport, handleExportSaved, autoSaveExportToDownloads]);
 
 	const handleExport = useCallback(
 		async (settings: ExportSettings) => {
@@ -1437,10 +1530,10 @@ export default function VideoEditor() {
 			// long-running export.
 			const isGifFormat = settings.format === "gif";
 			const targetFileName = `export-${Date.now()}.${isGifFormat ? "gif" : "mp4"}`;
-			const pickResult = await window.electronAPI.pickExportSavePath(
-				targetFileName,
-				getExportFolder(),
-			);
+			const pickResult = await window.electronAPI.pickExportSavePath(targetFileName, {
+				autoSaveToDownloads: autoSaveExportToDownloads,
+				exportFolder: getExportFolder(),
+			});
 			if (pickResult.canceled || !pickResult.success || !pickResult.path) {
 				setShowExportDialog(false);
 				return;
@@ -1721,6 +1814,7 @@ export default function VideoEditor() {
 			webcamSizePreset,
 			webcamPosition,
 			exportQuality,
+			autoSaveExportToDownloads,
 			handleExportSaved,
 			cursorTelemetry,
 			cursorClickTimestamps,
@@ -2098,6 +2192,8 @@ export default function VideoEditor() {
 									onExportQualityChange={setExportQuality}
 									exportFormat={exportFormat}
 									onExportFormatChange={setExportFormat}
+									autoSaveExportToDownloads={autoSaveExportToDownloads}
+									onAutoSaveExportToDownloadsChange={setAutoSaveExportToDownloads}
 									gifFrameRate={gifFrameRate}
 									onGifFrameRateChange={setGifFrameRate}
 									gifLoop={gifLoop}

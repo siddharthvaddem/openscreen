@@ -53,6 +53,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	storeRecordedSession: (payload: StoreRecordedSessionInput) => {
 		return ipcRenderer.invoke("store-recorded-session", payload);
 	},
+	storeBackgroundImage: (imageData: ArrayBuffer, fileName: string, mimeType?: string) => {
+		return ipcRenderer.invoke("store-background-image", imageData, fileName, mimeType);
+	},
 
 	getRecordedVideoPath: () => {
 		return ipcRenderer.invoke("get-recorded-video-path");
@@ -74,8 +77,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},
-	pickExportSavePath: (fileName: string, exportFolder?: string) => {
-		return ipcRenderer.invoke("pick-export-save-path", fileName, exportFolder);
+	pickExportSavePath: (
+		fileName: string,
+		options?: { autoSaveToDownloads?: boolean; exportFolder?: string },
+	) => {
+		return ipcRenderer.invoke("pick-export-save-path", fileName, options);
 	},
 	writeExportToPath: (videoData: ArrayBuffer, filePath: string) => {
 		return ipcRenderer.invoke("write-export-to-path", videoData, filePath);

@@ -99,7 +99,9 @@
 	"export": {
 		"videoButton": "تصدير الفيديو",
 		"gifButton": "تصدير GIF",
-		"chooseSaveLocation": "اختيار موقع الحفظ"
+		"chooseSaveLocation": "اختيار موقع الحفظ",
+		"autoSaveToDownloads": "الحفظ التلقائي في التنزيلات",
+		"autoSaveToDownloadsDescription": "تجاوز مربع حوار الحفظ بعد التصدير."
 	},
 	"links": {
 		"reportBug": "الإبلاغ عن خطأ",
@@ -107,7 +109,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "نوع ملف غير صالح",
-		"jpgOnly": "يرجى رفع ملف صورة JPG أو JPEG.",
+		"jpgOnly": "يرجى رفع ملف صورة JPG أو JPEG أو PNG.",
 		"uploadSuccess": "تم رفع الصورة المخصصة بنجاح!",
 		"failedToUpload": "فشل رفع الصورة",
 		"errorReading": "حدث خطأ أثناء قراءة الملف."

@@ -62,6 +62,17 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		storeBackgroundImage: (
+			imageData: ArrayBuffer,
+			fileName: string,
+			mimeType?: string,
+		) => Promise<{
+			success: boolean;
+			path?: string;
+			url?: string;
+			message?: string;
+			error?: string;
+		}>;
 		getRecordedVideoPath: () => Promise<{
 			success: boolean;
 			path?: string;
@@ -81,7 +92,7 @@ interface Window {
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 		pickExportSavePath: (
 			fileName: string,
-			exportFolder?: string,
+			options?: { autoSaveToDownloads?: boolean; exportFolder?: string },
 		) => Promise<{
 			success: boolean;
 			path?: string;

@@ -93,7 +93,9 @@
 	"export": {
 		"videoButton": "動画をエクスポート",
 		"gifButton": "GIF をエクスポート",
-		"chooseSaveLocation": "保存場所を選択"
+		"chooseSaveLocation": "保存場所を選択",
+		"autoSaveToDownloads": "ダウンロードに自動保存",
+		"autoSaveToDownloadsDescription": "エクスポート後の保存ダイアログを省略します。"
 	},
 	"links": {
 		"reportBug": "バグを報告",
@@ -101,7 +103,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "無効なファイル形式",
-		"jpgOnly": "JPG または JPEG 画像ファイルを選択してください。",
+		"jpgOnly": "JPG、JPEG、または PNG 画像ファイルを選択してください。",
 		"uploadSuccess": "カスタム画像を読み込みました。",
 		"failedToUpload": "画像の読み込みに失敗しました",
 		"errorReading": "ファイルの読み取り中にエラーが発生しました。"

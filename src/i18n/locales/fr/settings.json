@@ -100,7 +100,9 @@
 	"export": {
 		"videoButton": "Exporter la vidéo",
 		"gifButton": "Exporter le GIF",
-		"chooseSaveLocation": "Choisir l'emplacement d'enregistrement"
+		"chooseSaveLocation": "Choisir l'emplacement d'enregistrement",
+		"autoSaveToDownloads": "Enregistrer automatiquement dans Téléchargements",
+		"autoSaveToDownloadsDescription": "Ignorer la boîte de dialogue d'enregistrement après l'export."
 	},
 	"links": {
 		"reportBug": "Signaler un bug",
@@ -108,7 +110,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Type de fichier invalide",
-		"jpgOnly": "Veuillez téléverser un fichier image JPG ou JPEG.",
+		"jpgOnly": "Veuillez téléverser un fichier image JPG, JPEG ou PNG.",
 		"uploadSuccess": "Image personnalisée téléversée avec succès !",
 		"failedToUpload": "Échec du téléversement de l'image",
 		"errorReading": "Une erreur s'est produite lors de la lecture du fichier."

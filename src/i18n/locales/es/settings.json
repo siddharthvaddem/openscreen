@@ -93,7 +93,9 @@
 	"export": {
 		"videoButton": "Exportar video",
 		"gifButton": "Exportar GIF",
-		"chooseSaveLocation": "Elegir ubicación de guardado"
+		"chooseSaveLocation": "Elegir ubicación de guardado",
+		"autoSaveToDownloads": "Guardar automáticamente en Descargas",
+		"autoSaveToDownloadsDescription": "Omitir el diálogo de guardado después de exportar."
 	},
 	"links": {
 		"reportBug": "Reportar error",
@@ -101,7 +103,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Tipo de archivo no válido",
-		"jpgOnly": "Por favor sube un archivo de imagen JPG o JPEG.",
+		"jpgOnly": "Por favor sube un archivo de imagen JPG, JPEG o PNG.",
 		"uploadSuccess": "¡Imagen personalizada subida exitosamente!",
 		"failedToUpload": "Error al subir la imagen",
 		"errorReading": "Hubo un error al leer el archivo."

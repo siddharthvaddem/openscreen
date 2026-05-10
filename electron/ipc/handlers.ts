@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -32,8 +33,11 @@ import { RECORDINGS_DIR } from "../main";
 
 const PROJECT_FILE_EXTENSION = "openscreen";
 const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
+const BACKGROUND_IMAGES_DIR = path.join(app.getPath("userData"), "background-images");
 const RECORDING_SESSION_SUFFIX = ".session.json";
 const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+const ALLOWED_BACKGROUND_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png"]);
+const ALLOWED_BACKGROUND_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
 
 /**
  * Paths explicitly approved by the user via file picker dialogs or project loads.
@@ -78,6 +82,41 @@ function buildDialogOptions<T extends Electron.OpenDialogOptions | Electron.Save
 
 function hasAllowedImportVideoExtension(filePath: string): boolean {
 	return ALLOWED_IMPORT_VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+function resolveBackgroundImageOutputPath(fileName: string, mimeType?: string): string {
+	const normalizedType = mimeType?.trim().toLowerCase() ?? "";
+	const extension = path.extname(fileName).toLowerCase();
+
+	if (normalizedType && !ALLOWED_BACKGROUND_IMAGE_TYPES.has(normalizedType)) {
+		throw new Error(`Unsupported background image type: ${normalizedType}`);
+	}
+
+	if (!ALLOWED_BACKGROUND_IMAGE_EXTENSIONS.has(extension)) {
+		throw new Error(`Unsupported background image extension: ${extension || "(none)"}`);
+	}
+
+	return path.join(BACKGROUND_IMAGES_DIR, `${randomUUID()}${extension}`);
+}
+
+async function resolveAvailableDownloadPath(fileName: string): Promise<string> {
+	const downloadsDir = app.getPath("downloads");
+	const extension = path.extname(fileName);
+	const baseName = path.basename(fileName, extension);
+	let targetPath = path.join(downloadsDir, fileName);
+	let counter = 1;
+
+	while (
+		await fs
+			.access(targetPath)
+			.then(() => true)
+			.catch(() => false)
+	) {
+		targetPath = path.join(downloadsDir, `${baseName} (${counter})${extension}`);
+		counter += 1;
+	}
+
+	return targetPath;
 }
 
 async function approveReadableVideoPath(
@@ -806,6 +845,30 @@ export function registerIpcHandlers(
 		}
 	});
 
+	ipcMain.handle(
+		"store-background-image",
+		async (_, imageData: ArrayBuffer, fileName: string, mimeType?: string) => {
+			try {
+				const targetPath = resolveBackgroundImageOutputPath(fileName, mimeType);
+				await fs.mkdir(path.dirname(targetPath), { recursive: true });
+				await fs.writeFile(targetPath, Buffer.from(imageData));
+				return {
+					success: true,
+					path: targetPath,
+					url: pathToFileURL(targetPath).toString(),
+					message: "Background image stored successfully",
+				};
+			} catch (error) {
+				console.error("Failed to store background image:", error);
+				return {
+					success: false,
+					message: "Failed to store background image",
+					error: String(error),
+				};
+			}
+		},
+	);
+
 	ipcMain.handle("get-recorded-video-path", async () => {
 		try {
 			if (currentRecordingSession?.screenVideoPath) {
@@ -1012,57 +1075,69 @@ export function registerIpcHandlers(
 	 * @returns Object with success status, optional file path, and error details.
 	 */
 
-	ipcMain.handle("pick-export-save-path", async (_, fileName: string, exportFolder?: string) => {
-		try {
-			const isGif = fileName.toLowerCase().endsWith(".gif");
-			const filters = isGif
-				? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
-				: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
+	ipcMain.handle(
+		"pick-export-save-path",
+		async (
+			_,
+			fileName: string,
+			options?: { autoSaveToDownloads?: boolean; exportFolder?: string },
+		) => {
+			try {
+				const isGif = fileName.toLowerCase().endsWith(".gif");
+				const filters = isGif
+					? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
+					: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
 
-			// Prefer the user's last export folder if it still exists, otherwise fall
-			// back to ~/Downloads. Validation must happen here because the renderer
-			// can't stat the filesystem.
-			let defaultDir = app.getPath("downloads");
-			if (exportFolder) {
-				try {
-					const stats = await fs.stat(exportFolder);
-					if (stats.isDirectory()) {
-						defaultDir = exportFolder;
-					}
-				} catch (err) {
-					console.warn(
-						`Could not access remembered export folder "${exportFolder}", falling back to Downloads:`,
-						err,
-					);
+				if (options?.autoSaveToDownloads) {
+					return { success: true, path: await resolveAvailableDownloadPath(fileName) };
 				}
-			}
-			const dialogOptions = buildDialogOptions(
-				{
-					title: isGif
-						? mainT("dialogs", "fileDialogs.saveGif")
-						: mainT("dialogs", "fileDialogs.saveVideo"),
-					defaultPath: path.join(defaultDir, fileName),
-					filters,
-					properties: ["createDirectory", "showOverwriteConfirmation"],
-				},
-				getMainWindow(),
-			);
-			const result = await dialog.showSaveDialog(dialogOptions);
 
-			if (result.canceled || !result.filePath) {
-				return { success: false, canceled: true, message: "Export canceled" };
-			}
+				// Prefer the user's last export folder if it still exists, otherwise fall
+				// back to ~/Downloads. Validation must happen here because the renderer
+				// can't stat the filesystem.
+				const exportFolder = options?.exportFolder;
+				let defaultDir = app.getPath("downloads");
+				if (exportFolder) {
+					try {
+						const stats = await fs.stat(exportFolder);
+						if (stats.isDirectory()) {
+							defaultDir = exportFolder;
+						}
+					} catch (err) {
+						console.warn(
+							`Could not access remembered export folder "${exportFolder}", falling back to Downloads:`,
+							err,
+						);
+					}
+				}
+				const dialogOptions = buildDialogOptions(
+					{
+						title: isGif
+							? mainT("dialogs", "fileDialogs.saveGif")
+							: mainT("dialogs", "fileDialogs.saveVideo"),
+						defaultPath: path.join(defaultDir, fileName),
+						filters,
+						properties: ["createDirectory", "showOverwriteConfirmation"],
+					},
+					getMainWindow(),
+				);
+				const result = await dialog.showSaveDialog(dialogOptions);
 
-			return { success: true, path: path.normalize(result.filePath) };
-		} catch (error) {
-			console.error("Failed to show save dialog:", error);
-			return {
-				success: false,
-				message: "Failed to show save dialog",
-				error: String(error),
-			};
-		}
-	});
+				if (result.canceled || !result.filePath) {
+					return { success: false, canceled: true, message: "Export canceled" };
+				}
+
+				return { success: true, path: path.normalize(result.filePath) };
+			} catch (error) {
+				console.error("Failed to show save dialog:", error);
+				return {
+					success: false,
+					message: "Failed to show save dialog",
+					error: String(error),
+				};
+			}
+		},
+	);
 
 	ipcMain.handle("write-export-to-path", async (_, videoData: ArrayBuffer, filePath: string) => {
 		try {

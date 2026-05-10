@@ -100,7 +100,9 @@
 	"export": {
 		"videoButton": "匯出影片",
 		"gifButton": "匯出 GIF",
-		"chooseSaveLocation": "選擇儲存位置"
+		"chooseSaveLocation": "選擇儲存位置",
+		"autoSaveToDownloads": "自動儲存到下載項目",
+		"autoSaveToDownloadsDescription": "匯出後略過儲存對話框。"
 	},
 	"links": {
 		"reportBug": "回報錯誤",
@@ -108,7 +110,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "無效的檔案類型",
-		"jpgOnly": "請上傳 JPG 或 JPEG 格式的圖片檔案。",
+		"jpgOnly": "請上傳 JPG、JPEG 或 PNG 格式的圖片檔案。",
 		"uploadSuccess": "自訂圖片上傳成功！",
 		"failedToUpload": "上傳圖片失敗",
 		"errorReading": "讀取檔案時出錯。"

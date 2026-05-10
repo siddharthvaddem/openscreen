@@ -93,7 +93,9 @@
 	"export": {
 		"videoButton": "导出视频",
 		"gifButton": "导出 GIF",
-		"chooseSaveLocation": "选择保存位置"
+		"chooseSaveLocation": "选择保存位置",
+		"autoSaveToDownloads": "自动保存到下载文件夹",
+		"autoSaveToDownloadsDescription": "导出后跳过保存对话框。"
 	},
 	"links": {
 		"reportBug": "报告错误",
@@ -101,7 +103,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "无效的文件类型",
-		"jpgOnly": "请上传 JPG 或 JPEG 格式的图片文件。",
+		"jpgOnly": "请上传 JPG、JPEG 或 PNG 格式的图片文件。",
 		"uploadSuccess": "自定义图片上传成功！",
 		"failedToUpload": "上传图片失败",
 		"errorReading": "读取文件时出错。"
