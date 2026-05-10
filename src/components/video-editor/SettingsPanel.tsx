@@ -1,3 +1,4 @@
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import {
 	Bug,
 	ChevronDown,
@@ -61,14 +62,19 @@ import type {
 	WebcamMaskShape,
 	WebcamSizePreset,
 	ZoomDepth,
+	ZoomFocus,
 	ZoomFocusMode,
 } from "./types";
 import {
 	DEFAULT_WEBCAM_SIZE_PRESET,
 	MAX_PLAYBACK_SPEED,
+	MAX_ZOOM_SCALE,
+	MIN_ZOOM_SCALE,
 	ROTATION_3D_PRESET_ORDER,
 	SPEED_OPTIONS,
+	ZOOM_DEPTH_SCALES,
 } from "./types";
+import { getFocusBoundsForScale } from "./videoPlayback/focusUtils";
 
 function CustomSpeedInput({
 	value,
@@ -133,6 +139,58 @@ function CustomSpeedInput({
 	);
 }
 
+function ZoomFocusCoordInput({
+	percent,
+	onChange,
+	onCommit,
+	disabled,
+	ariaLabel,
+}: {
+	percent: number;
+	onChange: (nextPercent: number) => void;
+	onCommit?: () => void;
+	disabled?: boolean;
+	ariaLabel: string;
+}) {
+	// While the input is focused (user is editing), show their draft text
+	// so partial entries like "5" or "" don't get overwritten by re-renders.
+	// When not focused, mirror the live prop value so external changes
+	// (dragging the overlay on the preview) update the displayed number in real time.
+	const [draft, setDraft] = useState<string | null>(null);
+	const display = percent.toFixed(1);
+
+	return (
+		<input
+			type="number"
+			inputMode="decimal"
+			min={0}
+			max={100}
+			step={0.1}
+			value={draft ?? display}
+			disabled={disabled}
+			aria-label={ariaLabel}
+			onFocus={() => setDraft(display)}
+			onChange={(e) => {
+				const next = e.target.value;
+				setDraft(next);
+				const parsed = Number(next);
+				if (next !== "" && Number.isFinite(parsed)) {
+					const clamped = Math.min(100, Math.max(0, parsed));
+					onChange(clamped);
+				}
+			}}
+			onBlur={() => {
+				setDraft(null);
+				onCommit?.();
+			}}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+			}}
+			className="w-[90px] h-8 rounded-md border border-white/10 bg-white/5 px-2 text-xs text-slate-200 outline-none focus:border-[#34B27B]/50 focus:ring-1 focus:ring-[#34B27B]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+		/>
+	);
+}
+
 const GRADIENTS = [
 	"linear-gradient( 111.6deg,  rgba(114,167,232,1) 9.4%, rgba(253,129,82,1) 43.9%, rgba(253,129,82,1) 54.8%, rgba(249,202,86,1) 86.3% )",
 	"linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)",
@@ -173,8 +231,14 @@ interface SettingsPanelProps {
 	onCustomImagesChange?: (images: string[]) => void;
 	selectedZoomDepth?: ZoomDepth | null;
 	onZoomDepthChange?: (depth: ZoomDepth) => void;
+	selectedZoomCustomScale?: number | null;
+	onZoomCustomScaleChange?: (scale: number) => void;
+	onZoomCustomScaleCommit?: () => void;
 	selectedZoomFocusMode?: ZoomFocusMode | null;
 	onZoomFocusModeChange?: (mode: ZoomFocusMode) => void;
+	selectedZoomFocus?: ZoomFocus | null;
+	onZoomFocusCoordinateChange?: (focus: ZoomFocus) => void;
+	onZoomFocusCoordinateCommit?: () => void;
 	hasCursorTelemetry?: boolean;
 	selectedZoomId?: string | null;
 	onZoomDelete?: (id: string) => void;
@@ -270,8 +334,14 @@ export function SettingsPanel({
 	onCustomImagesChange,
 	selectedZoomDepth,
 	onZoomDepthChange,
+	selectedZoomCustomScale,
+	onZoomCustomScaleChange,
+	onZoomCustomScaleCommit,
 	selectedZoomFocusMode,
 	onZoomFocusModeChange,
+	selectedZoomFocus,
+	onZoomFocusCoordinateChange,
+	onZoomFocusCoordinateCommit,
 	hasCursorTelemetry = false,
 	selectedZoomId,
 	onZoomDelete,
@@ -599,7 +669,9 @@ export function SettingsPanel({
 						<div className="flex items-center gap-2">
 							{zoomEnabled && selectedZoomDepth && (
 								<span className="text-[10px] uppercase tracking-wider font-medium text-[#34B27B] bg-[#34B27B]/10 px-2 py-0.5 rounded-full">
-									{ZOOM_DEPTH_OPTIONS.find((o) => o.depth === selectedZoomDepth)?.label}
+									{selectedZoomCustomScale != null
+										? `${selectedZoomCustomScale.toFixed(2)}×`
+										: ZOOM_DEPTH_OPTIONS.find((o) => o.depth === selectedZoomDepth)?.label}
 								</span>
 							)}
 							<KeyboardShortcutsHelp />
@@ -607,7 +679,10 @@ export function SettingsPanel({
 					</div>
 					<div className="grid grid-cols-6 gap-1.5">
 						{ZOOM_DEPTH_OPTIONS.map((option) => {
-							const isActive = selectedZoomDepth === option.depth;
+							const effectiveScale =
+								selectedZoomCustomScale ??
+								(selectedZoomDepth != null ? ZOOM_DEPTH_SCALES[selectedZoomDepth] : null);
+							const isActive = effectiveScale === ZOOM_DEPTH_SCALES[option.depth];
 							return (
 								<Button
 									key={option.depth}
@@ -628,6 +703,65 @@ export function SettingsPanel({
 							);
 						})}
 					</div>
+					{zoomEnabled && (
+						<div className="mt-3">
+							<div className="flex items-center justify-between mb-2">
+								<span className="text-xs text-slate-400">{t("zoom.customScale")}</span>
+								<span
+									className={cn(
+										"text-xs font-mono font-semibold tabular-nums",
+										selectedZoomCustomScale != null ? "text-[#34B27B]" : "text-slate-400",
+									)}
+								>
+									{(
+										selectedZoomCustomScale ??
+										(selectedZoomDepth != null
+											? ZOOM_DEPTH_SCALES[selectedZoomDepth]
+											: MIN_ZOOM_SCALE)
+									).toFixed(2)}
+									×
+								</span>
+							</div>
+							<SliderPrimitive.Root
+								min={MIN_ZOOM_SCALE}
+								max={MAX_ZOOM_SCALE}
+								step={0.01}
+								value={[
+									selectedZoomCustomScale ??
+										(selectedZoomDepth != null
+											? ZOOM_DEPTH_SCALES[selectedZoomDepth]
+											: MIN_ZOOM_SCALE),
+								]}
+								onValueChange={(values) => onZoomCustomScaleChange?.(values[0])}
+								onValueCommit={() => onZoomCustomScaleCommit?.()}
+								disabled={!zoomEnabled}
+								className="relative flex w-full touch-none select-none items-center py-1"
+							>
+								<SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full border border-white/10 bg-white/5">
+									<SliderPrimitive.Range
+										className={cn(
+											"absolute h-full transition-colors duration-150",
+											selectedZoomCustomScale != null ? "bg-[#34B27B]" : "bg-white/20",
+										)}
+									/>
+								</SliderPrimitive.Track>
+								<SliderPrimitive.Thumb
+									className={cn(
+										"block h-3.5 w-3.5 rounded-full border-2 shadow transition-all duration-150",
+										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34B27B]/50",
+										"disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing",
+										selectedZoomCustomScale != null
+											? "border-[#34B27B] bg-[#34B27B] shadow-[0_0_6px_rgba(52,178,123,0.4)]"
+											: "border-white/20 bg-[#2a2a30] hover:border-white/40",
+									)}
+								/>
+							</SliderPrimitive.Root>
+							<div className="flex justify-between text-[10px] text-slate-600 mt-0.5">
+								<span>{MIN_ZOOM_SCALE.toFixed(1)}×</span>
+								<span>{MAX_ZOOM_SCALE.toFixed(1)}×</span>
+							</div>
+						</div>
+					)}
 					{!zoomEnabled && (
 						<p className="text-[10px] text-slate-500 mt-2 text-center">{t("zoom.selectRegion")}</p>
 					)}
@@ -666,6 +800,70 @@ export function SettingsPanel({
 							)}
 						</div>
 					)}
+					{zoomEnabled &&
+						selectedZoomFocusMode !== "auto" &&
+						selectedZoomFocus &&
+						onZoomFocusCoordinateChange &&
+						(() => {
+							const effectiveZoomScale =
+								selectedZoomCustomScale ??
+								(selectedZoomDepth != null ? ZOOM_DEPTH_SCALES[selectedZoomDepth] : MIN_ZOOM_SCALE);
+							const bounds = getFocusBoundsForScale(effectiveZoomScale);
+							const xRange = bounds.maxX - bounds.minX;
+							const yRange = bounds.maxY - bounds.minY;
+							const focusToPercentX = (cx: number) =>
+								xRange <= 0 ? 50 : Math.max(0, Math.min(100, ((cx - bounds.minX) / xRange) * 100));
+							const focusToPercentY = (cy: number) =>
+								yRange <= 0 ? 50 : Math.max(0, Math.min(100, ((cy - bounds.minY) / yRange) * 100));
+							const percentToFocusX = (p: number) =>
+								xRange <= 0 ? bounds.minX : bounds.minX + (p / 100) * xRange;
+							const percentToFocusY = (p: number) =>
+								yRange <= 0 ? bounds.minY : bounds.minY + (p / 100) * yRange;
+							return (
+								<div className="mt-4">
+									<span className="text-sm font-medium text-slate-200 mb-2 block">
+										{t("zoom.position.title")}
+									</span>
+									<div className="flex items-end gap-3">
+										<div className="flex flex-col gap-1">
+											<label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+												{t("zoom.position.x")}
+											</label>
+											<ZoomFocusCoordInput
+												ariaLabel={t("zoom.position.x")}
+												percent={focusToPercentX(selectedZoomFocus.cx)}
+												onChange={(p) =>
+													onZoomFocusCoordinateChange({
+														cx: percentToFocusX(p),
+														cy: selectedZoomFocus.cy,
+													})
+												}
+												onCommit={onZoomFocusCoordinateCommit}
+											/>
+										</div>
+										<div className="flex flex-col gap-1">
+											<label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+												{t("zoom.position.y")}
+											</label>
+											<ZoomFocusCoordInput
+												ariaLabel={t("zoom.position.y")}
+												percent={focusToPercentY(selectedZoomFocus.cy)}
+												onChange={(p) =>
+													onZoomFocusCoordinateChange({
+														cx: selectedZoomFocus.cx,
+														cy: percentToFocusY(p),
+													})
+												}
+												onCommit={onZoomFocusCoordinateCommit}
+											/>
+										</div>
+										<span className="text-[10px] text-slate-500 pb-2">
+											{t("zoom.position.hint")}
+										</span>
+									</div>
+								</div>
+							);
+						})()}
 					{zoomEnabled && (
 						<div className="mt-4">
 							<span className="text-sm font-medium text-slate-200 mb-2 block">
@@ -830,6 +1028,7 @@ export function SettingsPanel({
 										<SelectContent>
 											{WEBCAM_LAYOUT_PRESETS.filter((preset) => {
 												if (preset.value === "picture-in-picture") return true;
+												if (preset.value === "no-webcam") return true;
 												if (preset.value === "vertical-stack") return isPortraitCanvas;
 												return !isPortraitCanvas;
 											}).map((preset) => (
@@ -838,7 +1037,9 @@ export function SettingsPanel({
 														? t("layout.pictureInPicture")
 														: preset.value === "vertical-stack"
 															? t("layout.verticalStack")
-															: t("layout.dualFrame")}
+															: preset.value === "no-webcam"
+																? t("layout.noWebcam")
+																: t("layout.dualFrame")}
 												</SelectItem>
 											))}
 										</SelectContent>

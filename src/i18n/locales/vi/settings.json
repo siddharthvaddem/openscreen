@@ -1,0 +1,176 @@
+{
+	"zoom": {
+		"level": "Mức độ thu phóng",
+		"selectRegion": "Chọn vùng thu phóng để điều chỉnh",
+		"deleteZoom": "Xóa thu phóng",
+		"focusMode": {
+			"title": "Chế độ lấy nét",
+			"manual": "Thủ công",
+			"auto": "Tự động",
+			"autoDescription": "Máy ảnh đi theo vị trí con trỏ đã ghi"
+		}
+	},
+	"speed": {
+		"playbackSpeed": "Tốc độ phát",
+		"selectRegion": "Chọn vùng tốc độ để điều chỉnh",
+		"deleteRegion": "Xóa vùng tốc độ",
+		"customPlaybackSpeed": "Tốc độ phát tùy chỉnh",
+		"maxSpeedError": "Tốc độ không thể cao hơn 16×"
+	},
+	"trim": {
+		"deleteRegion": "Xóa vùng cắt"
+	},
+	"layout": {
+		"title": "Bố cục",
+		"preset": "Cài đặt sẵn",
+		"selectPreset": "Chọn cài đặt sẵn",
+		"pictureInPicture": "Hình trong hình",
+		"verticalStack": "Xếp chồng dọc",
+		"dualFrame": "Khung kép",
+		"webcamShape": "Hình dạng máy ảnh",
+		"webcamSize": "Kích thước Webcam"
+	},
+	"effects": {
+		"title": "Hiệu ứng video",
+		"blurBg": "Làm mờ nền",
+		"motionBlur": "Làm mờ chuyển động",
+		"off": "tắt",
+		"shadow": "Bóng đổ",
+		"roundness": "Độ bo tròn",
+		"padding": "Phần đệm"
+	},
+	"background": {
+		"title": "Nền",
+		"image": "Hình ảnh",
+		"color": "Màu sắc",
+		"gradient": "Dải màu",
+		"uploadCustom": "Tải lên tùy chỉnh",
+		"gradientLabel": "Dải màu {{index}}"
+	},
+	"crop": {
+		"title": "Cắt xén",
+		"cropVideo": "Cắt xén video",
+		"dragInstruction": "Kéo ở mỗi cạnh để điều chỉnh vùng cắt xén",
+		"ratio": "Tỷ lệ",
+		"free": "Tự do",
+		"done": "Hoàn tất",
+		"lockAspectRatio": "Khóa tỷ lệ khung hình",
+		"unlockAspectRatio": "Mở khóa tỷ lệ khung hình"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "Video MP4",
+		"mp4Description": "Tệp video chất lượng cao",
+		"gifAnimation": "Ảnh động GIF",
+		"gifDescription": "Hình ảnh động để chia sẻ"
+	},
+	"exportQuality": {
+		"title": "Chất lượng xuất",
+		"low": "Thấp",
+		"medium": "Trung bình",
+		"high": "Cao"
+	},
+	"gifSettings": {
+		"frameRate": "Tốc độ khung hình GIF",
+		"size": "Kích thước GIF",
+		"loop": "Lặp lại GIF"
+	},
+	"project": {
+		"save": "Lưu dự án",
+		"load": "Tải dự án"
+	},
+	"export": {
+		"videoButton": "Xuất Video",
+		"gifButton": "Xuất GIF",
+		"chooseSaveLocation": "Chọn vị trí lưu"
+	},
+	"links": {
+		"reportBug": "Báo cáo lỗi",
+		"starOnGithub": "Đánh giá sao trên GitHub"
+	},
+	"imageUpload": {
+		"invalidFileType": "Loại tệp không hợp lệ",
+		"jpgOnly": "Vui lòng tải lên tệp hình ảnh JPG hoặc JPEG.",
+		"uploadSuccess": "Tải lên hình ảnh tùy chỉnh thành công!",
+		"failedToUpload": "Tải lên hình ảnh thất bại",
+		"errorReading": "Đã xảy ra lỗi khi đọc tệp."
+	},
+	"annotation": {
+		"title": "Cài đặt chú thích",
+		"active": "Hoạt động",
+		"typeText": "Văn bản",
+		"typeImage": "Hình ảnh",
+		"typeArrow": "Mũi tên",
+		"typeBlur": "Làm mờ",
+		"textContent": "Nội dung văn bản",
+		"textPlaceholder": "Nhập văn bản của bạn...",
+		"fontStyle": "Kiểu phông chữ",
+		"selectStyle": "Chọn kiểu",
+		"size": "Kích thước",
+		"customFonts": "Phông chữ tùy chỉnh",
+		"textColor": "Màu văn bản",
+		"background": "Nền",
+		"none": "Không có",
+		"color": "Màu sắc",
+		"clearBackground": "Xóa nền",
+		"uploadImage": "Tải lên hình ảnh",
+		"supportedFormats": "Định dạng hỗ trợ: JPG, PNG, GIF, WebP",
+		"arrowDirection": "Hướng mũi tên",
+		"strokeWidth": "Độ dày nét: {{width}}px",
+		"arrowColor": "Màu mũi tên",
+		"blurType": "Loại làm mờ",
+		"blurTypeBlur": "Làm mờ",
+		"blurTypeMosaic": "Khảm",
+		"blurColor": "Màu làm mờ",
+		"blurColorWhite": "Trắng",
+		"blurColorBlack": "Đen",
+		"blurShape": "Hình dạng làm mờ",
+		"blurIntensity": "Cường độ làm mờ",
+		"mosaicBlockSize": "Kích thước khối khảm",
+		"blurShapeRectangle": "Chữ nhật",
+		"blurShapeOval": "Bầu dục",
+		"blurShapeFreehand": "Vẽ tự do",
+		"deleteAnnotation": "Xóa chú thích",
+		"shortcutsAndTips": "Phím tắt & Mẹo",
+		"tipMovePlayhead": "Di chuyển đầu phát đến phần chú thích chồng chéo và chọn một mục.",
+		"tipTabCycle": "Sử dụng Tab để chuyển qua các mục chồng chéo.",
+		"tipShiftTabCycle": "Sử dụng Shift+Tab để chuyển ngược lại.",
+		"invalidImageType": "Loại tệp không hợp lệ",
+		"imageFormatsOnly": "Vui lòng tải lên tệp hình ảnh JPG, PNG, GIF hoặc WebP.",
+		"imageUploadSuccess": "Tải lên hình ảnh thành công!",
+		"failedImageUpload": "Tải lên hình ảnh thất bại"
+	},
+	"fontStyles": {
+		"classic": "Cổ điển",
+		"editor": "Trình chỉnh sửa",
+		"strong": "Đậm",
+		"typewriter": "Máy đánh chữ",
+		"deco": "Trang trí",
+		"simple": "Đơn giản",
+		"modern": "Hiện đại",
+		"clean": "Sạch sẽ"
+	},
+	"customFont": {
+		"dialogTitle": "Thêm Google Font",
+		"urlLabel": "URL nhập Google Fonts",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "Lấy từ Google Fonts: Chọn một phông chữ → Nhấp \"Get font\" → Sao chép URL @import",
+		"nameLabel": "Tên hiển thị",
+		"namePlaceholder": "Phông chữ tùy chỉnh của tôi",
+		"nameHelp": "Đây là cách phông chữ sẽ xuất hiện trong bộ chọn phông chữ",
+		"addButton": "Thêm phông chữ",
+		"addingButton": "Đang thêm...",
+		"errorEmptyUrl": "Vui lòng nhập URL nhập Google Fonts",
+		"errorInvalidUrl": "Vui lòng nhập URL Google Fonts hợp lệ",
+		"errorEmptyName": "Vui lòng nhập tên phông chữ",
+		"errorExtractFailed": "Không thể trích xuất họ phông chữ từ URL",
+		"successMessage": "Thêm phông chữ \"{{fontName}}\" thành công",
+		"failedToAdd": "Thêm phông chữ thất bại",
+		"errorTimeout": "Tải phông chữ mất quá nhiều thời gian. Vui lòng kiểm tra URL và thử lại.",
+		"errorLoadFailed": "Không thể tải phông chữ. Vui lòng xác minh URL Google Fonts là chính xác."
+	},
+	"language": {
+		"title": "Ngôn ngữ"
+	}
+}

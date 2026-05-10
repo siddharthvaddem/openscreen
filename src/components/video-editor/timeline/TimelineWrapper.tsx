@@ -57,7 +57,7 @@ export default function TimelineWrapper({
 			const duration = Math.min(Math.max(rawDuration, minDuration), totalMs);
 
 			const start = Math.max(0, Math.min(normalizedStart, totalMs - duration));
-			const end = start + duration;
+			const end = Math.min(start + duration, totalMs);
 
 			return { start, end };
 		},

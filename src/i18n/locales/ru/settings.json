@@ -1,0 +1,202 @@
+{
+	"zoom": {
+		"level": "Уровень масштабирования",
+		"selectRegion": "Выберите область масштабирования для настройки",
+		"deleteZoom": "Удалить масштабирование",
+		"focusMode": {
+			"title": "Режим фокуса",
+			"manual": "Ручной",
+			"auto": "Авто",
+			"autoDescription": "Камера следует за записанной позицией курсора"
+		},
+		"threeD": {
+			"title": "3D вращение",
+			"preset": {
+				"iso": "Изометрия",
+				"left": "Слева",
+				"right": "Справа"
+			}
+		}
+	},
+	"speed": {
+		"playbackSpeed": "Скорость воспроизведения",
+		"selectRegion": "Выберите область скорости для настройки",
+		"deleteRegion": "Удалить область скорости",
+		"customPlaybackSpeed": "Пользовательская скорость воспроизведения",
+		"maxSpeedError": "Скорость не может быть выше 16×"
+	},
+	"trim": {
+		"deleteRegion": "Удалить область обрезки"
+	},
+	"layout": {
+		"title": "Макет",
+		"preset": "Пресет",
+		"selectPreset": "Выбрать пресет",
+		"pictureInPicture": "Картинка в картинке",
+		"verticalStack": "Вертикальный стек",
+		"dualFrame": "Двойной кадр",
+		"webcamShape": "Форма камеры",
+		"webcamSize": "Размер веб-камеры"
+	},
+	"effects": {
+		"title": "Видеоэффекты",
+		"blurBg": "Размытие фона",
+		"motionBlur": "Размытие движения",
+		"off": "выкл",
+		"on": "вкл",
+		"shadow": "Тень",
+		"roundness": "Скругление",
+		"padding": "Отступ",
+		"cursorHighlight": {
+			"title": "Подсветка курсора",
+			"style": "Стиль",
+			"dot": "Точка",
+			"ring": "Кольцо",
+			"size": "Размер",
+			"onlyOnClicks": "Только при кликах",
+			"color": "Цвет",
+			"offsetX": "Смещение X (записи окон)",
+			"offsetY": "Смещение Y",
+			"accessibilityPermissionTitle": "Требуется разрешение на доступность",
+			"accessibilityPermissionDescription": "Откройте Системные настройки → Конфиденциальность и безопасность → Универсальный доступ, включите Openscreen, затем перезапустите приложение."
+		}
+	},
+	"background": {
+		"title": "Фон",
+		"image": "Изображение",
+		"color": "Цвет",
+		"gradient": "Градиент",
+		"uploadCustom": "Загрузить свой",
+		"gradientLabel": "Градиент {{index}}",
+		"colorWheel": "Цветовой круг",
+		"colorPalette": "Палитра цветов"
+	},
+	"crop": {
+		"title": "Обрезка",
+		"cropVideo": "Обрезать видео",
+		"dragInstruction": "Перетащите каждую сторону для настройки области обрезки",
+		"ratio": "Соотношение сторон",
+		"free": "Свободно",
+		"done": "Готово",
+		"lockAspectRatio": "Заблокировать соотношение сторон",
+		"unlockAspectRatio": "Разблокировать соотношение сторон"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "MP4 видео",
+		"mp4Description": "Видеофайл высокого качества",
+		"gifAnimation": "GIF анимация",
+		"gifDescription": "Анимированное изображение для обмена"
+	},
+	"exportQuality": {
+		"title": "Качество экспорта",
+		"low": "Низкое",
+		"medium": "Среднее",
+		"high": "Высокое"
+	},
+	"gifSettings": {
+		"frameRate": "Частота кадров GIF",
+		"size": "Размер GIF",
+		"loop": "Зациклить GIF"
+	},
+	"project": {
+		"save": "Сохранить проект",
+		"load": "Загрузить проект"
+	},
+	"export": {
+		"videoButton": "Экспорт видео",
+		"gifButton": "Экспорт GIF",
+		"chooseSaveLocation": "Выбрать место сохранения"
+	},
+	"links": {
+		"reportBug": "Сообщить об ошибке",
+		"starOnGithub": "Звезда на GitHub"
+	},
+	"imageUpload": {
+		"invalidFileType": "Неверный тип файла",
+		"jpgOnly": "Пожалуйста, загрузите изображение JPG или JPEG.",
+		"uploadSuccess": "Пользовательское изображение успешно загружено!",
+		"failedToUpload": "Не удалось загрузить изображение",
+		"errorReading": "Произошла ошибка при чтении файла."
+	},
+	"annotation": {
+		"title": "Настройки аннотаций",
+		"active": "Активно",
+		"typeText": "Текст",
+		"typeImage": "Изображение",
+		"typeArrow": "Стрелка",
+		"typeBlur": "Размытие",
+		"textContent": "Содержание текста",
+		"textPlaceholder": "Введите ваш текст...",
+		"fontStyle": "Стиль шрифта",
+		"selectStyle": "Выбрать стиль",
+		"size": "Размер",
+		"customFonts": "Пользовательские шрифты",
+		"textColor": "Цвет текста",
+		"background": "Фон",
+		"none": "Нет",
+		"color": "Цвет",
+		"colorWheel": "Цветовой круг",
+		"colorPalette": "Палитра цветов",
+		"clearBackground": "Очистить фон",
+		"uploadImage": "Загрузить изображение",
+		"supportedFormats": "Поддерживаемые форматы: JPG, PNG, GIF, WebP",
+		"arrowDirection": "Направление стрелки",
+		"strokeWidth": "Толщина линии: {{width}}px",
+		"arrowColor": "Цвет стрелки",
+		"blurType": "Тип размытия",
+		"blurTypeBlur": "Размытие",
+		"blurTypeMosaic": "Мозаичное размытие",
+		"blurColor": "Цвет размытия",
+		"blurColorWhite": "Белый",
+		"blurColorBlack": "Чёрный",
+		"blurShape": "Форма размытия",
+		"blurIntensity": "Интенсивность размытия",
+		"mosaicBlockSize": "Размер блока мозаики",
+		"blurShapeRectangle": "Прямоугольник",
+		"blurShapeOval": "Овал",
+		"blurShapeFreehand": "От руки",
+		"deleteAnnotation": "Удалить аннотацию",
+		"shortcutsAndTips": "Горячие клавиши и советы",
+		"tipMovePlayhead": "Переместите курсор воспроизведения к перекрывающейся секции аннотации и выберите элемент.",
+		"tipTabCycle": "Используйте Tab для циклического переключения между перекрывающимися элементами.",
+		"tipShiftTabCycle": "Используйте Shift+Tab для циклического переключения в обратном направлении.",
+		"invalidImageType": "Неверный тип файла",
+		"imageFormatsOnly": "Пожалуйста, загрузите изображение JPG, PNG, GIF или WebP.",
+		"imageUploadSuccess": "Изображение успешно загружено!",
+		"failedImageUpload": "Не удалось загрузить изображение"
+	},
+	"fontStyles": {
+		"classic": "Классический",
+		"editor": "Редактор",
+		"strong": "Жирный",
+		"typewriter": "Пишущая машинка",
+		"deco": "Декоративный",
+		"simple": "Простой",
+		"modern": "Современный",
+		"clean": "Чистый"
+	},
+	"customFont": {
+		"dialogTitle": "Добавить шрифт Google",
+		"urlLabel": "URL импорта Google Fonts",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "Возьмите его из Google Fonts: Выберите шрифт → Нажмите \"Get font\" → Скопируйте URL @import",
+		"nameLabel": "Отображаемое имя",
+		"namePlaceholder": "Мой пользовательский шрифт",
+		"nameHelp": "Так шрифт будет отображаться в селекторе шрифтов",
+		"addButton": "Добавить шрифт",
+		"addingButton": "Добавление...",
+		"errorEmptyUrl": "Пожалуйста, введите URL импорта Google Fonts",
+		"errorInvalidUrl": "Пожалуйста, введите корректный URL Google Fonts",
+		"errorEmptyName": "Пожалуйста, введите имя шрифта",
+		"errorExtractFailed": "Не удалось извлечь семейство шрифтов из URL",
+		"successMessage": "Шрифт \"{{fontName}}\" успешно добавлен",
+		"failedToAdd": "Не удалось добавить шрифт",
+		"errorTimeout": "Загрузка шрифта заняла слишком много времени. Пожалуйста, проверьте URL и попробуйте снова.",
+		"errorLoadFailed": "Не удалось загрузить шрифт. Пожалуйста, проверьте правильность URL Google Fonts."
+	},
+	"language": {
+		"title": "Язык"
+	}
+}

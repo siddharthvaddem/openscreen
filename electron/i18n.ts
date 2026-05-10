@@ -15,12 +15,14 @@ import commonKo from "../src/i18n/locales/ko-KR/common.json";
 import dialogsKo from "../src/i18n/locales/ko-KR/dialogs.json";
 import commonTr from "../src/i18n/locales/tr/common.json";
 import dialogsTr from "../src/i18n/locales/tr/dialogs.json";
+import commonVi from "../src/i18n/locales/vi/common.json";
+import dialogsVi from "../src/i18n/locales/vi/dialogs.json";
 import commonZh from "../src/i18n/locales/zh-CN/common.json";
 import dialogsZh from "../src/i18n/locales/zh-CN/dialogs.json";
 import commonZhTw from "../src/i18n/locales/zh-TW/common.json";
 import dialogsZhTw from "../src/i18n/locales/zh-TW/dialogs.json";
 
-type Locale = "en" | "zh-CN" | "zh-TW" | "es" | "fr" | "ja-JP" | "ko-KR" | "tr" | "ar";
+type Locale = "en" | "zh-CN" | "zh-TW" | "es" | "fr" | "ja-JP" | "ko-KR" | "tr" | "ar" | "vi";
 type Namespace = "common" | "dialogs";
 type MessageMap = Record<string, unknown>;
 
@@ -34,6 +36,7 @@ const messages: Record<Locale, Record<Namespace, MessageMap>> = {
 	"ko-KR": { common: commonKo, dialogs: dialogsKo },
 	tr: { common: commonTr, dialogs: dialogsTr },
 	ar: { common: commonAr, dialogs: dialogsAr },
+	vi: { common: commonVi, dialogs: dialogsVi },
 };
 
 let currentLocale: Locale = "en";
@@ -48,7 +51,8 @@ export function setMainLocale(locale: string) {
 		locale === "ja-JP" ||
 		locale === "ko-KR" ||
 		locale === "tr" ||
-		locale === "ar"
+		locale === "ar" ||
+		locale === "vi"
 	) {
 		currentLocale = locale;
 	}

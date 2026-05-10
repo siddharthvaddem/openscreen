@@ -1,0 +1,50 @@
+{
+	"actions": {
+		"cancel": "Отмена",
+		"save": "Сохранить",
+		"delete": "Удалить",
+		"close": "Закрыть",
+		"share": "Поделиться",
+		"done": "Готово",
+		"open": "Открыть",
+		"upload": "Загрузить",
+		"export": "Экспорт",
+		"showInFolder": "Показать в папке",
+		"file": "Файл",
+		"edit": "Редактировать",
+		"view": "Вид",
+		"window": "Окно",
+		"quit": "Выход",
+		"stopRecording": "Остановить запись",
+		"undo": "Отменить",
+		"redo": "Повторить",
+		"cut": "Вырезать",
+		"copy": "Копировать",
+		"paste": "Вставить",
+		"selectAll": "Выделить всё",
+		"minimize": "Свернуть",
+		"reload": "Перезагрузить",
+		"forceReload": "Принудительная перезагрузка",
+		"toggleDevTools": "Переключить инструменты разработчика",
+		"actualSize": "Реальный размер",
+		"zoomIn": "Увеличить",
+		"zoomOut": "Уменьшить",
+		"toggleFullScreen": "Полноэкранный режим",
+		"recordingStatus": "Запись: {{source}}",
+		"about": "О OpenScreen",
+		"services": "Сервисы",
+		"hide": "Скрыть OpenScreen",
+		"hideOthers": "Скрыть остальные",
+		"unhide": "Показать все"
+	},
+	"playback": {
+		"play": "Воспроизвести",
+		"pause": "Пауза",
+		"fullscreen": "Полный экран",
+		"exitFullscreen": "Выход из полного экрана"
+	},
+	"locale": {
+		"name": "Русский",
+		"short": "RU"
+	}
+}

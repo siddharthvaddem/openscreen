@@ -1,0 +1,30 @@
+{
+	"actions": {
+		"cancel": "Hủy",
+		"save": "Lưu",
+		"delete": "Xóa",
+		"close": "Đóng",
+		"share": "Chia sẻ",
+		"done": "Hoàn tất",
+		"open": "Mở",
+		"upload": "Tải lên",
+		"export": "Xuất",
+		"showInFolder": "Hiển thị trong thư mục",
+		"file": "Tệp",
+		"edit": "Chỉnh sửa",
+		"view": "Xem",
+		"window": "Cửa sổ",
+		"quit": "Thoát",
+		"stopRecording": "Dừng ghi hình"
+	},
+	"playback": {
+		"play": "Phát",
+		"pause": "Tạm dừng",
+		"fullscreen": "Toàn màn hình",
+		"exitFullscreen": "Thoát toàn màn hình"
+	},
+	"locale": {
+		"name": "Tiếng Việt",
+		"short": "VI"
+	}
+}

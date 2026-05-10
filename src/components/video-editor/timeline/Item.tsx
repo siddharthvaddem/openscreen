@@ -14,6 +14,7 @@ interface ItemProps {
 	isSelected?: boolean;
 	onSelect?: () => void;
 	zoomDepth?: number;
+	zoomCustomScale?: number;
 	speedValue?: number;
 	isAutoFocus?: boolean;
 	variant?: "zoom" | "trim" | "annotation" | "speed" | "blur";
@@ -46,6 +47,7 @@ export default function Item({
 	isSelected = false,
 	onSelect,
 	zoomDepth = 1,
+	zoomCustomScale,
 	speedValue,
 	isAutoFocus = false,
 	variant = "zoom",
@@ -134,7 +136,9 @@ export default function Item({
 								<>
 									<ZoomIn className="w-3.5 h-3.5 shrink-0" />
 									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
-										{ZOOM_LABELS[zoomDepth] || `${zoomDepth}×`}
+										{zoomCustomScale != null
+											? `${zoomCustomScale.toFixed(2)}×`
+											: ZOOM_LABELS[zoomDepth] || `${zoomDepth}×`}
 									</span>
 									{isAutoFocus && (
 										<MousePointer2

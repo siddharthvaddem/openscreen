@@ -1,0 +1,168 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to the tap (e.g. v1.4.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update-cask:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    env:
+      TAP_OWNER: siddharthvaddem
+      TAP_REPO: homebrew-openscreen
+      CASK_NAME: openscreen
+    steps:
+      - name: Resolve tag and version
+        id: meta
+        env:
+          GH_EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="${GH_EVENT_TAG:-$INPUT_TAG}"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No tag resolved from release event or workflow input"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Find macOS DMG assets
+        id: assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          NAMES=$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name')
+
+          # arm64 DMG: explicit "arm64" / "apple silicon" / fallback to any .dmg
+          # whose name does NOT contain "x64" or non-mac platform markers.
+          ARM_NAME=$(echo "$NAMES" | grep -iE '\.dmg$' \
+            | grep -iE '(arm64|apple[-_. ]?silicon)' | head -n1 || true)
+          if [[ -z "$ARM_NAME" ]]; then
+            ARM_NAME=$(echo "$NAMES" | grep -iE '\.dmg$' \
+              | grep -iv 'x64' | grep -iv 'linux' | grep -iv 'win' | head -n1 || true)
+          fi
+
+          # x64 DMG
+          X64_NAME=$(echo "$NAMES" | grep -iE '\.dmg$' \
+            | grep -iE '(x64|x86[-_]?64|intel)' | head -n1 || true)
+
+          if [[ -z "$ARM_NAME" || -z "$X64_NAME" ]]; then
+            echo "::error::Could not locate both arm64 and x64 DMGs in release assets"
+            echo "Available assets:"
+            echo "$NAMES"
+            exit 1
+          fi
+
+          echo "arm_name=$ARM_NAME" >> "$GITHUB_OUTPUT"
+          echo "x64_name=$X64_NAME" >> "$GITHUB_OUTPUT"
+          echo "Found arm64 asset: $ARM_NAME"
+          echo "Found x64 asset:   $X64_NAME"
+
+      - name: Download DMGs and compute sha256
+        id: shas
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          ARM_NAME: ${{ steps.assets.outputs.arm_name }}
+          X64_NAME: ${{ steps.assets.outputs.x64_name }}
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+          curl -fsSL --retry 3 -o /tmp/arm.dmg "${BASE}/${ARM_NAME}"
+          curl -fsSL --retry 3 -o /tmp/x64.dmg "${BASE}/${X64_NAME}"
+          ARM_SHA=$(sha256sum /tmp/arm.dmg | awk '{print $1}')
+          X64_SHA=$(sha256sum /tmp/x64.dmg | awk '{print $1}')
+          echo "arm_sha=$ARM_SHA" >> "$GITHUB_OUTPUT"
+          echo "x64_sha=$X64_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TAP_OWNER }}/${{ env.TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Write cask file
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          ARM_NAME: ${{ steps.assets.outputs.arm_name }}
+          X64_NAME: ${{ steps.assets.outputs.x64_name }}
+          ARM_SHA: ${{ steps.shas.outputs.arm_sha }}
+          X64_SHA: ${{ steps.shas.outputs.x64_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p tap/Casks
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+
+          # #{version} is Ruby interpolation written literally to the cask
+          # file (bash heredoc leaves "#{...}" alone). \${VERSION}, \${ARM_SHA},
+          # etc. are bash variables expanded by the heredoc. The literal
+          # #{version} fixes Homebrew's "URL is unversioned" audit warning by
+          # making the version string statically detectable.
+          cat > "tap/Casks/${CASK_NAME}.rb" <<EOF
+          cask "${CASK_NAME}" do
+            version "${VERSION}"
+
+            on_arm do
+              sha256 "${ARM_SHA}"
+
+              url "https://github.com/${REPO}/releases/download/v#{version}/${ARM_NAME}"
+            end
+            on_intel do
+              sha256 "${X64_SHA}"
+
+              url "https://github.com/${REPO}/releases/download/v#{version}/${X64_NAME}"
+            end
+
+            name "Openscreen"
+            desc "Screen recorder and video editor"
+            homepage "https://github.com/${REPO}"
+
+            auto_updates false
+            depends_on macos: ">= :big_sur"
+
+            app "Openscreen.app"
+
+            zap trash: [
+              "~/Library/Application Support/Openscreen",
+              "~/Library/Caches/com.siddharthvaddem.openscreen",
+              "~/Library/Logs/Openscreen",
+              "~/Library/Preferences/com.siddharthvaddem.openscreen.plist",
+              "~/Library/Saved Application State/com.siddharthvaddem.openscreen.savedState",
+            ]
+          end
+          EOF
+
+      - name: Commit and push to tap
+        working-directory: tap
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "Casks/${CASK_NAME}.rb"
+          if git diff --cached --quiet; then
+            echo "Cask already up to date for ${VERSION} — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Bump ${CASK_NAME} to ${VERSION}"
+          git push

@@ -52,8 +52,7 @@
       "NSMicrophoneUsageDescription": "OpenScreen needs microphone access to record voice audio.",
       "NSCameraUsageDescription": "OpenScreen needs camera access to record webcam video.",
       "NSScreenCaptureUsageDescription": "OpenScreen needs screen recording permission to detect and capture windows.",
-      "NSCameraUseContinuityCameraDeviceType": true,
-      "com.apple.security.device.audio-input": true
+      "NSCameraUseContinuityCameraDeviceType": true
     }
   },
   "linux": {

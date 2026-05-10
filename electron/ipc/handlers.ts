@@ -757,6 +757,32 @@ export function registerIpcHandlers(
 		}
 	});
 
+	ipcMain.handle("request-screen-access", async () => {
+		if (process.platform !== "darwin") {
+			return { success: true, granted: true, status: "granted" };
+		}
+
+		try {
+			const status = systemPreferences.getMediaAccessStatus("screen");
+			if (status === "granted") {
+				return { success: true, granted: true, status };
+			}
+
+			// Screen recording has no askForMediaAccess equivalent — the TCC prompt
+			// is triggered by desktopCapturer.getSources(). Fire it and return so
+			// the renderer can re-check status after the user responds.
+			if (status === "not-determined") {
+				desktopCapturer.getSources({ types: ["screen"] }).catch(() => {});
+				return { success: true, granted: false, status: "not-determined" };
+			}
+
+			return { success: true, granted: false, status };
+		} catch (error) {
+			console.error("Failed to request screen access:", error);
+			return { success: false, granted: false, status: "unknown", error: String(error) };
+		}
+	});
+
 	// macOS Accessibility prompt for global click capture. First call shows the
 	// system dialog; the user has to toggle the app in System Settings (no
 	// programmatic grant exists for Accessibility).
@@ -1050,91 +1076,99 @@ export function registerIpcHandlers(
 	 */
 
 	ipcMain.handle(
-		"save-exported-video",
+		"pick-export-save-path",
 		async (
 			_,
-			videoData: ArrayBuffer,
 			fileName: string,
 			options?: { autoSaveToDownloads?: boolean; exportFolder?: string },
 		) => {
 			try {
-				// Determine file type from extension
 				const isGif = fileName.toLowerCase().endsWith(".gif");
 				const filters = isGif
 					? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
 					: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
 
-				let targetPath: string;
-
 				if (options?.autoSaveToDownloads) {
-					targetPath = await resolveAvailableDownloadPath(fileName);
-				} else {
-					const exportFolder = options?.exportFolder;
-					let defaultDir = app.getPath("downloads");
-					if (exportFolder) {
-						try {
-							const stats = await fs.stat(exportFolder);
-							if (stats.isDirectory()) {
-								defaultDir = exportFolder;
-							}
-						} catch (err) {
-							// Stat can fail because the folder was moved/deleted (expected) or
-							// because of a permission error (worth surfacing). Either way we
-							// fall back to Downloads, but log so debugging isn't blind.
-							console.warn(
-								`Could not access remembered export folder "${exportFolder}", falling back to Downloads:`,
-								err,
-							);
-						}
-					}
-					const dialogOptions = buildDialogOptions(
-						{
-							title: isGif
-								? mainT("dialogs", "fileDialogs.saveGif")
-								: mainT("dialogs", "fileDialogs.saveVideo"),
-							defaultPath: path.join(defaultDir, fileName),
-							filters,
-							properties: ["createDirectory", "showOverwriteConfirmation"],
-						},
-						getMainWindow(),
-					);
-					const result = await dialog.showSaveDialog(dialogOptions);
-
-					if (result.canceled || !result.filePath) {
-						return {
-							success: false,
-							canceled: true,
-							message: "Export canceled",
-						};
-					}
-
-					targetPath = result.filePath;
+					return { success: true, path: await resolveAvailableDownloadPath(fileName) };
 				}
 
-				// --- FIX: Normalize the path for Windows compatibility ---
-				const normalizedPath = path.normalize(targetPath);
+				// Prefer the user's last export folder if it still exists, otherwise fall
+				// back to ~/Downloads. Validation must happen here because the renderer
+				// can't stat the filesystem.
+				const exportFolder = options?.exportFolder;
+				let defaultDir = app.getPath("downloads");
+				if (exportFolder) {
+					try {
+						const stats = await fs.stat(exportFolder);
+						if (stats.isDirectory()) {
+							defaultDir = exportFolder;
+						}
+					} catch (err) {
+						console.warn(
+							`Could not access remembered export folder "${exportFolder}", falling back to Downloads:`,
+							err,
+						);
+					}
+				}
+				const dialogOptions = buildDialogOptions(
+					{
+						title: isGif
+							? mainT("dialogs", "fileDialogs.saveGif")
+							: mainT("dialogs", "fileDialogs.saveVideo"),
+						defaultPath: path.join(defaultDir, fileName),
+						filters,
+						properties: ["createDirectory", "showOverwriteConfirmation"],
+					},
+					getMainWindow(),
+				);
+				const result = await dialog.showSaveDialog(dialogOptions);
 
-				// Ensure the parent directory exists (Windows may fail if the folder is missing)
-				await fs.mkdir(path.dirname(normalizedPath), { recursive: true });
-				// --- END FIX ---
+				if (result.canceled || !result.filePath) {
+					return { success: false, canceled: true, message: "Export canceled" };
+				}
 
-				await fs.writeFile(normalizedPath, Buffer.from(videoData));
-
-				return {
-					success: true,
-					path: normalizedPath,
-					message: "Video exported successfully",
-				};
+				return { success: true, path: path.normalize(result.filePath) };
 			} catch (error) {
-				console.error("Failed to save exported video:", error);
+				console.error("Failed to show save dialog:", error);
 				return {
 					success: false,
-					message: "Failed to save exported video",
+					message: "Failed to show save dialog",
 					error: String(error),
 				};
 			}
 		},
 	);
+
+	ipcMain.handle("write-export-to-path", async (_, videoData: ArrayBuffer, filePath: string) => {
+		try {
+			// Sanity-check the path. The renderer is trusted (contextIsolation is on),
+			// but a stale state bug shouldn't be able to clobber arbitrary files.
+			if (typeof filePath !== "string" || !path.isAbsolute(filePath)) {
+				return { success: false, message: "Invalid path" };
+			}
+			const lower = filePath.toLowerCase();
+			if (!lower.endsWith(".mp4") && !lower.endsWith(".gif")) {
+				return { success: false, message: "Invalid file type" };
+			}
+
+			const normalizedPath = path.normalize(filePath);
+			await fs.mkdir(path.dirname(normalizedPath), { recursive: true });
+			await fs.writeFile(normalizedPath, Buffer.from(videoData));
+
+			return {
+				success: true,
+				path: normalizedPath,
+				message: "Video exported successfully",
+			};
+		} catch (error) {
+			console.error("Failed to write exported video:", error);
+			return {
+				success: false,
+				message: "Failed to save exported video",
+				error: String(error),
+			};
+		}
+	});
 	ipcMain.handle("open-video-file-picker", async () => {
 		try {
 			const dialogOptions = buildDialogOptions(

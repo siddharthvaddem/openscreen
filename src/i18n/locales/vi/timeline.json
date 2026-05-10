@@ -1,0 +1,55 @@
+{
+	"buttons": {
+		"addZoom": "Thêm Thu phóng (Z)",
+		"suggestZooms": "Đề xuất Thu phóng từ Con trỏ",
+		"addTrim": "Thêm Cắt (T)",
+		"addAnnotation": "Thêm Chú thích (A)",
+		"addBlur": "Thêm Làm mờ (B)",
+		"addSpeed": "Thêm Tốc độ (S)"
+	},
+	"hints": {
+		"pressZoom": "Nhấn Z để thêm thu phóng",
+		"pressTrim": "Nhấn T để thêm cắt",
+		"pressAnnotation": "Nhấn A để thêm chú thích",
+		"pressBlur": "Nhấn B để thêm vùng làm mờ",
+		"pressSpeed": "Nhấn S để thêm tốc độ"
+	},
+	"labels": {
+		"pan": "Xoay",
+		"zoom": "Thu phóng",
+		"trim": "Cắt",
+		"speed": "Tốc độ",
+		"zoomItem": "Thu phóng {{index}}",
+		"trimItem": "Cắt {{index}}",
+		"speedItem": "Tốc độ {{index}}",
+		"annotationItem": "Chú thích",
+		"blurItem": "Làm mờ {{index}}",
+		"imageItem": "Hình ảnh",
+		"emptyText": "Văn bản trống"
+	},
+	"emptyState": {
+		"noVideo": "Chưa tải video",
+		"dragAndDrop": "Kéo và thả video để bắt đầu chỉnh sửa"
+	},
+	"errors": {
+		"cannotPlaceZoom": "Không thể đặt thu phóng ở đây",
+		"zoomExistsAtLocation": "Thu phóng đã tồn tại ở vị trí này hoặc không có đủ không gian.",
+		"zoomSuggestionUnavailable": "Trình xử lý đề xuất thu phóng không khả dụng",
+		"noCursorTelemetry": "Không có dữ liệu từ xa của con trỏ",
+		"noCursorTelemetryDescription": "Ghi hình màn hình trước để tạo các đề xuất dựa trên con trỏ.",
+		"noUsableTelemetry": "Không có dữ liệu từ xa của con trỏ có thể sử dụng",
+		"noUsableTelemetryDescription": "Bản ghi không chứa đủ dữ liệu chuyển động của con trỏ.",
+		"noDwellMoments": "Không tìm thấy khoảnh khắc dừng con trỏ rõ ràng",
+		"noDwellMomentsDescription": "Thử ghi hình với các lần tạm dừng con trỏ chậm hơn ở các thao tác quan trọng.",
+		"noAutoZoomSlots": "Không có khe thu phóng tự động nào",
+		"noAutoZoomSlotsDescription": "Các điểm dừng được phát hiện chồng chéo với các vùng thu phóng hiện có.",
+		"cannotPlaceTrim": "Không thể đặt cắt ở đây",
+		"trimExistsAtLocation": "Cắt đã tồn tại ở vị trí này hoặc không có đủ không gian.",
+		"cannotPlaceSpeed": "Không thể đặt tốc độ ở đây",
+		"speedExistsAtLocation": "Vùng tốc độ đã tồn tại ở vị trí này hoặc không có đủ không gian."
+	},
+	"success": {
+		"addedZoomSuggestions": "Đã thêm {{count}} đề xuất thu phóng dựa trên con trỏ",
+		"addedZoomSuggestionsPlural": "Đã thêm {{count}} đề xuất thu phóng dựa trên con trỏ"
+	}
+}

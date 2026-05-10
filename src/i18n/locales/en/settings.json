@@ -1,6 +1,7 @@
 {
 	"zoom": {
 		"level": "Zoom Level",
+		"customScale": "Custom Zoom",
 		"selectRegion": "Select a zoom region to adjust",
 		"deleteZoom": "Delete Zoom",
 		"focusMode": {
@@ -16,6 +17,12 @@
 				"left": "Left",
 				"right": "Right"
 			}
+		},
+		"position": {
+			"title": "Focus Position",
+			"x": "X (%)",
+			"y": "Y (%)",
+			"hint": "0 = leftmost / topmost, 100 = rightmost / bottommost"
 		}
 	},
 	"speed": {
@@ -35,6 +42,7 @@
 		"pictureInPicture": "Picture in Picture",
 		"verticalStack": "Vertical Stack",
 		"dualFrame": "Dual Frame",
+		"noWebcam": "No Webcam",
 		"webcamShape": "Camera Shape",
 		"webcamSize": "Webcam Size"
 	},

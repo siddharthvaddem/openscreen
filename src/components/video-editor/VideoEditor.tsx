@@ -76,6 +76,7 @@ import {
 	type Rotation3DPreset,
 	type SpeedRegion,
 	type TrimRegion,
+	ZOOM_DEPTH_SCALES,
 	type ZoomDepth,
 	type ZoomFocus,
 	type ZoomFocusMode,
@@ -825,6 +826,7 @@ export default function VideoEditor() {
 				startMs: Math.round(span.start),
 				endMs: Math.round(span.end),
 				depth: DEFAULT_ZOOM_DEPTH,
+				customScale: ZOOM_DEPTH_SCALES[DEFAULT_ZOOM_DEPTH],
 				focus: { cx: 0.5, cy: 0.5 },
 			};
 			pushState((prev) => ({ zoomRegions: [...prev.zoomRegions, newRegion] }));
@@ -844,6 +846,7 @@ export default function VideoEditor() {
 				startMs: Math.round(span.start),
 				endMs: Math.round(span.end),
 				depth: DEFAULT_ZOOM_DEPTH,
+				customScale: ZOOM_DEPTH_SCALES[DEFAULT_ZOOM_DEPTH],
 				focus: clampFocusToDepth(focus, DEFAULT_ZOOM_DEPTH),
 			};
 			pushState((prev) => ({ zoomRegions: [...prev.zoomRegions, newRegion] }));
@@ -927,6 +930,7 @@ export default function VideoEditor() {
 						? {
 								...region,
 								depth,
+								customScale: ZOOM_DEPTH_SCALES[depth],
 								focus: clampFocusToDepth(region.focus, depth),
 							}
 						: region,
@@ -935,6 +939,24 @@ export default function VideoEditor() {
 		},
 		[selectedZoomId, pushState],
 	);
+
+	const handleZoomCustomScaleChange = useCallback(
+		(scale: number) => {
+			if (!selectedZoomId) return;
+			const rounded = Math.round(scale * 100) / 100;
+			if (!Number.isFinite(rounded)) return;
+			updateState((prev) => ({
+				zoomRegions: prev.zoomRegions.map((region) =>
+					region.id === selectedZoomId ? { ...region, customScale: rounded } : region,
+				),
+			}));
+		},
+		[selectedZoomId, updateState],
+	);
+
+	const handleZoomCustomScaleCommit = useCallback(() => {
+		commitState();
+	}, [commitState]);
 
 	const handleZoomFocusModeChange = useCallback(
 		(focusMode: ZoomFocusMode) => {
@@ -1466,17 +1488,19 @@ export default function VideoEditor() {
 	const handleSaveUnsavedExport = useCallback(async () => {
 		if (!unsavedExport) return;
 		try {
-			const saveResult = await window.electronAPI.saveExportedVideo(
-				unsavedExport.arrayBuffer,
-				unsavedExport.fileName,
-				{
-					autoSaveToDownloads: autoSaveExportToDownloads,
-					exportFolder: getExportFolder(),
-				},
-			);
-			if (saveResult.canceled) {
+			const pickResult = await window.electronAPI.pickExportSavePath(unsavedExport.fileName, {
+				autoSaveToDownloads: autoSaveExportToDownloads,
+				exportFolder: getExportFolder(),
+			});
+			if (pickResult.canceled || !pickResult.success || !pickResult.path) {
 				toast.info("Export canceled");
-			} else if (saveResult.success && saveResult.path) {
+				return;
+			}
+			const saveResult = await window.electronAPI.writeExportToPath(
+				unsavedExport.arrayBuffer,
+				pickResult.path,
+			);
+			if (saveResult.success && saveResult.path) {
 				setUnsavedExport(null);
 				handleExportSaved(unsavedExport.format === "gif" ? "GIF" : "Video", saveResult.path);
 			} else {
@@ -1500,6 +1524,21 @@ export default function VideoEditor() {
 				toast.error("Video not ready");
 				return;
 			}
+
+			// Ask the user where to save BEFORE starting the export. This avoids the
+			// post-export save dialog getting hidden behind other windows after a
+			// long-running export.
+			const isGifFormat = settings.format === "gif";
+			const targetFileName = `export-${Date.now()}.${isGifFormat ? "gif" : "mp4"}`;
+			const pickResult = await window.electronAPI.pickExportSavePath(targetFileName, {
+				autoSaveToDownloads: autoSaveExportToDownloads,
+				exportFolder: getExportFolder(),
+			});
+			if (pickResult.canceled || !pickResult.success || !pickResult.path) {
+				setShowExportDialog(false);
+				return;
+			}
+			const targetPath = pickResult.path;
 
 			setIsExporting(true);
 			setExportProgress(null);
@@ -1567,8 +1606,6 @@ export default function VideoEditor() {
 
 					if (result.success && result.blob) {
 						const arrayBuffer = await result.blob.arrayBuffer();
-						const timestamp = Date.now();
-						const fileName = `export-${timestamp}.gif`;
 
 						if (result.warnings) {
 							for (const warning of result.warnings) {
@@ -1576,18 +1613,13 @@ export default function VideoEditor() {
 							}
 						}
 
-						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName, {
-							autoSaveToDownloads: autoSaveExportToDownloads,
-							exportFolder: getExportFolder(),
-						});
+						const saveResult = await window.electronAPI.writeExportToPath(arrayBuffer, targetPath);
 
-						if (saveResult.canceled) {
-							setUnsavedExport({ arrayBuffer, fileName, format: "gif" });
-							toast.info("Export canceled");
-						} else if (saveResult.success && saveResult.path) {
+						if (saveResult.success && saveResult.path) {
 							setUnsavedExport(null);
 							handleExportSaved("GIF", saveResult.path);
 						} else {
+							setUnsavedExport({ arrayBuffer, fileName: targetFileName, format: "gif" });
 							setExportError(saveResult.message || "Failed to save GIF");
 							toast.error(saveResult.message || "Failed to save GIF");
 						}
@@ -1603,18 +1635,19 @@ export default function VideoEditor() {
 					let bitrate: number;
 
 					if (quality === "source") {
-						// Use source resolution
 						exportWidth = sourceWidth;
 						exportHeight = sourceHeight;
 
+						// Use the source's longer dimension as the long axis of the export so
+						// a landscape recording can still fill a portrait target (and vice versa).
+						const sourceLongDim = Math.max(sourceWidth, sourceHeight);
+
 						if (aspectRatioValue === 1) {
-							// Square (1:1): use smaller dimension to avoid codec limits
 							const baseDimension = Math.floor(Math.min(sourceWidth, sourceHeight) / 2) * 2;
 							exportWidth = baseDimension;
 							exportHeight = baseDimension;
 						} else if (aspectRatioValue > 1) {
-							// Landscape: find largest even dimensions that exactly match aspect ratio
-							const baseWidth = Math.floor(sourceWidth / 2) * 2;
+							const baseWidth = Math.floor(sourceLongDim / 2) * 2;
 							let found = false;
 							for (let w = baseWidth; w >= 100 && !found; w -= 2) {
 								const h = Math.round(w / aspectRatioValue);
@@ -1629,8 +1662,7 @@ export default function VideoEditor() {
 								exportHeight = Math.floor(baseWidth / aspectRatioValue / 2) * 2;
 							}
 						} else {
-							// Portrait: find largest even dimensions that exactly match aspect ratio
-							const baseHeight = Math.floor(sourceHeight / 2) * 2;
+							const baseHeight = Math.floor(sourceLongDim / 2) * 2;
 							let found = false;
 							for (let h = baseHeight; h >= 100 && !found; h -= 2) {
 								const w = Math.round(h * aspectRatioValue);
@@ -1646,7 +1678,6 @@ export default function VideoEditor() {
 							}
 						}
 
-						// Calculate visually lossless bitrate matching screen recording optimization
 						const totalPixels = exportWidth * exportHeight;
 						bitrate = 30_000_000;
 						if (totalPixels > 1920 * 1080 && totalPixels <= 2560 * 1440) {
@@ -1655,14 +1686,18 @@ export default function VideoEditor() {
 							bitrate = 80_000_000;
 						}
 					} else {
-						// Use quality-based target resolution
-						const targetHeight = quality === "medium" ? 720 : 1080;
+						// Quality presets target the SHORT side; the long side derives from the
+						// aspect ratio. This keeps 1080p portrait at 1080×1920 instead of 607×1080.
+						const targetShortDim = quality === "medium" ? 720 : 1080;
 
-						// Calculate dimensions maintaining aspect ratio
-						exportHeight = Math.floor(targetHeight / 2) * 2;
-						exportWidth = Math.floor((exportHeight * aspectRatioValue) / 2) * 2;
+						if (aspectRatioValue >= 1) {
+							exportHeight = Math.floor(targetShortDim / 2) * 2;
+							exportWidth = Math.floor((exportHeight * aspectRatioValue) / 2) * 2;
+						} else {
+							exportWidth = Math.floor(targetShortDim / 2) * 2;
+							exportHeight = Math.floor(exportWidth / aspectRatioValue / 2) * 2;
+						}
 
-						// Adjust bitrate for lower resolutions
 						const totalPixels = exportWidth * exportHeight;
 						if (totalPixels <= 1280 * 720) {
 							bitrate = 10_000_000;
@@ -1712,8 +1747,6 @@ export default function VideoEditor() {
 
 					if (result.success && result.blob) {
 						const arrayBuffer = await result.blob.arrayBuffer();
-						const timestamp = Date.now();
-						const fileName = `export-${timestamp}.mp4`;
 
 						if (result.warnings) {
 							for (const warning of result.warnings) {
@@ -1721,18 +1754,13 @@ export default function VideoEditor() {
 							}
 						}
 
-						const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName, {
-							autoSaveToDownloads: autoSaveExportToDownloads,
-							exportFolder: getExportFolder(),
-						});
+						const saveResult = await window.electronAPI.writeExportToPath(arrayBuffer, targetPath);
 
-						if (saveResult.canceled) {
-							setUnsavedExport({ arrayBuffer, fileName, format: "mp4" });
-							toast.info("Export canceled");
-						} else if (saveResult.success && saveResult.path) {
+						if (saveResult.success && saveResult.path) {
 							setUnsavedExport(null);
 							handleExportSaved("Video", saveResult.path);
 						} else {
+							setUnsavedExport({ arrayBuffer, fileName: targetFileName, format: "mp4" });
 							setExportError(saveResult.message || "Failed to save video");
 							toast.error(saveResult.message || "Failed to save video");
 						}
@@ -2157,12 +2185,28 @@ export default function VideoEditor() {
 							selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
 						}
 						onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
+						selectedZoomCustomScale={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.customScale ?? null)
+								: null
+						}
+						onZoomCustomScaleChange={handleZoomCustomScaleChange}
+						onZoomCustomScaleCommit={handleZoomCustomScaleCommit}
 						selectedZoomFocusMode={
 							selectedZoomId
 								? (zoomRegions.find((z) => z.id === selectedZoomId)?.focusMode ?? "manual")
 								: null
 						}
 						onZoomFocusModeChange={(mode) => selectedZoomId && handleZoomFocusModeChange(mode)}
+						selectedZoomFocus={
+							selectedZoomId
+								? (zoomRegions.find((z) => z.id === selectedZoomId)?.focus ?? null)
+								: null
+						}
+						onZoomFocusCoordinateChange={(focus) =>
+							selectedZoomId && handleZoomFocusChange(selectedZoomId, focus)
+						}
+						onZoomFocusCoordinateCommit={commitState}
 						hasCursorTelemetry={cursorTelemetry.length > 0}
 						selectedZoomId={selectedZoomId}
 						onZoomDelete={handleZoomDelete}

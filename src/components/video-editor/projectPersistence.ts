@@ -100,6 +100,7 @@ function computeNormalizedWebcamLayoutPreset(
 ): WebcamLayoutPreset {
 	switch (webcamLayoutPreset) {
 		case "picture-in-picture":
+		case "no-webcam":
 			return webcamLayoutPreset;
 		case "vertical-stack":
 			return isPortraitAspectRatio(normalizedAspectRatio)

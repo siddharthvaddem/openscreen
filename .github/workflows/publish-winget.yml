@@ -1,0 +1,26 @@
+name: Publish release to WinGet
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to winget (e.g. v1.4.0)"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: SiddharthVaddem.OpenScreen
+          # Match the Windows installer asset attached to each release.
+          # Today: "Openscreen.Setup.latest.exe". Adjust this regex if you
+          # ever rename the installer to include a version (e.g. "Setup\.\d+\.\d+\.\d+\.exe").
+          installers-regex: 'Setup\..*\.exe$'
+          release-tag: ${{ inputs.tag || github.event.release.tag_name }}
+          token: ${{ secrets.WINGET_ACC_TOKEN }}

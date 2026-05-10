@@ -1,0 +1,43 @@
+{
+	"tooltips": {
+		"hideHUD": "Ẩn HUD",
+		"closeApp": "Đóng ứng dụng",
+		"restartRecording": "Khởi động lại ghi hình",
+		"cancelRecording": "Hủy ghi hình",
+		"pauseRecording": "Tạm dừng ghi hình",
+		"resumeRecording": "Tiếp tục ghi hình",
+		"openVideoFile": "Mở tệp video",
+		"openProject": "Mở dự án"
+	},
+	"audio": {
+		"enableSystemAudio": "Bật âm thanh hệ thống",
+		"disableSystemAudio": "Tắt âm thanh hệ thống",
+		"enableMicrophone": "Bật micro",
+		"disableMicrophone": "Tắt micro",
+		"defaultMicrophone": "Micro Mặc định"
+	},
+	"webcam": {
+		"enableWebcam": "Bật webcam",
+		"disableWebcam": "Tắt webcam",
+		"defaultCamera": "Máy ảnh Mặc định",
+		"searching": "Đang tìm kiếm...",
+		"noneFound": "Không tìm thấy máy ảnh",
+		"unavailable": "Máy ảnh không khả dụng"
+	},
+	"sourceSelector": {
+		"loading": "Đang tải nguồn...",
+		"screens": "Màn hình ({{count}})",
+		"windows": "Cửa sổ ({{count}})",
+		"defaultSourceName": "Màn hình"
+	},
+	"recording": {
+		"selectSource": "Vui lòng chọn một nguồn để ghi"
+	},
+	"language": "Ngôn ngữ",
+	"systemLanguagePrompt": {
+		"title": "Sử dụng ngôn ngữ hệ thống của bạn?",
+		"description": "Chúng tôi phát hiện {{language}} là ngôn ngữ hệ thống của bạn. Bạn có muốn chuyển OpenScreen sang {{language}} không?",
+		"switch": "Chuyển sang {{language}}",
+		"keepDefault": "Giữ ngôn ngữ hiện tại"
+	}
+}

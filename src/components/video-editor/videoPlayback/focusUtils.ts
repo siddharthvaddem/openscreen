@@ -44,7 +44,7 @@ interface ViewportRatio {
 	heightRatio: number;
 }
 
-function getFocusBoundsForScale(zoomScale: number, viewportRatio?: ViewportRatio) {
+export function getFocusBoundsForScale(zoomScale: number, viewportRatio?: ViewportRatio) {
 	const wr = viewportRatio?.widthRatio ?? 1;
 	const hr = viewportRatio?.heightRatio ?? 1;
 	const marginX = Math.min(0.5, wr / (2 * zoomScale));

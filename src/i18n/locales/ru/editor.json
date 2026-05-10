@@ -1,0 +1,45 @@
+{
+	"newRecording": {
+		"title": "Вернуться к записи",
+		"description": "Ваша текущая сессия была сохранена.",
+		"cancel": "Отмена",
+		"confirm": "Подтвердить"
+	},
+	"loadingVideo": "Загрузка видео...",
+	"errors": {
+		"noVideoLoaded": "Видео не загружено",
+		"videoNotReady": "Видео не готово",
+		"unableToDetermineSourcePath": "Не удалось определить путь к исходному видео",
+		"failedToSaveGif": "Не удалось сохранить GIF",
+		"gifExportFailed": "Экспорт GIF не удался",
+		"failedToSaveVideo": "Не удалось сохранить видео",
+		"exportFailed": "Экспорт не удался",
+		"exportFailedWithError": "Экспорт не удался: {{error}}",
+		"exportBackgroundLoadFailed": "Экспорт не удался: не удалось загрузить фоновое изображение ({{url}})",
+		"failedToSaveExport": "Не удалось сохранить экспорт",
+		"failedToSaveExportedVideo": "Не удалось сохранить экспортированное видео",
+		"failedToRevealInFolder": "Ошибка при показе в папке: {{error}}"
+	},
+	"export": {
+		"canceled": "Экспорт отменён",
+		"exportedSuccessfully": "{{format}} успешно экспортирован"
+	},
+	"project": {
+		"saveCanceled": "Сохранение проекта отменено",
+		"failedToSave": "Не удалось сохранить проект",
+		"savedTo": "Проект сохранён в {{path}}",
+		"failedToLoad": "Не удалось загрузить проект",
+		"invalidFormat": "Неверный формат файла проекта",
+		"loadedFrom": "Проект загружен из {{path}}"
+	},
+	"recording": {
+		"failedCameraAccess": "Не удалось запросить доступ к камере.",
+		"cameraBlocked": "Доступ к камере заблокирован. Включите его в системных настройках для использования веб-камеры.",
+		"systemAudioUnavailable": "Системное аудио недоступно. Запись без системного аудио.",
+		"microphoneDenied": "Доступ к микрофону запрещён. Запись продолжится без аудио.",
+		"cameraDenied": "Доступ к камере запрещён. Запись продолжится без веб-камеры.",
+		"cameraDisconnected": "Веб-камера отключена.",
+		"cameraNotFound": "Камера не найдена.",
+		"permissionDenied": "Разрешение на запись запрещено. Пожалуйста, разрешите запись экрана."
+	}
+}

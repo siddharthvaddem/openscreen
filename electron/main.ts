@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
 	app,
 	BrowserWindow,
+	desktopCapturer,
 	ipcMain,
 	Menu,
 	nativeImage,
@@ -449,22 +450,47 @@ app.whenReady().then(async () => {
 		app.dock?.show();
 	}
 
-	// Allow microphone/media permission checks
+	// Allow microphone/media/screen permission checks
 	session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
-		const allowed = ["media", "audioCapture", "microphone", "videoCapture", "camera"];
+		const allowed = [
+			"media",
+			"audioCapture",
+			"microphone",
+			"videoCapture",
+			"camera",
+			"screen",
+			"display-capture",
+		];
 		return allowed.includes(permission);
 	});
 
 	session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-		const allowed = ["media", "audioCapture", "microphone", "videoCapture", "camera"];
+		const allowed = [
+			"media",
+			"audioCapture",
+			"microphone",
+			"videoCapture",
+			"camera",
+			"screen",
+			"display-capture",
+		];
 		callback(allowed.includes(permission));
 	});
 
-	// Request microphone permission from macOS
+	// Request microphone and screen recording permissions from macOS
 	if (process.platform === "darwin") {
 		const micStatus = systemPreferences.getMediaAccessStatus("microphone");
 		if (micStatus !== "granted") {
 			await systemPreferences.askForMediaAccess("microphone");
+		}
+
+		// Screen recording has no askForMediaAccess equivalent — the TCC prompt is
+		// triggered by the first desktopCapturer.getSources() call. Firing it here
+		// at startup settles the permission state early and prevents repeated prompts
+		// driven by later getSources() calls (fixes repeated permission dialog).
+		const screenStatus = systemPreferences.getMediaAccessStatus("screen");
+		if (screenStatus === "not-determined") {
+			desktopCapturer.getSources({ types: ["screen"] }).catch(() => {});
 		}
 	}
 

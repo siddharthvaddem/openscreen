@@ -1,0 +1,43 @@
+{
+	"tooltips": {
+		"hideHUD": "Скрыть HUD",
+		"closeApp": "Закрыть приложение",
+		"restartRecording": "Перезапустить запись",
+		"cancelRecording": "Отменить запись",
+		"pauseRecording": "Приостановить запись",
+		"resumeRecording": "Возобновить запись",
+		"openVideoFile": "Открыть видеофайл",
+		"openProject": "Открыть проект"
+	},
+	"audio": {
+		"enableSystemAudio": "Включить системное аудио",
+		"disableSystemAudio": "Отключить системное аудио",
+		"enableMicrophone": "Включить микрофон",
+		"disableMicrophone": "Отключить микрофон",
+		"defaultMicrophone": "Микрофон по умолчанию"
+	},
+	"webcam": {
+		"enableWebcam": "Включить веб-камеру",
+		"disableWebcam": "Отключить веб-камеру",
+		"defaultCamera": "Камера по умолчанию",
+		"searching": "Поиск...",
+		"noneFound": "Камера не найдена",
+		"unavailable": "Камера недоступна"
+	},
+	"sourceSelector": {
+		"loading": "Загрузка источников...",
+		"screens": "Экраны ({{count}})",
+		"windows": "Окна ({{count}})",
+		"defaultSourceName": "Экран"
+	},
+	"recording": {
+		"selectSource": "Пожалуйста, выберите источник для записи"
+	},
+	"language": "Язык",
+	"systemLanguagePrompt": {
+		"title": "Использовать системный язык?",
+		"description": "Мы обнаружили {{language}} как системный язык. Хотите переключить OpenScreen на {{language}}?",
+		"switch": "Переключить на {{language}}",
+		"keepDefault": "Оставить текущий язык"
+	}
+}

@@ -65,6 +65,8 @@ export interface ZoomRegion {
 	focus: ZoomFocus;
 	focusMode?: ZoomFocusMode;
 	rotationPreset?: Rotation3DPreset;
+	/** Custom scale overriding the preset depth (1.0–5.0, two decimal precision). */
+	customScale?: number;
 }
 
 export function getRotation3D(region: Pick<ZoomRegion, "rotationPreset">): Rotation3D {
@@ -356,7 +358,19 @@ export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
 	6: 5.0,
 };
 
+export const MIN_ZOOM_SCALE = 1.0;
+export const MAX_ZOOM_SCALE = 5.0;
+
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
+
+/** Returns the effective zoom scale for a region, preferring customScale over the preset. */
+export function getZoomScale(region: ZoomRegion): number {
+	if (region.customScale != null) {
+		const clamped = Math.max(MIN_ZOOM_SCALE, Math.min(MAX_ZOOM_SCALE, region.customScale));
+		if (Number.isFinite(clamped)) return clamped;
+	}
+	return ZOOM_DEPTH_SCALES[region.depth];
+}
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {

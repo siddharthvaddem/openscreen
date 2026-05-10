@@ -1,0 +1,118 @@
+name: Bump Nix package on release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to bump (e.g. v1.5.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    steps:
+      - name: Resolve tag and version
+        id: meta
+        env:
+          GH_EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="${GH_EVENT_TAG:-$INPUT_TAG}"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No tag resolved from release event or workflow input"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          BRANCH="chore/bump-nix-${VERSION}"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH"   >> "$GITHUB_OUTPUT"
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Compute npmDepsHash
+        id: hash
+        run: |
+          set -euo pipefail
+          HASH=$(nix run nixpkgs#prefetch-npm-deps -- package-lock.json)
+          if [[ -z "$HASH" ]]; then
+            echo "::error::prefetch-npm-deps returned an empty hash"
+            exit 1
+          fi
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "Computed npmDepsHash: $HASH"
+
+      - name: Update nix/package.nix
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          HASH: ${{ steps.hash.outputs.hash }}
+        run: |
+          set -euo pipefail
+          # Update version line: `  version = "<anything>";`
+          sed -i -E "s|^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]*\";|\1\"${VERSION}\";|" nix/package.nix
+          # Update npmDepsHash line: `  npmDepsHash = "<anything>";`
+          sed -i -E "s|^([[:space:]]*npmDepsHash[[:space:]]*=[[:space:]]*)\"[^\"]*\";|\1\"${HASH}\";|" nix/package.nix
+
+          echo "=== diff ==="
+          git --no-pager diff nix/package.nix || true
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          HASH: ${{ steps.hash.outputs.hash }}
+          BRANCH: ${{ steps.meta.outputs.branch }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- nix/package.nix; then
+            echo "nix/package.nix already at v${VERSION} with this hash — nothing to do."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Replace any prior bump branch to keep the workflow idempotent.
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+          git checkout -b "$BRANCH"
+          git add nix/package.nix
+          git commit -m "chore: bump nix package to v${VERSION}"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "chore: bump nix package to v${VERSION}" \
+            --base main \
+            --head "$BRANCH" \
+            --body "$(cat <<EOF
+          Automated bump triggered by release \`${TAG}\`.
+
+          - \`version\` → \`${VERSION}\`
+          - \`npmDepsHash\` → \`${HASH}\` (computed via \`prefetch-npm-deps package-lock.json\`)
+
+          Merge this so Nix users (NixOS, Home Manager, \`nix run github:siddharthvaddem/openscreen\`) pick up the new release.
+
+          > Note: PRs opened by \`GITHUB_TOKEN\` don't auto-trigger CI. The diff is two lines — review the change here, then merge. If you want CI to run, push an empty commit to this branch or close-and-reopen the PR.
+          EOF
+          )"

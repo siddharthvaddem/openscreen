@@ -1,0 +1,37 @@
+{
+	"title": "Phím tắt",
+	"customize": "Tùy chỉnh",
+	"configurable": "Có thể định cấu hình",
+	"fixed": "Cố định",
+	"pressKey": "Nhấn một phím…",
+	"clickToChange": "Nhấp để thay đổi",
+	"pressEscToCancel": "Nhấn Esc để hủy",
+	"helpText": "Nhấp vào một phím tắt rồi nhấn tổ hợp phím mới. Nhấn Esc để hủy.",
+	"resetToDefaults": "Khôi phục mặc định",
+	"alreadyUsedBy": "Đã được sử dụng bởi {{action}}",
+	"swap": "Hoán đổi",
+	"reservedShortcut": "Phím tắt này được dành riêng cho \"{{label}}\" và không thể gán lại.",
+	"savedToast": "Đã lưu phím tắt",
+	"resetToast": "Đã đặt lại về phím tắt mặc định — nhấp Lưu để áp dụng",
+	"actions": {
+		"addZoom": "Thêm Thu phóng",
+		"addTrim": "Thêm Cắt",
+		"addSpeed": "Thêm Tốc độ",
+		"addAnnotation": "Thêm Chú thích",
+		"addBlur": "Thêm Làm mờ",
+		"addKeyframe": "Thêm Khung hình chính",
+		"deleteSelected": "Xóa mục đã chọn",
+		"playPause": "Phát / Tạm dừng"
+	},
+	"fixedActions": {
+		"undo": "Hoàn tác",
+		"redo": "Làm lại",
+		"cycleAnnotationsForward": "Chuyển tiếp qua các chú thích",
+		"cycleAnnotationsBackward": "Chuyển lùi qua các chú thích",
+		"deleteSelectedAlt": "Xóa mục đã chọn (alt)",
+		"panTimeline": "Xoay Trục thời gian",
+		"zoomTimeline": "Thu phóng Trục thời gian",
+		"frameBack": "Lùi một khung hình",
+		"frameForward": "Tiến một khung hình"
+	}
+}

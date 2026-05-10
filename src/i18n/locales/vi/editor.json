@@ -1,0 +1,45 @@
+{
+	"newRecording": {
+		"title": "Quay lại Trình ghi",
+		"description": "Phiên hiện tại của bạn đã được lưu.",
+		"cancel": "Hủy",
+		"confirm": "Xác nhận"
+	},
+	"loadingVideo": "Đang tải video...",
+	"errors": {
+		"noVideoLoaded": "Chưa tải video nào",
+		"videoNotReady": "Video chưa sẵn sàng",
+		"unableToDetermineSourcePath": "Không thể xác định đường dẫn video gốc",
+		"failedToSaveGif": "Không thể lưu GIF",
+		"gifExportFailed": "Xuất GIF thất bại",
+		"failedToSaveVideo": "Không thể lưu video",
+		"exportFailed": "Xuất thất bại",
+		"exportFailedWithError": "Xuất thất bại: {{error}}",
+		"exportBackgroundLoadFailed": "Xuất thất bại: không thể tải hình nền ({{url}})",
+		"failedToSaveExport": "Không thể lưu bản xuất",
+		"failedToSaveExportedVideo": "Không thể lưu video đã xuất",
+		"failedToRevealInFolder": "Lỗi khi hiển thị trong thư mục: {{error}}"
+	},
+	"export": {
+		"canceled": "Đã hủy xuất",
+		"exportedSuccessfully": "Đã xuất {{format}} thành công"
+	},
+	"project": {
+		"saveCanceled": "Đã hủy lưu dự án",
+		"failedToSave": "Lưu dự án thất bại",
+		"savedTo": "Đã lưu dự án vào {{path}}",
+		"failedToLoad": "Tải dự án thất bại",
+		"invalidFormat": "Định dạng tệp dự án không hợp lệ",
+		"loadedFrom": "Đã tải dự án từ {{path}}"
+	},
+	"recording": {
+		"failedCameraAccess": "Yêu cầu quyền truy cập máy ảnh thất bại.",
+		"cameraBlocked": "Quyền truy cập máy ảnh bị chặn. Hãy bật nó trong cài đặt hệ thống để sử dụng webcam.",
+		"systemAudioUnavailable": "Âm thanh hệ thống không khả dụng. Ghi hình không có âm thanh hệ thống.",
+		"microphoneDenied": "Quyền truy cập micro bị từ chối. Sẽ tiếp tục ghi hình không có âm thanh.",
+		"cameraDenied": "Quyền truy cập máy ảnh bị từ chối. Sẽ tiếp tục ghi hình không có webcam.",
+		"cameraDisconnected": "Webcam bị ngắt kết nối.",
+		"cameraNotFound": "Không tìm thấy máy ảnh.",
+		"permissionDenied": "Quyền ghi hình bị từ chối. Vui lòng cho phép ghi màn hình."
+	}
+}
