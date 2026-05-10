@@ -193,14 +193,17 @@ function normalizeCursorHighlight(value: unknown): CursorHighlightConfig {
 	};
 }
 
+function isPersistableBackgroundReference(value: string): boolean {
+	return /^(file:\/\/|https?:\/\/)/.test(value) || value.startsWith("/wallpapers/");
+}
+
 function normalizeCustomImages(value: unknown): string[] {
 	if (!Array.isArray(value)) return [...DEFAULT_PREFS.customImages];
 	return Array.from(
 		new Set(
 			value.filter(
 				(item): item is string =>
-					typeof item === "string" &&
-					(/^(data:image\/|file:\/\/|https?:\/\/)/.test(item) || item.startsWith("/wallpapers/")),
+					typeof item === "string" && isPersistableBackgroundReference(item),
 			),
 		),
 	).slice(0, 20);
@@ -221,7 +224,9 @@ export function loadUserPreferences(): UserPreferences {
 
 	return {
 		wallpaper:
-			typeof raw.wallpaper === "string" && raw.wallpaper.trim()
+			typeof raw.wallpaper === "string" &&
+			raw.wallpaper.trim() &&
+			isPersistableBackgroundReference(raw.wallpaper)
 				? raw.wallpaper
 				: DEFAULT_PREFS.wallpaper,
 		customImages: normalizeCustomImages(raw.customImages),

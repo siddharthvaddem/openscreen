@@ -86,6 +86,21 @@ describe("userPreferences", () => {
 		expect(second.cropRegion.x).toBe(0);
 		expect(second.cursorHighlight.enabled).toBe(false);
 	});
+
+	it("does not preserve legacy data URL background images in localStorage", () => {
+		const uploadedBackground =
+			"file:///Users/me/Library/Application%20Support/Openscreen/background-images/bg.png";
+		const legacyDataUrl = "data:image/png;base64,AAA";
+
+		saveUserPreferences({
+			wallpaper: legacyDataUrl,
+			customImages: [legacyDataUrl, uploadedBackground],
+		});
+
+		const prefs = loadUserPreferences();
+		expect(prefs.wallpaper).toBe(DEFAULT_WALLPAPER);
+		expect(prefs.customImages).toEqual([uploadedBackground]);
+	});
 });
 
 describe("parentDirectoryOf", () => {
