@@ -89,14 +89,34 @@ function resolveBackgroundImageOutputPath(fileName: string, mimeType?: string): 
 	const extension = path.extname(fileName).toLowerCase();
 
 	if (normalizedType && !ALLOWED_BACKGROUND_IMAGE_TYPES.has(normalizedType)) {
-		throw new Error("Unsupported background image type");
+		throw new Error(`Unsupported background image type: ${normalizedType}`);
 	}
 
 	if (!ALLOWED_BACKGROUND_IMAGE_EXTENSIONS.has(extension)) {
-		throw new Error("Unsupported background image extension");
+		throw new Error(`Unsupported background image extension: ${extension || "(none)"}`);
 	}
 
 	return path.join(BACKGROUND_IMAGES_DIR, `${randomUUID()}${extension}`);
+}
+
+async function resolveAvailableDownloadPath(fileName: string): Promise<string> {
+	const downloadsDir = app.getPath("downloads");
+	const extension = path.extname(fileName);
+	const baseName = path.basename(fileName, extension);
+	let targetPath = path.join(downloadsDir, fileName);
+	let counter = 1;
+
+	while (
+		await fs
+			.access(targetPath)
+			.then(() => true)
+			.catch(() => false)
+	) {
+		targetPath = path.join(downloadsDir, `${baseName} (${counter})${extension}`);
+		counter += 1;
+	}
+
+	return targetPath;
 }
 
 async function approveReadableVideoPath(
@@ -1047,7 +1067,7 @@ export function registerIpcHandlers(
 				let targetPath: string;
 
 				if (options?.autoSaveToDownloads) {
-					targetPath = path.join(app.getPath("downloads"), fileName);
+					targetPath = await resolveAvailableDownloadPath(fileName);
 				} else {
 					const exportFolder = options?.exportFolder;
 					let defaultDir = app.getPath("downloads");
