@@ -1531,9 +1531,13 @@ export function registerIpcHandlers(
 				await hideSystemCursor();
 				createCursorOverlayWindow();
 			} else {
-				// Restore cursor first so the user regains visual feedback immediately.
 				destroyCursorOverlayWindow();
-				await restoreSystemCursor();
+				// Fire cursor restore without awaiting — Add-Type C# compilation in
+				// PowerShell takes 3-5 s and must not block the stop-recording flow.
+				// The cursor will be visible again within a few seconds.
+				restoreSystemCursor().catch((err) =>
+					console.error("[cursor-hide] async restore failed:", err),
+				);
 				await stopCursorRecording();
 				stopHudCursorPolling();
 			}
