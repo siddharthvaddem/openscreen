@@ -1,5 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { constants as fsConstants } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { constants as fsConstants, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -494,6 +495,25 @@ function runPowerShellOneShot(script: string): Promise<void> {
 			resolve();
 			return;
 		}
+
+		// Write to a temp .ps1 file and run with -File so that multiline
+		// here-strings and embedded quotes are preserved exactly.  Passing the
+		// script via -Command mangles embedded newlines / double-quotes through
+		// Node's CreateProcess argument encoding.
+		const scriptDir = path.join(os.tmpdir(), "openscreen-cursor-scripts");
+		const scriptPath = path.join(
+			scriptDir,
+			`cursor-${process.pid}-${Date.now()}-${randomUUID()}.ps1`,
+		);
+		try {
+			mkdirSync(scriptDir, { recursive: true });
+			writeFileSync(scriptPath, script, "utf8");
+		} catch (err) {
+			console.error("[cursor-hide] failed to write PS1 script:", err);
+			resolve();
+			return;
+		}
+
 		const proc = spawn(
 			"powershell.exe",
 			[
@@ -502,25 +522,38 @@ function runPowerShellOneShot(script: string): Promise<void> {
 				"-NonInteractive",
 				"-ExecutionPolicy",
 				"Bypass",
-				"-Command",
-				script,
+				"-File",
+				scriptPath,
 			],
 			{ stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
 		);
+
+		const cleanup = () => {
+			try {
+				rmSync(scriptPath, { force: true });
+			} catch {
+				// best-effort cleanup
+			}
+		};
+
 		const timer = setTimeout(() => {
 			try {
 				proc.kill();
 			} catch {
 				// best-effort process kill — ignore ESRCH / already-dead errors
 			}
+			cleanup();
 			resolve();
 		}, 5_000);
+
 		proc.once("exit", () => {
 			clearTimeout(timer);
+			cleanup();
 			resolve();
 		});
 		proc.once("error", (err) => {
 			clearTimeout(timer);
+			cleanup();
 			console.error("[cursor-hide] PowerShell error:", err.message);
 			resolve(); // best-effort — never block recording on this
 		});
@@ -2083,8 +2116,17 @@ export function registerIpcHandlers(
 	if (process.platform === "win32") {
 		app.once("before-quit", () => {
 			destroyCursorOverlayWindow();
+			// Synchronous restore on quit — write to temp file to avoid the
+			// -Command quote-mangling issue (same fix as runPowerShellOneShot).
 			const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
 			try {
+				const scriptPath = path.join(
+					os.tmpdir(),
+					`openscreen-cursor-scripts`,
+					`cursor-quit-${process.pid}.ps1`,
+				);
+				mkdirSync(path.dirname(scriptPath), { recursive: true });
+				writeFileSync(scriptPath, RESTORE_CURSOR_SCRIPT, "utf8");
 				spawnSync(
 					"powershell.exe",
 					[
@@ -2093,11 +2135,12 @@ export function registerIpcHandlers(
 						"-NonInteractive",
 						"-ExecutionPolicy",
 						"Bypass",
-						"-Command",
-						RESTORE_CURSOR_SCRIPT,
+						"-File",
+						scriptPath,
 					],
 					{ windowsHide: true, timeout: 3_000 },
 				);
+				rmSync(scriptPath, { force: true });
 			} catch {
 				// best-effort — don't crash the quit sequence
 			}
