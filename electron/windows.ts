@@ -17,6 +17,38 @@ const ASSET_BASE_DIR = process.defaultApp
 const ASSET_BASE_URL_ARG = `--asset-base-url=${pathToFileURL(`${ASSET_BASE_DIR}${path.sep}`).toString()}`;
 
 let hudOverlayWindow: BrowserWindow | null = null;
+let cursorOverlayWindow: BrowserWindow | null = null;
+
+// ── HUD cursor-polling ───────────────────────────────────────────────────────
+// When getUserMedia captures the desktop with `cursor: "never"`, Chromium's
+// capture pipeline may interfere with the { forward: true } mouse-move relay
+// that the renderer uses to decide when to enable/disable click-through.
+// As a reliable fallback, the main process polls the cursor position every
+// 50 ms and drives setIgnoreMouseEvents directly — no renderer events needed.
+let hudCursorPollInterval: NodeJS.Timeout | null = null;
+
+export function startHudCursorPolling(): void {
+	stopHudCursorPolling();
+	hudCursorPollInterval = setInterval(() => {
+		if (!hudOverlayWindow || hudOverlayWindow.isDestroyed()) return;
+		const cursor = screen.getCursorScreenPoint();
+		const { x, y, width, height } = hudOverlayWindow.getBounds();
+		const isOverHud =
+			cursor.x >= x && cursor.x <= x + width && cursor.y >= y && cursor.y <= y + height;
+		hudOverlayWindow.setIgnoreMouseEvents(!isOverHud, { forward: true });
+	}, 50);
+}
+
+export function stopHudCursorPolling(): void {
+	if (hudCursorPollInterval !== null) {
+		clearInterval(hudCursorPollInterval);
+		hudCursorPollInterval = null;
+	}
+	// Restore normal pass-through so the renderer's onPointerMove takes over.
+	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
+		hudOverlayWindow.setIgnoreMouseEvents(true, { forward: true });
+	}
+}
 
 ipcMain.on("hud-overlay-hide", () => {
 	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
@@ -76,6 +108,12 @@ export function createHudOverlayWindow(): BrowserWindow {
 		},
 	});
 	win.setIgnoreMouseEvents(true, { forward: true });
+
+	// Exclude the HUD from desktop screen captures so the recording controls
+	// never appear in the user's footage. On Windows this calls
+	// SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE); on macOS it uses the
+	// equivalent CGWindowLevel exclusion path.
+	win.setContentProtection(true);
 
 	// Follow the user across macOS Spaces (virtual desktops).
 	// Without this the HUD stays pinned to the Space it was first opened on.
@@ -217,6 +255,89 @@ export function createSourceSelectorWindow(): BrowserWindow {
 	}
 
 	return win;
+}
+
+/**
+ * Creates a full-screen transparent click-through window that renders a
+ * virtual software cursor. Used when the OS cursor is hidden during
+ * editable-overlay recording so the user can still see where their cursor is
+ * without it appearing in the raw footage.
+ *
+ * The window is excluded from screen capture via setContentProtection so the
+ * virtual cursor is never baked into recorded video.
+ */
+export function createCursorOverlayWindow(): BrowserWindow {
+	if (cursorOverlayWindow && !cursorOverlayWindow.isDestroyed()) {
+		return cursorOverlayWindow;
+	}
+
+	const { bounds } = screen.getPrimaryDisplay();
+
+	const win = new BrowserWindow({
+		width: bounds.width,
+		height: bounds.height,
+		x: bounds.x,
+		y: bounds.y,
+		frame: false,
+		resizable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		focusable: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		hasShadow: false,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	// Sit above everything including the HUD so the virtual cursor renders on top.
+	win.setAlwaysOnTop(true, "screen-saver");
+	// Click-through: mouse events pass to windows below, but the renderer DOM
+	// still fires mousemove so we can track cursor position.
+	win.setIgnoreMouseEvents(true, { forward: true });
+	// Excluded from screen capture — virtual cursor must NOT appear in footage.
+	win.setContentProtection(true);
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	win.once("ready-to-show", () => {
+		if (!HEADLESS) win.show();
+	});
+
+	cursorOverlayWindow = win;
+	win.on("closed", () => {
+		if (cursorOverlayWindow === win) {
+			cursorOverlayWindow = null;
+		}
+	});
+
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(VITE_DEV_SERVER_URL + "?windowType=cursor-overlay");
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "cursor-overlay" },
+		});
+	}
+
+	return win;
+}
+
+/**
+ * Closes and cleans up the virtual cursor overlay window.
+ */
+export function destroyCursorOverlayWindow(): void {
+	if (cursorOverlayWindow && !cursorOverlayWindow.isDestroyed()) {
+		cursorOverlayWindow.close();
+	}
+	cursorOverlayWindow = null;
 }
 
 /**

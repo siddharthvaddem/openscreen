@@ -36,6 +36,12 @@ import { mainT } from "../i18n";
 import { RECORDINGS_DIR } from "../main";
 import { createCursorRecordingSession } from "../native-bridge/cursor/recording/factory";
 import type { CursorRecordingSession } from "../native-bridge/cursor/recording/session";
+import {
+	createCursorOverlayWindow,
+	destroyCursorOverlayWindow,
+	startHudCursorPolling,
+	stopHudCursorPolling,
+} from "../windows";
 import { registerNativeBridgeHandlers } from "./nativeBridge";
 
 const PROJECT_FILE_EXTENSION = "openscreen";
@@ -471,6 +477,98 @@ function resolvePackagedResourcePath(...segments: string[]) {
 	}
 
 	return path.join(process.resourcesPath, ...segments);
+}
+
+// ── System-cursor hide / restore (Windows only) ──────────────────────────────
+// When recording in editable-overlay mode via getUserMedia, Chromium bakes the
+// OS cursor into every captured frame regardless of the `cursor` constraint.
+// We work around this by replacing every system cursor with a 32×32 fully
+// transparent cursor bitmap so the OS cursor is invisible (and therefore absent
+// from the footage), while a virtual SVG cursor rendered in the excluded HUD
+// gives the user visual feedback.  On recording stop we restore all cursors
+// from the registry with SPI_SETCURSORS (87).
+
+function runPowerShellOneShot(script: string): Promise<void> {
+	return new Promise((resolve) => {
+		if (process.platform !== "win32") {
+			resolve();
+			return;
+		}
+		const proc = spawn(
+			"powershell.exe",
+			[
+				"-NoLogo",
+				"-NoProfile",
+				"-NonInteractive",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				script,
+			],
+			{ stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
+		);
+		const timer = setTimeout(() => {
+			try {
+				proc.kill();
+			} catch {
+				// best-effort process kill — ignore ESRCH / already-dead errors
+			}
+			resolve();
+		}, 5_000);
+		proc.once("exit", () => {
+			clearTimeout(timer);
+			resolve();
+		});
+		proc.once("error", (err) => {
+			clearTimeout(timer);
+			console.error("[cursor-hide] PowerShell error:", err.message);
+			resolve(); // best-effort — never block recording on this
+		});
+	});
+}
+
+const HIDE_CURSOR_SCRIPT = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class OpenScreenCursorHider {
+    [DllImport("user32.dll")] public static extern bool SetSystemCursor(IntPtr hcur, uint id);
+    [DllImport("user32.dll")] public static extern IntPtr CreateCursor(IntPtr hInst, int xHotspot, int yHotspot, int nWidth, int nHeight, byte[] pvANDPlane, byte[] pvXORPlane);
+    public static readonly uint[] Ids = new uint[]{32512,32513,32514,32515,32516,32640,32641,32642,32643,32644,32645,32646,32648,32649,32650,32651};
+    public static void HideAll() {
+        byte[] andMask = new byte[128]; byte[] xorMask = new byte[128];
+        for (int i = 0; i < 128; i++) { andMask[i] = 0xFF; xorMask[i] = 0x00; }
+        foreach (uint id in Ids) {
+            IntPtr h = CreateCursor(IntPtr.Zero, 0, 0, 32, 32, andMask, xorMask);
+            if (h != IntPtr.Zero) SetSystemCursor(h, id);
+        }
+    }
+}
+"@
+[OpenScreenCursorHider]::HideAll()
+`;
+
+const RESTORE_CURSOR_SCRIPT = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class OpenScreenCursorRestorer {
+    [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
+}
+"@
+[OpenScreenCursorRestorer]::SystemParametersInfo(87, 0, [IntPtr]::Zero, 0)
+`;
+
+async function hideSystemCursor(): Promise<void> {
+	if (process.platform !== "win32") return;
+	console.info("[cursor-hide] hiding OS cursor for editable-overlay recording");
+	await runPowerShellOneShot(HIDE_CURSOR_SCRIPT);
+}
+
+async function restoreSystemCursor(): Promise<void> {
+	if (process.platform !== "win32") return;
+	console.info("[cursor-hide] restoring OS cursor");
+	await runPowerShellOneShot(RESTORE_CURSOR_SCRIPT);
 }
 
 function getNativeWindowsCaptureHelperCandidates() {
@@ -1424,8 +1522,20 @@ export function registerIpcHandlers(
 				normalizeCursorCaptureMode(cursorCaptureMode) ?? "editable-overlay";
 			if (recording && normalizedCursorCaptureMode === "editable-overlay") {
 				await startCursorRecording(recordingId);
+				// Drive HUD interactivity from the main process so stop/pause/discard
+				// remain responsive even when the OS cursor is transparent.
+				startHudCursorPolling();
+				// Hide the OS cursor so getUserMedia stops baking it into raw frames.
+				// A virtual cursor rendered in the excluded overlay window gives the
+				// user visual feedback without appearing in the recorded footage.
+				await hideSystemCursor();
+				createCursorOverlayWindow();
 			} else {
+				// Restore cursor first so the user regains visual feedback immediately.
+				destroyCursorOverlayWindow();
+				await restoreSystemCursor();
 				await stopCursorRecording();
+				stopHudCursorPolling();
 			}
 
 			const source = selectedSource || { name: "Screen" };
@@ -1963,6 +2073,32 @@ export function registerIpcHandlers(
 			}
 		},
 	);
+
+	// Safety net: always restore the OS cursor on quit in case recording was
+	// active and the user closed the app without stopping it first.
+	if (process.platform === "win32") {
+		app.once("before-quit", () => {
+			destroyCursorOverlayWindow();
+			const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+			try {
+				spawnSync(
+					"powershell.exe",
+					[
+						"-NoLogo",
+						"-NoProfile",
+						"-NonInteractive",
+						"-ExecutionPolicy",
+						"Bypass",
+						"-Command",
+						RESTORE_CURSOR_SCRIPT,
+					],
+					{ windowsHide: true, timeout: 3_000 },
+				);
+			} catch {
+				// best-effort — don't crash the quit sequence
+			}
+		});
+	}
 
 	registerNativeBridgeHandlers({
 		getPlatform: () => process.platform,
