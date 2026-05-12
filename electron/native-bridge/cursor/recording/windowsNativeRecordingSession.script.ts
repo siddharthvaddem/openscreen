@@ -402,7 +402,18 @@ while ($true) {
         continue
     }
 
+    # CURSOR_SHOWING = 0x1.  When an app (Figma, Photoshop, games) calls
+    # ShowCursor(false) the OS cursor is hidden for that window's input
+    # context, and GetCursorInfo's flags drops to 0.  We capture this as
+    # $osCursorHidden so the helper, editor, and exporter can skip drawing
+    # our virtual cursor on top of the app's own drawn cursor and avoid
+    # showing the user a duplicate.
+    #
+    # This signal is INDEPENDENT of any SetSystemCursor(transparent) we do
+    # for capture: SetSystemCursor only replaces the cursor bitmap, the
+    # CURSOR_SHOWING flag still reflects the app's hide/show intent.
     $visible = ($cursorInfo.flags -band 1) -ne 0
+    $osCursorHidden = -not $visible
     $cursorId = if ($cursorInfo.hCursor -eq [IntPtr]::Zero) { $null } else { ('0x{0:X}' -f $cursorInfo.hCursor.ToInt64()) }
     $cursorType = Get-StandardCursorType $cursorInfo.hCursor
     $leftButtonState = [OpenScreenCursorInterop]::GetAsyncKeyState(0x01)
@@ -434,6 +445,7 @@ while ($true) {
         x = $cursorInfo.ptScreenPos.X
         y = $cursorInfo.ptScreenPos.Y
         visible = $visible
+        osCursorHidden = $osCursorHidden
         handle = $cursorId
         cursorType = $cursorType
         leftButtonDown = $leftButtonDown

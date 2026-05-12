@@ -228,6 +228,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			asset:
 				| import("../electron/native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
 				| null,
+			osCursorHidden: boolean,
 		) => void,
 	) => {
 		const listener = (
@@ -236,7 +237,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			asset:
 				| import("../electron/native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
 				| null,
-		) => callback(cursorType, asset);
+			osCursorHidden: boolean,
+		) => callback(cursorType, asset, osCursorHidden === true);
 		ipcRenderer.on("cursor-type-change", listener);
 		return () => ipcRenderer.removeListener("cursor-type-change", listener);
 	},

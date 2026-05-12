@@ -204,6 +204,7 @@ interface Window {
 				asset:
 					| import("./native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
 					| null,
+				osCursorHidden: boolean,
 			) => void,
 		) => () => void;
 		setLocale: (locale: string) => Promise<void>;

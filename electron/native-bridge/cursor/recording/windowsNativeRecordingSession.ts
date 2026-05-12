@@ -40,6 +40,7 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 	private previousLeftButtonDown = false;
 	private lastEmittedCursorType: string | null | undefined = undefined; // undefined = not yet emitted
 	private lastEmittedAssetId: string | null | undefined = undefined;
+	private lastEmittedOsCursorHidden: boolean | undefined = undefined;
 
 	constructor(private readonly options: WindowsNativeRecordingSessionOptions) {}
 
@@ -53,6 +54,7 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 		this.previousLeftButtonDown = false;
 		this.lastEmittedCursorType = undefined;
 		this.lastEmittedAssetId = undefined;
+		this.lastEmittedOsCursorHidden = undefined;
 
 		const script = buildPowerShellScript(
 			this.options.sampleIntervalMs,
@@ -227,14 +229,22 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 		// SVG approximation. We re-fire whenever the asset handle changes too,
 		// because a new handle means a new bitmap even if the type string is the
 		// same (e.g. two different app-defined arrow variants).
+		//
+		// We also re-fire whenever osCursorHidden toggles (cursor moved into /
+		// out of a Figma-style app that hides the OS cursor) so the helper can
+		// show/hide its SVG to match the app's intent.
 		const currentType = normalized.sample.cursorType ?? null;
 		const currentAssetId = normalized.sample.assetId ?? null;
+		const currentOsCursorHidden = normalized.sample.osCursorHidden === true;
 		if (
 			this.options.onCursorTypeChange &&
-			(currentType !== this.lastEmittedCursorType || currentAssetId !== this.lastEmittedAssetId)
+			(currentType !== this.lastEmittedCursorType ||
+				currentAssetId !== this.lastEmittedAssetId ||
+				currentOsCursorHidden !== this.lastEmittedOsCursorHidden)
 		) {
 			this.lastEmittedCursorType = currentType;
 			this.lastEmittedAssetId = currentAssetId;
+			this.lastEmittedOsCursorHidden = currentOsCursorHidden;
 			const nativeAsset = currentAssetId ? this.assets.get(currentAssetId) : null;
 			this.options.onCursorTypeChange(
 				currentType,
@@ -247,6 +257,7 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 							height: nativeAsset.height,
 						}
 					: null,
+				currentOsCursorHidden,
 			);
 		}
 
@@ -302,6 +313,7 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 				visible: payload.visible && withinBounds,
 				cursorType: payload.cursorType ?? payload.asset?.cursorType ?? null,
 				interactionType,
+				osCursorHidden: payload.osCursorHidden === true,
 			},
 		};
 	}

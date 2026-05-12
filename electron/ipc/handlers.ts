@@ -764,8 +764,8 @@ async function startCursorRecording(recordingId?: number) {
 		sourceId: getSelectedSourceId(),
 		startTimeMs:
 			typeof recordingId === "number" && Number.isFinite(recordingId) ? recordingId : undefined,
-		onCursorTypeChange: (cursorType, asset) => {
-			sendToCursorOverlay("cursor-type-change", cursorType, asset ?? null);
+		onCursorTypeChange: (cursorType, asset, osCursorHidden) => {
+			sendToCursorOverlay("cursor-type-change", cursorType, asset ?? null, osCursorHidden === true);
 		},
 	});
 

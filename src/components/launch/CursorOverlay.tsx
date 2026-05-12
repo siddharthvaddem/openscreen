@@ -163,6 +163,11 @@ function getCursorAsset(cursorType: NativeCursorType | null): CursorAsset {
 export function CursorOverlay() {
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const [cursorType, setCursorType] = useState<NativeCursorType | null>(null);
+	// True when the foreground app (Figma, Photoshop, games) has hidden the OS
+	// cursor via ShowCursor(false).  In that case the app is drawing its own
+	// cursor, so we must NOT render our virtual SVG cursor on top — otherwise
+	// the user sees a double cursor.
+	const [osCursorHidden, setOsCursorHidden] = useState(false);
 
 	// ── Listen for real-time cursor type from the main process ──────────────────
 	// We render the SVG cursor assets at their canonical CSS-pixel sizes (defined
@@ -174,8 +179,9 @@ export function CursorOverlay() {
 	// match the editor's native-OS preview exactly, so what you see while
 	// recording is what the final video shows.
 	useEffect(() => {
-		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, _asset) => {
+		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, _asset, hiddenByApp) => {
 			setCursorType(type);
+			setOsCursorHidden(hiddenByApp === true);
 		});
 		return () => {
 			cleanup?.();
@@ -259,7 +265,9 @@ export function CursorOverlay() {
 					alt=""
 					draggable={false}
 					style={{
-						display: "block",
+						// Hide our SVG when the foreground app has hidden the OS cursor —
+						// the app draws its own cursor (Figma, etc.) and we'd be a duplicate.
+						display: osCursorHidden ? "none" : "block",
 						transform: `translate(${-svgAsset.hotspotX}px, ${-svgAsset.hotspotY}px)`,
 						imageRendering: "pixelated",
 						userSelect: "none",

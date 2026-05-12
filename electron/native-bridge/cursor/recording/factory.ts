@@ -14,6 +14,7 @@ interface CreateCursorRecordingSessionOptions {
 	onCursorTypeChange?: (
 		cursorType: import("../../../../src/native/contracts").NativeCursorType | null,
 		asset: CursorOverlayAsset | null,
+		osCursorHidden: boolean,
 	) => void;
 }
 

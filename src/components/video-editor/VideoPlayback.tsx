@@ -1442,7 +1442,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							cursorRecordingDataRef.current,
 							timeMs,
 						);
-						if (frame) {
+						// Skip rendering when the recording captured a moment where the
+						// foreground app had hidden the OS cursor (Figma, Photoshop, games).
+						// The app's own drawn cursor is baked into the video, so adding our SVG
+						// on top would produce a duplicate.
+						if (frame && !frame.sample.osCursorHidden) {
 							// Native-OS cursor: no smoothing — behave like a real OS cursor
 							// (crisp, zero-latency, no interpolation).
 							const displaySample = smoothNativeCursorSample({

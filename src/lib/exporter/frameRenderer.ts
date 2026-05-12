@@ -537,6 +537,15 @@ export class FrameRenderer {
 			resetNativeCursorMotionBlurState(this.nativeCursorMotionBlurState);
 			return;
 		}
+		// Skip rendering when the recording captured a moment where the
+		// foreground app had hidden the OS cursor (Figma, Photoshop, games).
+		// The app's own drawn cursor is already baked into the source video
+		// frame, so adding our SVG on top would produce a duplicate.
+		if (activeNativeCursor.sample.osCursorHidden) {
+			resetNativeCursorSmoothingState(this.nativeCursorSmoothingState);
+			resetNativeCursorMotionBlurState(this.nativeCursorMotionBlurState);
+			return;
+		}
 		// Native-OS cursor: no smoothing — behave like a real OS cursor
 		// (crisp, zero-latency, no interpolation).  Matches VideoPlayback.tsx
 		// so the editor preview and exported video render identically.

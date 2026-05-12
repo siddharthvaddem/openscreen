@@ -32,6 +32,20 @@ export interface CursorRecordingSample extends CursorTelemetryPoint {
 	visible?: boolean;
 	cursorType?: NativeCursorType | null;
 	interactionType?: "move" | "click" | "mouseup";
+	/**
+	 * True when the foreground app has hidden the OS cursor (e.g. Figma,
+	 * Photoshop, games — apps that draw their own cursor and call
+	 * ShowCursor(false)).  When true, the recording helper, editor playback,
+	 * and exporter all skip drawing our virtual cursor so the user sees only
+	 * the app's own cursor instead of a duplicate.
+	 *
+	 * Detected via Win32 GetCursorInfo's CURSOR_SHOWING flag: 0 means hidden,
+	 * 1 means the OS thinks the cursor is visible (even if we've replaced its
+	 * bitmap with a transparent one for capture).  So this flag survives our
+	 * own SetSystemCursor(transparent) override and only fires when another
+	 * app actually wanted the cursor hidden.
+	 */
+	osCursorHidden?: boolean;
 }
 
 export interface NativeCursorAsset {

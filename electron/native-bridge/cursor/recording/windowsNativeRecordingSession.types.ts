@@ -7,6 +7,13 @@ export interface WindowsCursorSampleEvent {
 	x: number;
 	y: number;
 	visible: boolean;
+	/**
+	 * True when GetCursorInfo reports the OS cursor as hidden (an app called
+	 * ShowCursor(false)).  Independent of SetSystemCursor(transparent) we do
+	 * for capture, so it specifically signals an app's intent to hide the
+	 * cursor.  Helper / editor / exporter skip rendering when this is true.
+	 */
+	osCursorHidden?: boolean;
 	handle: string | null;
 	cursorType?: NativeCursorType | null;
 	leftButtonDown?: boolean;
@@ -62,13 +69,21 @@ export interface WindowsNativeRecordingSessionOptions {
 	sourceId?: string | null;
 	startTimeMs?: number;
 	/**
-	 * Called whenever the active cursor shape changes during recording.
+	 * Called whenever the active cursor shape changes during recording, OR
+	 * when the OS cursor is hidden/un-hidden by an app (Figma etc.).
+	 *
 	 * `asset` carries the actual captured cursor bitmap + hotspot so the
 	 * overlay window can render the real OS cursor image instead of an SVG
-	 * approximation. May be null if the bitmap hasn't been captured yet.
+	 * approximation.  May be null if the bitmap hasn't been captured yet.
+	 *
+	 * `osCursorHidden` mirrors GetCursorInfo's CURSOR_SHOWING flag: when
+	 * true, an app has hidden the OS cursor and the helper should not draw
+	 * a virtual cursor on top (avoids the double-cursor issue in Figma /
+	 * Photoshop / games that draw their own cursors).
 	 */
 	onCursorTypeChange?: (
 		cursorType: NativeCursorType | null,
 		asset: CursorOverlayAsset | null,
+		osCursorHidden: boolean,
 	) => void;
 }
