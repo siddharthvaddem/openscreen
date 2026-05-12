@@ -1,17 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Ebene_2" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 36.7 56.2">
-  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
-  <defs>
-    <style>
-      .st0 {
-        fill: #fff;
-        stroke: #000;
-        stroke-miterlimit: 10;
-        stroke-width: 1.5px;
-      }
-    </style>
-  </defs>
-  <g id="Ebene_1-2">
-    <polygon class="st0" points="18.6 55.2 11.5 38.5 .8 49.1 .8 1.8 34.9 35.9 18.6 36.1 25.8 51.9 18.6 55.2"/>
-  </g>
+<svg width="32" height="33" viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M19.7287 31.942L17.1975 25.9883L13.3828 29.7673V12.9043L25.5398 25.0613L19.7287 25.1327L22.2956 30.7655L19.7287 31.942Z" fill="white" stroke="black" stroke-miterlimit="10"/>
 </svg>

@@ -110,18 +110,15 @@ export const PRETTY_NATIVE_CURSOR_ASSETS: Partial<
 > = {
 	arrow: {
 		imageDataUrl: arrowUrl,
-		// Cursor=AeroDefault.svg viewBox is "0 0 36.7 56.2" (portrait, 1:1.53 ratio).
-		// The SVG arrow fills its viewBox tightly while a real Windows arrow occupies
-		// only a small portion of its 32×32 cursor box.  To match the visual size of
-		// a real Windows arrow (and unify perceived size with the other cursor SVGs,
-		// which fill their boxes), render the arrow at 20×31 — smaller than the
-		// pointer hand at 32×33 but with the same aspect ratio as the SVG.
-		// Tip polygon vertex is at SVG (0.8, 1.8) → at 20px width sizeRatio=0.545,
-		// hotspot ≈ (0.44, 0.98) ≈ (1, 1).
-		width: 20,
-		height: 31,
-		hotspotX: 1,
-		hotspotY: 1,
+		// Cursor=AeroDefault.svg viewBox is "0 0 32 33" — same canonical box as the
+		// pointer/hand/etc. SVGs so the arrow renders at the same size as the rest
+		// of the cursor set ("unified" perceived size).  The arrow shape sits in
+		// the lower-middle of the 32×33 canvas; the polygon tip is at SVG (13.38,
+		// 12.90) so the hotspot is (13, 13).
+		width: 32,
+		height: 33,
+		hotspotX: 13,
+		hotspotY: 13,
 	},
 	text: {
 		imageDataUrl: textUrl,
@@ -229,25 +226,6 @@ export const PRETTY_NATIVE_CURSOR_ASSETS: Partial<
 		hotspotY: 3,
 	},
 };
-
-function resolveUntypedPrettyNativeCursorAsset(asset: NativeCursorAsset) {
-	if (
-		asset.cursorType ||
-		asset.width < 24 ||
-		asset.width > 64 ||
-		asset.height < 24 ||
-		asset.height > 64
-	) {
-		return null;
-	}
-
-	const hotspotXNorm = asset.hotspotX / asset.width;
-	const hotspotYNorm = asset.hotspotY / asset.height;
-	const looksLikeChromiumGrabCursor =
-		hotspotXNorm >= 0.22 && hotspotXNorm <= 0.55 && hotspotYNorm >= 0.2 && hotspotYNorm <= 0.45;
-
-	return looksLikeChromiumGrabCursor ? (PRETTY_NATIVE_CURSOR_ASSETS["open-hand"] ?? null) : null;
-}
 
 export function hasNativeCursorRecordingData(
 	recordingData: CursorRecordingData | null | undefined,
@@ -612,10 +590,15 @@ export function resolvePrettyNativeCursorAsset(
 	asset: NativeCursorAsset,
 	sample?: CursorRecordingSample,
 ) {
+	// IMPORTANT: keep this in lock-step with src/components/launch/CursorOverlay.tsx
+	// (the recording helper).  The helper renders cursors by direct cursor-type
+	// lookup with no heuristics — falling back to the default arrow when the type
+	// is null.  We deliberately do NOT call resolveUntypedPrettyNativeCursorAsset
+	// here: its grab-cursor heuristic would make the editor preview / exported
+	// video show a different icon (e.g. open-hand) than the helper showed during
+	// recording, breaking the "what you saw is what you get" guarantee.
 	const cursorType = sample?.cursorType ?? asset.cursorType ?? null;
-	return cursorType
-		? (PRETTY_NATIVE_CURSOR_ASSETS[cursorType] ?? null)
-		: resolveUntypedPrettyNativeCursorAsset(asset);
+	return cursorType ? (PRETTY_NATIVE_CURSOR_ASSETS[cursorType] ?? null) : null;
 }
 
 export function resolveNativeCursorRenderAsset(

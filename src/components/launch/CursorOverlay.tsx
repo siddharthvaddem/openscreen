@@ -60,15 +60,14 @@ interface CursorAsset {
 // preview use identical cursor geometry.
 const ARROW: CursorAsset = {
 	url: arrowUrl,
-	// Cursor=AeroDefault.svg viewBox is "0 0 36.7 56.2" (portrait, 1:1.53 ratio).
-	// The SVG arrow fills its viewBox tightly while a real Windows arrow occupies
-	// only a small portion of its 32×32 cursor box.  Render at 20×31 to match the
-	// visual size of a real Windows arrow and unify perceived size with the other
-	// cursor SVGs (which fill their boxes).  Tip at SVG (0.8, 1.8) → hotspot (1, 1).
-	width: 20,
-	height: 31,
-	hotspotX: 1,
-	hotspotY: 1,
+	// Cursor=AeroDefault.svg viewBox is "0 0 32 33" — same canonical box as the
+	// pointer/hand/etc. SVGs so the arrow renders at the same size as the rest of
+	// the cursor set.  The arrow shape sits in the lower-middle of the 32×33
+	// canvas; the polygon tip is at SVG (13.38, 12.90) so the hotspot is (13, 13).
+	width: 32,
+	height: 33,
+	hotspotX: 13,
+	hotspotY: 13,
 };
 const POINTER: CursorAsset = {
 	url: pointerUrl,

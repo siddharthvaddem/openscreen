@@ -20,17 +20,31 @@ let hudOverlayWindow: BrowserWindow | null = null;
 let cursorOverlayWindow: BrowserWindow | null = null;
 
 // ── Cursor-overlay z-order polling ──────────────────────────────────────────
-// The Windows 11 taskbar sits at HWND_TOPMOST and periodically re-asserts its
-// own z-order, which can push our overlay below it.  Re-asserting every 500 ms
-// keeps the virtual cursor visible even when the user moves over the taskbar.
+// The Windows 11 taskbar (Shell_TrayWnd) sits at HWND_TOPMOST and continuously
+// re-asserts its own z-order via the Explorer shell, which can push our overlay
+// behind it whenever the cursor crosses the taskbar area.  Both windows being
+// HWND_TOPMOST means z-order is decided by activation order, and the shell wins
+// because it gets activated constantly.
+//
+// Mitigation: poll every ~16 ms (≈ 60 fps so the cursor never blanks for more
+// than one frame) and on each tick FORCE a fresh top-promotion by toggling
+// alwaysOnTop off→on and explicitly calling moveTop().  Without the toggle,
+// Electron's setAlwaysOnTop is often a no-op when the flag is already set, so
+// the underlying SetWindowPos call that would re-promote us never fires.
 let cursorOverlayZOrderInterval: NodeJS.Timeout | null = null;
 
 export function startCursorOverlayZOrderPolling(): void {
 	stopCursorOverlayZOrderPolling();
 	cursorOverlayZOrderInterval = setInterval(() => {
 		if (!cursorOverlayWindow || cursorOverlayWindow.isDestroyed()) return;
+		// Toggle off→on so the underlying SetWindowPos(HWND_TOPMOST) actually fires
+		// (Electron short-circuits identical state).  Then moveTop() to push us
+		// above any other topmost window that may have been activated more recently
+		// — this beats the taskbar's continuous re-promotion.
+		cursorOverlayWindow.setAlwaysOnTop(false);
 		cursorOverlayWindow.setAlwaysOnTop(true, "screen-saver");
-	}, 50);
+		cursorOverlayWindow.moveTop();
+	}, 16);
 }
 
 export function stopCursorOverlayZOrderPolling(): void {
