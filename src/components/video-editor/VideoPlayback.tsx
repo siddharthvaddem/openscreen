@@ -14,6 +14,7 @@ import {
 	useCallback,
 	useEffect,
 	useImperativeHandle,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -777,11 +778,17 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			showCursorRef.current = showCursor;
 		}, [showCursor]);
 
-		useEffect(() => {
+		// useLayoutEffect (not useEffect) so the ref is updated synchronously
+		// before the browser paints.  The PIXI ticker runs in requestAnimationFrame
+		// which fires just before paint; if these refs were updated in useEffect
+		// (which fires AFTER paint) the ticker would read stale values for one
+		// frame, causing the PIXI cursor to bleed through for a single frame when
+		// switching to "native-os" mode.
+		useLayoutEffect(() => {
 			hasNativeCursorRecordingRef.current = hasNativeCursorRecording;
 		}, [hasNativeCursorRecording]);
 
-		useEffect(() => {
+		useLayoutEffect(() => {
 			cursorDisplayModeRef.current = cursorDisplayMode;
 			// When switching away from the custom PIXI cursor, explicitly reset the
 			// overlay so any residual sprite state (position, visibility) is cleared

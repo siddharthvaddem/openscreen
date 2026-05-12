@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { CursorOverlayAsset } from "../../../electron/native-bridge/cursor/recording/windowsNativeRecordingSession.types";
 import type { NativeCursorType } from "../../native/contracts";
 
 /**
@@ -233,16 +232,18 @@ function getCursorDef(cursorType: NativeCursorType | null): CursorDef {
 export function CursorOverlay() {
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const [cursorType, setCursorType] = useState<NativeCursorType | null>(null);
-	// The live-captured OS cursor bitmap sent by the main process.
-	// When present this is always preferred over the SVG fallbacks because it
-	// shows the user's actual cursor (any theme, any DPI) pixel-perfectly.
-	const [liveAsset, setLiveAsset] = useState<CursorOverlayAsset | null>(null);
 
-	// ── Listen for real-time cursor type + bitmap from the main process ─────────
+	// ── Listen for real-time cursor type from the main process ──────────────────
+	// We deliberately ignore the raw bitmap asset sent by the main process.
+	// During editable-overlay recording SetSystemCursor replaces every system
+	// cursor handle with a transparent 32×32 bitmap, so any asset that arrives
+	// while recording is either transparent (wait/app-starting) or reflects the
+	// user's theme cursor which we faithfully reproduce via SVG anyway.
+	// Using SVG shapes guarantees the helper cursor is ALWAYS visible regardless
+	// of what the OS cursor subsystem returns.
 	useEffect(() => {
-		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, asset) => {
+		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, _asset) => {
 			setCursorType(type);
-			if (asset) setLiveAsset(asset);
 		});
 		return () => {
 			cleanup?.();
@@ -278,7 +279,6 @@ export function CursorOverlay() {
 		};
 	}, []);
 
-	// ── Prefer live OS bitmap; fall back to SVG approximation ────────────────
 	const svgDef = getCursorDef(cursorType);
 
 	return (
@@ -308,68 +308,59 @@ export function CursorOverlay() {
 					willChange: "transform",
 				}}
 			>
-				{liveAsset ? (
-					/*
-					 * Live OS cursor bitmap captured by the PowerShell sampler.
-					 * This is the user's actual cursor — whatever theme they have installed
-					 * (Aero, custom, high-contrast, etc.) at the correct DPI.
-					 * The image is offset so its hotspot aligns with the mouse position.
-					 */
-					<img
-						src={liveAsset.imageDataUrl}
-						width={liveAsset.width}
-						height={liveAsset.height}
-						alt=""
-						style={{
-							display: "block",
-							// Offset so the cursor hotspot sits exactly at the mouse position
-							transform: `translate(${-liveAsset.hotspotX}px, ${-liveAsset.hotspotY}px)`,
-							imageRendering: "pixelated",
-						}}
-					/>
-				) : (
-					/*
-					 * SVG fallback — shown on the very first frame before the first
-					 * bitmap arrives from the sampler (typically < 1 sample interval).
-					 * The SVG is offset so its hotspot aligns with the mouse position.
-					 * overflow:visible lets the drop-shadow expand beyond element bounds.
-					 */
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width={svgDef.width}
-						height={svgDef.height}
-						viewBox={svgDef.viewBox}
-						style={{
-							display: "block",
-							overflow: "visible",
-							transform: `translate(${-svgDef.hotspotX}px, ${-svgDef.hotspotY}px)`,
-						}}
-					>
-						<defs>
-							<filter id="cursor-shadow" x="-30%" y="-30%" width="180%" height="180%">
-								<feDropShadow
-									dx="1.5"
-									dy="1.5"
-									stdDeviation="1.5"
-									floodColor="#000000"
-									floodOpacity="0.4"
-								/>
-							</filter>
-						</defs>
-						{svgDef.paths.map((d, i) => (
-							<path
-								key={i}
-								d={d}
-								fill="white"
-								stroke="black"
-								strokeWidth="1.8"
-								strokeLinejoin="round"
-								strokeLinecap="round"
-								filter="url(#cursor-shadow)"
+				{/*
+				 * SVG cursor shape — always rendered, never transparent.
+				 *
+				 * We do NOT use the raw bitmap asset from the PowerShell sampler here.
+				 * During editable-overlay recording SetSystemCursor replaces every
+				 * standard Windows cursor handle with a transparent 32×32 bitmap so
+				 * none of the user's cursor appears in raw footage.  When the browser
+				 * briefly switches to a wait/app-starting cursor (e.g. during page
+				 * navigation after clicking a link) the captured bitmap is transparent,
+				 * which would make the helper cursor vanish — exactly the "cursor
+				 * disappears after pointer event" bug.
+				 *
+				 * SVG shapes derived from the cursor TYPE are always opaque, always
+				 * correct, and match the Windows 10/11 Aero aesthetic closely enough
+				 * to give the user accurate visual feedback without ever going invisible.
+				 *
+				 * overflow:visible lets the drop-shadow expand beyond the element bounds.
+				 */}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width={svgDef.width}
+					height={svgDef.height}
+					viewBox={svgDef.viewBox}
+					style={{
+						display: "block",
+						overflow: "visible",
+						transform: `translate(${-svgDef.hotspotX}px, ${-svgDef.hotspotY}px)`,
+					}}
+				>
+					<defs>
+						<filter id="cursor-shadow" x="-30%" y="-30%" width="180%" height="180%">
+							<feDropShadow
+								dx="1.5"
+								dy="1.5"
+								stdDeviation="1.5"
+								floodColor="#000000"
+								floodOpacity="0.4"
 							/>
-						))}
-					</svg>
-				)}
+						</filter>
+					</defs>
+					{svgDef.paths.map((d, i) => (
+						<path
+							key={i}
+							d={d}
+							fill="white"
+							stroke="black"
+							strokeWidth="1.8"
+							strokeLinejoin="round"
+							strokeLinecap="round"
+							filter="url(#cursor-shadow)"
+						/>
+					))}
+				</svg>
 			</div>
 		</div>
 	);

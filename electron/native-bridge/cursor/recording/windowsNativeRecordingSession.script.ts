@@ -230,9 +230,27 @@ function Get-CustomCursorType($bitmap, $hotspotX, $hotspotY) {
         return 'text'
     }
 
+    # Arrow cursor: hotspot pinned to the very top-left corner (X < 15%, Y < 15%).
+    # Chrome uses its own private cursor resource for the arrow (IDC_ARROW) which
+    # SetSystemCursor does NOT replace, so it remains detectable here.  Chrome's
+    # arrow hotspot sits at approximately (3, 2) out of a 32×32 bitmap — about
+    # 9% X and 6% Y — well within the top-left quadrant threshold.
+    # Must be checked BEFORE the pointer check because the pointer check allows
+    # X down to 10%, which would also accept a top-left hotspot that happens to
+    # sit at X ≥ 10%.  The arrow shape is always wider than it is narrow and
+    # taller than 30% of the bitmap, so we gate on a minimum opaque area to
+    # avoid false positives from stray tiny cursors.
+    if ($hotspotX -lt ($bitmap.Width * 0.15) -and $hotspotY -lt ($bitmap.Height * 0.15) -and
+        $opaqueWidth -gt ($bitmap.Width * 0.2) -and $opaqueHeight -gt ($bitmap.Height * 0.3)) {
+        return 'arrow'
+    }
+
     # Pointer / hand cursor: hotspot is at the fingertip (top-left of image, Y < 20%).
     # Detected before the hotspot-range check that would otherwise reject it.
     # Covers custom hand cursors (e.g. Chrome's) that don't match IDC_HAND exactly.
+    # The arrow check above ensures a true top-left hotspot (X < 15%) is already
+    # handled, so the X > 10% lower bound here only catches pointer cursors whose
+    # hotspot is inset slightly from the very corner (e.g. fingertip at X ≈ 28%).
     if ($hotspotY -lt ($bitmap.Height * 0.2) -and
         $hotspotX -gt ($bitmap.Width * 0.1) -and $hotspotX -lt ($bitmap.Width * 0.9) -and
         $opaqueHeight -gt ($bitmap.Height * 0.5) -and
