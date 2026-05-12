@@ -69,6 +69,7 @@
 		"fix-webm-duration": "^1.0.6",
 		"gif.js": "^0.2.0",
 		"gsap": "^3.15.0",
+		"koffi": "^2.16.2",
 		"lucide-react": "^0.545.0",
 		"mediabunny": "^1.40.1",
 		"motion": "^12.38.0",

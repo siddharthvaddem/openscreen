@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { BrowserWindow, ipcMain, screen } from "electron";
+import { promoteAboveTaskbar } from "./native-bridge/win32/topmost";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,28 +23,32 @@ let cursorOverlayWindow: BrowserWindow | null = null;
 // ── Cursor-overlay z-order polling ──────────────────────────────────────────
 // The Windows 11 taskbar (Shell_TrayWnd) sits at HWND_TOPMOST and continuously
 // re-asserts its own z-order via the Explorer shell, which can push our overlay
-// behind it whenever the cursor crosses the taskbar area.  Both windows being
-// HWND_TOPMOST means z-order is decided by activation order, and the shell wins
-// because it gets activated constantly.
+// behind it whenever the cursor crosses the taskbar area.
 //
-// Mitigation: poll every ~16 ms (≈ 60 fps so the cursor never blanks for more
-// than one frame) and on each tick FORCE a fresh top-promotion by toggling
-// alwaysOnTop off→on and explicitly calling moveTop().  Without the toggle,
-// Electron's setAlwaysOnTop is often a no-op when the flag is already set, so
-// the underlying SetWindowPos call that would re-promote us never fires.
+// On Windows we use a direct Win32 SetWindowPos call (via koffi FFI) with
+// SWP_NOSENDCHANGING | SWP_NOACTIVATE — this beats the shell tray because
+// Electron's setAlwaysOnTop short-circuits when the flag is already set, and
+// even when it doesn't, the path goes through window-state tracking that lags
+// the shell's own re-promotion.  Going straight to the Win32 API at ~60 fps
+// keeps the virtual cursor strictly above the taskbar.
+//
+// On non-Windows platforms (and as a safety fallback if the koffi binding
+// fails to load) we keep the old Electron-API toggle path.
 let cursorOverlayZOrderInterval: NodeJS.Timeout | null = null;
 
 export function startCursorOverlayZOrderPolling(): void {
 	stopCursorOverlayZOrderPolling();
 	cursorOverlayZOrderInterval = setInterval(() => {
 		if (!cursorOverlayWindow || cursorOverlayWindow.isDestroyed()) return;
-		// Toggle off→on so the underlying SetWindowPos(HWND_TOPMOST) actually fires
-		// (Electron short-circuits identical state).  Then moveTop() to push us
-		// above any other topmost window that may have been activated more recently
-		// — this beats the taskbar's continuous re-promotion.
-		cursorOverlayWindow.setAlwaysOnTop(false);
-		cursorOverlayWindow.setAlwaysOnTop(true, "screen-saver");
-		cursorOverlayWindow.moveTop();
+		// Try the direct Win32 path first.  Returns false on non-Windows or if
+		// koffi failed to load user32 — in either case fall back to the Electron
+		// toggle so cross-platform behavior is unchanged.
+		const promoted = promoteAboveTaskbar(cursorOverlayWindow);
+		if (!promoted) {
+			cursorOverlayWindow.setAlwaysOnTop(false);
+			cursorOverlayWindow.setAlwaysOnTop(true, "screen-saver");
+			cursorOverlayWindow.moveTop();
+		}
 	}, 16);
 }
 
@@ -228,9 +233,11 @@ export function createEditorWindow(): BrowserWindow {
 	// Inject dark background before any React paint so the sub-titlebar area
 	// never flashes white even on the very first cold Vite load
 	win.webContents.on("dom-ready", () => {
-		win.webContents
-			.insertCSS("html, body, #root { background: #09090b !important; }")
-			.catch(() => {});
+		win.webContents.insertCSS("html, body, #root { background: #09090b !important; }").catch(() => {
+			// Cosmetic-only background hint — if insertCSS fails (e.g. webContents
+			// destroyed during teardown) the renderer's own CSS still paints the
+			// dark background a frame later, so there's nothing to recover.
+		});
 	});
 
 	win.webContents.on("did-finish-load", () => {
@@ -345,6 +352,11 @@ export function createCursorOverlayWindow(): BrowserWindow {
 
 	win.once("ready-to-show", () => {
 		if (!HEADLESS) win.show();
+		// Promote above the taskbar via direct Win32 SetWindowPos as soon as the
+		// HWND exists.  startCursorOverlayZOrderPolling() will keep re-promoting
+		// at ~60 fps, but this first call ensures the very first paint is above
+		// the shell tray.
+		promoteAboveTaskbar(win);
 	});
 
 	cursorOverlayWindow = win;
