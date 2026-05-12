@@ -230,7 +230,17 @@ function Get-CustomCursorType($bitmap, $hotspotX, $hotspotY) {
         return 'text'
     }
 
-    # Remaining checks are for hand cursors — require more opaque pixels and a wider body.
+    # Pointer / hand cursor: hotspot is at the fingertip (top-left of image, Y < 20%).
+    # Detected before the hotspot-range check that would otherwise reject it.
+    # Covers custom hand cursors (e.g. Chrome's) that don't match IDC_HAND exactly.
+    if ($hotspotY -lt ($bitmap.Height * 0.2) -and
+        $hotspotX -gt ($bitmap.Width * 0.1) -and $hotspotX -lt ($bitmap.Width * 0.9) -and
+        $opaqueHeight -gt ($bitmap.Height * 0.5) -and
+        $opaqueWidth -gt ($bitmap.Width * 0.25)) {
+        return 'pointer'
+    }
+
+    # Remaining checks are for open-hand / closed-hand cursors.
     if ($opaquePixels -lt 90) {
         return $null
     }
@@ -302,40 +312,17 @@ function Get-CursorAsset($cursorHandle, $cursorId) {
 
     try {
         $icon = [System.Drawing.Icon]::FromHandle($copiedHandle)
-        $bitmap = New-Object System.Drawing.Bitmap $icon.Width, $icon.Height, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        $bitmap = $null
         $memoryStream = New-Object System.IO.MemoryStream
 
         try {
-            # Draw on an opaque green background (#00DC00) instead of transparent.
-            # GDI's DrawIcon does NOT write the alpha channel when drawing onto a
-            # transparent surface — all pixels end up with A=0 regardless of colour,
-            # making monochrome cursors (I-beam, hourglass, etc.) completely invisible.
-            # Drawing on a fully-opaque background preserves alpha=255 for every
-            # drawn pixel; we then chroma-key out the background green below.
-            $graphics.Clear([System.Drawing.Color]::FromArgb(255, 0, 220, 0))
-            $graphics.DrawIcon($icon, 0, 0)
-
-            # Chroma-key: replace background green pixels with transparent.
-            # Threshold: G > 180, R < 30, B < 30  (matches #00DC00 and its slight
-            # GDI dithering variants but won't touch cursor pixels of any real colour).
-            $bitmapRect = [System.Drawing.Rectangle]::new(0, 0, $bitmap.Width, $bitmap.Height)
-            $bitmapData = $bitmap.LockBits($bitmapRect, [System.Drawing.Imaging.ImageLockMode]::ReadWrite, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-            $byteCount = [Math]::Abs($bitmapData.Stride) * $bitmap.Height
-            $pixelBytes = New-Object byte[] $byteCount
-            [System.Runtime.InteropServices.Marshal]::Copy($bitmapData.Scan0, $pixelBytes, 0, $byteCount)
-            $chromaChanged = $false
-            for ($pi = 0; $pi -lt $pixelBytes.Length; $pi += 4) {
-                # BGRA layout: B=$pi, G=$pi+1, R=$pi+2, A=$pi+3
-                if ($pixelBytes[$pi + 1] -gt 180 -and $pixelBytes[$pi] -lt 30 -and $pixelBytes[$pi + 2] -lt 30) {
-                    $pixelBytes[$pi] = 0; $pixelBytes[$pi + 1] = 0; $pixelBytes[$pi + 2] = 0; $pixelBytes[$pi + 3] = 0
-                    $chromaChanged = $true
-                }
-            }
-            if ($chromaChanged) {
-                [System.Runtime.InteropServices.Marshal]::Copy($pixelBytes, 0, $bitmapData.Scan0, $byteCount)
-            }
-            $bitmap.UnlockBits($bitmapData)
+            # Icon.ToBitmap() correctly converts cursor icons to 32bppArgb with
+            # proper alpha channel for ALL cursor types, including monochrome cursors
+            # such as I-beam and hourglass.  The previous Graphics.DrawIcon approach
+            # drew RGB but left A=0 for every pixel on a transparent surface, making
+            # monochrome cursors completely invisible.  ToBitmap() applies the AND
+            # mask correctly so transparent areas have A=0 and drawn pixels have A>0.
+            $bitmap = $icon.ToBitmap()
 
             $hotspotX = if ($hasIconInfo) { $iconInfo.xHotspot } else { 0 }
             $hotspotY = if ($hasIconInfo) { $iconInfo.yHotspot } else { 0 }
@@ -355,8 +342,7 @@ function Get-CursorAsset($cursorHandle, $cursorId) {
         }
         finally {
             $memoryStream.Dispose()
-            $graphics.Dispose()
-            $bitmap.Dispose()
+            if ($bitmap) { $bitmap.Dispose() }
             $icon.Dispose()
         }
     }
