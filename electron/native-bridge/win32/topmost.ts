@@ -64,21 +64,24 @@ function loadUser32(): User32Bindings | null {
 
 	try {
 		const user32 = koffi.load("user32.dll");
-		// HWND and HWND_INSERT_AFTER are pointer-sized; koffi's "long" is 64-bit
-		// on 64-bit Windows so we can pass HWND_TOPMOST as a signed 64-bit value.
+		// CRITICAL: HWND and HWND_INSERT_AFTER are pointer-sized — on Win x64
+		// that's 64 bits.  Koffi's "long" is only 32 bits on Windows (matching
+		// the Win32 LONG type), which would silently truncate every HWND we
+		// pass and break the call without an obvious error.  Use intptr_t so
+		// koffi picks the native pointer width on both x86 and x64.
 		const bindings: User32Bindings = {
 			SetWindowPos: user32.func("__stdcall", "SetWindowPos", "int", [
-				"long",
-				"long",
+				"intptr_t", // HWND
+				"intptr_t", // HWND_INSERT_AFTER (HWND_TOPMOST = -1)
 				"int",
 				"int",
 				"int",
 				"int",
 				"uint",
-			]) as User32Bindings["SetWindowPos"],
+			]) as unknown as User32Bindings["SetWindowPos"],
 			GetLastError: koffi
 				.load("kernel32.dll")
-				.func("__stdcall", "GetLastError", "uint", []) as User32Bindings["GetLastError"],
+				.func("__stdcall", "GetLastError", "uint", []) as unknown as User32Bindings["GetLastError"],
 		};
 		cachedBindings = bindings;
 		return bindings;
@@ -137,15 +140,23 @@ export function promoteAboveTaskbar(win: BrowserWindow): boolean {
 			// so the user has something to inspect; further failures stay quiet.
 			const err = user32.GetLastError();
 			if (!suppressErrorLog) {
-				console.warn(`[win32-topmost] SetWindowPos failed, GetLastError=${err}`);
+				console.warn(
+					`[win32-topmost] SetWindowPos failed for HWND=0x${hwnd.toString(16)}, GetLastError=${err}`,
+				);
 				suppressErrorLog = true;
 			}
 			return false;
 		}
+		if (!loggedFirstSuccess) {
+			console.log(
+				`[win32-topmost] SetWindowPos(HWND_TOPMOST) OK for HWND=0x${hwnd.toString(16)} — overlay is now above shell tray`,
+			);
+			loggedFirstSuccess = true;
+		}
 		return true;
 	} catch (err) {
 		if (!suppressErrorLog) {
-			console.warn("[win32-topmost] SetWindowPos threw:", err);
+			console.warn(`[win32-topmost] SetWindowPos threw for HWND=0x${hwnd.toString(16)}:`, err);
 			suppressErrorLog = true;
 		}
 		return false;
@@ -153,3 +164,4 @@ export function promoteAboveTaskbar(win: BrowserWindow): boolean {
 }
 
 let suppressErrorLog = false;
+let loggedFirstSuccess = false;
