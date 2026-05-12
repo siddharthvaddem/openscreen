@@ -11,7 +11,16 @@ export default defineConfig({
 			main: {
 				entry: "electron/main.ts",
 				vite: {
-					build: {},
+					build: {
+						rollupOptions: {
+							// koffi is a runtime FFI library that ships pre-built .node
+							// binaries.  Vite's commonjs-resolver chokes on its binary
+							// file (MZ-headered Windows PE), so we mark it external and
+							// let Electron's runtime require() resolve it from
+							// node_modules instead of bundling it.
+							external: ["koffi"],
+						},
+					},
 				},
 			},
 			preload: {
