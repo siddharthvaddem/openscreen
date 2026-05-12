@@ -567,11 +567,16 @@ export class FrameRenderer {
 			this.warnOnce("native-cursor-image-load", "Failed to load native cursor asset", error);
 			return;
 		}
-		// Native-OS cursor: scale=1.0 (no cursorScale multiplier, no click bounce,
-		// no motion blur).  The cursorScale slider only applies to the (preview-
-		// only) custom cursor mode.  We still honor the cursorScale<=0 early-exit
-		// above so the user can hide the cursor entirely.
-		const scale = 1.0;
+		// Native-OS cursor: no cursorScale multiplier, no click bounce, no motion
+		// blur (cursorScale slider only applies to the preview-only custom cursor
+		// mode; cursorScale<=0 early-exit above still hides the cursor entirely).
+		// We DO multiply by the source display's scaleFactor so the rendered
+		// cursor occupies the same fraction of the source video frame as it did
+		// during recording.  A 32-CSS-px cursor on a 1.5× display was captured as
+		// 48 physical px in the source video; without this factor the export
+		// would render it back at 32 px on the 1920-wide canvas (1.67% of frame)
+		// instead of the recorded 48 px (2.5% of frame).
+		const scale = activeNativeCursor.asset.scaleFactor ?? 1;
 		const appliedScale = this.animationState.appliedScale;
 		const canvasX = projectedPoint.x * appliedScale + this.animationState.x;
 		const canvasY = projectedPoint.y * appliedScale + this.animationState.y;

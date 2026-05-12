@@ -1479,11 +1479,23 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 									window.devicePixelRatio || 1,
 									displaySample,
 								);
-								// Native-OS cursor: no size multiplier, no click bounce, no motion blur.
-								// scale=1.0 so the asset width (logical px from recording) fills at exactly
-								// camera-zoom size — just like a real OS cursor.
-								const scale = 1.0;
-								const transformedScale = scale * Math.abs(cameraContainer?.scale.x || 1);
+								// Native-OS cursor: no click bounce, no motion blur.  Size must match
+								// what the user saw during recording, taking into account two things
+								// the editor scales the video by but the cursor needs to follow:
+								//   1) maskRect.width / videoSize.width — how much the preview shrinks
+								//      the source video to fit the editor panel.
+								//   2) asset.scaleFactor — the source display's DPI (a 32-CSS-px cursor
+								//      on a 1.5× display was captured as 48 physical-px in the video).
+								// Without both factors the cursor renders at its SVG natural size
+								// (32 CSS px), which is roughly 2× too big relative to the displayed
+								// video on a HiDPI source.  Then camera zoom is applied on top.
+								const sourceScaleFactor = frame.asset.scaleFactor ?? 1;
+								const maskRect = baseMaskRef.current;
+								const videoNativeWidth = videoSizeRef.current.width || 1;
+								const videoDisplayScale =
+									maskRect.width > 0 ? (maskRect.width * sourceScaleFactor) / videoNativeWidth : 1;
+								const transformedScale =
+									videoDisplayScale * Math.abs(cameraContainer?.scale.x || 1);
 								const blurPx = 0;
 								if (nativeCursorImageIdRef.current !== renderAsset.id) {
 									nativeCursorImage.src = renderAsset.imageDataUrl;
@@ -1503,12 +1515,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										nativeCursorSprite.texture = Texture.from(renderAsset.imageDataUrl);
 										nativeCursorTextureIdRef.current = renderAsset.id;
 									}
+									// Sprite lives inside cameraContainer so it gets camera zoom for free —
+									// only apply the videoDisplayScale here.
 									nativeCursorSprite.position.set(
-										projectedLocalPoint.x - renderAsset.hotspotX * scale,
-										projectedLocalPoint.y - renderAsset.hotspotY * scale,
+										projectedLocalPoint.x - renderAsset.hotspotX * videoDisplayScale,
+										projectedLocalPoint.y - renderAsset.hotspotY * videoDisplayScale,
 									);
-									nativeCursorSprite.width = renderAsset.width * scale;
-									nativeCursorSprite.height = renderAsset.height * scale;
+									nativeCursorSprite.width = renderAsset.width * videoDisplayScale;
+									nativeCursorSprite.height = renderAsset.height * videoDisplayScale;
 								}
 							} else {
 								hideNativeCursorPreview();

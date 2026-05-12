@@ -394,6 +394,16 @@ export function getNativeCursorMotionBlurPx({
 	return clamp(speedPxPerSecond * clampedMotionBlur * 0.004, 0, NATIVE_CURSOR_MOTION_BLUR_MAX_PX);
 }
 
+// Tolerance around the [0, 1] crop region used by getCroppedCursorPosition.
+// Recorded cursor samples near the edge of the display (over the taskbar,
+// at the very right edge, etc.) can jitter by a fraction of a normalized
+// pixel just past 1.0, which made the cursor flicker every other frame in
+// the editor playback as projection alternated between in-bounds (clamped)
+// and out-of-bounds (null).  5% slack absorbs that jitter — within slack we
+// clamp; outside it we still return null so cropped-away regions stay
+// genuinely hidden.
+const NATIVE_CURSOR_CROP_TOLERANCE = 0.05;
+
 function getCroppedCursorPosition(sample: CursorRecordingSample, cropRegion: CropRegion) {
 	if (cropRegion.width <= 0 || cropRegion.height <= 0) {
 		return null;
@@ -402,7 +412,12 @@ function getCroppedCursorPosition(sample: CursorRecordingSample, cropRegion: Cro
 	const croppedCx = (sample.cx - cropRegion.x) / cropRegion.width;
 	const croppedCy = (sample.cy - cropRegion.y) / cropRegion.height;
 
-	if (croppedCx < 0 || croppedCx > 1 || croppedCy < 0 || croppedCy > 1) {
+	if (
+		croppedCx < -NATIVE_CURSOR_CROP_TOLERANCE ||
+		croppedCx > 1 + NATIVE_CURSOR_CROP_TOLERANCE ||
+		croppedCy < -NATIVE_CURSOR_CROP_TOLERANCE ||
+		croppedCy > 1 + NATIVE_CURSOR_CROP_TOLERANCE
+	) {
 		return null;
 	}
 
