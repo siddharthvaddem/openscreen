@@ -19,6 +19,27 @@ const ASSET_BASE_URL_ARG = `--asset-base-url=${pathToFileURL(`${ASSET_BASE_DIR}$
 let hudOverlayWindow: BrowserWindow | null = null;
 let cursorOverlayWindow: BrowserWindow | null = null;
 
+// ── Cursor-overlay z-order polling ──────────────────────────────────────────
+// The Windows 11 taskbar sits at HWND_TOPMOST and periodically re-asserts its
+// own z-order, which can push our overlay below it.  Re-asserting every 500 ms
+// keeps the virtual cursor visible even when the user moves over the taskbar.
+let cursorOverlayZOrderInterval: NodeJS.Timeout | null = null;
+
+export function startCursorOverlayZOrderPolling(): void {
+	stopCursorOverlayZOrderPolling();
+	cursorOverlayZOrderInterval = setInterval(() => {
+		if (!cursorOverlayWindow || cursorOverlayWindow.isDestroyed()) return;
+		cursorOverlayWindow.setAlwaysOnTop(true, "screen-saver");
+	}, 500);
+}
+
+export function stopCursorOverlayZOrderPolling(): void {
+	if (cursorOverlayZOrderInterval !== null) {
+		clearInterval(cursorOverlayZOrderInterval);
+		cursorOverlayZOrderInterval = null;
+	}
+}
+
 // ── HUD cursor-polling ───────────────────────────────────────────────────────
 // When getUserMedia captures the desktop with `cursor: "never"`, Chromium's
 // capture pipeline may interfere with the { forward: true } mouse-move relay

@@ -41,7 +41,9 @@ import {
 	createCursorOverlayWindow,
 	destroyCursorOverlayWindow,
 	sendToCursorOverlay,
+	startCursorOverlayZOrderPolling,
 	startHudCursorPolling,
+	stopCursorOverlayZOrderPolling,
 	stopHudCursorPolling,
 } from "../windows";
 import { registerNativeBridgeHandlers } from "./nativeBridge";
@@ -1576,7 +1578,12 @@ export function registerIpcHandlers(
 				// user visual feedback without appearing in the recorded footage.
 				await hideSystemCursor();
 				createCursorOverlayWindow();
+				// Re-assert HWND_TOPMOST every 500 ms so the virtual cursor stays
+				// visible above the Windows taskbar (which also sits at TOPMOST and
+				// can win the z-order battle after initial window creation).
+				startCursorOverlayZOrderPolling();
 			} else {
+				stopCursorOverlayZOrderPolling();
 				destroyCursorOverlayWindow();
 				// Fire cursor restore without awaiting — Add-Type C# compilation in
 				// PowerShell takes 3-5 s and must not block the stop-recording flow.
@@ -2128,6 +2135,7 @@ export function registerIpcHandlers(
 	// active and the user closed the app without stopping it first.
 	if (process.platform === "win32") {
 		app.once("before-quit", () => {
+			stopCursorOverlayZOrderPolling();
 			destroyCursorOverlayWindow();
 			// Synchronous restore on quit — write to temp file to avoid the
 			// -Command quote-mangling issue (same fix as runPowerShellOneShot).

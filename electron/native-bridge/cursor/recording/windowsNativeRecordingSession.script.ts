@@ -192,11 +192,6 @@ function Get-CustomCursorType($bitmap, $hotspotX, $hotspotY) {
         return $null
     }
 
-    if ($hotspotX -lt ($bitmap.Width * 0.25) -or $hotspotX -gt ($bitmap.Width * 0.75) -or
-        $hotspotY -lt ($bitmap.Height * 0.15) -or $hotspotY -gt ($bitmap.Height * 0.55)) {
-        return $null
-    }
-
     $opaquePixels = 0
     $topHalfOpaquePixels = 0
     $left = $bitmap.Width
@@ -221,12 +216,30 @@ function Get-CustomCursorType($bitmap, $hotspotX, $hotspotY) {
         }
     }
 
-    if ($opaquePixels -lt 90 -or $right -lt $left -or $bottom -lt $top) {
+    if ($opaquePixels -lt 20 -or $right -lt $left -or $bottom -lt $top) {
         return $null
     }
 
     $opaqueWidth = $right - $left + 1
     $opaqueHeight = $bottom - $top + 1
+
+    # I-beam / text cursor: very narrow body, tall, horizontally centred hotspot.
+    # Detected before the wide-cursor checks that would otherwise reject it.
+    if ($opaqueWidth -lt ($bitmap.Width * 0.35) -and $opaqueHeight -gt ($bitmap.Height * 0.5) -and
+        $hotspotX -gt ($bitmap.Width * 0.2) -and $hotspotX -lt ($bitmap.Width * 0.8)) {
+        return 'text'
+    }
+
+    # Remaining checks are for hand cursors — require more opaque pixels and a wider body.
+    if ($opaquePixels -lt 90) {
+        return $null
+    }
+
+    if ($hotspotX -lt ($bitmap.Width * 0.25) -or $hotspotX -gt ($bitmap.Width * 0.75) -or
+        $hotspotY -lt ($bitmap.Height * 0.15) -or $hotspotY -gt ($bitmap.Height * 0.55)) {
+        return $null
+    }
+
     if ($opaqueWidth -lt ($bitmap.Width * 0.35) -or $opaqueWidth -gt ($bitmap.Width * 0.9) -or
         $opaqueHeight -lt ($bitmap.Height * 0.45) -or $opaqueHeight -gt $bitmap.Height) {
         return $null
@@ -294,8 +307,36 @@ function Get-CursorAsset($cursorHandle, $cursorId) {
         $memoryStream = New-Object System.IO.MemoryStream
 
         try {
-            $graphics.Clear([System.Drawing.Color]::Transparent)
+            # Draw on an opaque green background (#00DC00) instead of transparent.
+            # GDI's DrawIcon does NOT write the alpha channel when drawing onto a
+            # transparent surface — all pixels end up with A=0 regardless of colour,
+            # making monochrome cursors (I-beam, hourglass, etc.) completely invisible.
+            # Drawing on a fully-opaque background preserves alpha=255 for every
+            # drawn pixel; we then chroma-key out the background green below.
+            $graphics.Clear([System.Drawing.Color]::FromArgb(255, 0, 220, 0))
             $graphics.DrawIcon($icon, 0, 0)
+
+            # Chroma-key: replace background green pixels with transparent.
+            # Threshold: G > 180, R < 30, B < 30  (matches #00DC00 and its slight
+            # GDI dithering variants but won't touch cursor pixels of any real colour).
+            $bitmapRect = [System.Drawing.Rectangle]::new(0, 0, $bitmap.Width, $bitmap.Height)
+            $bitmapData = $bitmap.LockBits($bitmapRect, [System.Drawing.Imaging.ImageLockMode]::ReadWrite, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            $byteCount = [Math]::Abs($bitmapData.Stride) * $bitmap.Height
+            $pixelBytes = New-Object byte[] $byteCount
+            [System.Runtime.InteropServices.Marshal]::Copy($bitmapData.Scan0, $pixelBytes, 0, $byteCount)
+            $chromaChanged = $false
+            for ($pi = 0; $pi -lt $pixelBytes.Length; $pi += 4) {
+                # BGRA layout: B=$pi, G=$pi+1, R=$pi+2, A=$pi+3
+                if ($pixelBytes[$pi + 1] -gt 180 -and $pixelBytes[$pi] -lt 30 -and $pixelBytes[$pi + 2] -lt 30) {
+                    $pixelBytes[$pi] = 0; $pixelBytes[$pi + 1] = 0; $pixelBytes[$pi + 2] = 0; $pixelBytes[$pi + 3] = 0
+                    $chromaChanged = $true
+                }
+            }
+            if ($chromaChanged) {
+                [System.Runtime.InteropServices.Marshal]::Copy($pixelBytes, 0, $bitmapData.Scan0, $byteCount)
+            }
+            $bitmap.UnlockBits($bitmapData)
+
             $hotspotX = if ($hasIconInfo) { $iconInfo.xHotspot } else { 0 }
             $hotspotY = if ($hasIconInfo) { $iconInfo.yHotspot } else { 0 }
             $customCursorType = Get-CustomCursorType -bitmap $bitmap -hotspotX $hotspotX -hotspotY $hotspotY

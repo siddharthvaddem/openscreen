@@ -1394,9 +1394,9 @@ export function SettingsPanel({
 													/>
 												</div>
 
-												{showCursor && (
+												{showCursor && showCursorSettings && (
 													<>
-														{/* Cursor style dropdown — Native OS vs Custom */}
+														{/* Cursor style dropdown — Native OS vs Custom (only when native data exists) */}
 														<div className="p-2 rounded-lg bg-white/5 border border-white/5">
 															<div className="text-[10px] font-medium text-slate-300 mb-1.5">
 																Cursor Style
