@@ -111,12 +111,17 @@ export const PRETTY_NATIVE_CURSOR_ASSETS: Partial<
 	arrow: {
 		imageDataUrl: arrowUrl,
 		// Cursor=AeroDefault.svg viewBox is "0 0 36.7 56.2" (portrait, 1:1.53 ratio).
-		// At width=32 CSS px: height = 32 × 56.2/36.7 ≈ 49.
-		// Tip polygon vertex is at SVG (0.8, 1.8) → hotspot ≈ (1, 2) at 32px render.
-		width: 32,
-		height: 49,
+		// The SVG arrow fills its viewBox tightly while a real Windows arrow occupies
+		// only a small portion of its 32×32 cursor box.  To match the visual size of
+		// a real Windows arrow (and unify perceived size with the other cursor SVGs,
+		// which fill their boxes), render the arrow at 20×31 — smaller than the
+		// pointer hand at 32×33 but with the same aspect ratio as the SVG.
+		// Tip polygon vertex is at SVG (0.8, 1.8) → at 20px width sizeRatio=0.545,
+		// hotspot ≈ (0.44, 0.98) ≈ (1, 1).
+		width: 20,
+		height: 31,
 		hotspotX: 1,
-		hotspotY: 2,
+		hotspotY: 1,
 	},
 	text: {
 		imageDataUrl: textUrl,
@@ -626,21 +631,19 @@ export function resolveNativeCursorRenderAsset(
 	const prettyAsset =
 		resolvePrettyNativeCursorAsset(asset, sample) ?? PRETTY_NATIVE_CURSOR_ASSETS.arrow;
 	if (prettyAsset) {
-		// Scale the SVG artwork to match the actual logical cursor size captured from
-		// the OS.  asset.width / scaleFactor gives the logical-pixel width the cursor
-		// occupies on the recording display — that is the size VideoPlayback should
-		// render it at (before the camera container zoom is applied).  Hotspots are
-		// scaled proportionally so the active point stays accurate.
-		const effectiveScaleFactor = asset.scaleFactor ?? deviceScaleFactor;
-		const logicalWidth = asset.width / effectiveScaleFactor;
-		const sizeRatio = logicalWidth / prettyAsset.width;
+		// Render at the SVG's canonical CSS-pixel size — the browser handles HiDPI
+		// scaling automatically (32 CSS px → 64 physical px on a 2× display).  We
+		// deliberately do NOT scale by asset.scaleFactor: the captured bitmap may
+		// be in physical pixels which would double-apply DPI and shrink the cursor.
+		// Per-cursor-type sizes live in PRETTY_NATIVE_CURSOR_ASSETS so the editor
+		// preview matches the recording overlay exactly.
 		return {
 			id: `pretty:${sample?.cursorType ?? asset.cursorType ?? "arrow"}`,
 			imageDataUrl: prettyAsset.imageDataUrl,
-			width: logicalWidth,
-			height: prettyAsset.height * sizeRatio,
-			hotspotX: prettyAsset.hotspotX * sizeRatio,
-			hotspotY: prettyAsset.hotspotY * sizeRatio,
+			width: prettyAsset.width,
+			height: prettyAsset.height,
+			hotspotX: prettyAsset.hotspotX,
+			hotspotY: prettyAsset.hotspotY,
 		};
 	}
 

@@ -61,11 +61,14 @@ interface CursorAsset {
 const ARROW: CursorAsset = {
 	url: arrowUrl,
 	// Cursor=AeroDefault.svg viewBox is "0 0 36.7 56.2" (portrait, 1:1.53 ratio).
-	// At width=32: height ≈ 49. Tip at SVG (0.8, 1.8) → hotspot (1, 2).
-	width: 32,
-	height: 49,
+	// The SVG arrow fills its viewBox tightly while a real Windows arrow occupies
+	// only a small portion of its 32×32 cursor box.  Render at 20×31 to match the
+	// visual size of a real Windows arrow and unify perceived size with the other
+	// cursor SVGs (which fill their boxes).  Tip at SVG (0.8, 1.8) → hotspot (1, 1).
+	width: 20,
+	height: 31,
 	hotspotX: 1,
-	hotspotY: 2,
+	hotspotY: 1,
 };
 const POINTER: CursorAsset = {
 	url: pointerUrl,
@@ -161,24 +164,19 @@ function getCursorAsset(cursorType: NativeCursorType | null): CursorAsset {
 export function CursorOverlay() {
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const [cursorType, setCursorType] = useState<NativeCursorType | null>(null);
-	// Logical CSS pixel size for the cursor SVG, derived from the captured asset:
-	//   asset.width / asset.scaleFactor
-	// Defaults to 32 / devicePixelRatio as a best-guess before the first IPC
-	// message arrives.
-	const [logicalSize, setLogicalSize] = useState<number>(() => 32 / (window.devicePixelRatio || 1));
 
 	// ── Listen for real-time cursor type from the main process ──────────────────
-	// We use SVG cursor assets (not the raw bitmap) so the overlay is always
-	// opaque and always visible regardless of what SetSystemCursor returns.
-	// The IPC asset carries width + scaleFactor so we can derive the correct
-	// logical cursor size and render the SVG at exactly the right CSS dimensions.
+	// We render the SVG cursor assets at their canonical CSS-pixel sizes (defined
+	// per-type in CURSOR_MAP below).  The browser handles HiDPI scaling natively —
+	// 32 CSS px renders as 64 physical px on a 2× display, matching the OS cursor.
+	// We deliberately ignore the raw bitmap and the asset's scaleFactor: forcing
+	// our own size by physical-pixel data would either shrink the cursor (when the
+	// captured bitmap is in physical pixels) or stretch it.  The pretty SVG sizes
+	// match the editor's native-OS preview exactly, so what you see while
+	// recording is what the final video shows.
 	useEffect(() => {
-		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, asset) => {
+		const cleanup = window.electronAPI?.onCursorTypeChange?.((type, _asset) => {
 			setCursorType(type);
-			if (asset && asset.scaleFactor > 0) {
-				// Logical size = physical pixel width ÷ display scale factor.
-				setLogicalSize(asset.width / asset.scaleFactor);
-			}
 		});
 		return () => {
 			cleanup?.();
@@ -215,14 +213,6 @@ export function CursorOverlay() {
 	}, []);
 
 	const svgAsset = getCursorAsset(cursorType);
-	// Scale the SVG to match the OS cursor's logical pixel size.
-	// sizeRatio maps the SVG's natural design size (32px) to the actual
-	// logical size derived from the IPC asset.
-	const sizeRatio = logicalSize / svgAsset.width;
-	const renderedWidth = svgAsset.width * sizeRatio; // = logicalSize
-	const renderedHeight = svgAsset.height * sizeRatio;
-	const renderedHotspotX = svgAsset.hotspotX * sizeRatio;
-	const renderedHotspotY = svgAsset.hotspotY * sizeRatio;
 
 	return (
 		<div
@@ -265,13 +255,13 @@ export function CursorOverlay() {
 				 */}
 				<img
 					src={svgAsset.url}
-					width={renderedWidth}
-					height={renderedHeight}
+					width={svgAsset.width}
+					height={svgAsset.height}
 					alt=""
 					draggable={false}
 					style={{
 						display: "block",
-						transform: `translate(${-renderedHotspotX}px, ${-renderedHotspotY}px)`,
+						transform: `translate(${-svgAsset.hotspotX}px, ${-svgAsset.hotspotY}px)`,
 						imageRendering: "pixelated",
 						userSelect: "none",
 					}}
