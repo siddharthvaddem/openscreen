@@ -250,6 +250,7 @@ export default function VideoEditor() {
 
 	// Cursor & motion blur visual settings (non-undoable preferences)
 	const [showCursor, setShowCursor] = useState(true);
+	const [cursorDisplayMode, setCursorDisplayMode] = useState<"native-os" | "custom">("native-os");
 	const [cursorSize, setCursorSize] = useState(DEFAULT_CURSOR_SIZE);
 	const [cursorSmoothing, setCursorSmoothing] = useState(DEFAULT_CURSOR_SMOOTHING);
 	const [cursorMotionBlur, setCursorMotionBlur] = useState(DEFAULT_CURSOR_MOTION_BLUR);
@@ -2341,6 +2342,7 @@ export default function VideoEditor() {
 													cursorTelemetry={cursorTelemetry}
 													cursorClickTimestamps={cursorClickTimestamps}
 													showCursor={effectiveShowCursor}
+													cursorDisplayMode={cursorDisplayMode}
 													cursorSize={cursorSize}
 													cursorSmoothing={cursorSmoothing}
 													cursorMotionBlur={cursorMotionBlur}
@@ -2491,6 +2493,8 @@ export default function VideoEditor() {
 										onSaveDiagnostic={handleSaveDiagnostic}
 										showCursor={showCursor}
 										onShowCursorChange={setShowCursor}
+										cursorDisplayMode={cursorDisplayMode}
+										onCursorDisplayModeChange={setCursorDisplayMode}
 										cursorSize={cursorSize}
 										onCursorSizeChange={setCursorSize}
 										cursorSmoothing={cursorSmoothing}

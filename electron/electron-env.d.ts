@@ -198,6 +198,14 @@ interface Window {
 		onRequestSaveBeforeClose: (callback: () => Promise<boolean> | boolean) => () => void;
 		onRequestCloseConfirm: (callback: () => void) => () => void;
 		sendCloseConfirmResponse: (choice: "save" | "discard" | "cancel") => void;
+		onCursorTypeChange: (
+			callback: (
+				cursorType: import("../src/native/contracts").NativeCursorType | null,
+				asset:
+					| import("./native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
+					| null,
+			) => void,
+		) => () => void;
 		setLocale: (locale: string) => Promise<void>;
 		saveDiagnostic: (payload: {
 			error: string;

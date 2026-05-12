@@ -148,6 +148,10 @@ interface VideoPlaybackProps {
 	cursorSmoothing?: number;
 	cursorMotionBlur?: number;
 	cursorClickBounce?: number;
+	/** Whether to render native OS cursor bitmaps ("native-os") or the custom
+	 *  stylised SVG cursor ("custom"). Defaults to "native-os" when native
+	 *  recording data is present. */
+	cursorDisplayMode?: "native-os" | "custom";
 }
 
 export interface VideoPlaybackRef {
@@ -248,6 +252,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			cursorSmoothing = DEFAULT_CURSOR_SMOOTHING,
 			cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
 			cursorClickBounce = DEFAULT_CURSOR_CLICK_BOUNCE,
+			cursorDisplayMode = "native-os",
 		},
 		ref,
 	) => {
@@ -326,6 +331,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const lastResolvedDurationRef = useRef<number | null>(null);
 		const isResolvingDurationRef = useRef(false);
 		const hasNativeCursorRecordingRef = useRef(false);
+		const cursorDisplayModeRef = useRef<"native-os" | "custom">(cursorDisplayMode);
 		const cursorRecordingDataRef = useRef(cursorRecordingData);
 		const cropRegionRef = useRef(cropRegion);
 		const nativeCursorSpriteRef = useRef<Sprite | null>(null);
@@ -774,6 +780,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		useEffect(() => {
 			hasNativeCursorRecordingRef.current = hasNativeCursorRecording;
 		}, [hasNativeCursorRecording]);
+
+		useEffect(() => {
+			cursorDisplayModeRef.current = cursorDisplayMode;
+		}, [cursorDisplayMode]);
 
 		useEffect(() => {
 			cursorRecordingDataRef.current = cursorRecordingData;
@@ -1391,7 +1401,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						cursorTelemetryRef.current,
 						timeMs,
 						baseMaskRef.current,
-						showCursorRef.current && !hasNativeCursorRecordingRef.current,
+						showCursorRef.current &&
+							(!hasNativeCursorRecordingRef.current || cursorDisplayModeRef.current === "custom"),
 						!isPlayingRef.current || isSeekingRef.current,
 					);
 				}
@@ -1411,7 +1422,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					resetNativeCursorMotionBlurState(nativeCursorMotionBlurStateRef.current);
 				};
 				if (nativeCursorImage) {
-					if (hasNativeCursorRecordingRef.current && showCursorRef.current) {
+					if (
+						hasNativeCursorRecordingRef.current &&
+						showCursorRef.current &&
+						cursorDisplayModeRef.current !== "custom"
+					) {
 						const timeMs = currentTimeRef.current; // already in ms
 						const frame = resolveInterpolatedNativeCursorFrame(
 							cursorRecordingDataRef.current,

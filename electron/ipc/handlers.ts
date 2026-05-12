@@ -1,4 +1,4 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { type ChildProcessWithoutNullStreams, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { constants as fsConstants, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import fs from "node:fs/promises";
@@ -40,6 +40,7 @@ import type { CursorRecordingSession } from "../native-bridge/cursor/recording/s
 import {
 	createCursorOverlayWindow,
 	destroyCursorOverlayWindow,
+	sendToCursorOverlay,
 	startHudCursorPolling,
 	stopHudCursorPolling,
 } from "../windows";
@@ -761,6 +762,9 @@ async function startCursorRecording(recordingId?: number) {
 		sourceId: getSelectedSourceId(),
 		startTimeMs:
 			typeof recordingId === "number" && Number.isFinite(recordingId) ? recordingId : undefined,
+		onCursorTypeChange: (cursorType, asset) => {
+			sendToCursorOverlay("cursor-type-change", cursorType, asset ?? null);
+		},
 	});
 
 	try {
@@ -1471,6 +1475,15 @@ export function registerIpcHandlers(
 				? payload.createdAt
 				: Date.now();
 		const cursorCaptureMode = normalizeCursorCaptureMode(payload.cursorCaptureMode);
+
+		// The renderer calls setRecordingState(false) fire-and-forget, then immediately
+		// calls store-recorded-session. The IPC handlers run on the same process but
+		// stopCursorRecording() inside set-recording-state may not have completed yet.
+		// Calling stopCursorRecording() here is safe and idempotent — if the session is
+		// already stopped it returns immediately; if it is still running this ensures the
+		// pending cursor data is captured before we try to write the telemetry file.
+		await stopCursorRecording();
+
 		const screenVideoPath = resolveRecordingOutputPath(payload.screen.fileName);
 		await fs.writeFile(screenVideoPath, Buffer.from(payload.screen.videoData));
 
@@ -2118,7 +2131,6 @@ export function registerIpcHandlers(
 			destroyCursorOverlayWindow();
 			// Synchronous restore on quit — write to temp file to avoid the
 			// -Command quote-mangling issue (same fix as runPowerShellOneShot).
-			const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
 			try {
 				const scriptPath = path.join(
 					os.tmpdir(),

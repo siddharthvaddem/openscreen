@@ -341,6 +341,15 @@ export function destroyCursorOverlayWindow(): void {
 }
 
 /**
+ * Sends an IPC message to the cursor overlay window if it is alive.
+ */
+export function sendToCursorOverlay(channel: string, ...args: unknown[]): void {
+	if (cursorOverlayWindow && !cursorOverlayWindow.isDestroyed()) {
+		cursorOverlayWindow.webContents.send(channel, ...args);
+	}
+}
+
+/**
  * Creates a centered transparent countdown overlay window that sits above the
  * HUD while recording pre-roll is running.
  */

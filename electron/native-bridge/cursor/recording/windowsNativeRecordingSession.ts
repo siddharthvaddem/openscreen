@@ -38,6 +38,8 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 	private sampleCount = 0;
 	private outOfBoundsSampleCount = 0;
 	private previousLeftButtonDown = false;
+	private lastEmittedCursorType: string | null | undefined = undefined; // undefined = not yet emitted
+	private lastEmittedAssetId: string | null | undefined = undefined;
 
 	constructor(private readonly options: WindowsNativeRecordingSessionOptions) {}
 
@@ -49,6 +51,8 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 		this.sampleCount = 0;
 		this.outOfBoundsSampleCount = 0;
 		this.previousLeftButtonDown = false;
+		this.lastEmittedCursorType = undefined;
+		this.lastEmittedAssetId = undefined;
 
 		const script = buildPowerShellScript(
 			this.options.sampleIntervalMs,
@@ -209,6 +213,36 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 		this.sampleCount += 1;
 		if (!normalized.withinBounds) {
 			this.outOfBoundsSampleCount += 1;
+		}
+
+		// Relay cursor-type changes in real time so the cursor overlay window can
+		// render the correct cursor shape while the OS cursor is hidden.
+		// We also pass the captured asset bitmap so the overlay can render the
+		// actual OS cursor image (whatever theme the user has) rather than an
+		// SVG approximation. We re-fire whenever the asset handle changes too,
+		// because a new handle means a new bitmap even if the type string is the
+		// same (e.g. two different app-defined arrow variants).
+		const currentType = normalized.sample.cursorType ?? null;
+		const currentAssetId = normalized.sample.assetId ?? null;
+		if (
+			this.options.onCursorTypeChange &&
+			(currentType !== this.lastEmittedCursorType || currentAssetId !== this.lastEmittedAssetId)
+		) {
+			this.lastEmittedCursorType = currentType;
+			this.lastEmittedAssetId = currentAssetId;
+			const nativeAsset = currentAssetId ? this.assets.get(currentAssetId) : null;
+			this.options.onCursorTypeChange(
+				currentType,
+				nativeAsset
+					? {
+							imageDataUrl: nativeAsset.imageDataUrl,
+							hotspotX: nativeAsset.hotspotX,
+							hotspotY: nativeAsset.hotspotY,
+							width: nativeAsset.width,
+							height: nativeAsset.height,
+						}
+					: null,
+			);
 		}
 
 		this.samples.push(normalized.sample);

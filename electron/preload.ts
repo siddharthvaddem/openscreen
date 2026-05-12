@@ -222,4 +222,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	sendCloseConfirmResponse: (choice: "save" | "discard" | "cancel") => {
 		ipcRenderer.send("close-confirm-response", choice);
 	},
+	onCursorTypeChange: (
+		callback: (
+			cursorType: import("../src/native/contracts").NativeCursorType | null,
+			asset:
+				| import("../electron/native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
+				| null,
+		) => void,
+	) => {
+		const listener = (
+			_event: unknown,
+			cursorType: import("../src/native/contracts").NativeCursorType | null,
+			asset:
+				| import("../electron/native-bridge/cursor/recording/windowsNativeRecordingSession.types").CursorOverlayAsset
+				| null,
+		) => callback(cursorType, asset);
+		ipcRenderer.on("cursor-type-change", listener);
+		return () => ipcRenderer.removeListener("cursor-type-change", listener);
+	},
 });

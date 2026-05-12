@@ -47,10 +47,28 @@ export type WindowsCursorEvent =
 	| WindowsCursorReadyEvent
 	| WindowsCursorErrorEvent;
 
+export interface CursorOverlayAsset {
+	imageDataUrl: string;
+	hotspotX: number;
+	hotspotY: number;
+	width: number;
+	height: number;
+}
+
 export interface WindowsNativeRecordingSessionOptions {
 	getDisplayBounds: () => Rectangle | null;
 	maxSamples: number;
 	sampleIntervalMs: number;
 	sourceId?: string | null;
 	startTimeMs?: number;
+	/**
+	 * Called whenever the active cursor shape changes during recording.
+	 * `asset` carries the actual captured cursor bitmap + hotspot so the
+	 * overlay window can render the real OS cursor image instead of an SVG
+	 * approximation. May be null if the bitmap hasn't been captured yet.
+	 */
+	onCursorTypeChange?: (
+		cursorType: NativeCursorType | null,
+		asset: CursorOverlayAsset | null,
+	) => void;
 }

@@ -2,6 +2,7 @@ import type { Rectangle } from "electron";
 import type { CursorRecordingSession } from "./session";
 import { TelemetryRecordingSession } from "./telemetryRecordingSession";
 import { WindowsNativeRecordingSession } from "./windowsNativeRecordingSession";
+import type { CursorOverlayAsset } from "./windowsNativeRecordingSession.types";
 
 interface CreateCursorRecordingSessionOptions {
 	getDisplayBounds: () => Rectangle | null;
@@ -10,6 +11,10 @@ interface CreateCursorRecordingSessionOptions {
 	sampleIntervalMs: number;
 	sourceId?: string | null;
 	startTimeMs?: number;
+	onCursorTypeChange?: (
+		cursorType: import("../../../../src/native/contracts").NativeCursorType | null,
+		asset: CursorOverlayAsset | null,
+	) => void;
 }
 
 export function createCursorRecordingSession(
@@ -22,6 +27,7 @@ export function createCursorRecordingSession(
 			sampleIntervalMs: options.sampleIntervalMs,
 			sourceId: options.sourceId,
 			startTimeMs: options.startTimeMs,
+			onCursorTypeChange: options.onCursorTypeChange,
 		});
 	}
 
