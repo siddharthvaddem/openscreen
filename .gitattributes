@@ -1,0 +1,22 @@
+# Force LF line endings for all source/config files so that git's
+# core.autocrlf does not interfere with Biome's lineEnding: lf setting.
+# Without this, core.autocrlf=true on Windows converts LF→CRLF on every
+# checkout/stash restore, causing Biome's pre-commit check to fail even
+# on files that were correctly formatted with LF before staging.
+
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.mts  text eol=lf
+*.cts  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.mjs  text eol=lf
+*.cjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.svg  text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.sh   text eol=lf

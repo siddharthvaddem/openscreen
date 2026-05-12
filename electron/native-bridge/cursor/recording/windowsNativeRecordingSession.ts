@@ -146,7 +146,12 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 
 		return {
 			version: 2,
-			provider: this.assets.size > 0 ? "native" : "none",
+			// Set provider to "native" whenever we have position/type samples, even
+			// when no bitmap assets were captured (editable-overlay recording where
+			// SetSystemCursor makes all OS bitmaps transparent).  The editor's
+			// native-os cursor mode can still render using the pretty SVG fallbacks
+			// derived from the cursor-type field of each sample.
+			provider: this.samples.length > 0 ? "native" : "none",
 			samples: this.samples,
 			assets: [...this.assets.values()],
 		};

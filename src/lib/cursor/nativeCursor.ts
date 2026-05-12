@@ -97,7 +97,7 @@ function getNativeCursorAsset(recordingData: CursorRecordingData, assetId: strin
 	return getNativeCursorAssetMap(recordingData).get(assetId) ?? null;
 }
 
-interface PrettyNativeCursorAsset {
+export interface PrettyNativeCursorAsset {
 	imageDataUrl: string;
 	width: number;
 	height: number;
@@ -105,7 +105,9 @@ interface PrettyNativeCursorAsset {
 	hotspotY: number;
 }
 
-const PRETTY_NATIVE_CURSOR_ASSETS: Partial<Record<NativeCursorType, PrettyNativeCursorAsset>> = {
+export const PRETTY_NATIVE_CURSOR_ASSETS: Partial<
+	Record<NativeCursorType, PrettyNativeCursorAsset>
+> = {
 	arrow: {
 		imageDataUrl: arrowUrl,
 		width: 32,
@@ -242,11 +244,12 @@ function resolveUntypedPrettyNativeCursorAsset(asset: NativeCursorAsset) {
 export function hasNativeCursorRecordingData(
 	recordingData: CursorRecordingData | null | undefined,
 ): recordingData is CursorRecordingData {
+	// assets.length is intentionally NOT required here: editable-overlay recordings
+	// hide the OS cursor with SetSystemCursor so every captured bitmap is transparent
+	// and no assets are stored, but the samples still carry cursor-type and position
+	// data that the editor can render using the pretty SVG cursor assets.
 	return Boolean(
-		recordingData &&
-			recordingData.provider === "native" &&
-			recordingData.samples.length > 0 &&
-			recordingData.assets.length > 0,
+		recordingData && recordingData.provider === "native" && recordingData.samples.length > 0,
 	);
 }
 
@@ -432,6 +435,31 @@ function getNativeCursorMaskPoint(sample: CursorRecordingSample, cropRegion: Cro
 	return new Point(croppedPosition.cx, croppedPosition.cy);
 }
 
+/**
+ * Synthesises a NativeCursorAsset from the pretty-cursor SVG library for
+ * samples that have a known cursor type but no captured bitmap (e.g. every
+ * editable-overlay recording where SetSystemCursor makes all OS bitmaps
+ * transparent and no assets are stored).
+ */
+function syntheticAssetForCursorType(
+	cursorType: NativeCursorType | null | undefined,
+): NativeCursorAsset | null {
+	const type = cursorType ?? "arrow";
+	const pretty = PRETTY_NATIVE_CURSOR_ASSETS[type] ?? PRETTY_NATIVE_CURSOR_ASSETS.arrow;
+	if (!pretty) return null;
+	return {
+		id: `type-only:${type}`,
+		platform: "win32",
+		imageDataUrl: pretty.imageDataUrl,
+		width: pretty.width,
+		height: pretty.height,
+		hotspotX: pretty.hotspotX,
+		hotspotY: pretty.hotspotY,
+		scaleFactor: 1,
+		cursorType: type,
+	};
+}
+
 export function resolveActiveNativeCursorFrame(
 	recordingData: CursorRecordingData | null | undefined,
 	timeMs: number,
@@ -444,16 +472,19 @@ export function resolveActiveNativeCursorFrame(
 	if (index >= 0) {
 		const sample = recordingData.samples[index];
 
-		if (sample.visible === false || !sample.assetId) {
+		if (sample.visible === false) {
 			return null;
 		}
 
-		const asset = getNativeCursorAsset(recordingData, sample.assetId);
-		if (!asset) {
-			return null;
+		if (sample.assetId) {
+			const asset = getNativeCursorAsset(recordingData, sample.assetId);
+			return asset ? { sample, asset } : null;
 		}
 
-		return { sample, asset };
+		// No captured bitmap asset — editable-overlay recording.
+		// Fall back to the pretty SVG asset for the detected cursor type.
+		const asset = syntheticAssetForCursorType(sample.cursorType);
+		return asset ? { sample, asset } : null;
 	}
 
 	return null;
@@ -475,21 +506,38 @@ export function resolveInterpolatedNativeCursorFrame(
 	}
 
 	const activeSample = samples[activeIndex];
-	if (activeSample.visible === false || !activeSample.assetId) {
+	if (activeSample.visible === false) {
 		return null;
 	}
 
-	const asset = getNativeCursorAsset(recordingData, activeSample.assetId);
+	// Resolve or synthesise the cursor asset for this sample.
+	let asset: NativeCursorAsset | null;
+	if (activeSample.assetId) {
+		asset = getNativeCursorAsset(recordingData, activeSample.assetId);
+	} else {
+		// No captured bitmap — editable-overlay recording.
+		// Use the pretty SVG for the detected cursor type so the cursor is
+		// always visible and matches the Windows Aero aesthetic.
+		asset = syntheticAssetForCursorType(activeSample.cursorType);
+	}
 	if (!asset) {
 		return null;
 	}
 
 	const nextSample = samples[activeIndex + 1];
+
+	// For interpolation, the assets must match so we're sliding between two
+	// positions of the same visual cursor.  For type-only samples we match by
+	// cursorType instead of assetId.
+	const assetsMatch = activeSample.assetId
+		? nextSample?.assetId === activeSample.assetId
+		: nextSample?.cursorType === activeSample.cursorType;
+
 	if (
 		!nextSample ||
 		nextSample.timeMs <= activeSample.timeMs ||
 		nextSample.visible === false ||
-		nextSample.assetId !== activeSample.assetId ||
+		!assetsMatch ||
 		timeMs <= activeSample.timeMs
 	) {
 		return { asset, sample: activeSample };
