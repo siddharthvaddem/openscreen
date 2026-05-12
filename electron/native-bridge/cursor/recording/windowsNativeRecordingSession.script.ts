@@ -364,6 +364,10 @@ function Get-CursorAsset($cursorHandle, $cursorId) {
 Write-JsonLine @{ type = 'ready'; timestampMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() }
 
 $lastCursorId = $null
+# Tracks the most-recently resolved cursor type so that custom cursors (e.g. Chrome's
+# hand cursor which doesn't match IDC_HAND) keep their classified type on every sample
+# after the first, not just the frame when the handle first appeared.
+$lastResolvedCursorType = $null
 while ($true) {
     [System.Windows.Forms.Application]::DoEvents()
     $mouseEvents = [OpenScreenCursorInterop]::ConsumeMouseButtonEvents()
@@ -386,6 +390,7 @@ while ($true) {
     $asset = $null
 
     if ($visible -and $cursorId -and $cursorId -ne $lastCursorId) {
+        # Cursor handle changed — capture bitmap and resolve type via shape analysis.
         $asset = Get-CursorAsset -cursorHandle $cursorInfo.hCursor -cursorId $cursorId
         if ($asset -and $cursorType) {
             $asset.cursorType = $cursorType
@@ -393,6 +398,12 @@ while ($true) {
             $cursorType = $asset.cursorType
         }
         $lastCursorId = $cursorId
+        $lastResolvedCursorType = $cursorType
+    } elseif (-not $cursorType -and $cursorId -and $cursorId -eq $lastCursorId) {
+        # Same handle, but Get-StandardCursorType returned null (custom cursor such as
+        # Chrome's hand). Reuse the type resolved when this handle first appeared so
+        # the cursor type doesn't revert to null on every subsequent sample.
+        $cursorType = $lastResolvedCursorType
     }
 
     Write-JsonLine @{

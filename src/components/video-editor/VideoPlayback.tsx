@@ -783,6 +783,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		useEffect(() => {
 			cursorDisplayModeRef.current = cursorDisplayMode;
+			// When switching away from the custom PIXI cursor, explicitly reset the
+			// overlay so any residual sprite state (position, visibility) is cleared
+			// and can't bleed through on the next render tick.
+			if (cursorDisplayMode !== "custom") {
+				cursorOverlayRef.current?.reset();
+			}
 		}, [cursorDisplayMode]);
 
 		useEffect(() => {
@@ -1747,6 +1753,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						ref={containerRef}
 						className="absolute inset-0"
 						style={{
+							// Explicit z-index anchors the PIXI WebGL canvas at a known
+							// GPU compositing-layer level (10) so the native cursor <img>
+							// at z-index 18 is definitively above it.  Without an explicit
+							// value, Chromium/Electron may promote the WebGL canvas above
+							// sibling elements regardless of DOM order.
+							zIndex: 10,
 							filter:
 								showShadow && shadowIntensity > 0
 									? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
@@ -1762,7 +1774,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							display: "none",
 							pointerEvents: "none",
 							transformOrigin: "0 0",
+							// Above PIXI canvas layer (z-index 10) but below webcam PiP (20).
 							zIndex: 18,
+							// Force a dedicated GPU compositing layer so Chromium orders
+							// this element correctly above the WebGL canvas.
+							willChange: "transform",
 						}}
 					/>
 					{webcamVideoPath &&
