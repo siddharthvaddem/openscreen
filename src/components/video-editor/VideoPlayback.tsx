@@ -42,6 +42,7 @@ import {
 } from "@/lib/cursor/nativeCursor";
 import { classifyWallpaper, DEFAULT_WALLPAPER, resolveImageWallpaperUrl } from "@/lib/wallpaper";
 import { getCssClipPath } from "@/lib/webcamMaskShapes";
+import { WebcamSegmentationRenderer } from "@/lib/webcamSegmentation";
 import type { CursorRecordingData } from "@/native/contracts";
 import {
 	type AspectRatio,
@@ -103,6 +104,7 @@ interface VideoPlaybackProps {
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape?: import("./types").WebcamMaskShape;
 	webcamSizePreset?: WebcamSizePreset;
+	webcamBackgroundMode?: import("@/lib/webcamSegmentation.types").WebcamBackgroundMode;
 	webcamPosition?: { cx: number; cy: number } | null;
 	onWebcamPositionChange?: (position: { cx: number; cy: number }) => void;
 	onWebcamPositionDragEnd?: () => void;
@@ -203,6 +205,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamLayoutPreset,
 			webcamMaskShape,
 			webcamSizePreset,
+			webcamBackgroundMode = "off",
 			webcamPosition,
 			onWebcamPositionChange,
 			onWebcamPositionDragEnd,
@@ -253,6 +256,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 	) => {
 		const videoRef = useRef<HTMLVideoElement | null>(null);
 		const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
+		const webcamSegCanvasRef = useRef<HTMLCanvasElement | null>(null);
+		const webcamSegRendererRef = useRef<WebcamSegmentationRenderer | null>(null);
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const appRef = useRef<Application | null>(null);
 		const videoSpriteRef = useRef<Sprite | null>(null);
@@ -675,7 +680,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 		// ── Webcam PiP drag handlers ──
 
-		const handleWebcamPointerDown = (event: React.PointerEvent<HTMLVideoElement>) => {
+		const handleWebcamPointerDown = (event: React.PointerEvent<HTMLElement>) => {
 			if (isPlayingRef.current) return;
 			if (webcamLayoutPreset !== "picture-in-picture") return;
 			event.preventDefault();
@@ -691,7 +696,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			};
 		};
 
-		const handleWebcamPointerMove = (event: React.PointerEvent<HTMLVideoElement>) => {
+		const handleWebcamPointerMove = (event: React.PointerEvent<HTMLElement>) => {
 			if (!isDraggingWebcamRef.current) return;
 			event.preventDefault();
 			event.stopPropagation();
@@ -709,7 +714,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			onWebcamPositionChange({ cx, cy });
 		};
 
-		const handleWebcamPointerUp = (event: React.PointerEvent<HTMLVideoElement>) => {
+		const handleWebcamPointerUp = (event: React.PointerEvent<HTMLElement>) => {
 			if (!isDraggingWebcamRef.current) return;
 			isDraggingWebcamRef.current = false;
 			try {
@@ -1646,6 +1651,31 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		}, [currentTime, isPlaying, speedRegions, webcamVideoPath]);
 
 		useEffect(() => {
+			const video = webcamVideoRef.current;
+			const canvas = webcamSegCanvasRef.current;
+			if (!video || !canvas || !webcamVideoPath || webcamBackgroundMode === "off") {
+				if (webcamSegRendererRef.current) {
+					webcamSegRendererRef.current.dispose();
+					webcamSegRendererRef.current = null;
+				}
+				return;
+			}
+			if (webcamSegRendererRef.current) {
+				webcamSegRendererRef.current.setMode(webcamBackgroundMode);
+				return;
+			}
+			const renderer = new WebcamSegmentationRenderer(video, canvas, webcamBackgroundMode);
+			webcamSegRendererRef.current = renderer;
+			renderer.start();
+			return () => {
+				renderer.dispose();
+				if (webcamSegRendererRef.current === renderer) {
+					webcamSegRendererRef.current = null;
+				}
+			};
+		}, [webcamVideoPath, webcamBackgroundMode]);
+
+		useEffect(() => {
 			const webcamVideo = webcamVideoRef.current;
 			if (!webcamVideo || !webcamVideoPath) {
 				return;
@@ -1767,7 +1797,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 											borderRadius: useClipPath ? 0 : (webcamLayout?.borderRadius ?? 0),
 											clipPath: clipPath ?? undefined,
 											boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
-											backgroundColor: "#000",
+											backgroundColor:
+												webcamBackgroundMode === "transparent" ? "transparent" : "#000",
+											visibility: webcamBackgroundMode === "off" ? "visible" : "hidden",
 										}}
 										onPointerDown={handleWebcamPointerDown}
 										onPointerMove={handleWebcamPointerMove}
@@ -1777,6 +1809,22 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										preload="metadata"
 										playsInline
 									/>
+									{webcamBackgroundMode !== "off" && (
+										<canvas
+											ref={webcamSegCanvasRef}
+											className={`absolute inset-0 w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+											style={{
+												borderRadius: useClipPath ? 0 : (webcamLayout?.borderRadius ?? 0),
+												clipPath: clipPath ?? undefined,
+												boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
+												backgroundColor: "transparent",
+											}}
+											onPointerDown={handleWebcamPointerDown}
+											onPointerMove={handleWebcamPointerMove}
+											onPointerUp={handleWebcamPointerUp}
+											onPointerLeave={handleWebcamPointerUp}
+										/>
+									)}
 								</div>
 							);
 						})()}

@@ -300,6 +300,10 @@ interface SettingsPanelProps {
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
+	webcamBackgroundMode?: import("@/lib/webcamSegmentation.types").WebcamBackgroundMode;
+	onWebcamBackgroundModeChange?: (
+		mode: import("@/lib/webcamSegmentation.types").WebcamBackgroundMode,
+	) => void;
 	onSaveDiagnostic?: () => Promise<void>;
 	showCursor?: boolean;
 	onShowCursorChange?: (show: boolean) => void;
@@ -405,6 +409,8 @@ export function SettingsPanel({
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
+	webcamBackgroundMode = "off",
+	onWebcamBackgroundModeChange,
 	onSaveDiagnostic,
 	showCursor = true,
 	onShowCursorChange,
@@ -1239,6 +1245,37 @@ export function SettingsPanel({
 												</div>
 											</div>
 										)}
+										<div className="mt-2 p-2 rounded-lg editor-control-surface">
+											<div className="text-[10px] font-medium text-slate-300 mb-1.5">
+												Background
+											</div>
+											<div className="grid grid-cols-3 gap-1.5">
+												{(
+													[
+														{ value: "off", label: "Off" },
+														{ value: "transparent", label: "Transparent" },
+														{ value: "blur", label: "Blur" },
+													] as Array<{
+														value: import("@/lib/webcamSegmentation.types").WebcamBackgroundMode;
+														label: string;
+													}>
+												).map((opt) => (
+													<button
+														key={opt.value}
+														type="button"
+														onClick={() => onWebcamBackgroundModeChange?.(opt.value)}
+														className={cn(
+															"h-8 rounded-lg border flex items-center justify-center text-[10px] transition-all",
+															webcamBackgroundMode === opt.value
+																? "bg-[#34B27B] border-[#34B27B] text-white"
+																: "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-400",
+														)}
+													>
+														{opt.label}
+													</button>
+												))}
+											</div>
+										</div>
 										{webcamLayoutPreset === "picture-in-picture" && (
 											<div className="p-2 rounded-lg editor-control-surface mt-2">
 												<div className="flex items-center justify-between mb-1.5">

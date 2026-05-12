@@ -75,6 +75,7 @@ export interface ProjectEditorState {
 	webcamMaskShape: WebcamMaskShape;
 	webcamSizePreset: WebcamSizePreset;
 	webcamPosition: WebcamPosition | null;
+	webcamBackgroundMode: import("@/lib/webcamSegmentation.types").WebcamBackgroundMode;
 	exportQuality: ExportQuality;
 	exportFormat: ExportFormat;
 	gifFrameRate: GifFrameRate;
@@ -469,6 +470,11 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 				? Math.max(10, Math.min(50, editor.webcamSizePreset))
 				: DEFAULT_WEBCAM_SIZE_PRESET,
 		webcamPosition: normalizedWebcamPosition,
+		webcamBackgroundMode:
+			(editor as { webcamBackgroundMode?: unknown }).webcamBackgroundMode === "transparent" ||
+			(editor as { webcamBackgroundMode?: unknown }).webcamBackgroundMode === "blur"
+				? (editor as { webcamBackgroundMode: "transparent" | "blur" }).webcamBackgroundMode
+				: "off",
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality

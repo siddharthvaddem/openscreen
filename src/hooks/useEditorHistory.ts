@@ -18,6 +18,7 @@ import {
 	DEFAULT_WEBCAM_SIZE_PRESET,
 } from "@/components/video-editor/types";
 import { DEFAULT_WALLPAPER } from "@/lib/wallpaper";
+import type { WebcamBackgroundMode } from "@/lib/webcamSegmentation.types";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
 // Undoable state — selection IDs are intentionally excluded (undoing a
@@ -39,6 +40,7 @@ export interface EditorState {
 	webcamMaskShape: WebcamMaskShape;
 	webcamSizePreset: WebcamSizePreset;
 	webcamPosition: WebcamPosition | null;
+	webcamBackgroundMode: WebcamBackgroundMode;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -58,6 +60,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	webcamMaskShape: DEFAULT_WEBCAM_MASK_SHAPE,
 	webcamSizePreset: DEFAULT_WEBCAM_SIZE_PRESET,
 	webcamPosition: DEFAULT_WEBCAM_POSITION,
+	webcamBackgroundMode: "off",
 };
 
 type StateUpdate = Partial<EditorState> | ((prev: EditorState) => Partial<EditorState>);

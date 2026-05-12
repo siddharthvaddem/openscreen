@@ -173,6 +173,7 @@ export default function VideoEditor() {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		webcamBackgroundMode,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -356,6 +357,7 @@ export default function VideoEditor() {
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamSizePreset: normalizedEditor.webcamSizePreset,
 				webcamPosition: normalizedEditor.webcamPosition,
+				webcamBackgroundMode: normalizedEditor.webcamBackgroundMode,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -426,6 +428,7 @@ export default function VideoEditor() {
 			webcamLayoutPreset,
 			webcamMaskShape,
 			webcamPosition,
+			webcamBackgroundMode,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
@@ -449,6 +452,7 @@ export default function VideoEditor() {
 		webcamLayoutPreset,
 		webcamMaskShape,
 		webcamPosition,
+		webcamBackgroundMode,
 		exportQuality,
 		exportFormat,
 		gifFrameRate,
@@ -573,6 +577,7 @@ export default function VideoEditor() {
 				webcamMaskShape,
 				webcamSizePreset,
 				webcamPosition,
+				webcamBackgroundMode,
 				exportQuality,
 				exportFormat,
 				gifFrameRate,
@@ -631,6 +636,7 @@ export default function VideoEditor() {
 			webcamLayoutPreset,
 			webcamMaskShape,
 			webcamPosition,
+			webcamBackgroundMode,
 			exportQuality,
 			exportFormat,
 			gifFrameRate,
@@ -2117,6 +2123,7 @@ export default function VideoEditor() {
 												webcamLayoutPreset={webcamLayoutPreset}
 												webcamMaskShape={webcamMaskShape}
 												webcamSizePreset={webcamSizePreset}
+												webcamBackgroundMode={webcamBackgroundMode}
 												webcamPosition={webcamPosition}
 												onWebcamPositionChange={(pos) => updateState({ webcamPosition: pos })}
 												onWebcamPositionDragEnd={commitState}
@@ -2254,6 +2261,8 @@ export default function VideoEditor() {
 									webcamSizePreset={webcamSizePreset}
 									onWebcamSizePresetChange={(v) => updateState({ webcamSizePreset: v })}
 									onWebcamSizePresetCommit={commitState}
+									webcamBackgroundMode={webcamBackgroundMode}
+									onWebcamBackgroundModeChange={(mode) => pushState({ webcamBackgroundMode: mode })}
 									videoElement={videoPlaybackRef.current?.video || null}
 									exportQuality={exportQuality}
 									onExportQualityChange={setExportQuality}
