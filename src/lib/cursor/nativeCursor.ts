@@ -1,7 +1,7 @@
 import { type Container, Point } from "pixi.js";
+import arrowUrl from "@/assets/cursors/Cursor=AeroDefault.svg";
 import appStartingUrl from "@/assets/cursors/Cursor=App-Starting.svg";
 import crosshairUrl from "@/assets/cursors/Cursor=Cross.svg";
-import arrowUrl from "@/assets/cursors/Cursor=Default.svg";
 import closedHandUrl from "@/assets/cursors/Cursor=Hand-(Grabbing).svg";
 import openHandUrl from "@/assets/cursors/Cursor=Hand-(Open).svg";
 import pointerUrl from "@/assets/cursors/Cursor=Hand-(Pointing).svg";
@@ -112,8 +112,8 @@ export const PRETTY_NATIVE_CURSOR_ASSETS: Partial<
 		imageDataUrl: arrowUrl,
 		width: 32,
 		height: 32,
-		hotspotX: 16.25,
-		hotspotY: 15.03,
+		hotspotX: 1,
+		hotspotY: 1,
 	},
 	text: {
 		imageDataUrl: textUrl,
@@ -615,10 +615,16 @@ export function resolveNativeCursorRenderAsset(
 	deviceScaleFactor: number,
 	sample?: CursorRecordingSample,
 ) {
-	const prettyAsset = resolvePrettyNativeCursorAsset(asset, sample);
+	// Prefer the pretty SVG asset (from cursor-type lookup or shape heuristic).
+	// Fall back to the arrow SVG when the cursor type is unknown or the captured
+	// bitmap is transparent (e.g. editable-overlay recordings where SetSystemCursor
+	// replaces every OS handle with a transparent 32×32 bitmap).  This guarantees
+	// the cursor is always visible even when the bitmap can't be classified.
+	const prettyAsset =
+		resolvePrettyNativeCursorAsset(asset, sample) ?? PRETTY_NATIVE_CURSOR_ASSETS.arrow;
 	if (prettyAsset) {
 		return {
-			id: `pretty:${sample?.cursorType ?? asset.cursorType}`,
+			id: `pretty:${sample?.cursorType ?? asset.cursorType ?? "arrow"}`,
 			imageDataUrl: prettyAsset.imageDataUrl,
 			width: prettyAsset.width,
 			height: prettyAsset.height,
