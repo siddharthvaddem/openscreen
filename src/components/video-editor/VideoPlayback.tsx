@@ -29,9 +29,6 @@ import {
 import {
 	createNativeCursorMotionBlurState,
 	createNativeCursorSmoothingState,
-	getNativeCursorClickBounceProgress,
-	getNativeCursorClickBounceScale,
-	getNativeCursorMotionBlurPx,
 	hasNativeCursorRecordingData,
 	projectNativeCursorToLocal,
 	projectNativeCursorToStage,
@@ -1446,10 +1443,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							timeMs,
 						);
 						if (frame) {
+							// Native-OS cursor: no smoothing — behave like a real OS cursor
+							// (crisp, zero-latency, no interpolation).
 							const displaySample = smoothNativeCursorSample({
-								forceSnap: !isPlayingRef.current || isSeekingRef.current,
+								forceSnap: true,
 								sample: frame.sample,
-								smoothing: cursorSmoothingRef.current,
+								smoothing: 0,
 								state: nativeCursorSmoothingStateRef.current,
 								timeMs,
 							});
@@ -1480,23 +1479,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 									window.devicePixelRatio || 1,
 									displaySample,
 								);
-								const bounceProgress = getNativeCursorClickBounceProgress(
-									cursorRecordingDataRef.current,
-									timeMs,
-								);
-								const scale =
-									Math.max(0, cursorSizeRef.current) *
-									getNativeCursorClickBounceScale(cursorClickBounceRef.current, bounceProgress);
+								// Native-OS cursor: no size multiplier, no click bounce, no motion blur.
+								// scale=1.0 so the asset width (logical px from recording) fills at exactly
+								// camera-zoom size — just like a real OS cursor.
+								const scale = 1.0;
 								const transformedScale = scale * Math.abs(cameraContainer?.scale.x || 1);
-								const blurPx =
-									!isPlayingRef.current || isSeekingRef.current
-										? 0
-										: getNativeCursorMotionBlurPx({
-												motionBlur: cursorMotionBlurRef.current,
-												point: projectedStagePoint,
-												state: nativeCursorMotionBlurStateRef.current,
-												timeMs,
-											});
+								const blurPx = 0;
 								if (nativeCursorImageIdRef.current !== renderAsset.id) {
 									nativeCursorImage.src = renderAsset.imageDataUrl;
 									nativeCursorImageIdRef.current = renderAsset.id;

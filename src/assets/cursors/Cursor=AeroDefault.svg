@@ -1,16 +1,17 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
- width="128.000000pt" height="128.000000pt" viewBox="0 0 128.000000 128.000000"
- preserveAspectRatio="xMidYMid meet">
-
-<g transform="translate(0.000000,128.000000) scale(0.100000,-0.100000)"
-fill="#000000" stroke="none">
-<path d="M0 940 l0 -345 78 77 77 77 44 -105 c49 -116 44 -113 124 -79 41 17
-43 5 -17 142 l-35 82 110 3 109 3 -245 245 -245 245 0 -345z m341 -130 l-100
--5 45 -104 c25 -57 41 -107 37 -111 -4 -3 -20 -11 -35 -18 -32 -13 -28 -20
--84 113 -20 50 -39 92 -41 94 -2 3 -35 -26 -73 -64 l-70 -69 0 294 0 295 210
--210 210 -210 -99 -5z"/>
-</g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Ebene_2" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 36.7 56.2">
+  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #fff;
+        stroke: #000;
+        stroke-miterlimit: 10;
+        stroke-width: 1.5px;
+      }
+    </style>
+  </defs>
+  <g id="Ebene_1-2">
+    <polygon class="st0" points="18.6 55.2 11.5 38.5 .8 49.1 .8 1.8 34.9 35.9 18.6 36.1 25.8 51.9 18.6 55.2"/>
+  </g>
 </svg>

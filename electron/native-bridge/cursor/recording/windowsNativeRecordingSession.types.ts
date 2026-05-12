@@ -53,6 +53,8 @@ export interface CursorOverlayAsset {
 	hotspotY: number;
 	width: number;
 	height: number;
+	/** Display scale factor (devicePixelRatio) of the screen where the cursor was captured. */
+	scaleFactor: number;
 }
 
 export interface WindowsNativeRecordingSessionOptions {

@@ -245,6 +245,7 @@ export class WindowsNativeRecordingSession implements CursorRecordingSession {
 							hotspotY: nativeAsset.hotspotY,
 							width: nativeAsset.width,
 							height: nativeAsset.height,
+							scaleFactor: nativeAsset.scaleFactor ?? 1,
 						}
 					: null,
 			);

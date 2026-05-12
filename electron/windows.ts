@@ -30,7 +30,7 @@ export function startCursorOverlayZOrderPolling(): void {
 	cursorOverlayZOrderInterval = setInterval(() => {
 		if (!cursorOverlayWindow || cursorOverlayWindow.isDestroyed()) return;
 		cursorOverlayWindow.setAlwaysOnTop(true, "screen-saver");
-	}, 500);
+	}, 50);
 }
 
 export function stopCursorOverlayZOrderPolling(): void {
