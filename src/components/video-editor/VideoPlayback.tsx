@@ -1497,18 +1497,32 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								const transformedScale =
 									videoDisplayScale * Math.abs(cameraContainer?.scale.x || 1);
 								const blurPx = 0;
+								// Anti-flicker: only mutate src + intrinsic width/height when the
+								// cursor TYPE changes.  Every frame we only update transform —
+								// which is a GPU-compositor operation with zero layout cost.
+								// (The custom-cursor PIXI overlay achieves the same effect by
+								// pre-allocating one sprite per type and toggling visibility.)
+								// Previously we re-set width/height every frame, which forced
+								// a DOM layout pass on each rAF tick and caused the cursor to
+								// blink during normal playback.
 								if (nativeCursorImageIdRef.current !== renderAsset.id) {
 									nativeCursorImage.src = renderAsset.imageDataUrl;
+									nativeCursorImage.style.width = `${renderAsset.width}px`;
+									nativeCursorImage.style.height = `${renderAsset.height}px`;
 									nativeCursorImageIdRef.current = renderAsset.id;
 								}
 								nativeCursorImage.style.display = "block";
-								nativeCursorImage.style.width = `${renderAsset.width * transformedScale}px`;
-								nativeCursorImage.style.height = `${renderAsset.height * transformedScale}px`;
 								nativeCursorImage.style.filter =
 									blurPx > 0 ? `blur(${blurPx.toFixed(2)}px)` : "none";
+								// Order matters: translate is applied AFTER scale (CSS right-to-
+								// left), so scale is around transformOrigin (0,0) and translate
+								// then places the scaled top-left at (X, Y).  Hotspot offset is
+								// already pre-scaled in X, Y.
 								nativeCursorImage.style.transform = `translate3d(${
 									projectedStagePoint.x - renderAsset.hotspotX * transformedScale
-								}px, ${projectedStagePoint.y - renderAsset.hotspotY * transformedScale}px, 0)`;
+								}px, ${
+									projectedStagePoint.y - renderAsset.hotspotY * transformedScale
+								}px, 0) scale(${transformedScale})`;
 								if (nativeCursorSprite) {
 									nativeCursorSprite.visible = false;
 									if (nativeCursorTextureIdRef.current !== renderAsset.id) {
