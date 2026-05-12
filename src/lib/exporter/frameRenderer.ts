@@ -53,9 +53,6 @@ import {
 import {
 	createNativeCursorMotionBlurState,
 	createNativeCursorSmoothingState,
-	getNativeCursorClickBounceProgress,
-	getNativeCursorClickBounceScale,
-	getNativeCursorMotionBlurPx,
 	projectNativeCursorToLocal,
 	resetNativeCursorMotionBlurState,
 	resetNativeCursorSmoothingState,
@@ -540,9 +537,13 @@ export class FrameRenderer {
 			resetNativeCursorMotionBlurState(this.nativeCursorMotionBlurState);
 			return;
 		}
+		// Native-OS cursor: no smoothing — behave like a real OS cursor
+		// (crisp, zero-latency, no interpolation).  Matches VideoPlayback.tsx
+		// so the editor preview and exported video render identically.
 		const displaySample = smoothNativeCursorSample({
+			forceSnap: true,
 			sample: activeNativeCursor.sample,
-			smoothing: this.config.cursorSmoothing ?? 0,
+			smoothing: 0,
 			state: this.nativeCursorSmoothingState,
 			timeMs,
 		});
@@ -566,25 +567,14 @@ export class FrameRenderer {
 			this.warnOnce("native-cursor-image-load", "Failed to load native cursor asset", error);
 			return;
 		}
-		const scale =
-			Math.max(0, this.config.cursorScale ?? 1) *
-			getNativeCursorClickBounceScale(
-				this.config.cursorClickBounce ?? 0,
-				getNativeCursorClickBounceProgress(this.config.cursorRecordingData, timeMs),
-			);
+		// Native-OS cursor: scale=1.0 (no cursorScale multiplier, no click bounce,
+		// no motion blur).  The cursorScale slider only applies to the (preview-
+		// only) custom cursor mode.  We still honor the cursorScale<=0 early-exit
+		// above so the user can hide the cursor entirely.
+		const scale = 1.0;
 		const appliedScale = this.animationState.appliedScale;
 		const canvasX = projectedPoint.x * appliedScale + this.animationState.x;
 		const canvasY = projectedPoint.y * appliedScale + this.animationState.y;
-		const blurPx = getNativeCursorMotionBlurPx({
-			motionBlur: this.config.cursorMotionBlur ?? 0,
-			point: { x: canvasX, y: canvasY },
-			state: this.nativeCursorMotionBlurState,
-			timeMs,
-		});
-		const previousFilter = this.foregroundCtx.filter;
-		if (blurPx > 0) {
-			this.foregroundCtx.filter = `blur(${blurPx.toFixed(2)}px)`;
-		}
 		this.foregroundCtx.drawImage(
 			image,
 			canvasX - renderAsset.hotspotX * scale * appliedScale,
@@ -592,7 +582,6 @@ export class FrameRenderer {
 			renderAsset.width * scale * appliedScale,
 			renderAsset.height * scale * appliedScale,
 		);
-		this.foregroundCtx.filter = previousFilter;
 	}
 
 	private async getCursorImage(asset: { id: string; imageDataUrl: string }) {
