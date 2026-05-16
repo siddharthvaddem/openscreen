@@ -1,5 +1,6 @@
 import type { Span } from "dnd-timeline";
 import { FolderOpen, Languages, Save, Video } from "lucide-react";
+import type { DeviceFrameType } from "@/lib/deviceFrames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
@@ -107,6 +108,7 @@ export default function VideoEditor() {
 		webcamSizePreset,
 		webcamPosition,
 		cursorHighlight,
+		deviceFrame,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -160,6 +162,14 @@ export default function VideoEditor() {
 	const { shortcuts, isMac } = useShortcuts();
 	// Off-Mac doesn't have click telemetry, so force `onlyOnClicks` off for
 	// renderers while keeping the persisted value intact for round-tripping.
+
+	const handleDeviceFrameChange = useCallback(
+		(frame: DeviceFrameType) => {
+			pushState({ deviceFrame: frame });
+		},
+		[pushState],
+	);
+
 	const effectiveCursorHighlight = useMemo(
 		() => (isMac ? cursorHighlight : { ...cursorHighlight, onlyOnClicks: false }),
 		[cursorHighlight, isMac],
@@ -1454,6 +1464,7 @@ export default function VideoEditor() {
 						cursorTelemetry,
 						cursorClickTimestamps,
 						cursorHighlight: effectiveCursorHighlight,
+						deviceFrame: deviceFrame ?? "none",
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1596,6 +1607,7 @@ export default function VideoEditor() {
 						cursorTelemetry,
 						cursorClickTimestamps,
 						cursorHighlight: effectiveCursorHighlight,
+						deviceFrame: deviceFrame ?? "none",
 						onProgress: (progress: ExportProgress) => {
 							setExportProgress(progress);
 						},
@@ -1681,6 +1693,7 @@ export default function VideoEditor() {
 			cursorTelemetry,
 			cursorClickTimestamps,
 			effectiveCursorHighlight,
+			deviceFrame,
 			t,
 		],
 	);
@@ -1953,6 +1966,7 @@ export default function VideoEditor() {
 											cursorTelemetry={cursorTelemetry}
 											cursorHighlight={effectiveCursorHighlight}
 											cursorClickTimestamps={cursorClickTimestamps}
+											deviceFrame={deviceFrame}
 										/>
 									</div>
 								</div>
@@ -2165,6 +2179,8 @@ export default function VideoEditor() {
 						unsavedExport={unsavedExport}
 						onSaveUnsavedExport={handleSaveUnsavedExport}
 						onSaveDiagnostic={handleSaveDiagnostic}
+						deviceFrame={deviceFrame}
+						onDeviceFrameChange={handleDeviceFrameChange}
 					/>
 				</div>
 			</div>

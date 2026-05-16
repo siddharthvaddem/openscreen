@@ -59,6 +59,7 @@ import {
 } from "@/lib/compositeLayout";
 import { BackgroundLoadError, classifyWallpaper, resolveImageWallpaperUrl } from "@/lib/wallpaper";
 import { drawCanvasClipPath } from "@/lib/webcamMaskShapes";
+import { drawDeviceFrameToCanvas } from "@/lib/deviceFrames";
 import { renderAnnotations } from "./annotationRenderer";
 import {
 	getLinearGradientPoints,
@@ -95,6 +96,7 @@ interface FrameRenderConfig {
 	cursorHighlight?: CursorHighlightConfig;
 	cursorClickTimestamps?: number[];
 	platform: string;
+	deviceFrame?: import("@/lib/deviceFrames").DeviceFrameType;
 }
 
 interface AnimationState {
@@ -545,6 +547,16 @@ export class FrameRenderer {
 		} else if (this.compositeCtx && this.foregroundCanvas) {
 			// Flat path or 3D-without-shadow: stamp foreground directly.
 			this.compositeCtx.drawImage(this.foregroundCanvas, 0, 0);
+		}
+
+		// Draw device frame overlay on top of everything (stays flat, not affected by 3D rotation)
+		if (this.config.deviceFrame && this.config.deviceFrame !== "none" && this.compositeCtx && this.compositeCanvas) {
+			drawDeviceFrameToCanvas(
+				this.compositeCtx,
+				this.compositeCanvas.width,
+				this.compositeCanvas.height,
+				this.config.deviceFrame,
+			);
 		}
 	}
 

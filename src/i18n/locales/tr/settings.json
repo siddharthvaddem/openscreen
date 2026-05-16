@@ -201,6 +201,13 @@
 		},
 		"nrDescription": "Yapay zeka destekli gürültü azaltma arka plan gürültüsünü temizler. Daha yüksek seviyeler daha agresiftir ancak ses kalitesini etkileyebilir."
 	},
+	"frame": {
+		"title": "Device Frame",
+		"none": "None",
+		"browser": "Browser",
+		"iphone": "iPhone",
+		"android": "Android"
+	},
 	"canvas": {
 		"title": "Canvas Size"
 	}

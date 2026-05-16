@@ -53,6 +53,7 @@ interface GifExporterConfig {
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 	cursorHighlight?: import("@/components/video-editor/videoPlayback/cursorHighlight").CursorHighlightConfig;
 	cursorClickTimestamps?: number[];
+	deviceFrame?: import("@/lib/deviceFrames").DeviceFrameType;
 	onProgress?: (progress: ExportProgress) => void;
 }
 
@@ -165,6 +166,7 @@ export class GifExporter {
 				cursorTelemetry: this.config.cursorTelemetry,
 				cursorClickTimestamps: this.config.cursorClickTimestamps,
 				cursorHighlight: this.config.cursorHighlight,
+				deviceFrame: this.config.deviceFrame,
 				platform,
 			});
 			await this.renderer.initialize();

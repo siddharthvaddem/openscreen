@@ -197,6 +197,13 @@
 	"language": {
 		"title": "Langue"
 	},
+	"frame": {
+		"title": "Device Frame",
+		"none": "None",
+		"browser": "Browser",
+		"iphone": "iPhone",
+		"android": "Android"
+	},
 	"canvas": {
 		"title": "Canvas Size"
 	}

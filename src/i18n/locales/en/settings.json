@@ -65,6 +65,13 @@
 			"accessibilityPermissionDescription": "Open System Settings → Privacy & Security → Accessibility, enable Openscreen, then restart the app."
 		}
 	},
+	"frame": {
+		"title": "Device Frame",
+		"none": "None",
+		"browser": "Browser",
+		"iphone": "iPhone",
+		"android": "Android"
+	},
 	"canvas": {
 		"title": "Canvas Size"
 	},

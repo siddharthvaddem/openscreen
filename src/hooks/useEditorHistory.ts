@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import type { DeviceFrameType } from "@/lib/deviceFrames";
 import type {
 	AnnotationRegion,
 	CropRegion,
@@ -44,6 +45,7 @@ export interface EditorState {
 	webcamSizePreset: WebcamSizePreset;
 	webcamPosition: WebcamPosition | null;
 	cursorHighlight: CursorHighlightConfig;
+	deviceFrame?: DeviceFrameType;
 }
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -64,6 +66,7 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 	webcamSizePreset: DEFAULT_WEBCAM_SIZE_PRESET,
 	webcamPosition: DEFAULT_WEBCAM_POSITION,
 	cursorHighlight: DEFAULT_CURSOR_HIGHLIGHT,
+	deviceFrame: "none" as DeviceFrameType,
 };
 
 type StateUpdate = Partial<EditorState> | ((prev: EditorState) => Partial<EditorState>);

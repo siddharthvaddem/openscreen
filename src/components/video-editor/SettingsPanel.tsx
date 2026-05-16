@@ -9,6 +9,7 @@ import {
 	Lock,
 	Monitor,
 	Palette,
+	Smartphone,
 	Sparkles,
 	Star,
 	Trash2,
@@ -16,6 +17,7 @@ import {
 	Upload,
 	X,
 } from "lucide-react";
+import type { DeviceFrameType } from "@/lib/deviceFrames";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -249,6 +251,8 @@ interface SettingsPanelProps {
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
 	onSaveDiagnostic?: () => Promise<void>;
+	deviceFrame?: DeviceFrameType;
+	onDeviceFrameChange?: (frame: DeviceFrameType) => void;
 }
 
 export default SettingsPanel;
@@ -332,6 +336,8 @@ export function SettingsPanel({
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
 	onSaveDiagnostic,
+	deviceFrame = "none" as DeviceFrameType,
+	onDeviceFrameChange,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
@@ -813,7 +819,7 @@ export function SettingsPanel({
 
 				<Accordion
 					type="multiple"
-					defaultValue={hasWebcam ? ["layout", "effects", "canvas", "background"] : ["effects", "canvas", "background"]}
+					defaultValue={hasWebcam ? ["layout", "effects", "frame", "canvas", "background"] : ["effects", "frame", "canvas", "background"]}
 					className="space-y-1"
 				>
 					{hasWebcam && (
@@ -1272,6 +1278,40 @@ export function SettingsPanel({
 								<Crop className="w-3 h-3" />
 								{t("crop.cropVideo")}
 							</Button>
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="frame" className="border-white/5 rounded-xl bg-white/[0.02] px-3">
+						<AccordionTrigger className="py-2.5 hover:no-underline">
+							<div className="flex items-center gap-2">
+								<Smartphone className="w-4 h-4 text-[#34B27B]" />
+								<span className="text-xs font-medium">{t("frame.title")}</span>
+							</div>
+						</AccordionTrigger>
+						<AccordionContent className="pb-3">
+							<div className="grid grid-cols-2 gap-1.5">
+								{([
+									{ value: "none", label: t("frame.none"), icon: "—" },
+									{ value: "browser", label: t("frame.browser"), icon: "🌐" },
+									{ value: "iphone", label: t("frame.iphone"), icon: "" },
+									{ value: "android", label: t("frame.android"), icon: "" },
+								] as const).map(({ value, label, icon }) => (
+									<Button
+										key={value}
+										type="button"
+										onClick={() => onDeviceFrameChange?.(value)}
+										className={cn(
+											"h-auto w-full rounded-lg border px-2 py-2 text-center shadow-sm transition-all duration-200",
+											deviceFrame === value
+												? "border-[#34B27B] bg-[#34B27B] text-white"
+												: "border-white/5 bg-white/5 text-slate-400 hover:bg-white/10 hover:border-white/10 hover:text-slate-200",
+										)}
+									>
+										<div className="text-base mb-0.5">{icon}</div>
+										<span className="text-[10px] font-medium block">{label}</span>
+									</Button>
+								))}
+							</div>
 						</AccordionContent>
 					</AccordionItem>
 

@@ -34,6 +34,7 @@ import {
 	getNativeAspectRatioValue,
 } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
+import { DeviceFrameOverlay } from "./DeviceFrameOverlay";
 import {
 	type AnnotationRegion,
 	type BlurData,
@@ -126,6 +127,7 @@ interface VideoPlaybackProps {
 	cursorTelemetry?: import("./types").CursorTelemetryPoint[];
 	cursorHighlight?: CursorHighlightConfig;
 	cursorClickTimestamps?: number[];
+	deviceFrame?: import("@/lib/deviceFrames").DeviceFrameType;
 }
 
 export interface VideoPlaybackRef {
@@ -186,6 +188,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			cursorTelemetry = [],
 			cursorHighlight = DEFAULT_CURSOR_HIGHLIGHT,
 			cursorClickTimestamps = [],
+			deviceFrame = "none" as import("@/lib/deviceFrames").DeviceFrameType,
 		},
 		ref,
 	) => {
@@ -200,6 +203,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const [pixiReady, setPixiReady] = useState(false);
 		const [videoReady, setVideoReady] = useState(false);
 		const [overlaySize, setOverlaySize] = useState({ width: 800, height: 600 });
+		const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
 		const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
 		const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -256,6 +260,18 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const videoReadyRafRef = useRef<number | null>(null);
 		const smoothedAutoFocusRef = useRef<ZoomFocus | null>(null);
 		const prevTargetProgressRef = useRef(0);
+
+		// Track outer wrapper size for the device frame overlay
+		useEffect(() => {
+			const el = outerWrapperRef.current;
+			if (!el) return;
+			const ro = new ResizeObserver(([entry]) => {
+				const { width, height } = entry.contentRect;
+				setStageSize({ width, height });
+			});
+			ro.observe(el);
+			return () => ro.disconnect();
+		}, []);
 
 		const updateOverlayForRegion = useCallback(
 			(region: ZoomRegion | null, focusOverride?: ZoomFocus) => {
@@ -1611,6 +1627,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						</div>
 					)}
 				</div>
+				{/* Device frame overlay — rendered outside the 3D transform container so it stays flat */}
+				{deviceFrame && deviceFrame !== "none" && (
+					<DeviceFrameOverlay
+						frameType={deviceFrame}
+						width={stageSize.width}
+						height={stageSize.height}
+					/>
+				)}
 				<video
 					ref={videoRef}
 					src={videoPath}

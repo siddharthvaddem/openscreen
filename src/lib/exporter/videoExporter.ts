@@ -44,6 +44,7 @@ interface VideoExporterConfig extends ExportConfig {
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 	cursorHighlight?: import("@/components/video-editor/videoPlayback/cursorHighlight").CursorHighlightConfig;
 	cursorClickTimestamps?: number[];
+	deviceFrame?: import("@/lib/deviceFrames").DeviceFrameType;
 	onProgress?: (progress: ExportProgress) => void;
 }
 
@@ -160,6 +161,7 @@ export class VideoExporter {
 				cursorTelemetry: this.config.cursorTelemetry,
 				cursorClickTimestamps: this.config.cursorClickTimestamps,
 				cursorHighlight: this.config.cursorHighlight,
+				deviceFrame: this.config.deviceFrame,
 				platform,
 			});
 			this.renderer = renderer;
