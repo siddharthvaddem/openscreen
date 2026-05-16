@@ -35,8 +35,8 @@ const AUDIO_BITRATE_VOICE = 128_000;
 const AUDIO_BITRATE_SYSTEM = 192_000;
 
 const MIC_GAIN_BOOST = 1.4;
-const WEBCAM_TARGET_WIDTH = 1280;
-const WEBCAM_TARGET_HEIGHT = 720;
+const _WEBCAM_TARGET_WIDTH = 1280;
+const _WEBCAM_TARGET_HEIGHT = 720;
 const WEBCAM_TARGET_FRAME_RATE = 30;
 
 type UseScreenRecorderReturn = {
@@ -208,20 +208,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 		const acquire = async () => {
 			try {
+				const webcamVideoConstraints: MediaTrackConstraints = {
+					deviceId: webcamDeviceId ? { exact: webcamDeviceId } : undefined,
+					frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
+				};
+
 				const stream = await navigator.mediaDevices.getUserMedia({
 					audio: false,
-					video: webcamDeviceId
-						? {
-								deviceId: { exact: webcamDeviceId },
-								width: { ideal: WEBCAM_TARGET_WIDTH },
-								height: { ideal: WEBCAM_TARGET_HEIGHT },
-								frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
-							}
-						: {
-								width: { ideal: WEBCAM_TARGET_WIDTH },
-								height: { ideal: WEBCAM_TARGET_HEIGHT },
-								frameRate: { ideal: WEBCAM_TARGET_FRAME_RATE, max: WEBCAM_TARGET_FRAME_RATE },
-							},
+					video: webcamVideoConstraints,
 				});
 
 				if (cancelled || thisAcquireId !== webcamAcquireId.current) {

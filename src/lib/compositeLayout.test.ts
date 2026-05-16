@@ -235,4 +235,18 @@ describe("computeCompositeLayout", () => {
 		);
 		expect(roundedLayout?.webcamRect?.maskShape).toBe("rounded");
 	});
+
+	it("preserves portrait webcam aspect ratio for portrait inputs", () => {
+		const layout = computeCompositeLayout({
+			canvasSize: { width: 1920, height: 1080 },
+			screenSize: { width: 1920, height: 1080 },
+			webcamSize: { width: 720, height: 1280 },
+			webcamSizePreset: 25,
+		});
+
+		expect(layout).not.toBeNull();
+		expect(layout!.webcamRect).not.toBeNull();
+		expect(layout!.webcamRect!.width).toBeLessThan(layout!.webcamRect!.height);
+		expect(layout!.webcamRect!.height).toBeLessThanOrEqual(1080);
+	});
 });

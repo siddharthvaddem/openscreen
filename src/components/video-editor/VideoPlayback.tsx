@@ -1390,12 +1390,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 									<video
 										ref={webcamVideoRef}
 										src={webcamVideoPath}
-										className={`w-full h-full object-cover ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+										className={`w-full h-full object-contain ${webcamLayoutPreset === "picture-in-picture" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
 										style={{
 											borderRadius: useClipPath ? 0 : (webcamLayout?.borderRadius ?? 0),
 											clipPath: clipPath ?? undefined,
 											boxShadow: useClipPath ? "none" : webcamCssBoxShadow,
 											backgroundColor: "#000",
+											objectPosition: "center center",
 										}}
 										onPointerDown={handleWebcamPointerDown}
 										onPointerMove={handleWebcamPointerMove}
