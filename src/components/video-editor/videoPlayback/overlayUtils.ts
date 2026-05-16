@@ -38,9 +38,13 @@ export function updateOverlayIndicator(params: OverlayUpdateParams) {
 	const zoomScale = getZoomScale(region);
 
 	// Compute indicator dimensions, respecting a custom zoom aspect ratio if set.
-	const zoomAR = region.zoomAspectRatio
-		? getAspectRatioValue(region.zoomAspectRatio)
-		: stageWidth / stageHeight;
+	// "native" must use the actual video ratio, not getAspectRatioValue which falls back to 16:9.
+	const zoomAR =
+		region.zoomAspectRatio === "native"
+			? videoSize.width / videoSize.height
+			: region.zoomAspectRatio
+				? getAspectRatioValue(region.zoomAspectRatio)
+				: stageWidth / stageHeight;
 	const canvasAR = stageWidth / stageHeight;
 
 	let indicatorWidth: number;

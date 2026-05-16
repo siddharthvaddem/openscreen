@@ -150,6 +150,12 @@ interface Window {
 		setHasUnsavedChanges: (hasChanges: boolean) => void;
 		onRequestSaveBeforeClose: (callback: () => Promise<boolean> | boolean) => () => void;
 		setLocale: (locale: string) => Promise<void>;
+		saveDiagnostic: (payload: {
+			error: string;
+			stack?: string;
+			projectState: unknown;
+			logs: string[];
+		}) => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
 	};
 }
 

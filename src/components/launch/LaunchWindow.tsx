@@ -601,7 +601,7 @@ export function LaunchWindow() {
 										setShowCustomWheel(false);
 										setIsBgPickerOpen(false);
 									}}
-									title="Transparent"
+									title="Transparent (not yet supported — exports as black)"
 								/>
 								{/* Preset swatches */}
 								{BG_PRESETS.map((color) => (
@@ -645,6 +645,12 @@ export function LaunchWindow() {
 									);
 								})()}
 							</div>
+
+							{captureBackgroundColor === null && (
+								<p className="text-[10px] text-amber-400/80 mt-2 leading-tight">
+									Transparent areas will still export as black — video codecs don't support alpha.
+								</p>
+							)}
 
 							{/* Inline color wheel */}
 							{showCustomWheel && (

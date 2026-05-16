@@ -3,6 +3,7 @@ import {
 	ChevronDown,
 	Crop,
 	Download,
+	FileDown,
 	Film,
 	Image,
 	Lock,
@@ -247,6 +248,7 @@ interface SettingsPanelProps {
 	webcamSizePreset?: WebcamSizePreset;
 	onWebcamSizePresetChange?: (size: WebcamSizePreset) => void;
 	onWebcamSizePresetCommit?: () => void;
+	onSaveDiagnostic?: () => Promise<void>;
 }
 
 export default SettingsPanel;
@@ -329,6 +331,7 @@ export function SettingsPanel({
 	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
+	onSaveDiagnostic,
 }: SettingsPanelProps) {
 	const t = useScopedT("settings");
 	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
@@ -600,7 +603,7 @@ export function SettingsPanel({
 					</div>
 					<div className={cn("p-2 rounded-lg bg-white/5 border border-white/5", !zoomEnabled && "opacity-40 pointer-events-none")}>
 						<div className="flex items-center justify-between mb-1.5">
-							<span className="text-[10px] font-medium text-slate-300">Zoom size</span>
+							<span className="text-[10px] font-medium text-slate-300">{t("zoom.size")}</span>
 							<span className="text-[10px] text-slate-400 font-mono">
 								{selectedZoomScale != null ? `${Math.round(selectedZoomScale * 100)}%` : "—"}
 							</span>
@@ -616,13 +619,13 @@ export function SettingsPanel({
 							className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 						/>
 						<div className="flex justify-between text-[9px] text-slate-500 mt-1">
-							<span>Less</span>
-							<span>More</span>
+							<span>{t("zoom.less")}</span>
+							<span>{t("zoom.more")}</span>
 						</div>
 					</div>
 					{zoomEnabled && (
 						<div className="mt-2 p-2 rounded-lg bg-white/5 border border-white/5">
-							<div className="text-[10px] font-medium text-slate-300 mb-1.5">Zoom shape</div>
+							<div className="text-[10px] font-medium text-slate-300 mb-1.5">{t("zoom.shape")}</div>
 							<Select
 								value={selectedZoomAspectRatio ?? "native"}
 								onValueChange={(v) => onZoomAspectRatioChange?.(v as AspectRatio)}
@@ -1280,7 +1283,7 @@ export function SettingsPanel({
 							<AccordionTrigger className="py-2.5 hover:no-underline">
 								<div className="flex items-center gap-2">
 									<Monitor className="w-4 h-4 text-[#34B27B]" />
-									<span className="text-xs font-medium">Canvas Size</span>
+									<span className="text-xs font-medium">{t("canvas.title")}</span>
 								</div>
 							</AccordionTrigger>
 							<AccordionContent className="pb-3">
@@ -1322,7 +1325,7 @@ export function SettingsPanel({
 										: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
 								)}
 							>
-								None (transparent)
+								{t("background.none")}
 							</button>
 						</div>
 						<Tabs defaultValue="image" className="w-full">
@@ -1744,6 +1747,16 @@ export function SettingsPanel({
 						<Bug className="w-3 h-3 text-[#34B27B]" />
 						{t("links.reportBug")}
 					</button>
+					{onSaveDiagnostic && (
+						<button
+							type="button"
+							onClick={onSaveDiagnostic}
+							className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-300 py-1.5 transition-colors"
+						>
+							<FileDown className="w-3 h-3 text-slate-400" />
+							Save Diagnostics
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={() => {

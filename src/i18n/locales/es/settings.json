@@ -16,7 +16,11 @@
 				"left": "Izquierda",
 				"right": "Derecha"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "Velocidad de reproducción",
@@ -55,7 +59,8 @@
 		"uploadCustom": "Subir personalizado",
 		"gradientLabel": "Degradado {{index}}",
 		"colorWheel": "Rueda de colores",
-		"colorPalette": "Paleta de colores"
+		"colorPalette": "Paleta de colores",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "Recortar",
@@ -184,5 +189,8 @@
 	},
 	"language": {
 		"title": "Idioma"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

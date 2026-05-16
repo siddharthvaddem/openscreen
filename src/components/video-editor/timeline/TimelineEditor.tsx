@@ -1080,7 +1080,7 @@ export default function TimelineEditor({
 			const startOffset = candidate.startOffsetMs ?? -effectiveDuration / 2;
 			const rawStart = Math.round(candidate.centerTimeMs + startOffset);
 			const candidateStart = Math.max(0, Math.min(rawStart, totalMs - effectiveDuration));
-			const candidateEnd = candidateStart + effectiveDuration;
+			const candidateEnd = Math.min(candidateStart + effectiveDuration, totalMs);
 
 			// Only block against pre-existing user-created regions, not other suggestions.
 			const hasOverlap = reservedSpans.some(

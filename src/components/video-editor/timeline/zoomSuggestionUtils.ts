@@ -85,7 +85,7 @@ export function detectZoomDwellCandidates(samples: CursorTelemetryPoint[]): Zoom
 	return dwellCandidates;
 }
 
-export const MIN_CLICK_GAP_MS = 200;
+export const MIN_CLICK_GAP_MS = 50;
 export const CLICK_CANDIDATE_STRENGTH = 300;
 export const CLICK_REGION_DURATION_MS = 1000;
 // Anchor slightly before the click so the zoom captures the result of the tap, not what came before.

@@ -16,7 +16,11 @@
 				"left": "왼쪽",
 				"right": "오른쪽"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "재생 속도",
@@ -55,7 +59,8 @@
 		"uploadCustom": "직접 업로드",
 		"gradientLabel": "그라디언트 {{index}}",
 		"colorWheel": "색상 휠",
-		"colorPalette": "색상 팔레트"
+		"colorPalette": "색상 팔레트",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "자르기",
@@ -184,5 +189,8 @@
 	},
 	"language": {
 		"title": "언어"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

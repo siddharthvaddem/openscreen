@@ -695,6 +695,19 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				throw new Error("Video track is not available.");
 			}
 
+			try {
+				await videoTrack.applyConstraints({
+					frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
+					width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
+					height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
+				});
+			} catch (constraintError) {
+				console.warn(
+					"Unable to lock 4K/60fps constraints, using best available track settings.",
+					constraintError,
+				);
+			}
+
 			if (captureBackgroundColor) {
 				const bgCanvas = document.createElement("canvas");
 				const bgCtx = bgCanvas.getContext("2d")!;
@@ -745,19 +758,6 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				stream.current.addTrack(systemAudioTrack);
 			} else if (micAudioTrack) {
 				stream.current.addTrack(micAudioTrack);
-			}
-
-			try {
-				await videoTrack.applyConstraints({
-					frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
-					width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-					height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
-				});
-			} catch (constraintError) {
-				console.warn(
-					"Unable to lock 4K/60fps constraints, using best available track settings.",
-					constraintError,
-				);
 			}
 
 			if (!isCountdownRunActive(countdownRunToken)) {

@@ -16,7 +16,11 @@
 				"left": "Sol",
 				"right": "Sağ"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "Oynatma Hızı",
@@ -55,7 +59,8 @@
 		"uploadCustom": "Özel Yükle",
 		"gradientLabel": "Gradyan {{index}}",
 		"colorWheel": "Renk çarkı",
-		"colorPalette": "Renk paleti"
+		"colorPalette": "Renk paleti",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "Kırpma",
@@ -195,5 +200,8 @@
 			"aggressive": "Güçlü"
 		},
 		"nrDescription": "Yapay zeka destekli gürültü azaltma arka plan gürültüsünü temizler. Daha yüksek seviyeler daha agresiftir ancak ses kalitesini etkileyebilir."
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

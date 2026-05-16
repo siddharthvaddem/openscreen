@@ -362,7 +362,9 @@ export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
 
 export function getZoomScale(region: Pick<ZoomRegion, "depth" | "customScale">): number {
-	return region.customScale ?? ZOOM_DEPTH_SCALES[region.depth];
+	const fallback = ZOOM_DEPTH_SCALES[region.depth];
+	const scale = region.customScale ?? fallback;
+	return Number.isFinite(scale) && scale > 0 ? scale : fallback;
 }
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {

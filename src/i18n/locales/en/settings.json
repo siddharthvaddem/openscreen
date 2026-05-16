@@ -1,6 +1,10 @@
 {
 	"zoom": {
 		"level": "Zoom Level",
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape",
 		"selectRegion": "Select a zoom region to adjust",
 		"deleteZoom": "Delete Zoom",
 		"focusMode": {
@@ -61,8 +65,12 @@
 			"accessibilityPermissionDescription": "Open System Settings → Privacy & Security → Accessibility, enable Openscreen, then restart the app."
 		}
 	},
+	"canvas": {
+		"title": "Canvas Size"
+	},
 	"background": {
 		"title": "Background",
+		"none": "None (transparent)",
 		"image": "Image",
 		"color": "Color",
 		"gradient": "Gradient",

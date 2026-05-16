@@ -16,7 +16,11 @@
 				"left": "左",
 				"right": "右"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "再生速度",
@@ -55,7 +59,8 @@
 		"uploadCustom": "カスタム画像を読み込む",
 		"gradientLabel": "グラデーション {{index}}",
 		"colorWheel": "カラーホイール",
-		"colorPalette": "カラーパレット"
+		"colorPalette": "カラーパレット",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "クロップ",
@@ -184,5 +189,8 @@
 	},
 	"language": {
 		"title": "言語"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

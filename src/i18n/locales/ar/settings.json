@@ -8,7 +8,11 @@
 			"manual": "يدوي",
 			"auto": "تلقائي",
 			"autoDescription": "الكاميرا تتبع موضع المؤشر المسجل"
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "سرعة التشغيل",
@@ -61,7 +65,8 @@
 		"uploadCustom": "رفع صورة مخصصة",
 		"gradientLabel": "تدرج لوني {{index}}",
 		"colorWheel": "عجلة الألوان",
-		"colorPalette": "لوحة الألوان"
+		"colorPalette": "لوحة الألوان",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "اقتصاص",
@@ -190,5 +195,8 @@
 	},
 	"language": {
 		"title": "اللغة"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

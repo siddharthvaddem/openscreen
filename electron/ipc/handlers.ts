@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -1317,4 +1318,45 @@ export function registerIpcHandlers(
 			return { success: false, error: String(error) };
 		}
 	});
+
+	ipcMain.handle(
+		"save-diagnostic",
+		async (
+			_,
+			payload: { error: string; stack?: string; projectState: unknown; logs: string[] },
+		) => {
+			const { filePath, canceled } = await dialog.showSaveDialog({
+				title: "Save Diagnostic File",
+				defaultPath: `openscreen-diagnostic-${Date.now()}.json`,
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			});
+
+			if (canceled || !filePath) return { success: false, canceled: true };
+
+			const diagnostic = {
+				timestamp: new Date().toISOString(),
+				appVersion: app.getVersion(),
+				platform: process.platform,
+				arch: process.arch,
+				osRelease: os.release(),
+				osVersion: os.version(),
+				totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
+				nodeVersion: process.versions.node,
+				electronVersion: process.versions.electron,
+				chromeVersion: process.versions.chrome,
+				error: payload.error,
+				stack: payload.stack,
+				projectState: payload.projectState,
+				recentLogs: payload.logs,
+			};
+
+			try {
+				await fs.writeFile(filePath, JSON.stringify(diagnostic, null, 2), "utf-8");
+				return { success: true, path: filePath };
+			} catch (error) {
+				console.error("Failed to write diagnostic file:", error);
+				return { success: false, error: String(error) };
+			}
+		},
+	);
 }

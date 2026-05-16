@@ -23,7 +23,11 @@
 				"left": "左",
 				"right": "右"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "播放速度",
@@ -62,7 +66,8 @@
 		"uploadCustom": "上傳自訂",
 		"gradientLabel": "漸層 {{index}}",
 		"colorWheel": "色輪",
-		"colorPalette": "調色盤"
+		"colorPalette": "調色盤",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "裁剪",
@@ -191,5 +196,8 @@
 	},
 	"language": {
 		"title": "語言"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }

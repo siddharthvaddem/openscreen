@@ -1757,6 +1757,19 @@ export default function VideoEditor() {
 		}
 	}, []);
 
+	const handleSaveDiagnostic = useCallback(async () => {
+		const result = await window.electronAPI.saveDiagnostic({
+			error: exportError ?? "Manual diagnostic export",
+			projectState: editorState,
+			logs: [],
+		});
+		if (result.success) {
+			toast.success("Diagnostic file saved");
+		} else if (!result.canceled) {
+			toast.error("Failed to save diagnostic file");
+		}
+	}, [exportError, editorState]);
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-screen bg-background">
@@ -2151,6 +2164,7 @@ export default function VideoEditor() {
 						onSpeedDelete={handleSpeedDelete}
 						unsavedExport={unsavedExport}
 						onSaveUnsavedExport={handleSaveUnsavedExport}
+						onSaveDiagnostic={handleSaveDiagnostic}
 					/>
 				</div>
 			</div>

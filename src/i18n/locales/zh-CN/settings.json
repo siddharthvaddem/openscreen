@@ -16,7 +16,11 @@
 				"left": "左",
 				"right": "右"
 			}
-		}
+		},
+		"size": "Zoom size",
+		"less": "Less",
+		"more": "More",
+		"shape": "Zoom shape"
 	},
 	"speed": {
 		"playbackSpeed": "播放速度",
@@ -55,7 +59,8 @@
 		"uploadCustom": "上传自定义",
 		"gradientLabel": "渐变 {{index}}",
 		"colorWheel": "颜色轮",
-		"colorPalette": "颜色调色板"
+		"colorPalette": "颜色调色板",
+		"none": "None (transparent)"
 	},
 	"crop": {
 		"title": "裁剪",
@@ -184,5 +189,8 @@
 	},
 	"language": {
 		"title": "语言"
+	},
+	"canvas": {
+		"title": "Canvas Size"
 	}
 }
