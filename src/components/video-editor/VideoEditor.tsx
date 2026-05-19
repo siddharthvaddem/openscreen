@@ -25,6 +25,9 @@ import {
 	type ExportProgress,
 	type ExportQuality,
 	type ExportSettings,
+	exportFrame,
+	type FrameExportConfig,
+	type FrameExportRenderConfig,
 	GIF_SIZE_PRESETS,
 	GifExporter,
 	type GifFrameRate,
@@ -208,6 +211,14 @@ export default function VideoEditor() {
 	const [gifFrameRate, setGifFrameRate] = useState<GifFrameRate>(15);
 	const [gifLoop, setGifLoop] = useState(true);
 	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>("medium");
+	const [frameExportConfig, setFrameExportConfig] = useState<FrameExportConfig>({
+		format: "png",
+		jpegQuality: "high",
+		sizePreset: "original",
+		includeOverlays: true,
+		removeBackground: false,
+		timestamp: 0,
+	});
 	const [exportedFilePath, setExportedFilePath] = useState<string | null>(null);
 	const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
 	const [unsavedExport, setUnsavedExport] = useState<{
@@ -1832,6 +1843,143 @@ export default function VideoEditor() {
 		],
 	);
 
+	const handleFrameExport = useCallback(async () => {
+		if (!videoPath) {
+			toast.error("No video loaded");
+			return;
+		}
+
+		const video = videoPlaybackRef.current?.video;
+		if (!video) {
+			toast.error("Video not ready");
+			return;
+		}
+
+		const ext = frameExportConfig.format === "png" ? "png" : "jpg";
+		const targetFileName = `frame-${Date.now()}.${ext}`;
+		const pickResult = await window.electronAPI.pickExportSavePath(
+			targetFileName,
+			getExportFolder(),
+		);
+		if (pickResult.canceled || !pickResult.success || !pickResult.path) {
+			return;
+		}
+		const targetPath = pickResult.path;
+
+		try {
+			const sourceWidth = video.videoWidth || 1920;
+			const sourceHeight = video.videoHeight || 1080;
+
+			// Update timestamp to current playhead position (seconds -> ms)
+			const config: FrameExportConfig = {
+				...frameExportConfig,
+				timestamp: currentTime * 1000,
+			};
+
+			// Create a VideoFrame from the current video element state
+			const videoFrame = new VideoFrame(video, {
+				timestamp: Math.round(currentTime * 1_000_000), // seconds to microseconds
+			});
+
+			// Build render config
+			const playbackRef = videoPlaybackRef.current;
+			const containerElement = playbackRef?.containerRef?.current;
+			const previewWidth = containerElement?.clientWidth || 1920;
+			const previewHeight = containerElement?.clientHeight || 1080;
+
+			const renderConfig: FrameExportRenderConfig = {
+				wallpaper,
+				zoomRegions,
+				showShadow: shadowIntensity > 0,
+				shadowIntensity,
+				showBlur,
+				motionBlurAmount,
+				borderRadius,
+				padding,
+				cropRegion,
+				cursorRecordingData,
+				cursorScale: effectiveShowCursor ? cursorSize : 0,
+				cursorSmoothing,
+				cursorMotionBlur,
+				cursorClickBounce,
+				cursorClipToBounds,
+				videoWidth: sourceWidth,
+				videoHeight: sourceHeight,
+				annotationRegions,
+				speedRegions,
+				webcamLayoutPreset,
+				webcamMaskShape,
+				webcamSizePreset,
+				webcamPosition,
+				previewWidth,
+				previewHeight,
+				cursorTelemetry,
+				cursorClickTimestamps,
+				platform: "darwin",
+			};
+
+			const result = await exportFrame(videoFrame, config, renderConfig);
+			videoFrame.close();
+
+			if (result.success && result.blob) {
+				const arrayBuffer = await result.blob.arrayBuffer();
+				const saveResult = await window.electronAPI.writeExportToPath(arrayBuffer, targetPath);
+
+				if (saveResult.success && saveResult.path) {
+					const folder = parentDirectoryOf(saveResult.path);
+					if (folder) {
+						saveUserPreferences({ exportFolder: folder });
+					}
+					toast.success("Frame exported successfully", {
+						description: saveResult.path,
+						action: {
+							label: rawT("common.actions.showInFolder"),
+							onClick: () => void handleShowExportedFile(saveResult.path!),
+						},
+					});
+				} else {
+					toast.error("Failed to save frame");
+				}
+			} else {
+				toast.error(result.error || "Frame export failed");
+			}
+		} catch (error) {
+			console.error("Frame export error:", error);
+			toast.error(
+				`Frame export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	}, [
+		videoPath,
+		frameExportConfig,
+		currentTime,
+		wallpaper,
+		zoomRegions,
+		shadowIntensity,
+		showBlur,
+		motionBlurAmount,
+		borderRadius,
+		padding,
+		cropRegion,
+		cursorRecordingData,
+		effectiveShowCursor,
+		cursorSize,
+		cursorSmoothing,
+		cursorMotionBlur,
+		cursorClickBounce,
+		cursorClipToBounds,
+		annotationRegions,
+		speedRegions,
+		webcamLayoutPreset,
+		webcamMaskShape,
+		webcamSizePreset,
+		webcamPosition,
+		cursorTelemetry,
+		cursorClickTimestamps,
+		handleShowExportedFile,
+		rawT,
+	]);
+
 	const handleOpenExportDialog = useCallback(() => {
 		if (!videoPath) {
 			toast.error("No video loaded");
@@ -1841,6 +1989,12 @@ export default function VideoEditor() {
 		const video = videoPlaybackRef.current?.video;
 		if (!video) {
 			toast.error("Video not ready");
+			return;
+		}
+
+		// Frame export uses a separate flow
+		if (exportFormat === "frame") {
+			void handleFrameExport();
 			return;
 		}
 
@@ -1895,6 +2049,7 @@ export default function VideoEditor() {
 		aspectRatio,
 		cropRegion,
 		handleExport,
+		handleFrameExport,
 	]);
 
 	const handleCancelExport = useCallback(() => {
@@ -2236,6 +2391,8 @@ export default function VideoEditor() {
 												)
 											: getAspectRatioValue(aspectRatio),
 									)}
+									frameExportConfig={frameExportConfig}
+									onFrameExportConfigChange={setFrameExportConfig}
 									onExport={handleOpenExportDialog}
 									selectedAnnotationId={selectedAnnotationId}
 									annotationRegions={annotationOnlyRegions}
@@ -2349,7 +2506,7 @@ export default function VideoEditor() {
 				isExporting={isExporting}
 				error={exportError}
 				onCancel={handleCancelExport}
-				exportFormat={exportFormat}
+				exportFormat={exportFormat === "frame" ? "mp4" : exportFormat}
 				exportedFilePath={exportedFilePath || undefined}
 				onShowInFolder={
 					exportedFilePath ? () => void handleShowExportedFile(exportedFilePath) : undefined
