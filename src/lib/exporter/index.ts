@@ -1,3 +1,4 @@
+export { exportFrame, type FrameExportRenderConfig } from "./frameExporter";
 export { FrameRenderer } from "./frameRenderer";
 export { calculateOutputDimensions, GifExporter } from "./gifExporter";
 export {
@@ -14,12 +15,17 @@ export type {
 	ExportQuality,
 	ExportResult,
 	ExportSettings,
+	FrameExportConfig,
+	FrameFormat,
+	FrameSizePreset,
 	GifExportConfig,
 	GifFrameRate,
 	GifSizePreset,
+	JpegQuality,
 	VideoFrameData,
 } from "./types";
 export {
+	FRAME_SIZE_PRESETS,
 	GIF_FRAME_RATES,
 	GIF_SIZE_PRESETS,
 	isValidGifFrameRate,

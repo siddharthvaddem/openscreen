@@ -1,6 +1,7 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import {
 	Bug,
+	Camera,
 	Crop,
 	Download,
 	FileDown,
@@ -39,9 +40,16 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScopedT } from "@/contexts/I18nContext";
 import { WEBCAM_LAYOUT_PRESETS } from "@/lib/compositeLayout";
-import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
+import type {
+	ExportFormat,
+	ExportQuality,
+	FrameExportConfig,
+	GifFrameRate,
+	GifSizePreset,
+} from "@/lib/exporter";
 import {
 	calculateEffectiveSourceDimensions,
+	FRAME_SIZE_PRESETS,
 	GIF_FRAME_RATES,
 	GIF_SIZE_PRESETS,
 } from "@/lib/exporter";
@@ -272,6 +280,9 @@ interface SettingsPanelProps {
 	gifSizePreset?: GifSizePreset;
 	onGifSizePresetChange?: (preset: GifSizePreset) => void;
 	gifOutputDimensions?: { width: number; height: number };
+	// Frame export settings
+	frameExportConfig?: FrameExportConfig;
+	onFrameExportConfigChange?: (config: FrameExportConfig) => void;
 	onExport?: () => void;
 	unsavedExport?: {
 		arrayBuffer: ArrayBuffer;
@@ -400,6 +411,8 @@ export function SettingsPanel({
 	gifSizePreset = "medium",
 	onGifSizePresetChange,
 	gifOutputDimensions = { width: 1280, height: 720 },
+	frameExportConfig,
+	onFrameExportConfigChange,
 	onExport,
 	unsavedExport,
 	onSaveUnsavedExport,
@@ -602,7 +615,12 @@ export function SettingsPanel({
 	];
 	const exportPanelMode = {
 		id: "export" as const,
-		label: exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton"),
+		label:
+			exportFormat === "gif"
+				? t("export.gifButton")
+				: exportFormat === "frame"
+					? "Export Frame"
+					: t("export.videoButton"),
 		icon: Download,
 	};
 	const activeModeLabel = hasTimelineSelection
@@ -1816,6 +1834,18 @@ export function SettingsPanel({
 								<Image className="w-3.5 h-3.5" />
 								{t("exportFormat.gif")}
 							</button>
+							<button
+								onClick={() => onExportFormatChange?.("frame")}
+								className={cn(
+									"flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all text-xs font-medium",
+									exportFormat === "frame"
+										? "bg-[#34B27B]/10 border-[#34B27B]/50 text-white"
+										: "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200",
+								)}
+							>
+								<Camera className="w-3.5 h-3.5" />
+								Frame
+							</button>
 						</div>
 
 						{exportFormat === "mp4" && (
@@ -1953,6 +1983,124 @@ export function SettingsPanel({
 							</div>
 						)}
 
+						{exportFormat === "frame" && frameExportConfig && onFrameExportConfigChange && (
+							<div className="mb-3 space-y-2">
+								{/* Format: PNG / JPG */}
+								<div>
+									<div className="text-[10px] font-medium text-slate-400 mb-1">Format</div>
+									<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-2 h-7 rounded-lg">
+										<button
+											onClick={() =>
+												onFrameExportConfigChange({ ...frameExportConfig, format: "png" })
+											}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												frameExportConfig.format === "png"
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+											)}
+										>
+											PNG
+										</button>
+										<button
+											onClick={() => {
+												if (!frameExportConfig.removeBackground) {
+													onFrameExportConfigChange({ ...frameExportConfig, format: "jpeg" });
+												}
+											}}
+											disabled={frameExportConfig.removeBackground}
+											className={cn(
+												"rounded-md transition-all text-[10px] font-medium",
+												frameExportConfig.format === "jpeg"
+													? "bg-white text-black"
+													: "text-slate-400 hover:text-slate-200",
+												frameExportConfig.removeBackground && "opacity-40 cursor-not-allowed",
+											)}
+										>
+											JPG
+										</button>
+									</div>
+								</div>
+
+								{/* JPEG Quality */}
+								{frameExportConfig.format === "jpeg" && (
+									<div>
+										<div className="text-[10px] font-medium text-slate-400 mb-1">Quality</div>
+										<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
+											{(["low", "medium", "high"] as const).map((q) => (
+												<button
+													key={q}
+													onClick={() =>
+														onFrameExportConfigChange({ ...frameExportConfig, jpegQuality: q })
+													}
+													className={cn(
+														"rounded-md transition-all text-[10px] font-medium capitalize",
+														frameExportConfig.jpegQuality === q
+															? "bg-white text-black"
+															: "text-slate-400 hover:text-slate-200",
+													)}
+												>
+													{q}
+												</button>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Size */}
+								<div>
+									<div className="text-[10px] font-medium text-slate-400 mb-1">Size</div>
+									<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
+										{Object.entries(FRAME_SIZE_PRESETS).map(([key]) => (
+											<button
+												key={key}
+												onClick={() =>
+													onFrameExportConfigChange({
+														...frameExportConfig,
+														sizePreset: key as FrameExportConfig["sizePreset"],
+													})
+												}
+												className={cn(
+													"rounded-md transition-all text-[10px] font-medium",
+													frameExportConfig.sizePreset === key
+														? "bg-white text-black"
+														: "text-slate-400 hover:text-slate-200",
+												)}
+											>
+												{key === "original" ? "Orig" : key === "large" ? "1080p" : "720p"}
+											</button>
+										))}
+									</div>
+								</div>
+
+								{/* Include overlays */}
+								<div className="flex items-center justify-between">
+									<span className="text-[10px] text-slate-400">Include overlays</span>
+									<Switch
+										checked={frameExportConfig.includeOverlays}
+										onCheckedChange={(v) =>
+											onFrameExportConfigChange({ ...frameExportConfig, includeOverlays: v })
+										}
+										className="data-[state=checked]:bg-[#34B27B] scale-75"
+									/>
+								</div>
+
+								{/* Remove background */}
+								<div className="flex items-center justify-between">
+									<span className="text-[10px] text-slate-400">Remove background</span>
+									<Switch
+										checked={frameExportConfig.removeBackground}
+										onCheckedChange={(v) => {
+											const update: Partial<FrameExportConfig> = { removeBackground: v };
+											if (v) update.format = "png";
+											onFrameExportConfigChange({ ...frameExportConfig, ...update });
+										}}
+										className="data-[state=checked]:bg-[#34B27B] scale-75"
+									/>
+								</div>
+							</div>
+						)}
+
 						{unsavedExport && (
 							<Button
 								type="button"
@@ -1972,7 +2120,11 @@ export function SettingsPanel({
 							className="w-full py-5 text-sm font-semibold flex items-center justify-center gap-2 bg-[#34B27B] text-white rounded-xl shadow-lg shadow-[#34B27B]/20 hover:bg-[#3fc98d] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
 						>
 							<Download className="w-4 h-4" />
-							{exportFormat === "gif" ? t("export.gifButton") : t("export.videoButton")}
+							{exportFormat === "gif"
+								? t("export.gifButton")
+								: exportFormat === "frame"
+									? "Export Frame"
+									: t("export.videoButton")}
 						</Button>
 					</>
 				)}
