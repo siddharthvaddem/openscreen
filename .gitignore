@@ -58,3 +58,6 @@ result-*
 
 #kilocode
 .kilo/
+
+# Worktrees
+.worktrees/
