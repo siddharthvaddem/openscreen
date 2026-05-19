@@ -227,6 +227,7 @@ export default function VideoEditor() {
 		format: string;
 	} | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [isExportingFrame, setIsExportingFrame] = useState(false);
 	const [showCloseConfirmDialog, setShowCloseConfirmDialog] = useState(false);
 	const playerContainerRef = useRef<HTMLDivElement | null>(null);
 	const cursorTelemetrySourcePath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
@@ -1866,6 +1867,7 @@ export default function VideoEditor() {
 		}
 		const targetPath = pickResult.path;
 
+		setIsExportingFrame(true);
 		try {
 			const sourceWidth = video.videoWidth || 1920;
 			const sourceHeight = video.videoHeight || 1080;
@@ -1948,6 +1950,8 @@ export default function VideoEditor() {
 			toast.error(
 				`Frame export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
+		} finally {
+			setIsExportingFrame(false);
 		}
 	}, [
 		videoPath,
@@ -1983,6 +1987,10 @@ export default function VideoEditor() {
 	const handleOpenExportDialog = useCallback(() => {
 		if (!videoPath) {
 			toast.error("No video loaded");
+			return;
+		}
+
+		if (isExportingFrame) {
 			return;
 		}
 
@@ -2041,6 +2049,7 @@ export default function VideoEditor() {
 		handleExport(settings);
 	}, [
 		videoPath,
+		isExportingFrame,
 		exportFormat,
 		exportQuality,
 		gifFrameRate,
