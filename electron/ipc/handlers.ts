@@ -2208,10 +2208,15 @@ export function registerIpcHandlers(
 
 	ipcMain.handle("pick-export-save-path", async (_, fileName: string, exportFolder?: string) => {
 		try {
-			const isGif = fileName.toLowerCase().endsWith(".gif");
+			const lowerName = fileName.toLowerCase();
+			const isGif = lowerName.endsWith(".gif");
+			const isImage =
+				lowerName.endsWith(".png") || lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg");
 			const filters = isGif
 				? [{ name: mainT("dialogs", "fileDialogs.gifImage"), extensions: ["gif"] }]
-				: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
+				: isImage
+					? [{ name: "Image", extensions: ["png", "jpg", "jpeg"] }]
+					: [{ name: mainT("dialogs", "fileDialogs.mp4Video"), extensions: ["mp4"] }];
 
 			// Prefer the user's last export folder if it still exists, otherwise fall
 			// back to ~/Downloads. Validation must happen here because the renderer
@@ -2234,7 +2239,9 @@ export function registerIpcHandlers(
 				{
 					title: isGif
 						? mainT("dialogs", "fileDialogs.saveGif")
-						: mainT("dialogs", "fileDialogs.saveVideo"),
+						: isImage
+							? "Save Image"
+							: mainT("dialogs", "fileDialogs.saveVideo"),
 					defaultPath: path.join(defaultDir, fileName),
 					filters,
 					properties: ["createDirectory", "showOverwriteConfirmation"],
@@ -2266,7 +2273,13 @@ export function registerIpcHandlers(
 				return { success: false, message: "Invalid path" };
 			}
 			const lower = filePath.toLowerCase();
-			if (!lower.endsWith(".mp4") && !lower.endsWith(".gif")) {
+			if (
+				!lower.endsWith(".mp4") &&
+				!lower.endsWith(".gif") &&
+				!lower.endsWith(".png") &&
+				!lower.endsWith(".jpg") &&
+				!lower.endsWith(".jpeg")
+			) {
 				return { success: false, message: "Invalid file type" };
 			}
 
