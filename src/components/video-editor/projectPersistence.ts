@@ -473,7 +473,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality
 				: "good",
-		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
+		exportFormat:
+			editor.exportFormat === "gif" || editor.exportFormat === "frame"
+				? editor.exportFormat
+				: "mp4",
 		gifFrameRate:
 			editor.gifFrameRate === 15 ||
 			editor.gifFrameRate === 20 ||
