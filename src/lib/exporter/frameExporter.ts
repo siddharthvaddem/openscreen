@@ -52,7 +52,7 @@ export async function exportFrame(
 			...renderConfig,
 			width,
 			height,
-			wallpaper: config.removeBackground ? "" : renderConfig.wallpaper,
+			wallpaper: config.removeBackground ? "rgba(0,0,0,0)" : renderConfig.wallpaper,
 			annotationRegions: config.includeOverlays ? renderConfig.annotationRegions : undefined,
 			cursorTelemetry: config.includeOverlays ? renderConfig.cursorTelemetry : undefined,
 			cursorRecordingData: config.includeOverlays ? renderConfig.cursorRecordingData : undefined,
