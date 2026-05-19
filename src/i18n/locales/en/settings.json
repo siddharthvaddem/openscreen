@@ -102,7 +102,24 @@
 	"export": {
 		"videoButton": "Export Video",
 		"gifButton": "Export GIF",
-		"chooseSaveLocation": "Choose Save Location"
+		"frameButton": "Export Frame",
+		"chooseSaveLocation": "Choose Save Location",
+		"format": {
+			"frame": "Frame"
+		},
+		"frame": {
+			"format": "Format",
+			"format.png": "PNG",
+			"format.jpeg": "JPG",
+			"quality": "Quality",
+			"quality.low": "Low",
+			"quality.medium": "Medium",
+			"quality.high": "High",
+			"size": "Size",
+			"includeOverlays": "Include overlays",
+			"removeBackground": "Remove background",
+			"removeBackground.hint": "Exports PNG with transparent background"
+		}
 	},
 	"links": {
 		"reportBug": "Report Bug",

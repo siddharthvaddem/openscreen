@@ -25,7 +25,7 @@ export function FormatSelector({
 	const formatLabels: Record<ExportFormat, { label: string; description: string }> = {
 		mp4: { label: t("exportFormat.mp4Video"), description: t("exportFormat.mp4Description") },
 		gif: { label: t("exportFormat.gifAnimation"), description: t("exportFormat.gifDescription") },
-		frame: { label: "Frame", description: "Export current frame" },
+		frame: { label: t("export.format.frame"), description: t("export.frame.format") },
 	};
 
 	return (

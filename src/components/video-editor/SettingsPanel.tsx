@@ -619,7 +619,7 @@ export function SettingsPanel({
 			exportFormat === "gif"
 				? t("export.gifButton")
 				: exportFormat === "frame"
-					? "Export Frame"
+					? t("export.frameButton")
 					: t("export.videoButton"),
 		icon: Download,
 	};
@@ -1844,7 +1844,7 @@ export function SettingsPanel({
 								)}
 							>
 								<Camera className="w-3.5 h-3.5" />
-								Frame
+								{t("export.format.frame")}
 							</button>
 						</div>
 
@@ -1987,7 +1987,9 @@ export function SettingsPanel({
 							<div className="mb-3 space-y-2">
 								{/* Format: PNG / JPG */}
 								<div>
-									<div className="text-[10px] font-medium text-slate-400 mb-1">Format</div>
+									<div className="text-[10px] font-medium text-slate-400 mb-1">
+										{t("export.frame.format")}
+									</div>
 									<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-2 h-7 rounded-lg">
 										<button
 											onClick={() =>
@@ -2025,7 +2027,9 @@ export function SettingsPanel({
 								{/* JPEG Quality */}
 								{frameExportConfig.format === "jpeg" && (
 									<div>
-										<div className="text-[10px] font-medium text-slate-400 mb-1">Quality</div>
+										<div className="text-[10px] font-medium text-slate-400 mb-1">
+											{t("export.frame.quality")}
+										</div>
 										<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
 											{(["low", "medium", "high"] as const).map((q) => (
 												<button
@@ -2049,7 +2053,9 @@ export function SettingsPanel({
 
 								{/* Size */}
 								<div>
-									<div className="text-[10px] font-medium text-slate-400 mb-1">Size</div>
+									<div className="text-[10px] font-medium text-slate-400 mb-1">
+										{t("export.frame.size")}
+									</div>
 									<div className="bg-white/5 border border-white/5 p-0.5 grid grid-cols-3 h-7 rounded-lg">
 										{Object.entries(FRAME_SIZE_PRESETS).map(([key]) => (
 											<button
@@ -2075,7 +2081,9 @@ export function SettingsPanel({
 
 								{/* Include overlays */}
 								<div className="flex items-center justify-between">
-									<span className="text-[10px] text-slate-400">Include overlays</span>
+									<span className="text-[10px] text-slate-400">
+										{t("export.frame.includeOverlays")}
+									</span>
 									<Switch
 										checked={frameExportConfig.includeOverlays}
 										onCheckedChange={(v) =>
@@ -2087,7 +2095,9 @@ export function SettingsPanel({
 
 								{/* Remove background */}
 								<div className="flex items-center justify-between">
-									<span className="text-[10px] text-slate-400">Remove background</span>
+									<span className="text-[10px] text-slate-400">
+										{t("export.frame.removeBackground")}
+									</span>
 									<Switch
 										checked={frameExportConfig.removeBackground}
 										onCheckedChange={(v) => {
@@ -2123,7 +2133,7 @@ export function SettingsPanel({
 							{exportFormat === "gif"
 								? t("export.gifButton")
 								: exportFormat === "frame"
-									? "Export Frame"
+									? t("export.frameButton")
 									: t("export.videoButton")}
 						</Button>
 					</>
