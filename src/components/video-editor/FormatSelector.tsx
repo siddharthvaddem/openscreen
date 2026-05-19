@@ -1,4 +1,4 @@
-import { Film, Image } from "lucide-react";
+import { Camera, Film, Image } from "lucide-react";
 import { useScopedT } from "@/contexts/I18nContext";
 import type { ExportFormat } from "@/lib/exporter/types";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface FormatSelectorProps {
 const formatOptions: Array<{ value: ExportFormat; icon: React.ReactNode }> = [
 	{ value: "mp4", icon: <Film className="w-5 h-5" /> },
 	{ value: "gif", icon: <Image className="w-5 h-5" /> },
+	{ value: "frame", icon: <Camera className="w-5 h-5" /> },
 ];
 
 export function FormatSelector({
@@ -24,10 +25,11 @@ export function FormatSelector({
 	const formatLabels: Record<ExportFormat, { label: string; description: string }> = {
 		mp4: { label: t("exportFormat.mp4Video"), description: t("exportFormat.mp4Description") },
 		gif: { label: t("exportFormat.gifAnimation"), description: t("exportFormat.gifDescription") },
+		frame: { label: "Frame", description: "Export current frame" },
 	};
 
 	return (
-		<div className="grid grid-cols-2 gap-3">
+		<div className="grid grid-cols-3 gap-3">
 			{formatOptions.map((option) => {
 				const isSelected = selectedFormat === option.value;
 				const labels = formatLabels[option.value];
