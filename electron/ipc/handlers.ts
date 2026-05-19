@@ -1,6 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { constants as fsConstants } from "node:fs";
+import { createWriteStream, constants as fsConstants, type WriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -2066,6 +2066,47 @@ export function registerIpcHandlers(
 		},
 	);
 
+	// Streaming chunk writers — keyed by recordingId. Chunks are appended directly
+	// to disk as they arrive from ondataavailable so the renderer never holds the
+	// full video in memory.
+	const activeWriteStreams = new Map<number, WriteStream>();
+
+	ipcMain.handle(
+		"open-recording-stream",
+		async (
+			_,
+			recordingId: number,
+			fileName: string,
+		): Promise<{ success: boolean; error?: string }> => {
+			try {
+				const filePath = resolveRecordingOutputPath(fileName);
+				const ws = createWriteStream(filePath, { flags: "w" });
+				activeWriteStreams.set(recordingId, ws);
+				return { success: true };
+			} catch (error) {
+				return { success: false, error: String(error) };
+			}
+		},
+	);
+
+	ipcMain.handle(
+		"append-recording-chunk",
+		async (
+			_,
+			recordingId: number,
+			chunk: ArrayBuffer,
+		): Promise<{ success: boolean; error?: string }> => {
+			const ws = activeWriteStreams.get(recordingId);
+			if (!ws) return { success: false, error: "No active stream for recordingId " + recordingId };
+			return new Promise((resolve) => {
+				ws.write(Buffer.from(chunk), (err) => {
+					if (err) resolve({ success: false, error: err.message });
+					else resolve({ success: true });
+				});
+			});
+		},
+	);
+
 	ipcMain.handle("store-recorded-session", async (_, payload: StoreRecordedSessionInput) => {
 		try {
 			return await storeRecordedSessionFiles(payload);
@@ -2086,12 +2127,31 @@ export function registerIpcHandlers(
 				: Date.now();
 		const cursorCaptureMode = normalizeCursorCaptureMode(payload.cursorCaptureMode);
 		const screenVideoPath = resolveRecordingOutputPath(payload.screen.fileName);
-		await fs.writeFile(screenVideoPath, Buffer.from(payload.screen.videoData));
+
+		// Close the streaming write stream if one was used; otherwise fall back to
+		// writing the full buffer (short recordings that never opened a stream).
+		const screenWs = activeWriteStreams.get(createdAt);
+		if (screenWs) {
+			await new Promise<void>((resolve, reject) =>
+				screenWs.end((err?: Error | null) => (err ? reject(err) : resolve())),
+			);
+			activeWriteStreams.delete(createdAt);
+		} else if (payload.screen.videoData && payload.screen.videoData.byteLength > 0) {
+			await fs.writeFile(screenVideoPath, Buffer.from(payload.screen.videoData));
+		}
 
 		let webcamVideoPath: string | undefined;
 		if (payload.webcam) {
 			webcamVideoPath = resolveRecordingOutputPath(payload.webcam.fileName);
-			await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
+			const webcamWs = activeWriteStreams.get(createdAt + 1); // webcam stream keyed as recordingId+1
+			if (webcamWs) {
+				await new Promise<void>((resolve, reject) =>
+					webcamWs.end((err?: Error | null) => (err ? reject(err) : resolve())),
+				);
+				activeWriteStreams.delete(createdAt + 1);
+			} else if (payload.webcam.videoData && payload.webcam.videoData.byteLength > 0) {
+				await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
+			}
 		}
 
 		const session: RecordingSession = webcamVideoPath
