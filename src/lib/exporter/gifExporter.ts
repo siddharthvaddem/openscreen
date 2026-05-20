@@ -1,3 +1,4 @@
+import log from "electron-log/renderer";
 import GIF from "gif.js";
 import type {
 	AnnotationRegion,
@@ -207,13 +208,13 @@ export class GifExporter {
 			// Calculate frame delay in milliseconds (gif.js uses ms)
 			const frameDelay = Math.round(1000 / this.config.frameRate);
 
-			console.log("[GifExporter] Original duration:", videoInfo.duration, "s");
-			console.log("[GifExporter] Effective duration:", effectiveDuration, "s");
-			console.log("[GifExporter] Total frames to export:", totalFrames);
-			console.log("[GifExporter] Frame rate:", this.config.frameRate, "FPS");
-			console.log("[GifExporter] Frame delay:", frameDelay, "ms");
-			console.log("[GifExporter] Loop:", this.config.loop ? "infinite" : "once");
-			console.log("[GifExporter] Using streaming decode (web-demuxer + VideoDecoder)");
+			log.info("[GifExporter] Original duration:", videoInfo.duration, "s");
+			log.info("[GifExporter] Effective duration:", effectiveDuration, "s");
+			log.info("[GifExporter] Total frames to export:", totalFrames);
+			log.info("[GifExporter] Frame rate:", this.config.frameRate, "FPS");
+			log.info("[GifExporter] Frame delay:", frameDelay, "ms");
+			log.info("[GifExporter] Loop:", this.config.loop ? "infinite" : "once");
+			log.info("[GifExporter] Using streaming decode (web-demuxer + VideoDecoder)");
 
 			let frameIndex = 0;
 			webcamFrameQueue = this.config.webcamVideoUrl ? new AsyncVideoFrameQueue() : null;
