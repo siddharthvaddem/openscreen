@@ -22,6 +22,42 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ──────────────────────────────────────────────────────────────────────────
+// Headless export CLI mode.
+//
+// Usage:
+//   Openscreen --export <project.openscreen> --output <out.mp4|gif>
+//              [--format mp4|gif] [--quality good|medium|source]
+//
+// When --export is set, the app boots straight into a hidden editor window,
+// sends a "trigger-headless-export" IPC to the renderer, intercepts the
+// pick-export-save-path + write-export-to-path IPCs to route the resulting
+// blob to --output, then quits.
+// ──────────────────────────────────────────────────────────────────────────
+function getCliArg(name: string): string | undefined {
+	const idx = process.argv.indexOf(`--${name}`);
+	if (idx < 0) return undefined;
+	const next = process.argv[idx + 1];
+	if (!next || next.startsWith("--")) return undefined;
+	return next;
+}
+
+const HEADLESS_EXPORT_PROJECT = getCliArg("export");
+const HEADLESS_EXPORT_OUTPUT = getCliArg("output");
+const HEADLESS_EXPORT_FORMAT = (getCliArg("format") ?? "mp4") as "mp4" | "gif";
+const HEADLESS_EXPORT_QUALITY = (getCliArg("quality") ?? "good") as "good" | "medium" | "source";
+const IS_HEADLESS_EXPORT = Boolean(HEADLESS_EXPORT_PROJECT && HEADLESS_EXPORT_OUTPUT);
+
+if (IS_HEADLESS_EXPORT) {
+	// Force HEADLESS=true so createEditorWindow uses `show: false`.
+	process.env.HEADLESS = "true";
+	console.log(`[headless-export] project=${HEADLESS_EXPORT_PROJECT}`);
+	console.log(`[headless-export] output=${HEADLESS_EXPORT_OUTPUT}`);
+	console.log(
+		`[headless-export] format=${HEADLESS_EXPORT_FORMAT}, quality=${HEADLESS_EXPORT_QUALITY}`,
+	);
+}
+
 // Use Screen & System Audio Recording permissions instead of CoreAudio Tap API on macOS.
 // CoreAudio Tap requires NSAudioCaptureUsageDescription in the parent app's Info.plist,
 // which doesn't work when running from a terminal/IDE during development, makes my life easier
@@ -545,5 +581,98 @@ app.whenReady().then(async () => {
 		},
 		switchToHudWrapper,
 	);
-	createWindow();
+
+	if (IS_HEADLESS_EXPORT) {
+		await runHeadlessExport();
+	} else {
+		createWindow();
+	}
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// Headless export driver: boots the editor window invisibly, signals the
+// renderer to apply a project and trigger handleExport, then routes the
+// resulting blob to --output and quits.
+// ──────────────────────────────────────────────────────────────────────────
+async function runHeadlessExport() {
+	if (!HEADLESS_EXPORT_PROJECT || !HEADLESS_EXPORT_OUTPUT) return;
+
+	if (process.platform === "darwin") {
+		// No Dock icon, no menu-bar tray entry of our own.
+		app.dock?.hide();
+	}
+
+	// Read the project file. The editor needs its `screenVideoPath` to load
+	// the underlying recording.
+	let project: unknown;
+	try {
+		const content = await fs.readFile(HEADLESS_EXPORT_PROJECT, "utf-8");
+		project = JSON.parse(content);
+	} catch (err) {
+		console.error(`[headless-export] failed to read project file:`, err);
+		app.exit(1);
+		return;
+	}
+
+	// Intercept the renderer's "where do I save?" + "write the blob" IPCs so
+	// the export blob lands at --output without ever opening a save dialog.
+	ipcMain.removeHandler("pick-export-save-path");
+	ipcMain.handle("pick-export-save-path", () => ({
+		success: true,
+		canceled: false,
+		path: HEADLESS_EXPORT_OUTPUT,
+	}));
+
+	ipcMain.removeHandler("write-export-to-path");
+	ipcMain.handle("write-export-to-path", async (_e, buffer: ArrayBuffer, targetPath: string) => {
+		const writePath = targetPath || HEADLESS_EXPORT_OUTPUT!;
+		try {
+			await fs.writeFile(writePath, Buffer.from(buffer));
+			console.log(`[headless-export] ✓ ${writePath}`);
+			// Defer quit so the renderer's "success" path can run.
+			setTimeout(() => app.quit(), 150);
+			return { success: true, path: writePath };
+		} catch (err) {
+			console.error(`[headless-export] write failed:`, err);
+			setTimeout(() => app.exit(1), 150);
+			return { success: false, message: String(err) };
+		}
+	});
+
+	// Boot the editor window. HEADLESS=true is set at module top so the
+	// window is created with `show: false`.
+	createEditorWindowWrapper();
+
+	if (!mainWindow) {
+		console.error("[headless-export] editor window failed to open");
+		app.exit(1);
+		return;
+	}
+
+	// Resize the offscreen window so the React layout has room to render the
+	// settings rail (default 1200×800 clips it).
+	mainWindow.setBounds({ x: 0, y: 0, width: 2560, height: 1440 });
+
+	mainWindow.webContents.once("did-finish-load", () => {
+		// Give React + nativeBridge a moment to wire up listeners before we
+		// fire the trigger. 1500ms is empirical; tune lower once stable.
+		setTimeout(() => {
+			mainWindow?.webContents.send("trigger-headless-export", {
+				projectPath: HEADLESS_EXPORT_PROJECT,
+				project,
+				format: HEADLESS_EXPORT_FORMAT,
+				quality: HEADLESS_EXPORT_QUALITY,
+				outputPath: HEADLESS_EXPORT_OUTPUT,
+			});
+		}, 1500);
+	});
+
+	// Failsafe: if the export never completes within 10 min, bail.
+	setTimeout(
+		() => {
+			console.error("[headless-export] timed out after 10 minutes");
+			app.exit(1);
+		},
+		10 * 60 * 1000,
+	);
+}

@@ -11,6 +11,14 @@ const ASSET_BASE_URL_ARG_PREFIX = "--asset-base-url=";
 const assetBaseUrlArg = process.argv.find((arg) => arg.startsWith(ASSET_BASE_URL_ARG_PREFIX));
 const assetBaseUrl = assetBaseUrlArg ? assetBaseUrlArg.slice(ASSET_BASE_URL_ARG_PREFIX.length) : "";
 
+export interface HeadlessExportPayload {
+	projectPath: string;
+	project: unknown;
+	format: "mp4" | "gif";
+	quality: "good" | "medium" | "source";
+	outputPath: string;
+}
+
 contextBridge.exposeInMainWorld("electronAPI", {
 	assetBaseUrl,
 	invokeNativeBridge: <TData>(request: NativeBridgeRequest) => {
@@ -174,6 +182,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		const listener = () => callback();
 		ipcRenderer.on("menu-save-project-as", listener);
 		return () => ipcRenderer.removeListener("menu-save-project-as", listener);
+	},
+	onHeadlessExportTrigger: (callback: (payload: HeadlessExportPayload) => void) => {
+		const listener = (_event: unknown, payload: HeadlessExportPayload) => callback(payload);
+		ipcRenderer.on("trigger-headless-export", listener);
+		return () => ipcRenderer.removeListener("trigger-headless-export", listener);
 	},
 	getPlatform: () => {
 		return ipcRenderer.invoke("get-platform");

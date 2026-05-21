@@ -1909,6 +1909,116 @@ export default function VideoEditor() {
 		}
 	}, []);
 
+	// ────────────────────────────────────────────────────────────────────────
+	// Headless export hook (CLI mode).
+	// Main process sets `--export <project> --output <out>` and fires the
+	// "trigger-headless-export" IPC after the editor finishes loading. We
+	// apply the project state, wait for the <video> to be decode-ready,
+	// then call handleExport directly. The blob lands at --output via
+	// the pick-export-save-path + write-export-to-path IPC overrides
+	// installed in main.ts (the editor doesn't need to know this).
+	// ────────────────────────────────────────────────────────────────────────
+	const applyLoadedProjectRef = useRef(applyLoadedProject);
+	useEffect(() => {
+		applyLoadedProjectRef.current = applyLoadedProject;
+	}, [applyLoadedProject]);
+	const handleExportRef = useRef(handleExport);
+	useEffect(() => {
+		handleExportRef.current = handleExport;
+	}, [handleExport]);
+	const videoPlaybackRefRef = videoPlaybackRef;
+
+	useEffect(() => {
+		if (!window.electronAPI.onHeadlessExportTrigger) return;
+		const remove = window.electronAPI.onHeadlessExportTrigger(async (payload) => {
+			try {
+				console.log("[headless-export] trigger received", payload.outputPath);
+
+				// 1. Load any custom fonts referenced by annotations BEFORE applying
+				//    the project. Without this, ctx.font silently falls back to a
+				//    generic sans-serif when the canvas renderer draws annotations
+				//    in a fresh Electron session (no custom-font localStorage entry).
+				try {
+					const proj = payload.project as {
+						editor?: { annotationRegions?: Array<{ style?: { fontFamily?: string } }> };
+					} | null;
+					const families = new Set<string>();
+					for (const a of proj?.editor?.annotationRegions ?? []) {
+						const f = a?.style?.fontFamily;
+						if (f && f !== "Inter") families.add(f);
+					}
+					const { addCustomFont, generateFontId } = await import("@/lib/customFonts");
+					for (const family of families) {
+						const importUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
+							family,
+						)}:wght@400;700&display=swap`;
+						try {
+							await addCustomFont({
+								id: generateFontId(family),
+								name: family,
+								fontFamily: family,
+								importUrl,
+							});
+							console.log(`[headless-export] loaded font: ${family}`);
+						} catch (e) {
+							console.warn(`[headless-export] font load failed: ${family}`, e);
+						}
+					}
+				} catch (e) {
+					console.warn("[headless-export] font preload step failed:", e);
+				}
+
+				// 2. Apply the project state (trim/zoom/annotations/etc).
+				if (payload.project) {
+					await applyLoadedProjectRef.current(
+						payload.project as Parameters<typeof applyLoadedProject>[0],
+						payload.projectPath,
+					);
+				}
+
+				// 2. Wait for <video> to be ready to decode (readyState >= 2)
+				//    and for React to flush the project state into closures.
+				const deadline = Date.now() + 60_000;
+				while (Date.now() < deadline) {
+					const v = videoPlaybackRefRef.current?.video;
+					if (v && v.readyState >= 2 && v.duration > 0) break;
+					await new Promise((r) => setTimeout(r, 200));
+				}
+				// One extra tick so the just-updated React state has been
+				// captured by the latest handleExport closure.
+				await new Promise((r) => setTimeout(r, 300));
+
+				// 3. Construct settings & trigger the export directly.
+				const settings: ExportSettings = {
+					format: payload.format,
+					quality: payload.format === "mp4" ? payload.quality : undefined,
+					gifConfig:
+						payload.format === "gif"
+							? {
+									frameRate: 30 as GifFrameRate,
+									loop: true,
+									sizePreset: "medium" as GifSizePreset,
+									width: 1280,
+									height: 720,
+								}
+							: undefined,
+				};
+
+				console.log("[headless-export] calling handleExport", settings);
+				await handleExportRef.current(settings);
+				console.log("[headless-export] handleExport returned");
+			} catch (err) {
+				console.error("[headless-export] failed:", err);
+			}
+		});
+		return () => {
+			remove?.();
+		};
+		// We intentionally use refs for applyLoadedProject + handleExport so the
+		// listener stays stable; only the API binding triggers re-subscription.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	const handleSaveDiagnostic = useCallback(async () => {
 		const result = await window.electronAPI.saveDiagnostic({
 			error: exportError ?? "Manual diagnostic export",

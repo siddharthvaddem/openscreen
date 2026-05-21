@@ -234,6 +234,15 @@ interface Window {
 		onMenuLoadProject: (callback: () => void) => () => void;
 		onMenuSaveProject: (callback: () => void) => () => void;
 		onMenuSaveProjectAs: (callback: () => void) => () => void;
+		onHeadlessExportTrigger: (
+			callback: (payload: {
+				projectPath: string;
+				project: unknown;
+				format: "mp4" | "gif";
+				quality: "good" | "medium" | "source";
+				outputPath: string;
+			}) => void,
+		) => () => void;
 		getPlatform: () => Promise<string>;
 		revealInFolder: (
 			filePath: string,
