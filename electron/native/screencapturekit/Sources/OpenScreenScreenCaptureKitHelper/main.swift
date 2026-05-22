@@ -62,6 +62,11 @@ struct RecordingRequest: Decodable {
 		let manifestPath: String?
 	}
 
+	struct ExcludedApp: Decodable {
+		let bundleIdentifier: String?
+		let processID: Int32?
+	}
+
 	let schemaVersion: Int?
 	let recordingId: Int?
 	let source: Source
@@ -70,6 +75,7 @@ struct RecordingRequest: Decodable {
 	let webcam: Webcam
 	let cursor: Cursor
 	let outputs: Outputs
+	let excludedApps: [ExcludedApp]?
 }
 
 enum HelperError: Error, CustomStringConvertible {
@@ -348,8 +354,25 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 			}
 			let width = Int(CGDisplayPixelsWide(display.displayID))
 			let height = Int(CGDisplayPixelsHigh(display.displayID))
+			let requestedExclusions = request.excludedApps ?? []
+			let excludedBundleIdentifiers = Set(
+				requestedExclusions.compactMap { $0.bundleIdentifier }
+			)
+			let excludedProcessIDs = Set(
+				requestedExclusions.compactMap { $0.processID }
+			)
+			let excludedWindows = content.windows.filter { window in
+				guard let owner = window.owningApplication else { return false }
+				if excludedBundleIdentifiers.contains(owner.bundleIdentifier) {
+					return true
+				}
+				if excludedProcessIDs.contains(owner.processID) {
+					return true
+				}
+				return false
+			}
 			return CaptureTarget(
-				filter: SCContentFilter(display: display, excludingWindows: []),
+				filter: SCContentFilter(display: display, excludingWindows: excludedWindows),
 				width: clampCaptureDimension(width, fallback: request.video.width),
 				height: clampCaptureDimension(height, fallback: request.video.height)
 			)

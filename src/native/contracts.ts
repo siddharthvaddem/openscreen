@@ -25,6 +25,7 @@ export interface CursorTelemetryPoint {
 	timeMs: number;
 	cx: number;
 	cy: number;
+	interactionType?: "move" | "click" | "double-click" | "right-click" | "middle-click" | "mouseup";
 }
 
 export interface CursorRecordingSample extends CursorTelemetryPoint {

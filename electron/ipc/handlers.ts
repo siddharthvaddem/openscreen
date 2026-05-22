@@ -516,6 +516,7 @@ async function readCursorTelemetryFile(targetVideoPath: string) {
 				timeMs: sample.timeMs,
 				cx: sample.cx,
 				cy: sample.cy,
+				...(sample.interactionType ? { interactionType: sample.interactionType } : {}),
 			})),
 		};
 	} catch (error) {
@@ -1686,6 +1687,8 @@ export function registerIpcHandlers(
 						null)
 					: getSelectedDisplay();
 			const bounds = request.source.bounds ?? sourceDisplay?.bounds ?? getSelectedSourceBounds();
+			const excludedApps =
+				request.source.type === "display" ? [{ processID: process.pid }] : undefined;
 			const config: NativeMacRecordingRequest = {
 				...request,
 				schemaVersion: 1,
@@ -1712,6 +1715,7 @@ export function registerIpcHandlers(
 						`${RECORDING_FILE_PREFIX}${recordingId}${RECORDING_SESSION_SUFFIX}`,
 					),
 				},
+				excludedApps,
 			};
 
 			console.info("[native-sck] starting macOS capture", {
