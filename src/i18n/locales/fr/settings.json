@@ -199,7 +199,19 @@
 		"smoothing": "Lissage",
 		"motionBlur": "Flou de mouvement",
 		"clickBounce": "Rebond au clic",
-		"clipToBounds": "Rogner au canevas"
+		"clipToBounds": "Rogner au canevas",
+		"highlight": {
+			"title": "Cursor Highlight",
+			"style": "Style",
+			"dot": "Dot",
+			"ring": "Ring",
+			"size": "Size",
+			"opacity": "Opacity",
+			"onlyOnClicks": "Only on clicks",
+			"color": "Color",
+			"offsetX": "Offset X",
+			"offsetY": "Offset Y"
+		}
 	},
 	"language": {
 		"title": "Langue"

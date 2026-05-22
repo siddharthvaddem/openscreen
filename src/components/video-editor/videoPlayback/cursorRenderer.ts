@@ -2,6 +2,12 @@ import { Assets, BlurFilter, Container, Graphics, Sprite, Texture } from "pixi.j
 import { MotionBlurFilter } from "pixi-filters/motion-blur";
 import type { CursorTelemetryPoint } from "../types";
 import {
+	type CursorHighlightConfig,
+	DEFAULT_CURSOR_HIGHLIGHT,
+	getHighlightAlpha,
+	hexToPixiColor,
+} from "./cursorHighlight";
+import {
 	createSpringState,
 	getCursorSpringConfig,
 	resetSpringState,
@@ -53,6 +59,8 @@ export interface CursorRenderConfig {
 	motionBlur: number;
 	/** Click bounce multiplier. */
 	clickBounce: number;
+	/** Cursor highlight (colored dot/ring overlay). */
+	cursorHighlight: CursorHighlightConfig;
 }
 
 export const DEFAULT_CURSOR_CONFIG: CursorRenderConfig = {
@@ -63,6 +71,7 @@ export const DEFAULT_CURSOR_CONFIG: CursorRenderConfig = {
 	smoothingFactor: 0.18,
 	motionBlur: 0,
 	clickBounce: 1,
+	cursorHighlight: DEFAULT_CURSOR_HIGHLIGHT,
 };
 
 const REFERENCE_WIDTH = 1920;
@@ -494,12 +503,29 @@ export class SmoothedCursorState {
 	}
 }
 
-function drawClickRing(graphics: Graphics, px: number, py: number, h: number, progress: number) {
-	void graphics;
-	void px;
-	void py;
-	void h;
-	void progress;
+function drawHighlight(
+	graphics: Graphics,
+	px: number,
+	py: number,
+	config: CursorHighlightConfig,
+	alpha: number,
+) {
+	graphics.clear();
+	if (alpha <= 0) return;
+
+	const radius = Math.max(1, config.sizePx / 2);
+	const color = hexToPixiColor(config.color);
+
+	switch (config.style) {
+		case "dot":
+			graphics.circle(px, py, radius);
+			graphics.fill({ color, alpha });
+			break;
+		case "ring":
+			graphics.circle(px, py, radius);
+			graphics.stroke({ color, alpha, width: Math.max(2, radius * 0.18) });
+			break;
+	}
 }
 
 export class PixiCursorOverlay {
@@ -513,6 +539,7 @@ export class PixiCursorOverlay {
 	private config: CursorRenderConfig;
 	private lastRenderedPoint: { px: number; py: number } | null = null;
 	private lastRenderedTimeMs: number | null = null;
+	private highlightConfig: CursorHighlightConfig = DEFAULT_CURSOR_HIGHLIGHT;
 
 	constructor(config: Partial<CursorRenderConfig> = {}) {
 		this.config = { ...DEFAULT_CURSOR_CONFIG, ...config };
@@ -580,6 +607,10 @@ export class PixiCursorOverlay {
 		this.config.clickBounce = Math.max(0, clickBounce);
 	}
 
+	setHighlightConfig(config: CursorHighlightConfig) {
+		this.highlightConfig = config;
+	}
+
 	update(
 		samples: CursorTelemetryPoint[],
 		timeMs: number,
@@ -619,10 +650,7 @@ export class PixiCursorOverlay {
 		const px = viewport.x + this.state.x * viewport.width;
 		const py = viewport.y + this.state.y * viewport.height;
 		const h = this.config.dotRadius * getCursorViewportScale(viewport);
-		const { cursorType, clickBounceProgress, clickProgress } = getCursorVisualState(
-			samples,
-			timeMs,
-		);
+		const { cursorType, clickBounceProgress } = getCursorVisualState(samples, timeMs);
 		const spriteKey = (cursorType in this.cursorSprites ? cursorType : "arrow") as CursorAssetKey;
 		const asset = getCursorAsset(spriteKey);
 		const shadowSprite = this.cursorShadowSprites[spriteKey] ?? this.cursorShadowSprites.arrow!;
@@ -633,8 +661,16 @@ export class PixiCursorOverlay {
 		);
 		const scaledH = h;
 
-		this.clickRingGraphics.clear();
-		drawClickRing(this.clickRingGraphics, px, py, h, clickProgress);
+		const highlightAlpha = getHighlightAlpha(timeMs, samples, this.highlightConfig);
+		const highlightPx = px + this.highlightConfig.offsetXNorm * viewport.width;
+		const highlightPy = py + this.highlightConfig.offsetYNorm * viewport.height;
+		drawHighlight(
+			this.clickRingGraphics,
+			highlightPx,
+			highlightPy,
+			this.highlightConfig,
+			highlightAlpha,
+		);
 
 		for (const [key, currentShadowSprite] of Object.entries(this.cursorShadowSprites) as Array<
 			[CursorAssetKey, Sprite]

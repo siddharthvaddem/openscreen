@@ -199,7 +199,19 @@
 		"smoothing": "平滑",
 		"motionBlur": "動態模糊",
 		"clickBounce": "點擊彈跳",
-		"clipToBounds": "裁切至畫布"
+		"clipToBounds": "裁切至畫布",
+		"highlight": {
+			"title": "Cursor Highlight",
+			"style": "Style",
+			"dot": "Dot",
+			"ring": "Ring",
+			"size": "Size",
+			"opacity": "Opacity",
+			"onlyOnClicks": "Only on clicks",
+			"color": "Color",
+			"offsetX": "Offset X",
+			"offsetY": "Offset Y"
+		}
 	},
 	"language": {
 		"title": "語言"

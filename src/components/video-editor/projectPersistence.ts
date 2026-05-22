@@ -37,6 +37,13 @@ import {
 	type WebcamSizePreset,
 	type ZoomRegion,
 } from "./types";
+import type { CursorHighlightConfig } from "./videoPlayback/cursorHighlight";
+import {
+	CURSOR_HIGHLIGHT_MAX_SIZE_PX,
+	CURSOR_HIGHLIGHT_MIN_SIZE_PX,
+	CURSOR_HIGHLIGHT_OFFSET_RANGE,
+	DEFAULT_CURSOR_HIGHLIGHT,
+} from "./videoPlayback/cursorHighlight";
 
 const VALID_BLUR_SHAPES = new Set(["rectangle", "oval", "freehand"] as const);
 
@@ -80,6 +87,7 @@ export interface ProjectEditorState {
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
+	cursorHighlight: CursorHighlightConfig;
 }
 
 export interface EditorProjectData {
@@ -203,6 +211,41 @@ export function resolveProjectMedia(
 	}
 
 	return null;
+}
+
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+
+function normalizeCursorHighlight(raw: unknown): CursorHighlightConfig {
+	const d = DEFAULT_CURSOR_HIGHLIGHT;
+	if (!raw || typeof raw !== "object") return { ...d };
+	const r = raw as Record<string, unknown>;
+	return {
+		enabled: typeof r.enabled === "boolean" ? r.enabled : d.enabled,
+		style: r.style === "dot" || r.style === "ring" ? r.style : d.style,
+		sizePx: isFiniteNumber(r.sizePx)
+			? clamp(r.sizePx as number, CURSOR_HIGHLIGHT_MIN_SIZE_PX, CURSOR_HIGHLIGHT_MAX_SIZE_PX)
+			: d.sizePx,
+		color: typeof r.color === "string" && HEX_COLOR_RE.test(r.color) ? r.color : d.color,
+		opacity: isFiniteNumber(r.opacity) ? clamp(r.opacity as number, 0, 1) : d.opacity,
+		onlyOnClicks: typeof r.onlyOnClicks === "boolean" ? r.onlyOnClicks : d.onlyOnClicks,
+		clickEmphasisDurationMs: isFiniteNumber(r.clickEmphasisDurationMs)
+			? Math.max(1, r.clickEmphasisDurationMs as number)
+			: d.clickEmphasisDurationMs,
+		offsetXNorm: isFiniteNumber(r.offsetXNorm)
+			? clamp(
+					r.offsetXNorm as number,
+					-CURSOR_HIGHLIGHT_OFFSET_RANGE,
+					CURSOR_HIGHLIGHT_OFFSET_RANGE,
+				)
+			: d.offsetXNorm,
+		offsetYNorm: isFiniteNumber(r.offsetYNorm)
+			? clamp(
+					r.offsetYNorm as number,
+					-CURSOR_HIGHLIGHT_OFFSET_RANGE,
+					CURSOR_HIGHLIGHT_OFFSET_RANGE,
+				)
+			: d.offsetYNorm,
+	};
 }
 
 export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): ProjectEditorState {
@@ -488,6 +531,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.gifSizePreset === "original"
 				? editor.gifSizePreset
 				: "medium",
+		cursorHighlight: normalizeCursorHighlight(editor.cursorHighlight),
 	};
 }
 

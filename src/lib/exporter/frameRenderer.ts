@@ -35,6 +35,10 @@ import {
 	adaptiveSmoothFactor,
 	smoothCursorFocus,
 } from "@/components/video-editor/videoPlayback/cursorFollowUtils";
+import {
+	drawCursorHighlightCanvas,
+	getHighlightAlpha,
+} from "@/components/video-editor/videoPlayback/cursorHighlight";
 import { clampFocusToScale } from "@/components/video-editor/videoPlayback/focusUtils";
 import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
@@ -106,6 +110,7 @@ interface FrameRenderConfig {
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 	cursorClickTimestamps?: number[];
+	cursorHighlight?: import("@/components/video-editor/videoPlayback/cursorHighlight").CursorHighlightConfig;
 	platform: string;
 }
 
@@ -445,6 +450,7 @@ export class FrameRenderer {
 		const willRotate = !isRotation3DIdentity(this.currentRotation3D);
 		this.compositeWithShadows(webcamFrame, !willRotate);
 
+		this.drawCursorHighlight(timeMs);
 		await this.drawNativeCursor(timeMs);
 
 		// Render annotations on top of foreground (so they rotate with recording).
@@ -542,6 +548,41 @@ export class FrameRenderer {
 			height: camS * maskH,
 			br: this.layoutCache.maskBorderRadius * camS,
 		};
+	}
+
+	private drawCursorHighlight(timeMs: number) {
+		const config = this.config.cursorHighlight;
+		if (!config?.enabled || !this.foregroundCtx || !this.layoutCache) return;
+
+		const samples = this.config.cursorTelemetry ?? [];
+		const alpha = getHighlightAlpha(timeMs, samples, config);
+		if (alpha <= 0) return;
+
+		// Resolve normalized cursor position from telemetry.
+		let cx: number | null = null;
+		let cy: number | null = null;
+		for (let i = samples.length - 1; i >= 0; i--) {
+			if (samples[i].timeMs <= timeMs) {
+				cx = samples[i].cx;
+				cy = samples[i].cy;
+				break;
+			}
+		}
+		if (cx === null || cy === null) return;
+
+		cx = Math.max(0, Math.min(1, cx + config.offsetXNorm));
+		cy = Math.max(0, Math.min(1, cy + config.offsetYNorm));
+
+		const { baseOffset, videoSize, baseScale } = this.layoutCache;
+		const appliedScale = this.animationState.appliedScale;
+		const stageX = baseOffset.x + cx * videoSize.width * baseScale;
+		const stageY = baseOffset.y + cy * videoSize.height * baseScale;
+		const canvasX = stageX * appliedScale + this.animationState.x;
+		const canvasY = stageY * appliedScale + this.animationState.y;
+		const pixelScale =
+			(this.config.width / (this.config.previewWidth ?? this.config.width)) * appliedScale;
+
+		drawCursorHighlightCanvas(this.foregroundCtx, canvasX, canvasY, alpha, config, pixelScale);
 	}
 
 	private async drawNativeCursor(timeMs: number) {

@@ -176,6 +176,7 @@ export default function VideoEditor() {
 		webcamMaskShape,
 		webcamSizePreset,
 		webcamPosition,
+		cursorHighlight,
 	} = editorState;
 
 	// ── Non-undoable state
@@ -360,6 +361,7 @@ export default function VideoEditor() {
 				webcamMaskShape: normalizedEditor.webcamMaskShape,
 				webcamSizePreset: normalizedEditor.webcamSizePreset,
 				webcamPosition: normalizedEditor.webcamPosition,
+				cursorHighlight: normalizedEditor.cursorHighlight,
 			});
 			setExportQuality(normalizedEditor.exportQuality);
 			setExportFormat(normalizedEditor.exportFormat);
@@ -435,6 +437,7 @@ export default function VideoEditor() {
 			gifFrameRate,
 			gifLoop,
 			gifSizePreset,
+			cursorHighlight,
 		});
 	}, [
 		currentProjectMedia,
@@ -458,6 +461,7 @@ export default function VideoEditor() {
 		gifFrameRate,
 		gifLoop,
 		gifSizePreset,
+		cursorHighlight,
 	]);
 
 	const hasUnsavedChanges = hasProjectUnsavedChanges(currentProjectSnapshot, lastSavedSnapshot);
@@ -582,6 +586,7 @@ export default function VideoEditor() {
 				gifFrameRate,
 				gifLoop,
 				gifSizePreset,
+				cursorHighlight,
 			};
 			const projectData = createProjectData(currentProjectMedia, editorState);
 
@@ -643,6 +648,7 @@ export default function VideoEditor() {
 			videoPath,
 			t,
 			webcamSizePreset,
+			cursorHighlight,
 		],
 	);
 
@@ -1621,6 +1627,7 @@ export default function VideoEditor() {
 						cursorMotionBlur,
 						cursorClickBounce,
 						cursorClipToBounds,
+						cursorHighlight,
 						annotationRegions,
 						webcamLayoutPreset,
 						webcamMaskShape,
@@ -1712,6 +1719,7 @@ export default function VideoEditor() {
 						cursorMotionBlur,
 						cursorClickBounce,
 						cursorClipToBounds,
+						cursorHighlight,
 						annotationRegions,
 						webcamLayoutPreset,
 						webcamMaskShape,
@@ -1828,6 +1836,7 @@ export default function VideoEditor() {
 			cursorMotionBlur,
 			cursorClickBounce,
 			cursorClipToBounds,
+			cursorHighlight,
 			t,
 		],
 	);
@@ -2111,6 +2120,7 @@ export default function VideoEditor() {
 												cursorMotionBlur={cursorMotionBlur}
 												cursorClickBounce={cursorClickBounce}
 												cursorClipToBounds={cursorClipToBounds}
+												cursorHighlight={cursorHighlight}
 											/>
 										</div>
 									</div>
@@ -2277,6 +2287,10 @@ export default function VideoEditor() {
 										cursorTelemetry.length > 0 || hasNativeCursorRecordingData(cursorRecordingData)
 									}
 									showCursorSettings={showCursorSettings}
+									cursorHighlight={cursorHighlight}
+									onCursorHighlightChange={(next) => pushState({ cursorHighlight: next })}
+									showCursorHighlightSettings={showCursorSettings}
+									cursorHighlightSupportsClicks={showCursorSettings}
 								/>
 							</div>
 						</div>

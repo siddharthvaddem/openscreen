@@ -79,6 +79,10 @@ import {
 } from "./videoPlayback/constants";
 import { adaptiveSmoothFactor, smoothCursorFocus } from "./videoPlayback/cursorFollowUtils";
 import {
+	type CursorHighlightConfig,
+	DEFAULT_CURSOR_HIGHLIGHT,
+} from "./videoPlayback/cursorHighlight";
+import {
 	DEFAULT_CURSOR_CONFIG,
 	PixiCursorOverlay,
 	preloadCursorAssets,
@@ -149,6 +153,7 @@ interface VideoPlaybackProps {
 	cursorMotionBlur?: number;
 	cursorClickBounce?: number;
 	cursorClipToBounds?: boolean;
+	cursorHighlight?: CursorHighlightConfig;
 }
 
 export interface VideoPlaybackRef {
@@ -270,6 +275,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
 			cursorClickBounce = DEFAULT_CURSOR_CLICK_BOUNCE,
 			cursorClipToBounds = false,
+			cursorHighlight = DEFAULT_CURSOR_HIGHLIGHT,
 		},
 		ref,
 	) => {
@@ -298,6 +304,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const zoomRegionsRef = useRef<ZoomRegion[]>([]);
 		const cursorTelemetryRef = useRef<CursorTelemetryPoint[]>([]);
 		const cursorClickTimestampsRef = useRef<number[]>([]);
+		const cursorHighlightRef = useRef<CursorHighlightConfig>(DEFAULT_CURSOR_HIGHLIGHT);
 		const selectedZoomIdRef = useRef<string | null>(null);
 		const animationStateRef = useRef({
 			scale: 1,
@@ -771,6 +778,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		}, [cursorClickTimestamps]);
 
 		useEffect(() => {
+			cursorHighlightRef.current = cursorHighlight;
+			cursorOverlayRef.current?.setHighlightConfig(cursorHighlight);
+		}, [cursorHighlight]);
+
+		useEffect(() => {
 			selectedZoomIdRef.current = selectedZoomId;
 		}, [selectedZoomId]);
 
@@ -1012,6 +1024,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						motionBlur: cursorMotionBlurRef.current,
 						clickBounce: cursorClickBounceRef.current,
 					});
+					cursorOverlay.setHighlightConfig(cursorHighlightRef.current);
 					cursorOverlayRef.current = cursorOverlay;
 				}
 

@@ -198,7 +198,19 @@
 		"smoothing": "부드러움",
 		"motionBlur": "모션 블러",
 		"clickBounce": "클릭 바운스",
-		"clipToBounds": "캔버스에 맞춰 자르기"
+		"clipToBounds": "캔버스에 맞춰 자르기",
+		"highlight": {
+			"title": "Cursor Highlight",
+			"style": "Style",
+			"dot": "Dot",
+			"ring": "Ring",
+			"size": "Size",
+			"opacity": "Opacity",
+			"onlyOnClicks": "Only on clicks",
+			"color": "Color",
+			"offsetX": "Offset X",
+			"offsetY": "Offset Y"
+		}
 	},
 	"language": {
 		"title": "언어"

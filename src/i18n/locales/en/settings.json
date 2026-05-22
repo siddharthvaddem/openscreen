@@ -198,7 +198,19 @@
 		"smoothing": "Smoothing",
 		"motionBlur": "Motion Blur",
 		"clickBounce": "Click Bounce",
-		"clipToBounds": "Clip to Canvas"
+		"clipToBounds": "Clip to Canvas",
+		"highlight": {
+			"title": "Cursor Highlight",
+			"style": "Style",
+			"dot": "Dot",
+			"ring": "Ring",
+			"size": "Size",
+			"opacity": "Opacity",
+			"onlyOnClicks": "Only on clicks",
+			"color": "Color",
+			"offsetX": "Offset X",
+			"offsetY": "Offset Y"
+		}
 	},
 	"language": {
 		"title": "Language"
