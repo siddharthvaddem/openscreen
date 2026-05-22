@@ -10,6 +10,39 @@ import {
 let blurScratchCanvas: HTMLCanvasElement | null = null;
 let blurScratchCtx: CanvasRenderingContext2D | null = null;
 
+// Matches a single code point whose script is Han (including non-BMP
+// Extension A-F), Hiragana, Katakana (including halfwidth forms), or
+// Hangul. Used to split CJK text at character boundaries during wrap,
+// since CJK scripts have no word-separating whitespace. Unicode script
+// property escapes require ES2018+; tsconfig target is ES2020.
+const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+function tokenizeForWrap(line: string): string[] {
+	// Split Latin text on whitespace (preserving the whitespace as its own token,
+	// matching the original behavior), and split CJK runs into individual
+	// characters so each one becomes a breakable unit. This mirrors the editor's
+	// CSS `word-break: break-word` handling for CJK content.
+	const tokens: string[] = [];
+	let buffer = "";
+	const chars = Array.from(line);
+	const flushBuffer = () => {
+		if (buffer) {
+			tokens.push(...buffer.split(/(\s+)/).filter((s) => s.length > 0));
+			buffer = "";
+		}
+	};
+	for (const ch of chars) {
+		if (CJK_CHAR.test(ch)) {
+			flushBuffer();
+			tokens.push(ch);
+		} else {
+			buffer += ch;
+		}
+	}
+	flushBuffer();
+	return tokens;
+}
+
 // SVG path data for each arrow direction
 const ARROW_PATHS: Record<ArrowDirection, string[]> = {
 	up: ["M 50 20 L 50 80", "M 50 20 L 35 35", "M 50 20 L 65 35"],
@@ -249,13 +282,13 @@ function renderText(
 			lines.push("");
 			continue;
 		}
-		const words = rawLine.split(/(\s+)/);
+		const tokens = tokenizeForWrap(rawLine);
 		let current = "";
-		for (const word of words) {
-			const test = current + word;
+		for (const token of tokens) {
+			const test = current + token;
 			if (current && ctx.measureText(test).width > availableWidth) {
 				lines.push(current);
-				current = word.trimStart();
+				current = token.trimStart();
 			} else {
 				current = test;
 			}

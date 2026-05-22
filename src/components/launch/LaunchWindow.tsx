@@ -314,7 +314,7 @@ export function LaunchWindow() {
 	};
 
 	return (
-		<div className={`w-screen h-screen overflow-hidden bg-transparent ${styles.electronDrag}`}>
+		<div className={`w-screen h-screen overflow-x-hidden bg-transparent ${styles.electronDrag}`}>
 			{systemLocaleSuggestion && (
 				<div
 					className={`fixed top-8 left-1/2 z-30 w-[calc(100vw-1rem)] max-w-[520px] -translate-x-1/2 rounded-xl border border-white/15 bg-[rgba(20,20,28,0.95)] p-3 shadow-2xl backdrop-blur-xl text-white animate-in fade-in-0 zoom-in-95 duration-200 ${styles.electronNoDrag}`}

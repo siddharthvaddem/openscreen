@@ -78,6 +78,7 @@ interface FrameRenderConfig {
 	previewWidth?: number;
 	previewHeight?: number;
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
+	platform: string;
 }
 
 interface AnimationState {
@@ -124,9 +125,11 @@ export class FrameRenderer {
 	private smoothedAutoFocus: { cx: number; cy: number } | null = null;
 	private prevAnimationTimeMs: number | null = null;
 	private prevTargetProgress = 0;
+	private isLinux = false;
 
 	constructor(config: FrameRenderConfig) {
 		this.config = config;
+		this.isLinux = config.platform === "linux";
 		this.animationState = {
 			scale: 1,
 			focusX: DEFAULT_FOCUS.cx,
@@ -187,8 +190,10 @@ export class FrameRenderer {
 		this.compositeCanvas = document.createElement("canvas");
 		this.compositeCanvas.width = this.config.width;
 		this.compositeCanvas.height = this.config.height;
+
+		// On Linux, getImageData() is called frequently causing frequent CPU readback
 		this.compositeCtx = this.compositeCanvas.getContext("2d", {
-			willReadFrequently: false,
+			willReadFrequently: this.isLinux,
 		});
 
 		if (!this.compositeCtx) {
@@ -726,7 +731,10 @@ export class FrameRenderer {
 	private compositeWithShadows(webcamFrame?: VideoFrame | null): void {
 		if (!this.compositeCanvas || !this.compositeCtx || !this.app) return;
 
-		const videoCanvas = this.readbackVideoCanvas();
+		const videoCanvas = this.isLinux
+			? this.readbackVideoCanvas()
+			: (this.app.canvas as HTMLCanvasElement);
+
 		const ctx = this.compositeCtx;
 		const w = this.compositeCanvas.width;
 		const h = this.compositeCanvas.height;

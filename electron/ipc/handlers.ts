@@ -530,7 +530,24 @@ export function registerIpcHandlers(
 				return { success: false, message: "No recorded video found" };
 			}
 
-			const latestVideo = videoFiles.sort().reverse()[0];
+			// Sort by most recently modified to reliably get the latest recording.
+			// Lexicographic sort is unreliable (e.g. recording-9.webm > recording-10.webm).
+			let latestVideo: string | null = null;
+			let latestMtimeMs = 0;
+			for (const file of videoFiles) {
+				try {
+					const stat = await fs.stat(path.join(RECORDINGS_DIR, file));
+					if (stat.mtimeMs > latestMtimeMs) {
+						latestMtimeMs = stat.mtimeMs;
+						latestVideo = file;
+					}
+				} catch {
+					// Skip inaccessible files.
+				}
+			}
+			if (!latestVideo) {
+				return { success: false, message: "No recorded video found" };
+			}
 			const videoPath = path.join(RECORDINGS_DIR, latestVideo);
 
 			return { success: true, path: videoPath };
@@ -658,7 +675,19 @@ export function registerIpcHandlers(
 
 	ipcMain.handle("open-external-url", async (_, url: string) => {
 		try {
-			await shell.openExternal(url);
+			const ALLOWED_SCHEMES = ["http:", "https:", "mailto:"];
+			let parsed: URL;
+			try {
+				parsed = new URL(url);
+			} catch {
+				return { success: false, error: "Invalid URL" };
+			}
+
+			if (!ALLOWED_SCHEMES.includes(parsed.protocol)) {
+				return { success: false, error: `Unsupported URL scheme: ${parsed.protocol}` };
+			}
+
+			await shell.openExternal(parsed.toString());
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to open URL:", error);
@@ -680,6 +709,16 @@ export function registerIpcHandlers(
 			return null;
 		}
 	});
+
+	/**
+	 * Handles saving an exported video file.
+	 * Shows a save dialog, normalizes the file path for the current OS,
+	 * ensures the directory exists, and writes the video data.
+	 * @param _ - Unused event parameter.
+	 * @param videoData - The exported video as an ArrayBuffer.
+	 * @param fileName - Suggested filename for the save dialog.
+	 * @returns Object with success status, optional file path, and error details.
+	 */
 
 	ipcMain.handle("save-exported-video", async (_, videoData: ArrayBuffer, fileName: string) => {
 		try {
@@ -706,11 +745,18 @@ export function registerIpcHandlers(
 				};
 			}
 
-			await fs.writeFile(result.filePath, Buffer.from(videoData));
+			// --- FIX: Normalize the path for Windows compatibility ---
+			const normalizedPath = path.normalize(result.filePath);
+
+			// Ensure the parent directory exists (Windows may fail if the folder is missing)
+			await fs.mkdir(path.dirname(normalizedPath), { recursive: true });
+			// --- END FIX ---
+
+			await fs.writeFile(normalizedPath, Buffer.from(videoData));
 
 			return {
 				success: true,
-				path: result.filePath,
+				path: normalizedPath,
 				message: "Video exported successfully",
 			};
 		} catch (error) {
@@ -722,7 +768,6 @@ export function registerIpcHandlers(
 			};
 		}
 	});
-
 	ipcMain.handle("open-video-file-picker", async () => {
 		try {
 			const result = await dialog.showOpenDialog({

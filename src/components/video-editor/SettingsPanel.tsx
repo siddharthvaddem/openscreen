@@ -269,6 +269,7 @@ interface SettingsPanelProps {
 	onAnnotationTypeChange?: (id: string, type: AnnotationType) => void;
 	onAnnotationStyleChange?: (id: string, style: Partial<AnnotationRegion["style"]>) => void;
 	onAnnotationFigureDataChange?: (id: string, figureData: FigureData) => void;
+	onAnnotationDuplicate?: (id: string) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedBlurId?: string | null;
 	blurRegions?: AnnotationRegion[];
@@ -388,6 +389,7 @@ export function SettingsPanel({
 	onAnnotationTypeChange,
 	onAnnotationStyleChange,
 	onAnnotationFigureDataChange,
+	onAnnotationDuplicate,
 	onAnnotationDelete,
 	selectedBlurId,
 	blurRegions = [],
@@ -830,6 +832,9 @@ export function SettingsPanel({
 					onAnnotationFigureDataChange
 						? (figureData) => onAnnotationFigureDataChange(selectedAnnotation.id, figureData)
 						: undefined
+				}
+				onDuplicate={
+					onAnnotationDuplicate ? () => onAnnotationDuplicate(selectedAnnotation.id) : undefined
 				}
 				onDelete={() => onAnnotationDelete(selectedAnnotation.id)}
 			/>

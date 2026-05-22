@@ -88,6 +88,10 @@
 		display: none; /* Chrome, Safari, Opera */
 	}
 
+	.squircle {
+		corner-shape: squircle;
+	}
+
 	/* Smooth playback scrubber */
 	input[type="range"] {
 		-webkit-appearance: none;
