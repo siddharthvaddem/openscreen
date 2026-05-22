@@ -6,6 +6,7 @@ import frDialogs from "@/i18n/locales/fr/dialogs.json";
 import koKRDialogs from "@/i18n/locales/ko-KR/dialogs.json";
 import trDialogs from "@/i18n/locales/tr/dialogs.json";
 import zhCNDialogs from "@/i18n/locales/zh-CN/dialogs.json";
+import zhTWDialogs from "@/i18n/locales/zh-TW/dialogs.json";
 
 const tutorialHelpKeys = [
 	"triggerLabel",
@@ -35,6 +36,7 @@ const keysThatMayBeEmpty = new Set<(typeof tutorialHelpKeys)[number]>(["step1Des
 const dialogsByLocale = {
 	en: enDialogs,
 	"zh-CN": zhCNDialogs,
+	"zh-TW": zhTWDialogs,
 	es: esDialogs,
 	fr: frDialogs,
 	tr: trDialogs,

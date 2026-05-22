@@ -139,7 +139,14 @@
 		"invalidImageType": "無效的檔案類型",
 		"imageFormatsOnly": "請上傳 JPG、PNG、GIF 或 WebP 格式的圖片檔案。",
 		"imageUploadSuccess": "圖片上傳成功！",
-		"failedImageUpload": "上傳圖片失敗"
+		"failedImageUpload": "上傳圖片失敗",
+		"blurColor": "Blur Color",
+		"blurColorBlack": "Black",
+		"blurColorWhite": "White",
+		"blurType": "Blur Type",
+		"blurTypeBlur": "Blur",
+		"blurTypeMosaic": "Mosaic Blur",
+		"mosaicBlockSize": "Mosaic Block Size"
 	},
 	"fontStyles": {
 		"classic": "經典",
@@ -172,5 +179,41 @@
 	},
 	"language": {
 		"title": "語言"
+	},
+	"audio": {
+		"addTrack": "Add",
+		"backgroundMusic": "Background Music",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"noFileSelected": "No audio file selected",
+		"noSearchResults": "No matching tracks",
+		"regionCount": "{{count}} region(s)",
+		"remove": "Remove Audio",
+		"removeSelectedRegion": "Remove Selected Region",
+		"replace": "Replace Audio",
+		"searchHookPlaceholder": "Search hook sounds",
+		"searchMusicPlaceholder": "Search music",
+		"searchPlaceholder": "Search hooks and music",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
+		},
+		"timelineRegions": "Timeline Regions",
+		"title": "Audio",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"upload": "Upload Audio",
+		"useTrack": "Use",
+		"volume": "Music Volume",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
 	}
 }

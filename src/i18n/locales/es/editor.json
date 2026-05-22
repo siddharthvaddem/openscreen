@@ -31,5 +31,11 @@
 		"microphoneDenied": "Acceso al micrófono denegado. La grabación continuará sin audio.",
 		"cameraDenied": "Acceso a la cámara denegado. La grabación continuará sin cámara web.",
 		"permissionDenied": "Permiso de grabación denegado. Por favor permite la grabación de pantalla."
+	},
+	"newRecording": {
+		"title": "Return to Recorder",
+		"description": "Your current session has been saved.",
+		"cancel": "Cancel",
+		"confirm": "Confirm"
 	}
 }

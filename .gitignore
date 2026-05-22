@@ -27,6 +27,8 @@ dist-ssr
 *.sw?
 release/**
 *.kiro/
+.claude/
+CLAUDE.md
 # npx electron-builder --mac --win
 
 # Playwright

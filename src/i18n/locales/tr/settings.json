@@ -8,12 +8,21 @@
 			"manual": "Manuel",
 			"auto": "Otomatik",
 			"autoDescription": "Kamera kaydedilen imleç konumunu takip eder"
+		},
+		"speed": {
+			"title": "Zoom Speed",
+			"instant": "Instant",
+			"fast": "Fast",
+			"smooth": "Smooth",
+			"lazy": "Lazy"
 		}
 	},
 	"speed": {
 		"playbackSpeed": "Oynatma Hızı",
 		"selectRegion": "Ayarlamak için bir hız bölgesi seçin",
-		"deleteRegion": "Hız Bölgesini Sil"
+		"deleteRegion": "Hız Bölgesini Sil",
+		"customPlaybackSpeed": "Custom Playback Speed",
+		"maxSpeedError": "Speed can't go higher than 16×"
 	},
 	"trim": {
 		"deleteRegion": "Kırpma Bölgesini Sil"
@@ -24,7 +33,9 @@
 		"selectPreset": "Ön ayar seçin",
 		"pictureInPicture": "Resim İçinde Resim",
 		"verticalStack": "Dikey Yığın",
-		"webcamShape": "Kamera Şekli"
+		"webcamShape": "Kamera Şekli",
+		"dualFrame": "Dual Frame",
+		"webcamSize": "Webcam Size"
 	},
 	"effects": {
 		"title": "Video Efektleri",
@@ -128,7 +139,14 @@
 		"invalidImageType": "Geçersiz dosya türü",
 		"imageFormatsOnly": "Lütfen bir JPG, PNG, GIF veya WebP görüntü dosyası yükleyin.",
 		"imageUploadSuccess": "Görüntü başarıyla yüklendi!",
-		"failedImageUpload": "Görüntü yüklenemedi"
+		"failedImageUpload": "Görüntü yüklenemedi",
+		"blurColor": "Blur Color",
+		"blurColorBlack": "Black",
+		"blurColorWhite": "White",
+		"blurType": "Blur Type",
+		"blurTypeBlur": "Blur",
+		"blurTypeMosaic": "Mosaic Blur",
+		"mosaicBlockSize": "Mosaic Block Size"
 	},
 	"fontStyles": {
 		"classic": "Klasik",
@@ -170,13 +188,32 @@
 		"remove": "Sesi kaldır",
 		"noFileSelected": "Ses dosyası seçilmedi",
 		"volume": "Müzik sesi",
-		"noiseReduction": "Gürültü Azaltma",
-		"level": "Seviye",
-		"nrLevel": {
-			"light": "Hafif",
-			"moderate": "Orta",
-			"aggressive": "Güçlü"
+		"addTrack": "Add",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"noSearchResults": "No matching tracks",
+		"regionCount": "{{count}} region(s)",
+		"removeSelectedRegion": "Remove Selected Region",
+		"searchHookPlaceholder": "Search hook sounds",
+		"searchMusicPlaceholder": "Search music",
+		"searchPlaceholder": "Search hooks and music",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
 		},
-		"nrDescription": "Yapay zeka destekli gürültü azaltma arka plan gürültüsünü temizler. Daha yüksek seviyeler daha agresiftir ancak ses kalitesini etkileyebilir."
+		"timelineRegions": "Timeline Regions",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"useTrack": "Use",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
 	}
 }

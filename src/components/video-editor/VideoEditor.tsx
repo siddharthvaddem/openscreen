@@ -81,7 +81,7 @@ import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./videoPlayb
 
 const OPENSCREEN_GITHUB_URL = "https://github.com/siddharthvaddem/openscreen";
 const OPENSCREEN_REPORT_BUG_URL = "https://github.com/siddharthvaddem/openscreen/issues/new/choose";
-const OPENSCREEN_DISCORD_INVITE_URL = "https://discord.gg/kpPMU5C9";
+const OPENSCREEN_DISCORD_INVITE_URL = "https://discord.gg/B9W8BJ2V5U";
 
 export default function VideoEditor() {
 	const {

@@ -5,14 +5,16 @@
 		"addTrim": "트림 추가 (T)",
 		"addAnnotation": "주석 추가 (A)",
 		"addSpeed": "속도 추가 (S)",
-		"addBlur": "블러 추가 (B)"
+		"addBlur": "블러 추가 (B)",
+		"addMusic": "Add Music Region"
 	},
 	"hints": {
 		"pressZoom": "Z를 눌러 줌 추가",
 		"pressTrim": "T를 눌러 트림 추가",
 		"pressAnnotation": "A를 눌러 주석 추가",
 		"pressSpeed": "S를 눌러 속도 추가",
-		"pressBlur": "B를 눌러 블러 구간 추가"
+		"pressBlur": "B를 눌러 블러 구간 추가",
+		"pressMusic": "Use + to add music regions"
 	},
 	"labels": {
 		"pan": "이동",

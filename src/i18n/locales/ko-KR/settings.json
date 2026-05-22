@@ -8,6 +8,13 @@
 			"manual": "수동",
 			"auto": "자동",
 			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다"
+		},
+		"speed": {
+			"title": "Zoom Speed",
+			"instant": "Instant",
+			"fast": "Fast",
+			"smooth": "Smooth",
+			"lazy": "Lazy"
 		}
 	},
 	"speed": {
@@ -27,7 +34,8 @@
 		"pictureInPicture": "화면 속 화면",
 		"verticalStack": "세로 배치",
 		"webcamShape": "카메라 모양",
-		"webcamSize": "웹캠 크기"
+		"webcamSize": "웹캠 크기",
+		"dualFrame": "Dual Frame"
 	},
 	"effects": {
 		"title": "비디오 효과",
@@ -45,7 +53,34 @@
 		"replace": "오디오 교체",
 		"remove": "오디오 제거",
 		"noFileSelected": "선택된 오디오 파일이 없습니다",
-		"volume": "음악 볼륨"
+		"volume": "음악 볼륨",
+		"addTrack": "Add",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"noSearchResults": "No matching tracks",
+		"regionCount": "{{count}} region(s)",
+		"removeSelectedRegion": "Remove Selected Region",
+		"searchHookPlaceholder": "Search hook sounds",
+		"searchMusicPlaceholder": "Search music",
+		"searchPlaceholder": "Search hooks and music",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
+		},
+		"timelineRegions": "Timeline Regions",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"useTrack": "Use",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
 	},
 	"background": {
 		"title": "배경",
@@ -134,7 +169,20 @@
 		"invalidImageType": "지원하지 않는 파일 형식입니다",
 		"imageFormatsOnly": "JPG, PNG, GIF 또는 WebP 이미지 파일을 업로드해 주세요.",
 		"imageUploadSuccess": "이미지가 성공적으로 업로드되었습니다!",
-		"failedImageUpload": "이미지 업로드에 실패했습니다"
+		"failedImageUpload": "이미지 업로드에 실패했습니다",
+		"blurColor": "Blur Color",
+		"blurColorBlack": "Black",
+		"blurColorWhite": "White",
+		"blurIntensity": "Blur Intensity",
+		"blurShape": "Blur Shape",
+		"blurShapeFreehand": "Freehand",
+		"blurShapeOval": "Oval",
+		"blurShapeRectangle": "Rectangle",
+		"blurType": "Blur Type",
+		"blurTypeBlur": "Blur",
+		"blurTypeMosaic": "Mosaic Blur",
+		"mosaicBlockSize": "Mosaic Block Size",
+		"typeBlur": "Blur"
 	},
 	"fontStyles": {
 		"classic": "클래식",

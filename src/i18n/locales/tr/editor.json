@@ -31,5 +31,11 @@
 		"microphoneDenied": "Mikrofon erişimi reddedildi. Kayıt ses olmadan devam edecek.",
 		"cameraDenied": "Kamera erişimi reddedildi. Kayıt kamera olmadan devam edecek.",
 		"permissionDenied": "Kayıt izni reddedildi. Lütfen ekran kaydına izin verin."
+	},
+	"newRecording": {
+		"title": "Return to Recorder",
+		"description": "Your current session has been saved.",
+		"cancel": "Cancel",
+		"confirm": "Confirm"
 	}
 }

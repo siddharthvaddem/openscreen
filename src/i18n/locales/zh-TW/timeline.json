@@ -5,14 +5,16 @@
 		"addTrim": "新增剪輯 (T)",
 		"addAnnotation": "新增標註 (A)",
 		"addSpeed": "新增速度 (S)",
-		"addBlur": "新增模糊 (B)"
+		"addBlur": "新增模糊 (B)",
+		"addMusic": "Add Music Region"
 	},
 	"hints": {
 		"pressZoom": "按 Z 新增縮放",
 		"pressTrim": "按 T 新增剪輯",
 		"pressAnnotation": "按 A 新增標註",
 		"pressSpeed": "按 S 新增速度",
-		"pressBlur": "按 B 新增模糊區域"
+		"pressBlur": "按 B 新增模糊區域",
+		"pressMusic": "Use + to add music regions"
 	},
 	"labels": {
 		"pan": "平移",
@@ -23,7 +25,9 @@
 		"annotationItem": "標註",
 		"imageItem": "圖片",
 		"emptyText": "空文字",
-		"blurItem": "模糊 {{index}}"
+		"blurItem": "模糊 {{index}}",
+		"hookItem": "Hook {{index}}",
+		"musicItem": "Music {{index}}"
 	},
 	"emptyState": {
 		"noVideo": "未載入影片",
@@ -44,10 +48,26 @@
 		"cannotPlaceTrim": "無法在此處放置剪輯",
 		"trimExistsAtLocation": "此位置已存在剪輯或沒有足夠的空間。",
 		"cannotPlaceSpeed": "無法在此處放置速度",
-		"speedExistsAtLocation": "此位置已存在速度區域或沒有足夠的空間。"
+		"speedExistsAtLocation": "此位置已存在速度區域或沒有足夠的空間。",
+		"cannotPlaceMusic": "Cannot place music here",
+		"musicExistsAtLocation": "Music region already exists at this location or not enough space available."
 	},
 	"success": {
 		"addedZoomSuggestions": "已新增 {{count}} 個基於游標的縮放建議",
 		"addedZoomSuggestionsPlural": "已新增 {{count}} 個基於游標的縮放建議"
+	},
+	"controls": {
+		"timelineVisibility": "Timeline visibility",
+		"toggleRowsTitle": "Show or hide timeline rows",
+		"tracks": "Tracks"
+	},
+	"rows": {
+		"annotation": "Annotation",
+		"blur": "Blur",
+		"hook": "Hook",
+		"music": "Music",
+		"speed": "Speed",
+		"trim": "Trim",
+		"zoom": "Zoom"
 	}
 }

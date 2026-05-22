@@ -8,12 +8,21 @@
 			"manual": "Manuel",
 			"auto": "Auto",
 			"autoDescription": "La caméra suit la position du curseur enregistré"
+		},
+		"speed": {
+			"title": "Zoom Speed",
+			"instant": "Instant",
+			"fast": "Fast",
+			"smooth": "Smooth",
+			"lazy": "Lazy"
 		}
 	},
 	"speed": {
 		"playbackSpeed": "Vitesse de lecture",
 		"selectRegion": "Sélectionnez une région de vitesse à ajuster",
-		"deleteRegion": "Supprimer la région de vitesse"
+		"deleteRegion": "Supprimer la région de vitesse",
+		"customPlaybackSpeed": "Custom Playback Speed",
+		"maxSpeedError": "Speed can't go higher than 16×"
 	},
 	"trim": {
 		"deleteRegion": "Supprimer la région de coupe"
@@ -24,7 +33,9 @@
 		"selectPreset": "Choisir un préréglage",
 		"pictureInPicture": "Incrustation d'image",
 		"verticalStack": "Empilement vertical",
-		"webcamShape": "Forme de la caméra"
+		"webcamShape": "Forme de la caméra",
+		"dualFrame": "Dual Frame",
+		"webcamSize": "Webcam Size"
 	},
 	"effects": {
 		"title": "Effets vidéo",
@@ -42,7 +53,34 @@
 		"replace": "Remplacer l'audio",
 		"remove": "Supprimer l'audio",
 		"noFileSelected": "Aucun fichier audio sélectionné",
-		"volume": "Volume de la musique"
+		"volume": "Volume de la musique",
+		"addTrack": "Add",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"noSearchResults": "No matching tracks",
+		"regionCount": "{{count}} region(s)",
+		"removeSelectedRegion": "Remove Selected Region",
+		"searchHookPlaceholder": "Search hook sounds",
+		"searchMusicPlaceholder": "Search music",
+		"searchPlaceholder": "Search hooks and music",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
+		},
+		"timelineRegions": "Timeline Regions",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"useTrack": "Use",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
 	},
 	"background": {
 		"title": "Arrière-plan",

@@ -5,14 +5,16 @@
 		"addTrim": "Kırpma Ekle (T)",
 		"addAnnotation": "Açıklama Ekle (A)",
 		"addSpeed": "Hız Ekle (S)",
-		"addBlur": "Bulanık ekle (B)"
+		"addBlur": "Bulanık ekle (B)",
+		"addMusic": "Add Music Region"
 	},
 	"hints": {
 		"pressZoom": "Yakınlaştırma eklemek için Z tuşuna basın",
 		"pressTrim": "Kırpma eklemek için T tuşuna basın",
 		"pressAnnotation": "Açıklama eklemek için A tuşuna basın",
 		"pressSpeed": "Hız eklemek için S tuşuna basın",
-		"pressBlur": "Bulanık bölge eklemek için B tuşuna basın"
+		"pressBlur": "Bulanık bölge eklemek için B tuşuna basın",
+		"pressMusic": "Use + to add music regions"
 	},
 	"labels": {
 		"pan": "Kaydır",

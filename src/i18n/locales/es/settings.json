@@ -53,7 +53,34 @@
 		"replace": "Reemplazar audio",
 		"remove": "Quitar audio",
 		"noFileSelected": "No se ha seleccionado ningún archivo de audio",
-		"volume": "Volumen de la música"
+		"volume": "Volumen de la música",
+		"addTrack": "Add",
+		"fadeIn": "Fade In",
+		"fadeOut": "Fade Out",
+		"noSearchResults": "No matching tracks",
+		"regionCount": "{{count}} region(s)",
+		"removeSelectedRegion": "Remove Selected Region",
+		"searchHookPlaceholder": "Search hook sounds",
+		"searchMusicPlaceholder": "Search music",
+		"searchPlaceholder": "Search hooks and music",
+		"tabs": {
+			"upload": "Upload",
+			"music": "Music",
+			"hooks": "Hooks"
+		},
+		"timelineRegions": "Timeline Regions",
+		"trimHint": "Trim and move regions directly in the timeline.",
+		"useTrack": "Use",
+		"hooks": {
+			"title": "Hook Effects",
+			"assignTo": "Assign tracks to",
+			"assigned": "Assigned tracks",
+			"zoom": "Zoom",
+			"trim": "Trim",
+			"speed": "Speed",
+			"annotation": "Annotation",
+			"blur": "Blur"
+		}
 	},
 	"background": {
 		"title": "Fondo",

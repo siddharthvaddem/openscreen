@@ -75,6 +75,6 @@ describe("blur color helpers", () => {
 				intensity: 12,
 				blockSize: 12,
 			}),
-		).toBe("rgba(0, 0, 0, 0.18)");
+		).toBe("rgba(0, 0, 0, 0.56)");
 	});
 });

@@ -305,18 +305,21 @@ jobs:
                 return;
               }
 
-              if (context.eventName === "pull_request_target" && ["edited", "labeled", "unlabeled", "ready_for_review", "converted_to_draft"].includes(action)) {
+              if (context.eventName === "pull_request_target" && ["edited", "labeled", "unlabeled", "ready_for_review", "converted_to_draft", "closed"].includes(action)) {
+                const isMergedAction = action === "closed" ? !!pr.merged : false;
+                const isClosedAction = action === "closed";
                 const statusTag = desiredStatusTag({
                   draft: action === "converted_to_draft" ? true : pr.draft,
                   reviewState,
-                  merged: false,
-                  closed: false,
+                  merged: isMergedAction,
+                  closed: isClosedAction,
                 });
                 const mappedLabelTags = tagIdsFromLabels(labels);
                 const appliedTags = [...new Set([statusTag, ...mappedLabelTags].filter(Boolean))];
                 await patchDiscordThread(threadId, {
                   name: trimThreadName(`PR #${number} - ${title}`),
                   ...(appliedTags.length ? { applied_tags: appliedTags } : {}),
+                  ...(isMergedAction ? { archived: true, locked: true } : {}),
                 });
               }
 
@@ -347,14 +350,6 @@ jobs:
                   };
                 } else if (action === "closed") {
                   const isMerged = !!pr.merged;
-                  const statusTag = desiredStatusTag({ draft: false, reviewState, merged: isMerged, closed: true });
-                  const mappedLabelTags = tagIdsFromLabels(labels);
-                  const appliedTags = [...new Set([statusTag, ...mappedLabelTags].filter(Boolean))];
-                  await patchDiscordThread(threadId, {
-                    ...(appliedTags.length ? { applied_tags: appliedTags } : {}),
-                    ...(isMerged ? { archived: true, locked: true } : {}),
-                  });
-
                   updateMessage = isMerged
                     ? `✅ PR #${number} was merged`
                     : `🛑 PR #${number} was closed without merge`;

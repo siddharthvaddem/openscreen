@@ -31,5 +31,11 @@
 		"microphoneDenied": "Accès au microphone refusé. L'enregistrement continuera sans audio.",
 		"cameraDenied": "Accès à la caméra refusé. L'enregistrement continuera sans webcam.",
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran."
+	},
+	"newRecording": {
+		"title": "Return to Recorder",
+		"description": "Your current session has been saved.",
+		"cancel": "Cancel",
+		"confirm": "Confirm"
 	}
 }
