@@ -11,6 +11,7 @@ import { MotionBlurFilter } from "pixi-filters/motion-blur";
 import type {
 	AnnotationRegion,
 	CropRegion,
+	CursorTelemetryPoint,
 	Rotation3D,
 	SpeedRegion,
 	WebcamLayoutPreset,
@@ -561,12 +562,10 @@ export class FrameRenderer {
 		// Resolve normalized cursor position from telemetry.
 		let cx: number | null = null;
 		let cy: number | null = null;
-		for (let i = samples.length - 1; i >= 0; i--) {
-			if (samples[i].timeMs <= timeMs) {
-				cx = samples[i].cx;
-				cy = samples[i].cy;
-				break;
-			}
+		const sample = findLatestTelemetrySample(samples, timeMs);
+		if (sample) {
+			cx = sample.cx;
+			cy = sample.cy;
 		}
 		if (cx === null || cy === null) return;
 
@@ -1205,4 +1204,24 @@ export class FrameRenderer {
 		}
 		this.cursorImageCache.clear();
 	}
+}
+
+function findLatestTelemetrySample(
+	samples: CursorTelemetryPoint[],
+	timeMs: number,
+): CursorTelemetryPoint | null {
+	if (samples.length === 0) return null;
+
+	let lo = 0;
+	let hi = samples.length - 1;
+	while (lo < hi) {
+		const mid = Math.ceil((lo + hi) / 2);
+		if (samples[mid].timeMs <= timeMs) {
+			lo = mid;
+		} else {
+			hi = mid - 1;
+		}
+	}
+
+	return samples[lo]?.timeMs <= timeMs ? samples[lo] : null;
 }

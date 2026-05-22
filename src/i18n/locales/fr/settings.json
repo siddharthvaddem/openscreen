@@ -201,16 +201,16 @@
 		"clickBounce": "Rebond au clic",
 		"clipToBounds": "Rogner au canevas",
 		"highlight": {
-			"title": "Cursor Highlight",
+			"title": "Mise en évidence du curseur",
 			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"dot": "Point",
+			"ring": "Anneau",
+			"size": "Taille",
+			"opacity": "Opacité",
+			"onlyOnClicks": "Uniquement sur les clics",
+			"color": "Couleur",
+			"offsetX": "Décalage X",
+			"offsetY": "Décalage Y"
 		}
 	},
 	"language": {

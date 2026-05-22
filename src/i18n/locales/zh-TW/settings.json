@@ -201,16 +201,16 @@
 		"clickBounce": "點擊彈跳",
 		"clipToBounds": "裁切至畫布",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "游標高亮",
+			"style": "樣式",
+			"dot": "圓點",
+			"ring": "圓環",
+			"size": "大小",
+			"opacity": "不透明度",
+			"onlyOnClicks": "僅在點擊時",
+			"color": "顏色",
+			"offsetX": "X 軸偏移",
+			"offsetY": "Y 軸偏移"
 		}
 	},
 	"language": {

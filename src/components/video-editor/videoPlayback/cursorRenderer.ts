@@ -509,11 +509,12 @@ function drawHighlight(
 	py: number,
 	config: CursorHighlightConfig,
 	alpha: number,
+	viewportScale: number,
 ) {
 	graphics.clear();
 	if (alpha <= 0) return;
 
-	const radius = Math.max(1, config.sizePx / 2);
+	const radius = Math.max(1, (config.sizePx / 2) * viewportScale);
 	const color = hexToPixiColor(config.color);
 
 	switch (config.style) {
@@ -670,6 +671,7 @@ export class PixiCursorOverlay {
 			highlightPy,
 			this.highlightConfig,
 			highlightAlpha,
+			getCursorViewportScale(viewport),
 		);
 
 		for (const [key, currentShadowSprite] of Object.entries(this.cursorShadowSprites) as Array<

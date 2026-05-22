@@ -199,14 +199,14 @@
 		"clickBounce": "Rimbalzo clic",
 		"clipToBounds": "Ritaglia al canvas",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
+			"title": "Evidenziazione cursore",
+			"style": "Stile",
+			"dot": "Punto",
+			"ring": "Anello",
+			"size": "Dimensione",
+			"opacity": "Opacità",
+			"onlyOnClicks": "Solo al clic",
+			"color": "Colore",
 			"offsetX": "Offset X",
 			"offsetY": "Offset Y"
 		}

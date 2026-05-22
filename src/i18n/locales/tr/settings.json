@@ -200,16 +200,16 @@
 		"clickBounce": "Tıklama Sıçraması",
 		"clipToBounds": "Tuvale Kırp",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "İmleç Vurgulama",
+			"style": "Stil",
+			"dot": "Nokta",
+			"ring": "Halka",
+			"size": "Boyut",
+			"opacity": "Opaklık",
+			"onlyOnClicks": "Sadece tıklamalarda",
+			"color": "Renk",
+			"offsetX": "X Ofseti",
+			"offsetY": "Y Ofseti"
 		}
 	},
 	"language": {

@@ -200,16 +200,16 @@
 		"clickBounce": "ارتداد النقر",
 		"clipToBounds": "القص ضمن اللوحة",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "تمييز المؤشر",
+			"style": "النمط",
+			"dot": "نقطة",
+			"ring": "حلقة",
+			"size": "الحجم",
+			"opacity": "الشفافية",
+			"onlyOnClicks": "عند النقر فقط",
+			"color": "اللون",
+			"offsetX": "الإزاحة X",
+			"offsetY": "الإزاحة Y"
 		}
 	},
 	"language": {

@@ -200,16 +200,16 @@
 		"clickBounce": "클릭 바운스",
 		"clipToBounds": "캔버스에 맞춰 자르기",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "커서 하이라이트",
+			"style": "스타일",
+			"dot": "점",
+			"ring": "링",
+			"size": "크기",
+			"opacity": "불투명도",
+			"onlyOnClicks": "클릭할 때만",
+			"color": "색상",
+			"offsetX": "X 오프셋",
+			"offsetY": "Y 오프셋"
 		}
 	},
 	"language": {

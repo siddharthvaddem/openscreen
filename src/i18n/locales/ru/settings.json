@@ -200,16 +200,16 @@
 		"clickBounce": "Отскок при клике",
 		"clipToBounds": "Обрезать по холсту",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "Подсветка курсора",
+			"style": "Стиль",
+			"dot": "Точка",
+			"ring": "Кольцо",
+			"size": "Размер",
+			"opacity": "Непрозрачность",
+			"onlyOnClicks": "Только при кликах",
+			"color": "Цвет",
+			"offsetX": "Смещение по X",
+			"offsetY": "Смещение по Y"
 		}
 	},
 	"language": {

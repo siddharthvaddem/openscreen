@@ -108,6 +108,7 @@ export function getSourceCopyFastPathBlockers(
 	if (hasActiveTimeRegions(config.annotationRegions))
 		blockers.push("annotation regions are present");
 	if (hasNativeCursorOverlay(config)) blockers.push("editable cursor overlay is enabled");
+	if (config.cursorHighlight?.enabled) blockers.push("cursor highlight is enabled");
 	if (!isDefaultCrop(config.cropRegion)) blockers.push("crop is not default");
 	if ((config.padding ?? 0) > SOURCE_COPY_EPSILON) blockers.push("padding is not zero");
 	if ((config.videoPadding ?? 0) > SOURCE_COPY_EPSILON) blockers.push("video padding is not zero");

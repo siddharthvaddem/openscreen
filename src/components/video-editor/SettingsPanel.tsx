@@ -595,7 +595,7 @@ export function SettingsPanel({
 	const zoomEnabled = Boolean(selectedZoomDepth);
 	const trimEnabled = Boolean(selectedTrimId);
 	const hasTimelineSelection = Boolean(selectedZoomId || selectedTrimId || selectedSpeedId);
-	const hasCursorPanel = showCursorSettings && hasCursorData;
+	const hasCursorPanel = (showCursorSettings || showCursorHighlightSettings) && hasCursorData;
 	const panelModes: Array<{
 		id: SettingsPanelMode;
 		label: string;

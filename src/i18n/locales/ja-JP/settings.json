@@ -200,16 +200,16 @@
 		"clickBounce": "クリックバウンス",
 		"clipToBounds": "キャンバスにクリップ",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "カーソルのハイライト",
+			"style": "スタイル",
+			"dot": "ドット",
+			"ring": "リング",
+			"size": "サイズ",
+			"opacity": "不透明度",
+			"onlyOnClicks": "クリック時のみ",
+			"color": "色",
+			"offsetX": "Xオフセット",
+			"offsetY": "Yオフセット"
 		}
 	},
 	"language": {

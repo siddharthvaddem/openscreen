@@ -200,16 +200,16 @@
 		"clickBounce": "点击弹跳",
 		"clipToBounds": "裁剪到画布",
 		"highlight": {
-			"title": "Cursor Highlight",
-			"style": "Style",
-			"dot": "Dot",
-			"ring": "Ring",
-			"size": "Size",
-			"opacity": "Opacity",
-			"onlyOnClicks": "Only on clicks",
-			"color": "Color",
-			"offsetX": "Offset X",
-			"offsetY": "Offset Y"
+			"title": "光标高亮",
+			"style": "样式",
+			"dot": "圆点",
+			"ring": "圆环",
+			"size": "大小",
+			"opacity": "不透明度",
+			"onlyOnClicks": "仅在点击时",
+			"color": "颜色",
+			"offsetX": "X 轴偏移",
+			"offsetY": "Y 轴偏移"
 		}
 	},
 	"language": {
