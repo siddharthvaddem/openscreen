@@ -23,6 +23,7 @@ function normalizeTelemetrySample(
 		timeMs: Math.max(0, Math.min(sample.timeMs, totalMs)),
 		cx: Math.max(0, Math.min(sample.cx, 1)),
 		cy: Math.max(0, Math.min(sample.cy, 1)),
+		...(sample.interactionType ? { interactionType: sample.interactionType } : {}),
 	};
 }
 

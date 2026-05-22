@@ -404,6 +404,9 @@ function normalizeCursorSample(sample: unknown): CursorRecordingSample | null {
 	const point = sample as Partial<CursorRecordingSample>;
 	const interactionType =
 		point.interactionType === "click" ||
+		point.interactionType === "double-click" ||
+		point.interactionType === "right-click" ||
+		point.interactionType === "middle-click" ||
 		point.interactionType === "mouseup" ||
 		point.interactionType === "move"
 			? point.interactionType

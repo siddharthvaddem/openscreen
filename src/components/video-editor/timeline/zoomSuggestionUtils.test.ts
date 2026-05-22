@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { CursorTelemetryPoint } from "../types";
-import { detectZoomCandidates, detectZoomClickCandidates } from "./zoomSuggestionUtils";
+import {
+	detectZoomCandidates,
+	detectZoomClickCandidates,
+	normalizeCursorTelemetry,
+} from "./zoomSuggestionUtils";
 
 describe("detectZoomClickCandidates", () => {
 	it("returns no candidates when there are no click samples", () => {
@@ -44,6 +48,17 @@ describe("detectZoomClickCandidates", () => {
 });
 
 describe("detectZoomCandidates", () => {
+	it("preserves click interactions through normalizeCursorTelemetry", () => {
+		const raw: CursorTelemetryPoint[] = [
+			{ timeMs: 100, cx: 0.4, cy: 0.4, interactionType: "click" },
+			{ timeMs: 700, cx: 0.4, cy: 0.4, interactionType: "move" },
+		];
+		const normalized = normalizeCursorTelemetry(raw, 2000);
+		expect(normalized[0].interactionType).toBe("click");
+		const candidates = detectZoomCandidates(normalized);
+		expect(candidates.some((c) => c.source === "click")).toBe(true);
+	});
+
 	it("returns click candidates ahead of dwell candidates", () => {
 		const samples: CursorTelemetryPoint[] = [
 			{ timeMs: 0, cx: 0.1, cy: 0.1, interactionType: "move" },
