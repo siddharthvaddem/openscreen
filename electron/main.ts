@@ -13,12 +13,16 @@ import {
 } from "electron";
 import { mainT, setMainLocale } from "./i18n";
 import { getSelectedDesktopSource, registerIpcHandlers } from "./ipc/handlers";
+import { cleanupOldLogs, initializeLogger } from "./logger";
 import {
 	createCountdownOverlayWindow,
 	createEditorWindow,
 	createHudOverlayWindow,
 	createSourceSelectorWindow,
 } from "./windows";
+
+// Initialize disk logging before anything else so early boot messages land on disk
+const log = initializeLogger();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,10 +50,10 @@ export const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");
 async function ensureRecordingsDir() {
 	try {
 		await fs.mkdir(RECORDINGS_DIR, { recursive: true });
-		console.log("RECORDINGS_DIR:", RECORDINGS_DIR);
-		console.log("User Data Path:", app.getPath("userData"));
+		log.info("RECORDINGS_DIR:", RECORDINGS_DIR);
+		log.info("User Data Path:", app.getPath("userData"));
 	} catch (error) {
-		console.error("Failed to create recordings directory:", error);
+		log.error("Failed to create recordings directory:", error);
 	}
 }
 
@@ -515,8 +519,9 @@ app.whenReady().then(async () => {
 	createTray();
 	updateTrayMenu();
 	setupApplicationMenu();
-	// Ensure recordings directory exists
+	// Ensure recordings directory exists and clean up old log files
 	await ensureRecordingsDir();
+	await cleanupOldLogs();
 
 	function switchToHudWrapper() {
 		if (mainWindow) {

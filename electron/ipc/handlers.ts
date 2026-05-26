@@ -16,6 +16,7 @@ import {
 	shell,
 	systemPreferences,
 } from "electron";
+import { strToU8, zipSync } from "fflate";
 import type { NativeMacRecordingRequest } from "../../src/lib/nativeMacRecording";
 import type { NativeWindowsRecordingRequest } from "../../src/lib/nativeWindowsRecording";
 import {
@@ -36,6 +37,7 @@ import type {
 	ProjectPathResult,
 } from "../../src/native/contracts";
 import { mainT } from "../i18n";
+import log from "../logger";
 import { RECORDINGS_DIR } from "../main";
 import { createCursorRecordingSession } from "../native-bridge/cursor/recording/factory";
 import { requestMacCursorAccessibilityAccess } from "../native-bridge/cursor/recording/macNativeCursorRecordingSession";
@@ -2715,17 +2717,20 @@ export function registerIpcHandlers(
 			_,
 			payload: { error: string; stack?: string; projectState: unknown; logs: string[] },
 		) => {
+			const version = app.getVersion();
+			const date = new Date().toISOString().slice(0, 10);
+
 			const { filePath, canceled } = await dialog.showSaveDialog({
 				title: "Save Diagnostic File",
-				defaultPath: `openscreen-diagnostic-${Date.now()}.json`,
-				filters: [{ name: "JSON", extensions: ["json"] }],
+				defaultPath: `openscreen-diagnostic-${version}-${date}.zip`,
+				filters: [{ name: "ZIP Archive", extensions: ["zip"] }],
 			});
 
 			if (canceled || !filePath) return { success: false, canceled: true };
 
-			const diagnostic = {
+			const info = {
 				timestamp: new Date().toISOString(),
-				appVersion: app.getVersion(),
+				appVersion: version,
 				platform: process.platform,
 				arch: process.arch,
 				osRelease: os.release(),
@@ -2736,15 +2741,20 @@ export function registerIpcHandlers(
 				chromeVersion: process.versions.chrome,
 				error: payload.error,
 				stack: payload.stack,
-				projectState: payload.projectState,
-				recentLogs: payload.logs,
 			};
 
+			const logPath = log.transports.file.getFile().path;
+			const logContent = await fs.readFile(logPath).catch(() => Buffer.alloc(0));
+
 			try {
-				await fs.writeFile(filePath, JSON.stringify(diagnostic, null, 2), "utf-8");
+				const zip = zipSync({
+					"info.json": strToU8(JSON.stringify(info, null, 2)),
+					"main.log": new Uint8Array(logContent),
+				});
+				await fs.writeFile(filePath, zip);
 				return { success: true, path: filePath };
 			} catch (error) {
-				console.error("Failed to write diagnostic file:", error);
+				console.error("Failed to write diagnostic zip:", error);
 				return { success: false, error: String(error) };
 			}
 		},
