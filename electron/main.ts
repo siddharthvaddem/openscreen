@@ -89,7 +89,14 @@ const isMac = process.platform === "darwin";
 const trayIconSize = isMac ? 16 : 24;
 
 // Tray Icons
-const defaultTrayIcon = getTrayIcon("openscreen.png", trayIconSize);
+// macOS expects a monochrome template image in the menu bar; other platforms
+// keep the full-color app icon. The recording icon stays colored on purpose so
+// the red dot reads as an active-recording indicator.
+const defaultTrayIcon = getTrayIcon(
+	isMac ? "openscreenTemplate.png" : "openscreen.png",
+	trayIconSize,
+	true,
+);
 const recordingTrayIcon = getTrayIcon("rec-button.png", trayIconSize);
 
 function createWindow() {
@@ -288,14 +295,21 @@ function createTray() {
 	});
 }
 
-function getTrayIcon(filename: string, size: number) {
-	return nativeImage
+function getTrayIcon(filename: string, size: number, template = false) {
+	const image = nativeImage
 		.createFromPath(path.join(process.env.VITE_PUBLIC || RENDERER_DIST, filename))
 		.resize({
 			width: size,
 			height: size,
 			quality: "best",
 		});
+	// On macOS, a template image is treated as a monochrome mask that the system
+	// recolors to match the menu bar (black in light mode, white in dark mode)
+	// and the selection highlight, following Apple's menu bar conventions.
+	if (template && isMac) {
+		image.setTemplateImage(true);
+	}
+	return image;
 }
 
 function updateTrayMenu(recording: boolean = false) {
