@@ -33,7 +33,11 @@ import {
 	unregisterAllGlobalShortcuts,
 } from "./globalShortcut";
 import { mainT, setMainLocale } from "./i18n";
-import { getSelectedDesktopSource, registerIpcHandlers } from "./ipc/handlers";
+import {
+	getSelectedDesktopSource,
+	registerIpcHandlers,
+	setSelectedDesktopSource,
+} from "./ipc/handlers";
 
 // Note: do NOT statically import from ./windows here. windows.ts reads
 // process.env.HEADLESS at top level; static imports are hoisted/inlined by
@@ -604,8 +608,10 @@ app.whenReady().then(async () => {
 		bridgeRef = bridge;
 
 		// Auto-pick the first screen source before any cli-start-recording fires.
-		// Drives the existing select-source IPC handler so module-level state in
-		// handlers.ts is configured for setDisplayMediaRequestHandler.
+		// Sets module-level state in handlers.ts directly so that
+		// setDisplayMediaRequestHandler resolves the correct source without
+		// going through executeJavaScript (which would inject an OS-controlled
+		// string into an eval, risking injection and fragility).
 		async function autoSelectFirstScreen(): Promise<void> {
 			const sources = await desktopCapturer.getSources({
 				types: ["screen"],
@@ -613,17 +619,7 @@ app.whenReady().then(async () => {
 			});
 			const first = sources[0];
 			if (!first) throw new Error("no screen sources available");
-			const win = mainWindow;
-			if (!win || win.isDestroyed()) throw new Error("HUD window unavailable");
-			await win.webContents.executeJavaScript(
-				`window.electronAPI.selectSource(${JSON.stringify({
-					id: first.id,
-					name: first.name,
-					display_id: first.display_id ?? "",
-					thumbnail: null,
-					appIcon: null,
-				})})`,
-			);
+			setSelectedDesktopSource(first);
 		}
 
 		const ipc = new IpcSocketServer(cliOpts.ipcPath);

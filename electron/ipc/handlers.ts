@@ -373,6 +373,23 @@ let currentRecordingSession: RecordingSession | null = null;
 export function getSelectedDesktopSource(): DesktopCapturerSource | null {
 	return selectedDesktopSource;
 }
+
+/**
+ * Directly sets the selected desktop source, bypassing the IPC round-trip.
+ * Used by the headless CLI path to avoid executeJavaScript eval injection.
+ */
+export function setSelectedDesktopSource(source: DesktopCapturerSource | null): void {
+	selectedDesktopSource = source;
+	if (source !== null) {
+		selectedSource = {
+			id: source.id,
+			name: source.name,
+			display_id: source.display_id ?? "",
+			thumbnail: null,
+			appIcon: null,
+		};
+	}
+}
 let currentVideoPath: string | null = null;
 
 function normalizePath(filePath: string) {

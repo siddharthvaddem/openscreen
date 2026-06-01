@@ -175,6 +175,8 @@ export class RecorderBridge {
 		const stopPromise = new Promise<StopRecordedPayload>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				this.pendingStop = null;
+				this.state = "idle";
+				this.currentSessionId = null;
 				reject(new Error("timed out waiting for renderer to finalize recording"));
 			}, 30_000);
 			this.pendingStop = { resolve, reject, timer };
