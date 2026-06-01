@@ -134,6 +134,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("stop-recording-from-tray", listener);
 		return () => ipcRenderer.removeListener("stop-recording-from-tray", listener);
 	},
+	onCliStartRecording: (callback: (payload: { cursorCaptureMode?: string }) => void) => {
+		const listener = (_event: unknown, payload: { cursorCaptureMode?: string }) =>
+			callback(payload ?? {});
+		ipcRenderer.on("cli-start-recording", listener);
+		return () => ipcRenderer.removeListener("cli-start-recording", listener);
+	},
+	notifyCliRecordingStarted: (payload: { recordingId: number }) => {
+		ipcRenderer.send("cli-recording-started", payload);
+	},
+	notifyCliRecordingFinalized: (payload: {
+		screenVideoPath?: string;
+		cursorTelemetryPath?: string;
+		durationMs?: number;
+	}) => {
+		ipcRenderer.send("cli-recording-finalized", payload);
+	},
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},

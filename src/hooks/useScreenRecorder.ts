@@ -117,6 +117,16 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const discardRecordingId = useRef<number | null>(null);
 	const restarting = useRef(false);
 	const countdownRunId = useRef(0);
+	// Track recording IDs that were initiated by the CLI / IPC bridge so the
+	// finalize path can notify the main process. GUI-driven recordings should
+	// not emit these notifications.
+	const cliInitiatedRecordingIds = useRef<Set<number>>(new Set());
+	// Stable ref to startRecording so the tray-style useEffect can call it
+	// without being listed as a dependency (mirrors the stopRecording.current()
+	// pattern used above it in that effect).
+	// biome-ignore lint/suspicious/noExplicitAny: placeholder type; overwritten after startRecording is defined
+	// biome-ignore lint/suspicious/noEmptyBlockStatements: placeholder noop; overwritten below
+	const startRecordingRef = useRef<(...args: any[]) => Promise<void>>(async () => {});
 	const [countdownActive, setCountdownActive] = useState(false);
 	const webcamReady = useRef(false);
 	const webcamAcquireId = useRef(0);
@@ -392,6 +402,20 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						await window.electronAPI.setCurrentRecordingSession(result.session);
 					} else if (result.path) {
 						await window.electronAPI.setCurrentVideoPath(result.path);
+					}
+
+					// Notify the main process if this recording was started via the
+					// CLI / IPC bridge, BEFORE switching to the editor so the bridge
+					// receives the result even in headless mode (where switchToEditor
+					// is a no-op or blocked).
+					if (cliInitiatedRecordingIds.current.has(activeRecordingId)) {
+						cliInitiatedRecordingIds.current.delete(activeRecordingId);
+						const cursorTelemetryPath = result.path ? `${result.path}.cursor.json` : undefined;
+						window.electronAPI?.notifyCliRecordingFinalized?.({
+							...(result.path ? { screenVideoPath: result.path } : {}),
+							...(cursorTelemetryPath ? { cursorTelemetryPath } : {}),
+							durationMs: duration,
+						});
 					}
 
 					await window.electronAPI.switchToEditor();
@@ -687,9 +711,35 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			});
 		}
 
+		// CLI / IPC bridge: bypass the 3-second countdown and start immediately.
+		// Read startRecording lazily off the ref so this effect doesn't need to
+		// re-bind every render (matches the stopRecording.current() pattern above).
+		let cliCleanup: (() => void) | undefined;
+		if (window.electronAPI?.onCliStartRecording) {
+			cliCleanup = window.electronAPI.onCliStartRecording((payload) => {
+				const mode = payload?.cursorCaptureMode;
+				if (mode === "editable-overlay" || mode === "system" || mode === "none") {
+					setCursorCaptureMode(mode as CursorCaptureMode);
+				}
+				void (async () => {
+					try {
+						await startRecordingRef.current();
+						const id = recordingId.current;
+						if (id && id !== 0) {
+							cliInitiatedRecordingIds.current.add(id);
+							window.electronAPI?.notifyCliRecordingStarted?.({ recordingId: id });
+						}
+					} catch (error) {
+						console.error("CLI-initiated startRecording failed:", error);
+					}
+				})();
+			});
+		}
+
 		return () => {
 			const activeRunId = countdownRunId.current;
 			if (cleanup) cleanup();
+			if (cliCleanup) cliCleanup();
 			countdownRunId.current += 1;
 			void safeHideCountdownOverlay(activeRunId);
 			allowAutoFinalize.current = false;
@@ -1410,6 +1460,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			teardownMedia();
 		}
 	};
+	// Keep the ref in sync so the cli-start-recording effect always calls the
+	// latest closure (avoids listing startRecording as an effect dependency).
+	startRecordingRef.current = startRecording;
 
 	const togglePaused = () => {
 		const activeNativeWindowsRecording = nativeWindowsRecording.current;

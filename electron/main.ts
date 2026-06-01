@@ -125,6 +125,9 @@ let sourceSelectorWindow: BrowserWindow | null = null;
 let countdownOverlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let selectedSourceName = "";
+// RecorderBridge reference for the headless CLI path. Populated inside the
+// app.whenReady → cliOpts.headless branch.
+let bridgeRef: import("./recorder-bridge").RecorderBridge | null = null;
 const isMac = process.platform === "darwin";
 const trayIconSize = isMac ? 16 : 24;
 
@@ -514,9 +517,140 @@ app.whenReady().then(async () => {
 		// receive future cli-start-recording IPC. The HUD factory already
 		// respects HEADLESS=true and will NOT call win.show().
 		await ensureRecordingsDir();
+
+		// The renderer's getDisplayMedia path requires the same permission +
+		// display-media handlers the GUI mode registers. Register them here so a
+		// CLI-initiated recording can actually capture a stream.
+		session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+			const allowed = [
+				"media",
+				"audioCapture",
+				"microphone",
+				"videoCapture",
+				"camera",
+				"screen",
+				"display-capture",
+			];
+			return allowed.includes(permission);
+		});
+		session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+			const allowed = [
+				"media",
+				"audioCapture",
+				"microphone",
+				"videoCapture",
+				"camera",
+				"screen",
+				"display-capture",
+			];
+			callback(allowed.includes(permission));
+		});
+		session.defaultSession.setDisplayMediaRequestHandler(
+			(request, callback) => {
+				const source = getSelectedDesktopSource();
+				if (!request.videoRequested || !source) {
+					callback({});
+					return;
+				}
+				callback({
+					video: source,
+					...(request.audioRequested && process.platform === "win32" ? { audio: "loopback" } : {}),
+				});
+			},
+			{ useSystemPicker: false },
+		);
+
+		// Register the full IPC handler suite. The headless HUD needs every
+		// channel the GUI exposes (get-sources, select-source, store-recorded-session, …).
+		// Pass no-op factories for editor / picker windows that aren't relevant
+		// headless.
+		registerIpcHandlers(
+			/* createEditorWindow */ () => {
+				/* no editor in headless mode */
+			},
+			/* createSourceSelectorWindow */ () => mainWindow as BrowserWindow,
+			/* createCountdownOverlayWindow */ () => mainWindow as BrowserWindow,
+			/* getMainWindow */ () => mainWindow,
+			/* getSourceSelectorWindow */ () => null,
+			/* getCountdownOverlayWindow */ () => null,
+			/* onRecordingStateChange */ (recording, sourceName) => {
+				selectedSourceName = sourceName;
+				bridgeRef?.notifyRecordingState(recording);
+			},
+			/* switchToHud */ () => {
+				/* already hidden HUD; nothing to do */
+			},
+		);
+
 		mainWindow = createHudOverlayWindow();
-		console.log(`openscreen --headless: renderer loaded, ipc-path=${cliOpts.ipcPath}`);
-		// TODO(T3.3): start IpcSocketServer here
+
+		const { IpcSocketServer } = await import("./ipc-socket-server.js");
+		const { RecorderBridge } = await import("./recorder-bridge.js");
+		const { desktopCapturer } = await import("electron");
+
+		const bridge = new RecorderBridge({
+			webContents: mainWindow.webContents,
+			ipcOn: (channel, listener) => {
+				ipcMain.on(channel, (event, ...args) => listener(event, ...args));
+			},
+			ipcOnce: (channel, listener) => {
+				const wrapped = (event: Electron.IpcMainEvent, ...args: unknown[]) =>
+					listener(event, ...args);
+				ipcMain.once(channel, wrapped);
+				return () => ipcMain.removeListener(channel, wrapped);
+			},
+			recordingsDir: RECORDINGS_DIR,
+		});
+		bridgeRef = bridge;
+
+		// Auto-pick the first screen source before any cli-start-recording fires.
+		// Drives the existing select-source IPC handler so module-level state in
+		// handlers.ts is configured for setDisplayMediaRequestHandler.
+		async function autoSelectFirstScreen(): Promise<void> {
+			const sources = await desktopCapturer.getSources({
+				types: ["screen"],
+				thumbnailSize: { width: 0, height: 0 },
+			});
+			const first = sources[0];
+			if (!first) throw new Error("no screen sources available");
+			const win = mainWindow;
+			if (!win || win.isDestroyed()) throw new Error("HUD window unavailable");
+			await win.webContents.executeJavaScript(
+				`window.electronAPI.selectSource(${JSON.stringify({
+					id: first.id,
+					name: first.name,
+					display_id: first.display_id ?? "",
+					thumbnail: null,
+					appIcon: null,
+				})})`,
+			);
+		}
+
+		const ipc = new IpcSocketServer(cliOpts.ipcPath);
+		ipc.register("recorder.start", async (params) => {
+			await autoSelectFirstScreen();
+			return bridge.start((params as Parameters<typeof bridge.start>[0]) ?? {});
+		});
+		ipc.register("recorder.stop", (params) =>
+			bridge.stop((params as Parameters<typeof bridge.stop>[0]) ?? {}),
+		);
+		ipc.register("recorder.status", () => Promise.resolve(bridge.status()));
+		ipc.register("recorder.cleanup", (params) =>
+			bridge.cleanup(params as Parameters<typeof bridge.cleanup>[0]),
+		);
+		await ipc.listen();
+		console.log(`openscreen --headless: renderer loaded, ipc listening on ${cliOpts.ipcPath}`);
+
+		const shutdown = async () => {
+			try {
+				await ipc.close();
+			} finally {
+				app.quit();
+			}
+		};
+		process.on("SIGINT", () => void shutdown());
+		process.on("SIGTERM", () => void shutdown());
+
 		return;
 	}
 

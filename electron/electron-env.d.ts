@@ -171,6 +171,15 @@ interface Window {
 			error?: string;
 		}>;
 		onStopRecordingFromTray: (callback: () => void) => () => void;
+		onCliStartRecording: (
+			callback: (payload: { cursorCaptureMode?: string }) => void,
+		) => () => void;
+		notifyCliRecordingStarted: (payload: { recordingId: number }) => void;
+		notifyCliRecordingFinalized: (payload: {
+			screenVideoPath?: string;
+			cursorTelemetryPath?: string;
+			durationMs?: number;
+		}) => void;
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 		pickExportSavePath: (
 			fileName: string,
