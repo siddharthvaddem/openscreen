@@ -12,6 +12,21 @@ import {
 	Tray,
 } from "electron";
 import { ShortcutBinding } from "../src/lib/shortcuts";
+import { parseArgs } from "./cli";
+
+// Parse CLI flags and set HEADLESS env BEFORE any windows.ts code runs.
+// windows.ts captures `process.env["HEADLESS"]` into a top-level const at
+// module-evaluation time. ES module bundlers (Rollup/Vite) inline dependency
+// modules above the importing module's top-level code, so we cannot rely on
+// the env var being set via a top-level statement here. Solution: use a
+// dynamic import for windows.ts (deferred to app.whenReady), and run the
+// argv parse at the earliest possible top-level statement so any later
+// dynamic import sees HEADLESS=true.
+const cliOpts = parseArgs(process.argv.slice(2));
+if (cliOpts.headless) {
+	process.env.HEADLESS = "true";
+}
+
 import {
 	loadAndRegisterGlobalShortcut,
 	registerOpenAppShortcut,
@@ -19,12 +34,37 @@ import {
 } from "./globalShortcut";
 import { mainT, setMainLocale } from "./i18n";
 import { getSelectedDesktopSource, registerIpcHandlers } from "./ipc/handlers";
-import {
-	createCountdownOverlayWindow,
-	createEditorWindow,
-	createHudOverlayWindow,
-	createSourceSelectorWindow,
-} from "./windows";
+
+// Note: do NOT statically import from ./windows here. windows.ts reads
+// process.env.HEADLESS at top level; static imports are hoisted/inlined by
+// the bundler before this file's top-level code runs. Use dynamic import()
+// inside app.whenReady / on-demand below.
+type WindowsModule = typeof import("./windows");
+let windowsModule: WindowsModule | null = null;
+function getWindowsModule(): WindowsModule {
+	if (!windowsModule) {
+		throw new Error(
+			"windows module not yet loaded — call await loadWindowsModule() in app.whenReady first",
+		);
+	}
+	return windowsModule;
+}
+async function loadWindowsModule(): Promise<WindowsModule> {
+	if (!windowsModule) {
+		windowsModule = await import("./windows");
+	}
+	return windowsModule;
+}
+const createCountdownOverlayWindow = (
+	...args: Parameters<WindowsModule["createCountdownOverlayWindow"]>
+) => getWindowsModule().createCountdownOverlayWindow(...args);
+const createEditorWindow = (...args: Parameters<WindowsModule["createEditorWindow"]>) =>
+	getWindowsModule().createEditorWindow(...args);
+const createHudOverlayWindow = (...args: Parameters<WindowsModule["createHudOverlayWindow"]>) =>
+	getWindowsModule().createHudOverlayWindow(...args);
+const createSourceSelectorWindow = (
+	...args: Parameters<WindowsModule["createSourceSelectorWindow"]>
+) => getWindowsModule().createSourceSelectorWindow(...args);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -432,10 +472,15 @@ function createCountdownOverlayWindowWrapper() {
 // The in-app "Return to Recorder" button covers the editor → HUD round-trip,
 // so closing the last window is an explicit "I'm done" signal.
 app.on("window-all-closed", () => {
+	// In headless mode the renderer (HUD) is intentionally hidden — we must
+	// keep the app alive so the IPC socket server (T3.3) can drive recordings.
+	if (cliOpts.headless) return;
 	app.quit();
 });
 
 app.on("activate", () => {
+	// In headless mode, never re-show a window on dock-click.
+	if (cliOpts.headless) return;
 	// On OS X it's common to re-create a window in the app when the
 	// dock icon is clicked and there are no other windows open.
 	const hasVisibleWindow = BrowserWindow.getAllWindows().some((window) => {
@@ -458,6 +503,23 @@ app.on("will-quit", () => {
 
 // Register all IPC handlers when app is ready
 app.whenReady().then(async () => {
+	// Load the windows module via dynamic import AFTER the HEADLESS env var has
+	// been set (top of this file). windows.ts captures HEADLESS into a top-level
+	// const at evaluation time, so the import must be deferred to here.
+	await loadWindowsModule();
+
+	if (cliOpts.headless) {
+		// Headless boot: skip dock, tray, menus. Eagerly create the HUD so the
+		// renderer (LaunchWindow / useScreenRecorder) is alive and ready to
+		// receive future cli-start-recording IPC. The HUD factory already
+		// respects HEADLESS=true and will NOT call win.show().
+		await ensureRecordingsDir();
+		mainWindow = createHudOverlayWindow();
+		console.log(`openscreen --headless: renderer loaded, ipc-path=${cliOpts.ipcPath}`);
+		// TODO(T3.3): start IpcSocketServer here
+		return;
+	}
+
 	// Force the app into "regular" activation policy so the Dock icon appears.
 	// The HUD overlay (transparent + frameless + skipTaskbar) is the first
 	// window we open, and AppKit otherwise classifies us as an accessory app.
