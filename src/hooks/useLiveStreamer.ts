@@ -12,8 +12,10 @@ const TARGET_WIDTH = 3840;
 const TARGET_HEIGHT = 2160;
 const MIN_FRAME_RATE = 30;
 const CHROME_MEDIA_SOURCE = "desktop";
-const LIVE_STREAM_TIMESLICE_MS = 1000;
+const LIVE_STREAM_TIMESLICE_MS = 500;
 const AUDIO_BITRATE = 160_000;
+const LIVE_AUDIO_SAMPLE_RATE = 48_000;
+const LIVE_AUDIO_WARMUP_MS = 50;
 const MIC_GAIN_BOOST = 1.4;
 
 type LiveStreamerDeviceConfig = {
@@ -143,6 +145,7 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 	const activeStream = useRef<ActiveLiveStream | null>(null);
 	const startedAt = useRef<number | null>(null);
 	const stopping = useRef(false);
+	const chunkWriteQueue = useRef<Promise<void>>(Promise.resolve());
 
 	const cleanupActiveStream = useCallback(() => {
 		const active = activeStream.current;
@@ -303,36 +306,34 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 	}, [deviceConfig.webcamDeviceId, deviceConfig.webcamEnabled]);
 
 	const buildAudioTrack = useCallback(
-		(
+		async (
 			screenStream: MediaStream,
 			microphoneStream: MediaStream | null,
-		): { track: MediaStreamTrack | null; context: AudioContext | null } => {
+		): Promise<{ track: MediaStreamTrack | null; context: AudioContext | null }> => {
 			const systemAudioTrack = screenStream.getAudioTracks()[0] ?? null;
 			const microphoneTrack = microphoneStream?.getAudioTracks()[0] ?? null;
+			const context = new AudioContext({ sampleRate: LIVE_AUDIO_SAMPLE_RATE });
+			const destination = context.createMediaStreamDestination();
+			const silence = new ConstantSourceNode(context, { offset: 0 });
+			silence.connect(destination);
+			silence.start();
 
-			if (systemAudioTrack && microphoneTrack) {
-				const context = new AudioContext();
-				const destination = context.createMediaStreamDestination();
+			if (systemAudioTrack) {
 				const systemSource = context.createMediaStreamSource(new MediaStream([systemAudioTrack]));
+				systemSource.connect(destination);
+			}
+
+			if (microphoneTrack) {
 				const micSource = context.createMediaStreamSource(new MediaStream([microphoneTrack]));
 				const micGain = context.createGain();
 				micGain.gain.value = MIC_GAIN_BOOST;
-				systemSource.connect(destination);
 				micSource.connect(micGain).connect(destination);
-				return { track: destination.stream.getAudioTracks()[0] ?? null, context };
 			}
 
-			if (systemAudioTrack || microphoneTrack) {
-				return { track: systemAudioTrack ?? microphoneTrack, context: null };
+			if (context.state === "suspended") {
+				await context.resume();
 			}
 
-			const context = new AudioContext();
-			const destination = context.createMediaStreamDestination();
-			const oscillator = context.createOscillator();
-			const gain = context.createGain();
-			gain.gain.value = 0;
-			oscillator.connect(gain).connect(destination);
-			oscillator.start();
 			return { track: destination.stream.getAudioTracks()[0] ?? null, context };
 		},
 		[],
@@ -354,6 +355,7 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 			let microphoneStream: MediaStream | null = null;
 			let webcamStream: MediaStream | null = null;
 			let mixingContext: AudioContext | null = null;
+			chunkWriteQueue.current = Promise.resolve();
 
 			try {
 				const { outputPreset } = config.layout;
@@ -466,7 +468,7 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 				};
 
 				const canvasStream = canvas.captureStream(TARGET_FRAME_RATE);
-				const { track: audioTrack, context: audioContext } = buildAudioTrack(
+				const { track: audioTrack, context: audioContext } = await buildAudioTrack(
 					screenStream,
 					microphoneStream,
 				);
@@ -478,17 +480,18 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 				const recorder = new MediaRecorder(canvasStream, {
 					mimeType: selectLiveMimeType(),
 					videoBitsPerSecond: outputPreset.videoBitrateKbps * 1000,
-					...(audioTrack ? { audioBitsPerSecond: AUDIO_BITRATE } : {}),
+					audioBitsPerSecond: AUDIO_BITRATE,
 				});
 
 				recorder.ondataavailable = (event) => {
 					if (!event.data || event.data.size === 0) {
 						return;
 					}
-					void event.data
-						.arrayBuffer()
-						.then((buffer) => window.electronAPI.writeLiveStreamChunk(buffer))
-						.then(async (result) => {
+					const chunk = event.data;
+					chunkWriteQueue.current = chunkWriteQueue.current
+						.then(async () => {
+							const buffer = await chunk.arrayBuffer();
+							const result = await window.electronAPI.writeLiveStreamChunk(buffer);
 							if (!result.success && !stopping.current) {
 								toast.error(result.error ?? "Live stream encoder stopped.");
 								await stopLiveStream();
@@ -501,6 +504,7 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 								await stopLiveStream();
 							}
 						});
+					void chunkWriteQueue.current;
 				};
 				recorder.onerror = () => {
 					if (!stopping.current) {
@@ -521,6 +525,7 @@ export function useLiveStreamer(deviceConfig: LiveStreamerDeviceConfig): UseLive
 					webcamVideo,
 				};
 
+				await new Promise((resolve) => window.setTimeout(resolve, LIVE_AUDIO_WARMUP_MS));
 				recorder.start(LIVE_STREAM_TIMESLICE_MS);
 				startedAt.current = Date.now();
 				setStreamElapsedSeconds(0);

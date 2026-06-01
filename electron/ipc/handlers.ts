@@ -3039,6 +3039,8 @@ export function registerIpcHandlers(
 			`${videoBitrateKbps}k`,
 			"-bufsize",
 			`${videoBitrateKbps * 2}k`,
+			"-af",
+			"aresample=async=1:first_pts=0",
 			"-c:a",
 			"aac",
 			"-b:a",
