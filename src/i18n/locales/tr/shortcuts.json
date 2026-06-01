@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Geri Al",
 		"redo": "Yinele",
-		"cycleAnnotationsForward": "Açıklamalar Arasında İleri Geç",
-		"cycleAnnotationsBackward": "Açıklamalar Arasında Geri Geç",
+		"cycleAnnotationsForward": "Açıklamalar / Bulanıklık Arasında İleri Geç",
+		"cycleAnnotationsBackward": "Açıklamalar / Bulanıklık Arasında Geri Geç",
 		"deleteSelectedAlt": "Seçileni Sil (alternatif)",
 		"panTimeline": "Zaman Çizelgesini Kaydır",
 		"zoomTimeline": "Zaman Çizelgesini Yakınlaştır",

@@ -42,13 +42,13 @@ export const FIXED_SHORTCUTS: FixedShortcut[] = [
 	},
 	{
 		i18nKey: "cycleAnnotationsForward",
-		label: "Cycle Annotations Forward",
+		label: "Cycle Annotations / Blur Forward",
 		display: "Tab",
 		bindings: [{ key: "tab" }],
 	},
 	{
 		i18nKey: "cycleAnnotationsBackward",
-		label: "Cycle Annotations Backward",
+		label: "Cycle Annotations / Blur Backward",
 		display: "Shift + Tab",
 		bindings: [{ key: "tab", shift: true }],
 	},

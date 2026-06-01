@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "撤销",
 		"redo": "重做",
-		"cycleAnnotationsForward": "向前切换标注",
-		"cycleAnnotationsBackward": "向后切换标注",
+		"cycleAnnotationsForward": "向前切换标注 / 模糊",
+		"cycleAnnotationsBackward": "向后切换标注 / 模糊",
 		"deleteSelectedAlt": "删除所选（替代）",
 		"panTimeline": "平移时间轴",
 		"zoomTimeline": "缩放时间轴",

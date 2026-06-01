@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Hoàn tác",
 		"redo": "Làm lại",
-		"cycleAnnotationsForward": "Chuyển tiếp qua các chú thích",
-		"cycleAnnotationsBackward": "Chuyển lùi qua các chú thích",
+		"cycleAnnotationsForward": "Chuyển tiếp qua các chú thích / làm mờ",
+		"cycleAnnotationsBackward": "Chuyển lùi qua các chú thích / làm mờ",
 		"deleteSelectedAlt": "Xóa mục đã chọn (alt)",
 		"panTimeline": "Xoay Trục thời gian",
 		"zoomTimeline": "Thu phóng Trục thời gian",

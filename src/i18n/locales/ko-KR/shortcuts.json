@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "실행 취소",
 		"redo": "다시 실행",
-		"cycleAnnotationsForward": "주석 앞으로 순환",
-		"cycleAnnotationsBackward": "주석 뒤로 순환",
+		"cycleAnnotationsForward": "주석/블러 앞으로 순환",
+		"cycleAnnotationsBackward": "주석/블러 뒤로 순환",
 		"deleteSelectedAlt": "선택 항목 삭제 (대체)",
 		"panTimeline": "타임라인 이동",
 		"zoomTimeline": "타임라인 확대/축소",

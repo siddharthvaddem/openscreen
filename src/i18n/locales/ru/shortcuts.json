@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Отменить",
 		"redo": "Повторить",
-		"cycleAnnotationsForward": "Циклически переключить аннотации вперёд",
-		"cycleAnnotationsBackward": "Циклически переключить аннотации назад",
+		"cycleAnnotationsForward": "Циклически переключить аннотации / размытие вперёд",
+		"cycleAnnotationsBackward": "Циклически переключить аннотации / размытие назад",
 		"deleteSelectedAlt": "Удалить выбранное (альт)",
 		"panTimeline": "Панорамирование таймлайна",
 		"zoomTimeline": "Масштабирование таймлайна",

@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "元に戻す",
 		"redo": "やり直す",
-		"cycleAnnotationsForward": "注釈を順に切り替え",
-		"cycleAnnotationsBackward": "注釈を逆順に切り替え",
+		"cycleAnnotationsForward": "注釈・ブラーを順に切り替え",
+		"cycleAnnotationsBackward": "注釈・ブラーを逆順に切り替え",
 		"deleteSelectedAlt": "選択を削除 (alt)",
 		"panTimeline": "タイムラインをパン",
 		"zoomTimeline": "タイムラインをズーム",

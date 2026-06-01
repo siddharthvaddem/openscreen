@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Undo",
 		"redo": "Redo",
-		"cycleAnnotationsForward": "Cycle Annotations Forward",
-		"cycleAnnotationsBackward": "Cycle Annotations Backward",
+		"cycleAnnotationsForward": "Cycle Annotations / Blur Forward",
+		"cycleAnnotationsBackward": "Cycle Annotations / Blur Backward",
 		"deleteSelectedAlt": "Delete Selected (alt)",
 		"panTimeline": "Pan Timeline",
 		"zoomTimeline": "Zoom Timeline",

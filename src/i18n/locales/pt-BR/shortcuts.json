@@ -26,8 +26,8 @@
 	"fixedActions": {
 		"undo": "Desfazer",
 		"redo": "Refazer",
-		"cycleAnnotationsForward": "Alternar Anotações (Próximo)",
-		"cycleAnnotationsBackward": "Alternar Anotações (Anterior)",
+		"cycleAnnotationsForward": "Alternar Anotações / Desfoque (Próximo)",
+		"cycleAnnotationsBackward": "Alternar Anotações / Desfoque (Anterior)",
 		"deleteSelectedAlt": "Excluir Selecionado (alt)",
 		"panTimeline": "Mover Linha do Tempo",
 		"zoomTimeline": "Zoom na Linha do Tempo",

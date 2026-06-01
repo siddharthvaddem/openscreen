@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "تراجع",
 		"redo": "إعادة",
-		"cycleAnnotationsForward": "التنقل بين الشروح للأمام",
-		"cycleAnnotationsBackward": "التنقل بين الشروح للخلف",
+		"cycleAnnotationsForward": "التنقل بين الشروح / التمويه للأمام",
+		"cycleAnnotationsBackward": "التنقل بين الشروح / التمويه للخلف",
 		"deleteSelectedAlt": "حذف المحدد (alt)",
 		"panTimeline": "تحريك المخطط الزمني",
 		"zoomTimeline": "تكبير المخطط الزمني",

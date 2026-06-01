@@ -1373,26 +1373,45 @@ export default function TimelineEditor({
 				handleAddSpeed();
 			}
 
-			// Tab: Cycle through overlapping annotations at current time
-			if (e.key === "Tab" && annotationRegions.length > 0) {
+			// Tab: Cycle through overlapping annotations or blur regions at current time.
+			// Context-aware: if a blur is currently selected, cycle blurs first;
+			// otherwise cycle annotations. Falls back to the other type if no
+			// overlapping items of the primary type exist at the playhead.
+			if (e.key === "Tab") {
 				const currentTimeMs = Math.round(currentTime * 1000);
-				const overlapping = annotationRegions
-					.filter((a) => currentTimeMs >= a.startMs && currentTimeMs <= a.endMs)
-					.sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index
+				const isBlurSelected = !!selectedBlurId;
 
-				if (overlapping.length > 0) {
+				const tryCycle = (
+					regions: AnnotationRegion[],
+					selectedId: string | null | undefined,
+					selectFn: ((id: string | null) => void) | undefined,
+				): boolean => {
+					const overlapping = regions
+						.filter((a) => currentTimeMs >= a.startMs && currentTimeMs <= a.endMs)
+						.sort((a, b) => a.zIndex - b.zIndex);
+					if (overlapping.length === 0) return false;
 					e.preventDefault();
-
-					if (!selectedAnnotationId || !overlapping.some((a) => a.id === selectedAnnotationId)) {
-						onSelectAnnotation?.(overlapping[0].id);
+					if (!selectedId || !overlapping.some((a) => a.id === selectedId)) {
+						selectFn?.(overlapping[0].id);
 					} else {
-						// Cycle to next annotation
-						const currentIndex = overlapping.findIndex((a) => a.id === selectedAnnotationId);
+						const currentIndex = overlapping.findIndex((a) => a.id === selectedId);
 						const nextIndex = e.shiftKey
-							? (currentIndex - 1 + overlapping.length) % overlapping.length // Shift+Tab = backward
-							: (currentIndex + 1) % overlapping.length; // Tab = forward
-						onSelectAnnotation?.(overlapping[nextIndex].id);
+							? (currentIndex - 1 + overlapping.length) % overlapping.length
+							: (currentIndex + 1) % overlapping.length;
+						selectFn?.(overlapping[nextIndex].id);
 					}
+					return true;
+				};
+
+				const primaryRegions = isBlurSelected ? blurRegions : annotationRegions;
+				const primarySelectedId = isBlurSelected ? selectedBlurId : selectedAnnotationId;
+				const primarySelect = isBlurSelected ? onSelectBlur : onSelectAnnotation;
+
+				if (!tryCycle(primaryRegions, primarySelectedId, primarySelect)) {
+					const secondaryRegions = isBlurSelected ? annotationRegions : blurRegions;
+					const secondarySelectedId = isBlurSelected ? selectedAnnotationId : selectedBlurId;
+					const secondarySelect = isBlurSelected ? onSelectAnnotation : onSelectBlur;
+					tryCycle(secondaryRegions, secondarySelectedId, secondarySelect);
 				}
 			}
 			// Delete key or Ctrl+D / Cmd+D
@@ -1438,8 +1457,10 @@ export default function TimelineEditor({
 		selectedBlurId,
 		selectedSpeedId,
 		annotationRegions,
+		blurRegions,
 		currentTime,
 		onSelectAnnotation,
+		onSelectBlur,
 		keyShortcuts,
 		isMac,
 	]);

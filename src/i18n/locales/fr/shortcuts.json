@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Annuler",
 		"redo": "Rétablir",
-		"cycleAnnotationsForward": "Parcourir les annotations en avant",
-		"cycleAnnotationsBackward": "Parcourir les annotations en arrière",
+		"cycleAnnotationsForward": "Parcourir les annotations / flou en avant",
+		"cycleAnnotationsBackward": "Parcourir les annotations / flou en arrière",
 		"deleteSelectedAlt": "Supprimer la sélection (alt)",
 		"panTimeline": "Panoramique de la timeline",
 		"zoomTimeline": "Zoom de la timeline",

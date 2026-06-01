@@ -28,8 +28,8 @@
 	"fixedActions": {
 		"undo": "Deshacer",
 		"redo": "Rehacer",
-		"cycleAnnotationsForward": "Recorrer anotaciones hacia adelante",
-		"cycleAnnotationsBackward": "Recorrer anotaciones hacia atrás",
+		"cycleAnnotationsForward": "Recorrer anotaciones / desenfoque hacia adelante",
+		"cycleAnnotationsBackward": "Recorrer anotaciones / desenfoque hacia atrás",
 		"deleteSelectedAlt": "Eliminar seleccionado (alt)",
 		"panTimeline": "Desplazar línea de tiempo",
 		"zoomTimeline": "Zoom en línea de tiempo",
