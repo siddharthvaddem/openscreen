@@ -1,5 +1,6 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import {
+	Brackets,
 	Bug,
 	Crop,
 	Download,
@@ -52,7 +53,17 @@ import { getTestId } from "@/utils/getTestId";
 import ColorPicker from "../ui/color-picker";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { BlurSettingsPanel } from "./BlurSettingsPanel";
+import { BACKGROUND_IMAGE_ACCEPT, isSupportedBackgroundImageType } from "./backgroundImageUpload";
 import { CropControl } from "./CropControl";
+import { parseCustomPlaybackSpeedInput } from "./customPlaybackSpeed";
+import {
+	DEFAULT_CURSOR_SETTINGS,
+	DEFAULT_EDITOR_LAYOUT_SETTINGS,
+	DEFAULT_EXPORT_SETTINGS,
+	DEFAULT_GIF_SETTINGS,
+	DEFAULT_SOURCE_DIMENSIONS,
+	DEFAULT_WEBCAM_SETTINGS,
+} from "./editorDefaults";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import type {
 	AnnotationRegion,
@@ -70,8 +81,6 @@ import type {
 	ZoomFocusMode,
 } from "./types";
 import {
-	DEFAULT_WEBCAM_SIZE_PRESET,
-	MAX_PLAYBACK_SPEED,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
 	ROTATION_3D_PRESET_ORDER,
@@ -90,37 +99,38 @@ function CustomSpeedInput({
 	onError: () => void;
 }) {
 	const isPreset = SPEED_OPTIONS.some((o) => o.speed === value);
-	const [draft, setDraft] = useState(isPreset ? "" : String(Math.round(value)));
+	const [draft, setDraft] = useState(isPreset ? "" : String(value));
 	const [isFocused, setIsFocused] = useState(false);
 
 	const prevValue = useRef(value);
 	if (!isFocused && prevValue.current !== value) {
 		prevValue.current = value;
-		setDraft(isPreset ? "" : String(Math.round(value)));
+		setDraft(isPreset ? "" : String(value));
 	}
 
 	const handleChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const digits = e.target.value.replace(/\D/g, "");
-			if (digits === "") {
-				setDraft("");
-				return;
-			}
-			const num = Number(digits);
-			if (num > MAX_PLAYBACK_SPEED) {
+			const result = parseCustomPlaybackSpeedInput(e.target.value);
+			if (result.status === "too-fast") {
 				onError();
 				return;
 			}
-			setDraft(digits);
-			if (num >= 1) onChange(num);
+
+			setDraft(result.draft);
+			if (result.status === "valid") {
+				onChange(result.speed);
+			}
 		},
 		[onChange, onError],
 	);
 
 	const handleBlur = useCallback(() => {
 		setIsFocused(false);
-		if (!draft || Number(draft) < 1) {
-			setDraft(isPreset ? "" : String(Math.round(value)));
+		const result = parseCustomPlaybackSpeedInput(draft);
+		if (result.status === "valid") {
+			setDraft(String(result.speed));
+		} else {
+			setDraft(isPreset ? "" : String(value));
 		}
 	}, [draft, isPreset, value]);
 
@@ -128,8 +138,8 @@ function CustomSpeedInput({
 		<div className="flex items-center gap-1">
 			<input
 				type="text"
-				inputMode="numeric"
-				pattern="[0-9]*"
+				inputMode="decimal"
+				pattern="[0-9]*[.]?[0-9]*"
 				placeholder="--"
 				value={draft}
 				onFocus={() => setIsFocused(true)}
@@ -230,6 +240,8 @@ interface SettingsPanelProps {
 	selectedZoomCustomScale?: number | null;
 	onZoomCustomScaleChange?: (scale: number) => void;
 	onZoomCustomScaleCommit?: () => void;
+	onZoomPreviewStart?: () => void;
+	onZoomPreviewEnd?: () => void;
 	selectedZoomFocusMode?: ZoomFocusMode | null;
 	onZoomFocusModeChange?: (mode: ZoomFocusMode) => void;
 	selectedZoomFocus?: ZoomFocus | null;
@@ -247,6 +259,8 @@ interface SettingsPanelProps {
 	onShadowCommit?: () => void;
 	showBlur?: boolean;
 	onBlurChange?: (showBlur: boolean) => void;
+	showTrimWaveform?: boolean;
+	onTrimWaveformChange?: (show: boolean) => void;
 	motionBlurAmount?: number;
 	onMotionBlurChange?: (amount: number) => void;
 	onMotionBlurCommit?: () => void;
@@ -273,6 +287,7 @@ interface SettingsPanelProps {
 	onGifSizePresetChange?: (preset: GifSizePreset) => void;
 	gifOutputDimensions?: { width: number; height: number };
 	onExport?: () => void;
+	onExportPanelOpen?: () => void;
 	unsavedExport?: {
 		arrayBuffer: ArrayBuffer;
 		fileName: string;
@@ -332,7 +347,7 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 	{ depth: 6, label: "5×" },
 ];
 
-type SettingsPanelMode = "background" | "effects" | "layout" | "cursor" | "export";
+type SettingsPanelMode = "background" | "effects" | "layout" | "cursor" | "export" | "timeline";
 
 const MP4_EXPORT_SHORT_SIDES = {
 	medium: 720,
@@ -359,6 +374,8 @@ export function SettingsPanel({
 	selectedZoomCustomScale,
 	onZoomCustomScaleChange,
 	onZoomCustomScaleCommit,
+	onZoomPreviewStart,
+	onZoomPreviewEnd,
 	selectedZoomFocusMode,
 	onZoomFocusModeChange,
 	selectedZoomFocus,
@@ -376,31 +393,34 @@ export function SettingsPanel({
 	onShadowCommit,
 	showBlur,
 	onBlurChange,
+	showTrimWaveform = false,
+	onTrimWaveformChange,
 	motionBlurAmount = 0,
 	onMotionBlurChange,
 	onMotionBlurCommit,
 	borderRadius = 0,
 	onBorderRadiusChange,
 	onBorderRadiusCommit,
-	padding = 50,
+	padding = DEFAULT_EDITOR_LAYOUT_SETTINGS.padding,
 	onPaddingChange,
 	onPaddingCommit,
 	cropRegion,
 	onCropChange,
 	aspectRatio,
 	videoElement,
-	exportQuality = "good",
+	exportQuality = DEFAULT_EXPORT_SETTINGS.quality,
 	onExportQualityChange,
-	exportFormat = "mp4",
+	exportFormat = DEFAULT_EXPORT_SETTINGS.format,
 	onExportFormatChange,
-	gifFrameRate = 15,
+	gifFrameRate = DEFAULT_GIF_SETTINGS.frameRate,
 	onGifFrameRateChange,
-	gifLoop = true,
+	gifLoop = DEFAULT_GIF_SETTINGS.loop,
 	onGifLoopChange,
-	gifSizePreset = "medium",
+	gifSizePreset = DEFAULT_GIF_SETTINGS.sizePreset,
 	onGifSizePresetChange,
-	gifOutputDimensions = { width: 1280, height: 720 },
+	gifOutputDimensions = DEFAULT_GIF_SETTINGS.outputDimensions,
 	onExport,
+	onExportPanelOpen,
 	unsavedExport,
 	onSaveUnsavedExport,
 	selectedAnnotationId,
@@ -421,25 +441,25 @@ export function SettingsPanel({
 	onSpeedChange,
 	onSpeedDelete,
 	hasWebcam = false,
-	webcamLayoutPreset = "picture-in-picture",
+	webcamLayoutPreset = DEFAULT_WEBCAM_SETTINGS.layoutPreset,
 	onWebcamLayoutPresetChange,
-	webcamMaskShape = "rectangle",
+	webcamMaskShape = DEFAULT_WEBCAM_SETTINGS.maskShape,
 	onWebcamMaskShapeChange,
-	webcamSizePreset = DEFAULT_WEBCAM_SIZE_PRESET,
+	webcamSizePreset = DEFAULT_WEBCAM_SETTINGS.sizePreset,
 	onWebcamSizePresetChange,
 	onWebcamSizePresetCommit,
 	onSaveDiagnostic,
-	showCursor = true,
+	showCursor = DEFAULT_CURSOR_SETTINGS.show,
 	onShowCursorChange,
-	cursorSize = 3.0,
+	cursorSize = DEFAULT_CURSOR_SETTINGS.size,
 	onCursorSizeChange,
-	cursorSmoothing = 0.67,
+	cursorSmoothing = DEFAULT_CURSOR_SETTINGS.smoothing,
 	onCursorSmoothingChange,
-	cursorMotionBlur = 0.35,
+	cursorMotionBlur = DEFAULT_CURSOR_SETTINGS.motionBlur,
 	onCursorMotionBlurChange,
-	cursorClickBounce = 2.5,
+	cursorClickBounce = DEFAULT_CURSOR_SETTINGS.clickBounce,
 	onCursorClickBounceChange,
-	cursorClipToBounds = false,
+	cursorClipToBounds = DEFAULT_CURSOR_SETTINGS.clipToBounds,
 	onCursorClipToBoundsChange,
 	hasCursorData = false,
 	showCursorSettings = true,
@@ -478,8 +498,8 @@ export function SettingsPanel({
 	const [cropAspectRatio, setCropAspectRatio] = useState("");
 	const isPortraitCanvas = isPortraitAspectRatio(aspectRatio);
 
-	const videoWidth = videoElement?.videoWidth || 1920;
-	const videoHeight = videoElement?.videoHeight || 1080;
+	const videoWidth = videoElement?.videoWidth || DEFAULT_SOURCE_DIMENSIONS.width;
+	const videoHeight = videoElement?.videoHeight || DEFAULT_SOURCE_DIMENSIONS.height;
 
 	const handleCropNumericChange = useCallback(
 		(field: "x" | "y" | "width" | "height", pixelValue: number) => {
@@ -590,6 +610,7 @@ export function SettingsPanel({
 		{ id: "background", label: t("background.title"), icon: Palette },
 		{ id: "effects", label: t("effects.title"), icon: SlidersHorizontal },
 		{ id: "layout", label: t("layout.title"), icon: LayoutPanelTop, disabled: !hasWebcam },
+		{ id: "timeline", label: t("timeline.title"), icon: Brackets },
 		...(hasCursorPanel
 			? [
 					{
@@ -611,8 +632,10 @@ export function SettingsPanel({
 			: selectedSpeedId
 				? t("speed.playbackSpeed")
 				: t("trim.deleteRegion")
-		: ([...panelModes, exportPanelMode].find((mode) => mode.id === activePanelMode)?.label ??
-			t("background.title"));
+		: activePanelMode === "timeline"
+			? t("timeline.title")
+			: ([...panelModes, exportPanelMode].find((mode) => mode.id === activePanelMode)?.label ??
+				t("background.title"));
 
 	const handleDeleteClick = () => {
 		if (selectedZoomId && onZoomDelete) {
@@ -632,9 +655,7 @@ export function SettingsPanel({
 
 		const file = files[0];
 
-		// Validate file type - only allow JPG/JPEG
-		const validTypes = ["image/jpeg", "image/jpg"];
-		if (!validTypes.includes(file.type)) {
+		if (!isSupportedBackgroundImageType(file.type, file.name)) {
 			toast.error(t("imageUpload.invalidFileType"), {
 				description: t("imageUpload.jpgOnly"),
 			});
@@ -811,7 +832,10 @@ export function SettingsPanel({
 						data-testid={getTestId("export-panel-button")}
 						type="button"
 						title={exportPanelMode.label}
-						onClick={() => setActivePanelMode(exportPanelMode.id)}
+						onClick={() => {
+							setActivePanelMode(exportPanelMode.id);
+							onExportPanelOpen?.();
+						}}
 						className={cn(
 							"mt-auto flex h-8 w-8 items-center justify-center rounded-lg border transition-all",
 							activePanelMode === "export" && !hasTimelineSelection
@@ -940,6 +964,31 @@ export function SettingsPanel({
 										})}
 									</div>
 								</div>
+							)}
+							{zoomEnabled && onZoomPreviewStart && onZoomPreviewEnd && (
+								<Button
+									type="button"
+									onPointerDown={() => onZoomPreviewStart()}
+									onPointerUp={() => onZoomPreviewEnd()}
+									onPointerLeave={() => onZoomPreviewEnd()}
+									onPointerCancel={() => onZoomPreviewEnd()}
+									onKeyDown={(e) => {
+										if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+											e.preventDefault();
+											onZoomPreviewStart();
+										}
+									}}
+									onKeyUp={(e) => {
+										if (e.key === " " || e.key === "Enter") {
+											e.preventDefault();
+											onZoomPreviewEnd();
+										}
+									}}
+									onBlur={() => onZoomPreviewEnd()}
+									className="h-7 w-full select-none rounded-md border border-white/[0.08] bg-white/[0.04] text-[10px] font-semibold text-slate-300 transition-all duration-150 ease-out hover:bg-white/[0.08] hover:text-slate-100 active:border-[#34B27B]/50 active:bg-[#34B27B] active:text-white cursor-pointer"
+								>
+									{t("zoom.previewHold")}
+								</Button>
 							)}
 							{zoomEnabled &&
 								selectedZoomFocusMode !== "auto" &&
@@ -1374,7 +1423,7 @@ export function SettingsPanel({
 															onValueChange={(values) => onBorderRadiusChange?.(values[0])}
 															onValueCommit={() => onBorderRadiusCommit?.()}
 															min={0}
-															max={16}
+															max={64}
 															step={0.5}
 															className="w-full [&_[role=slider]]:bg-[#34B27B] [&_[role=slider]]:border-[#34B27B] [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
 														/>
@@ -1549,7 +1598,7 @@ export function SettingsPanel({
 														type="file"
 														ref={fileInputRef}
 														onChange={handleImageUpload}
-														accept=".jpg,.jpeg,image/jpeg"
+														accept={BACKGROUND_IMAGE_ACCEPT}
 														className="hidden"
 													/>
 													<Button
@@ -1657,6 +1706,28 @@ export function SettingsPanel({
 												</TabsContent>
 											</div>
 										</Tabs>
+									</AccordionContent>
+								</AccordionItem>
+							)}
+							{activePanelMode === "timeline" && (
+								<AccordionItem value="timeline" className="editor-panel-section px-3">
+									<AccordionTrigger className="py-2.5 hover:no-underline">
+										<div className="flex items-center gap-2">
+											<Brackets className="w-4 h-4 text-[#34B27B]" />
+											<span className="text-xs font-medium">{t("timeline.title")}</span>
+										</div>
+									</AccordionTrigger>
+									<AccordionContent className="pb-3">
+										<div className="flex items-center justify-between p-2 rounded-lg editor-control-surface">
+											<div className="text-[10px] font-medium text-slate-300">
+												{t("timeline.waveform")}
+											</div>
+											<Switch
+												checked={showTrimWaveform}
+												onCheckedChange={onTrimWaveformChange}
+												className="data-[state=checked]:bg-[#34B27B] scale-90 ml-2 shrink-0"
+											/>
+										</div>
 									</AccordionContent>
 								</AccordionItem>
 							)}

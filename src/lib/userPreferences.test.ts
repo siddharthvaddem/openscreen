@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { parentDirectoryOf } from "./userPreferences";
+import { beforeEach, describe, expect, it } from "vitest";
+import { loadUserPreferences, parentDirectoryOf, saveUserPreferences } from "./userPreferences";
 
 describe("parentDirectoryOf", () => {
 	it("returns the directory for a POSIX path", () => {
@@ -22,5 +22,23 @@ describe("parentDirectoryOf", () => {
 	it("returns null when no separator is present", () => {
 		expect(parentDirectoryOf("video.mp4")).toBeNull();
 		expect(parentDirectoryOf("")).toBeNull();
+	});
+});
+
+describe("user preferences", () => {
+	beforeEach(() => {
+		localStorage.clear();
+	});
+
+	it("persists the tray layout preference", () => {
+		saveUserPreferences({ trayLayout: "vertical" });
+
+		expect(loadUserPreferences().trayLayout).toBe("vertical");
+	});
+
+	it("falls back to the default tray layout for invalid stored values", () => {
+		localStorage.setItem("openscreen_user_preferences", JSON.stringify({ trayLayout: "diagonal" }));
+
+		expect(loadUserPreferences().trayLayout).toBe("horizontal");
 	});
 });

@@ -1,0 +1,47 @@
+{
+	"tooltips": {
+		"hideHUD": "Ocultar HUD",
+		"closeApp": "Fechar App",
+		"restartRecording": "Reiniciar gravação",
+		"cancelRecording": "Cancelar gravação",
+		"pauseRecording": "Pausar gravação",
+		"resumeRecording": "Retomar gravação",
+		"openVideoFile": "Abrir arquivo de vídeo",
+		"openProject": "Abrir projeto"
+	},
+	"audio": {
+		"enableSystemAudio": "Ativar áudio do sistema",
+		"disableSystemAudio": "Desativar áudio do sistema",
+		"enableMicrophone": "Ativar microfone",
+		"disableMicrophone": "Desativar microfone",
+		"defaultMicrophone": "Microfone Padrão"
+	},
+	"webcam": {
+		"enableWebcam": "Ativar webcam",
+		"disableWebcam": "Desativar webcam",
+		"defaultCamera": "Câmera Padrão",
+		"searching": "Procurando...",
+		"noneFound": "Nenhuma câmera encontrada",
+		"unavailable": "Câmera indisponível"
+	},
+	"cursor": {
+		"useEditableCursor": "Usar cursor editável",
+		"useSystemCursor": "Usar cursor do sistema"
+	},
+	"sourceSelector": {
+		"loading": "Carregando fontes...",
+		"screens": "Telas ({{count}})",
+		"windows": "Janelas ({{count}})",
+		"defaultSourceName": "Tela"
+	},
+	"recording": {
+		"selectSource": "Por favor, selecione uma fonte para gravar"
+	},
+	"language": "Idioma",
+	"systemLanguagePrompt": {
+		"title": "Usar o idioma do seu sistema?",
+		"description": "Detectamos {{language}} como o idioma do seu sistema. Deseja mudar o OpenScreen para {{language}}?",
+		"switch": "Mudar para {{language}}",
+		"keepDefault": "Manter idioma atual"
+	}
+}

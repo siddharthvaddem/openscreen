@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Maintenir pour prévisualiser l'effet de zoom",
 		"level": "Niveau de zoom",
 		"selectRegion": "Sélectionnez une région de zoom à ajuster",
 		"deleteZoom": "Supprimer le zoom",
@@ -9,7 +10,6 @@
 			"auto": "Auto",
 			"autoDescription": "La caméra suit la position du curseur enregistré"
 		},
-		"speed": {},
 		"threeD": {
 			"title": "Rotation 3D",
 			"preset": {
@@ -98,7 +98,8 @@
 	},
 	"project": {
 		"save": "Enregistrer le projet",
-		"load": "Charger un projet"
+		"load": "Charger un projet",
+		"new": "Nouveau projet"
 	},
 	"export": {
 		"videoButton": "Exporter la vidéo",
@@ -112,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Type de fichier invalide",
-		"jpgOnly": "Veuillez téléverser un fichier image JPG ou JPEG.",
+		"jpgOnly": "Veuillez téléverser un fichier image JPG, JPEG ou PNG.",
 		"uploadSuccess": "Image personnalisée téléversée avec succès !",
 		"failedToUpload": "Échec du téléversement de l'image",
 		"errorReading": "Une erreur s'est produite lors de la lecture du fichier."
@@ -174,6 +175,17 @@
 		"modern": "Moderne",
 		"clean": "Épuré"
 	},
+	"textAnimation": {
+		"title": "Animation de texte",
+		"selectAnimation": "Sélectionner une animation",
+		"none": "Aucune",
+		"fade": "Fondu",
+		"rise": "Monter",
+		"pop": "Apparition",
+		"slideLeft": "Glisser à gauche",
+		"typewriter": "Machine à écrire",
+		"pulse": "Pulsation"
+	},
 	"customFont": {
 		"dialogTitle": "Ajouter une police Google",
 		"urlLabel": "URL d'import Google Fonts",
@@ -203,5 +215,9 @@
 	},
 	"language": {
 		"title": "Langue"
+	},
+	"timeline": {
+		"title": "Montage",
+		"waveform": "Afficher la forme d'onde sur la piste de découpe"
 	}
 }

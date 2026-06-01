@@ -13,7 +13,9 @@
 	"reservedShortcut": "Questa scorciatoia è riservata a \"{{label}}\" e non può essere riassegnata.",
 	"savedToast": "Scorciatoie tastiera salvate",
 	"resetToast": "Ripristino alle scorciatoie predefinite — clicca Salva per applicare",
+	"registrationFailed": "Impossibile registrare la scorciatoia. Potrebbe essere in uso da un'altra applicazione. Prova un altro tasto.",
 	"actions": {
+		"openApp": "Apri applicazione",
 		"addZoom": "Aggiungi zoom",
 		"addTrim": "Aggiungi taglio",
 		"addSpeed": "Aggiungi velocità",

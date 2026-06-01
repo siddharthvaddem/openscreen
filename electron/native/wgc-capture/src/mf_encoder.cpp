@@ -254,6 +254,45 @@ bool MFEncoder::copyFrameToBuffer(
     return true;
 }
 
+bool MFEncoder::copyBgraFrameToBuffer(const BgraFrameView& frame, BYTE* destination, DWORD destinationSize) {
+    if (!frame.data || frame.width <= 0 || frame.height <= 0) {
+        return false;
+    }
+
+    const DWORD rowBytes = static_cast<DWORD>(width_ * 4);
+    const DWORD requiredBytes = rowBytes * static_cast<DWORD>(height_);
+    if (destinationSize < requiredBytes) {
+        std::cerr << "ERROR: Media Foundation webcam buffer is too small" << std::endl;
+        return false;
+    }
+
+    if (frame.width == width_ && frame.height == height_) {
+        for (DWORD i = 0; i < requiredBytes; i += 4) {
+            destination[i] = frame.data[i];
+            destination[i + 1] = frame.data[i + 1];
+            destination[i + 2] = frame.data[i + 2];
+            destination[i + 3] = 255;
+        }
+        return true;
+    }
+
+    for (int y = 0; y < height_; y += 1) {
+        const int sourceY = static_cast<int>((static_cast<int64_t>(y) * frame.height) / height_);
+        BYTE* destinationRow = destination + rowBytes * y;
+        for (int x = 0; x < width_; x += 1) {
+            const int sourceX = static_cast<int>((static_cast<int64_t>(x) * frame.width) / width_);
+            const BYTE* source = frame.data + (sourceY * frame.width + sourceX) * 4;
+            BYTE* target = destinationRow + x * 4;
+            target[0] = source[0];
+            target[1] = source[1];
+            target[2] = source[2];
+            target[3] = 255;
+        }
+    }
+
+    return true;
+}
+
 bool MFEncoder::writeFrame(ID3D11Texture2D* texture, int64_t timestampHns, const BgraFrameView* webcamFrame) {
     std::scoped_lock writerLock(writerMutex_);
     if (!sinkWriter_ || finalized_) {
@@ -300,6 +339,54 @@ bool MFEncoder::writeFrame(ID3D11Texture2D* texture, int64_t timestampHns, const
     sample->SetSampleDuration(sampleDuration);
 
     return succeeded(sinkWriter_->WriteSample(videoStreamIndex_, sample.Get()), "WriteSample");
+}
+
+bool MFEncoder::writeBgraFrame(const BgraFrameView& frame, int64_t timestampHns) {
+    std::scoped_lock writerLock(writerMutex_);
+    if (!sinkWriter_ || finalized_) {
+        return false;
+    }
+
+    if (firstTimestampHns_ < 0) {
+        firstTimestampHns_ = timestampHns;
+    }
+
+    int64_t sampleTime = timestampHns - firstTimestampHns_;
+    if (sampleTime <= lastTimestampHns_) {
+        sampleTime = lastTimestampHns_ + (10'000'000LL / fps_);
+    }
+    const int64_t sampleDuration = 10'000'000LL / fps_;
+    lastTimestampHns_ = sampleTime;
+
+    Microsoft::WRL::ComPtr<IMFMediaBuffer> buffer;
+    const DWORD frameBytes = static_cast<DWORD>(width_ * height_ * 4);
+    if (!succeeded(MFCreateMemoryBuffer(frameBytes, &buffer), "MFCreateMemoryBuffer(webcam)")) {
+        return false;
+    }
+
+    BYTE* data = nullptr;
+    DWORD maxLength = 0;
+    DWORD currentLength = 0;
+    if (!succeeded(buffer->Lock(&data, &maxLength, &currentLength), "IMFMediaBuffer::Lock(webcam)")) {
+        return false;
+    }
+
+    const bool copied = copyBgraFrameToBuffer(frame, data, maxLength);
+    buffer->Unlock();
+    if (!copied) {
+        return false;
+    }
+    buffer->SetCurrentLength(frameBytes);
+
+    Microsoft::WRL::ComPtr<IMFSample> sample;
+    if (!succeeded(MFCreateSample(&sample), "MFCreateSample(webcam)")) {
+        return false;
+    }
+    sample->AddBuffer(buffer.Get());
+    sample->SetSampleTime(sampleTime);
+    sample->SetSampleDuration(sampleDuration);
+
+    return succeeded(sinkWriter_->WriteSample(videoStreamIndex_, sample.Get()), "WriteSample(webcam)");
 }
 
 bool MFEncoder::writeAudio(const BYTE* data, DWORD byteCount, int64_t timestampHns, int64_t durationHns) {

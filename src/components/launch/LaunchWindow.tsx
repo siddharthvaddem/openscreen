@@ -1,9 +1,16 @@
-import { Check, ChevronDown, Languages, RadioTower } from "lucide-react";
+import {
+	Check,
+	ChevronDown,
+	Clapperboard,
+	Columns3,
+	Languages,
+	RadioTower,
+	Rows3,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BsPauseCircle, BsPlayCircle, BsRecordCircle } from "react-icons/bs";
 import { FaRegStopCircle } from "react-icons/fa";
-import { FaFolderOpen } from "react-icons/fa6";
 import { FiMinus, FiX } from "react-icons/fi";
 import {
 	MdCancel,
@@ -14,7 +21,6 @@ import {
 	MdRestartAlt,
 	MdVideocam,
 	MdVideocamOff,
-	MdVideoFile,
 	MdVolumeOff,
 	MdVolumeUp,
 } from "react-icons/md";
@@ -33,12 +39,14 @@ import {
 	type LiveStreamStartConfig,
 } from "../../lib/liveStream";
 import { requestCameraAccess } from "../../lib/requestCameraAccess";
+import { loadUserPreferences, saveUserPreferences } from "../../lib/userPreferences";
 import { formatTimePadded } from "../../utils/timeUtils";
 import { AudioLevelMeter } from "../ui/audio-level-meter";
 import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 import styles from "./LaunchWindow.module.css";
 import { LiveStreamSetupDialog } from "./LiveStreamSetupDialog";
+import { openSourceSelectorWithPermissionRetry } from "./openSourceSelectorFlow";
 
 const ICON_SIZE = 20;
 
@@ -59,14 +67,13 @@ const ICON_CONFIG = {
 	cancel: { icon: MdCancel, size: ICON_SIZE },
 	record: { icon: BsRecordCircle, size: ICON_SIZE },
 	live: { icon: RadioTower, size: ICON_SIZE },
-	videoFile: { icon: MdVideoFile, size: ICON_SIZE },
-	folder: { icon: FaFolderOpen, size: ICON_SIZE },
 	minimize: { icon: FiMinus, size: ICON_SIZE },
 	close: { icon: FiX, size: ICON_SIZE },
 } as const;
 
 type IconName = keyof typeof ICON_CONFIG;
 
+/** Renders the configured icon for a HUD control. */
 function getIcon(name: IconName, className?: string) {
 	const { icon: Icon, size } = ICON_CONFIG[name];
 	return <Icon size={size} className={className} />;
@@ -85,7 +92,10 @@ const windowBtnClasses =
 	"flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer opacity-50 hover:opacity-90 hover:bg-white/[0.08]";
 
 const hudSidebarClasses = "ml-0.5 pl-1.5 border-l border-white/10 flex items-center gap-0.5";
+const hudSidebarVerticalClasses =
+	"mt-0.5 pt-1.5 border-t border-white/10 flex flex-col items-center gap-0.5";
 
+/** Launches the floating recording HUD and its recorder controls. */
 export function LaunchWindow() {
 	const t = useScopedT("launch");
 	const availableLocales = getAvailableLocales();
@@ -143,6 +153,9 @@ export function LaunchWindow() {
 	const [isWebcamFocused, setIsWebcamFocused] = useState(false);
 	const webcamExpanded = isWebcamHovered || isWebcamFocused;
 	const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+	const [trayLayout, setTrayLayout] = useState<"horizontal" | "vertical">(
+		() => loadUserPreferences().trayLayout,
+	);
 	const [supportsCursorModeToggle, setSupportsCursorModeToggle] = useState(false);
 	const languageTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const languageMenuPanelRef = useRef<HTMLDivElement | null>(null);
@@ -358,26 +371,12 @@ export function LaunchWindow() {
 		return () => clearInterval(interval);
 	}, []);
 
-	const openSourceSelector = () => {
+	const openSourceSelector = async () => {
 		if (window.electronAPI) {
-			window.electronAPI.openSourceSelector();
-		}
-	};
-
-	const openVideoFile = async () => {
-		const result = await window.electronAPI.openVideoFilePicker();
-
-		if (result.canceled) {
-			return;
-		}
-
-		if (result.success && result.path) {
-			const setVideoPathResult = await nativeBridgeClient.project.setCurrentVideoPath(result.path);
-			if (!setVideoPathResult.success) {
-				console.error("Failed to set current video path:", setVideoPathResult);
-				return;
-			}
-			await window.electronAPI.switchToEditor();
+			await openSourceSelectorWithPermissionRetry({
+				openSourceSelector: () => window.electronAPI.openSourceSelector(),
+				requestScreenAccess: () => window.electronAPI.requestScreenAccess(),
+			});
 		}
 	};
 
@@ -414,12 +413,6 @@ export function LaunchWindow() {
 		}
 	};
 
-	const openProjectFile = async () => {
-		const result = await nativeBridgeClient.project.loadProjectFile();
-		if (result.canceled || !result.success) return;
-		await window.electronAPI.switchToEditor();
-	};
-
 	const sendHudOverlayHide = () => {
 		if (window.electronAPI && window.electronAPI.hudOverlayHide) {
 			window.electronAPI.hudOverlayHide();
@@ -429,6 +422,12 @@ export function LaunchWindow() {
 		if (window.electronAPI && window.electronAPI.hudOverlayClose) {
 			window.electronAPI.hudOverlayClose();
 		}
+	};
+	/** Switches the HUD between horizontal and vertical tray layouts. */
+	const toggleTrayLayout = () => {
+		const nextLayout = trayLayout === "horizontal" ? "vertical" : "horizontal";
+		setTrayLayout(nextLayout);
+		saveUserPreferences({ trayLayout: nextLayout });
 	};
 
 	const toggleMicrophone = () => {
@@ -658,7 +657,12 @@ export function LaunchWindow() {
 			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
 			<div
 				data-hud-interactive="true"
-				className={`fixed bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-2xl border border-white/[0.10] bg-[#07080a]/90 px-2 py-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl backdrop-saturate-[140%]`}
+				data-tray-layout={trayLayout}
+				className={`fixed bottom-5 left-1/2 -translate-x-1/2 flex rounded-2xl border border-white/[0.10] bg-[#07080a]/90 shadow-[0_20px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl backdrop-saturate-[140%] ${
+					trayLayout === "vertical"
+						? "max-h-[calc(100vh-2.5rem)] flex-col items-center gap-1 overflow-y-auto px-1 py-1.5"
+						: "items-center gap-1.5 px-2 py-1.5"
+				}`}
 				onPointerEnter={() => setHudMouseEventsEnabled(true)}
 				onPointerDown={() => setHudMouseEventsEnabled(true)}
 				onMouseEnter={() => setHudMouseEventsEnabled(true)}
@@ -670,7 +674,7 @@ export function LaunchWindow() {
 			>
 				{/* Drag handle */}
 				<div
-					className={`flex h-8 w-7 cursor-grab items-center justify-center active:cursor-grabbing ${styles.electronNoDrag}`}
+					className={`flex ${trayLayout === "vertical" ? "h-6 w-8" : "h-8 w-7"} cursor-grab items-center justify-center active:cursor-grabbing ${styles.electronNoDrag}`}
 					onPointerDown={handleHudDragPointerDown}
 					onPointerMove={handleHudDragPointerMove}
 					onPointerUp={handleHudDragPointerEnd}
@@ -679,21 +683,53 @@ export function LaunchWindow() {
 					{getIcon("drag", "text-white/30")}
 				</div>
 
+				<Tooltip
+					content={
+						trayLayout === "horizontal"
+							? t("tooltips.useVerticalTray")
+							: t("tooltips.useHorizontalTray")
+					}
+				>
+					<button
+						data-testid="launch-tray-layout-button"
+						type="button"
+						aria-label={
+							trayLayout === "horizontal"
+								? t("tooltips.useVerticalTray")
+								: t("tooltips.useHorizontalTray")
+						}
+						aria-pressed={trayLayout === "vertical"}
+						className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+						onClick={toggleTrayLayout}
+					>
+						{trayLayout === "horizontal" ? (
+							<Columns3 size={ICON_SIZE} className="text-white/60" />
+						) : (
+							<Rows3 size={ICON_SIZE} className="text-white/60" />
+						)}
+					</button>
+				</Tooltip>
+
 				{/* Source selector */}
 				<button
-					className={`${hudGroupClasses} h-8 px-2.5 ${styles.electronNoDrag}`}
+					className={`${hudGroupClasses} h-8 ${trayLayout === "vertical" ? "w-8 justify-center px-0" : "px-2.5"} ${styles.electronNoDrag}`}
 					onClick={openSourceSelector}
 					disabled={recording || streaming}
 					title={selectedSourceLabel}
+					aria-label={selectedSourceLabel}
 				>
 					{getIcon("monitor", "text-white/80")}
-					<span className="max-w-[86px] truncate text-[11px] font-medium text-white/75">
+					<span
+						className={`${trayLayout === "vertical" ? "sr-only" : "max-w-[86px]"} truncate text-[11px] font-medium text-white/75`}
+					>
 						{selectedSourceLabel}
 					</span>
 				</button>
 
 				{/* Audio controls group */}
-				<div className={`${hudGroupClasses} ${styles.electronNoDrag}`}>
+				<div
+					className={`${hudGroupClasses} ${trayLayout === "vertical" ? "flex-col py-1" : ""} ${styles.electronNoDrag}`}
+				>
 					<button
 						data-testid="launch-system-audio-button"
 						className={`${hudIconBtnClasses} ${systemAudioEnabled ? "drop-shadow-[0_0_4px_rgba(74,222,128,0.4)]" : ""}`}
@@ -769,7 +805,7 @@ export function LaunchWindow() {
 				{/* Record/Stop group */}
 				<button
 					data-testid="launch-record-button"
-					className={`flex items-center justify-center rounded-full p-2 transition-[min-width,background-color] duration-150 ${recording ? "min-w-[78px]" : "min-w-[36px]"} ${styles.electronNoDrag} ${
+					className={`flex items-center justify-center rounded-full p-2 transition-[min-width,background-color] duration-150 ${recording ? "min-w-[78px]" : "min-w-[36px]"} ${trayLayout === "vertical" ? "min-h-9" : ""} ${styles.electronNoDrag} ${
 						recording
 							? paused
 								? "bg-amber-500/10 hover:bg-amber-500/15"
@@ -820,7 +856,9 @@ export function LaunchWindow() {
 				</button>
 
 				{recording && (
-					<div className={`flex items-center gap-0.5 ${styles.electronNoDrag}`}>
+					<div
+						className={`flex items-center gap-0.5 ${trayLayout === "vertical" ? "flex-col" : ""} ${styles.electronNoDrag}`}
+					>
 						{canPauseRecording && (
 							<Tooltip
 								content={paused ? t("tooltips.resumeRecording") : t("tooltips.pauseRecording")}
@@ -847,33 +885,21 @@ export function LaunchWindow() {
 				)}
 
 				{!recording && !streaming && (
-					<>
-						{/* Open video file */}
-						<Tooltip content={t("tooltips.openVideoFile")}>
-							<button
-								data-testid="launch-open-video-button"
-								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-								onClick={openVideoFile}
-							>
-								{getIcon("videoFile", "text-white/60")}
-							</button>
-						</Tooltip>
-
-						{/* Open project */}
-						<Tooltip content={t("tooltips.openProject")}>
-							<button
-								data-testid="launch-open-project-button"
-								className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
-								onClick={openProjectFile}
-							>
-								{getIcon("folder", "text-white/60")}
-							</button>
-						</Tooltip>
-					</>
+					<Tooltip content={t("tooltips.openStudio")}>
+						<button
+							data-testid="launch-open-studio-button"
+							className={`${hudIconBtnClasses} ${styles.electronNoDrag}`}
+							onClick={() => window.electronAPI.switchToEditor()}
+						>
+							<Clapperboard size={ICON_SIZE} className="text-white/60" />
+						</button>
+					</Tooltip>
 				)}
 
 				{/* Right sidebar controls */}
-				<div className={`${hudSidebarClasses} ${styles.electronNoDrag}`}>
+				<div
+					className={`${trayLayout === "vertical" ? hudSidebarVerticalClasses : hudSidebarClasses} ${styles.electronNoDrag}`}
+				>
 					<div className={`${styles.languageMenuContainer} ${styles.electronNoDrag}`}>
 						<button
 							ref={languageTriggerRef}
@@ -882,10 +908,15 @@ export function LaunchWindow() {
 							aria-expanded={isLanguageMenuOpen}
 							aria-haspopup="menu"
 							onClick={() => setIsLanguageMenuOpen((open) => !open)}
-							className={`flex h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2 text-white/85 shadow-none transition-colors hover:bg-white/10 ${styles.electronNoDrag}`}
+							title={activeLanguageLabel}
+							className={`flex h-8 items-center rounded-lg border border-white/10 bg-white/[0.045] text-white/85 shadow-none transition-colors hover:bg-white/10 ${
+								trayLayout === "vertical" ? "w-8 justify-center px-0" : "gap-1.5 px-2"
+							} ${styles.electronNoDrag}`}
 						>
 							<Languages size={13} className="text-white/70" />
-							<span className="max-w-[54px] truncate text-[10px] font-semibold text-white/75">
+							<span
+								className={`${trayLayout === "vertical" ? "sr-only" : "max-w-[54px]"} truncate text-[10px] font-semibold text-white/75`}
+							>
 								{activeLanguageLabel}
 							</span>
 						</button>
@@ -938,7 +969,9 @@ export function LaunchWindow() {
 						: null}
 
 					{/* Window controls */}
-					<div className="flex items-center gap-0.5">
+					<div
+						className={`flex items-center gap-0.5 ${trayLayout === "vertical" ? "flex-col" : ""}`}
+					>
 						<button
 							className={windowBtnClasses}
 							title={t("tooltips.hideHUD")}

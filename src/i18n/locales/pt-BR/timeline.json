@@ -1,0 +1,55 @@
+{
+	"buttons": {
+		"addZoom": "Adicionar Zoom (Z)",
+		"suggestZooms": "Sugerir Zooms a partir do Cursor",
+		"addTrim": "Adicionar Recorte (T)",
+		"addAnnotation": "Adicionar Anotação (A)",
+		"addBlur": "Adicionar Desfoque (B)",
+		"addSpeed": "Adicionar Velocidade (S)"
+	},
+	"hints": {
+		"pressZoom": "Pressione Z para adicionar zoom",
+		"pressTrim": "Pressione T para adicionar recorte",
+		"pressAnnotation": "Pressione A para adicionar anotação",
+		"pressBlur": "Pressione B para adicionar região de desfoque",
+		"pressSpeed": "Pressione S para adicionar velocidade"
+	},
+	"labels": {
+		"pan": "Mover",
+		"zoom": "Zoom",
+		"trim": "Recorte",
+		"speed": "Velocidade",
+		"zoomItem": "Zoom {{index}}",
+		"trimItem": "Recorte {{index}}",
+		"speedItem": "Velocidade {{index}}",
+		"annotationItem": "Anotação",
+		"blurItem": "Desfoque {{index}}",
+		"imageItem": "Imagem",
+		"emptyText": "Texto vazio"
+	},
+	"emptyState": {
+		"noVideo": "Nenhum Vídeo Carregado",
+		"dragAndDrop": "Arraste e solte um vídeo para começar a editar"
+	},
+	"errors": {
+		"cannotPlaceZoom": "Não é possível colocar zoom aqui",
+		"zoomExistsAtLocation": "Já existe um zoom neste local ou não há espaço suficiente disponível.",
+		"zoomSuggestionUnavailable": "Sugestão de zoom não disponível",
+		"noCursorTelemetry": "Nenhuma telemetria de cursor disponível",
+		"noCursorTelemetryDescription": "Grave um screencast primeiro para gerar sugestões baseadas no cursor.",
+		"noUsableTelemetry": "Nenhuma telemetria de cursor utilizável",
+		"noUsableTelemetryDescription": "A gravação não inclui dados suficientes de movimento do cursor.",
+		"noDwellMoments": "Nenhum momento claro de parada do cursor encontrado",
+		"noDwellMomentsDescription": "Tente uma gravação com pausas mais lentas do cursor em ações importantes.",
+		"noAutoZoomSlots": "Nenhum slot de zoom automático disponível",
+		"noAutoZoomSlotsDescription": "Pontos de parada detectados sobrepõem regiões de zoom existentes.",
+		"cannotPlaceTrim": "Não é possível colocar recorte aqui",
+		"trimExistsAtLocation": "Já existe um recorte neste local ou não há espaço suficiente disponível.",
+		"cannotPlaceSpeed": "Não é possível colocar velocidade aqui",
+		"speedExistsAtLocation": "Já existe uma região de velocidade neste local ou não há espaço suficiente disponível."
+	},
+	"success": {
+		"addedZoomSuggestions": "Adicionada {{count}} sugestão de zoom baseada no cursor",
+		"addedZoomSuggestionsPlural": "Adicionadas {{count}} sugestões de zoom baseadas no cursor"
+	}
+}

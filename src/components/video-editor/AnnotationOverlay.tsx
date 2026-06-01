@@ -1,5 +1,6 @@
 import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
+import { getTextAnimationState } from "@/lib/annotationTextAnimation";
 import {
 	getBlurOverlayColor,
 	getMosaicGridOverlayColor,
@@ -50,6 +51,7 @@ interface AnnotationOverlayProps {
 	isSelectedBoost: boolean; // Boost z-index when selected for easy editing
 	previewSourceCanvas?: PreviewCanvasSource | null;
 	previewFrameVersion?: number;
+	currentTimeMs: number;
 }
 
 export function AnnotationOverlay({
@@ -66,6 +68,7 @@ export function AnnotationOverlay({
 	isSelectedBoost,
 	previewSourceCanvas,
 	previewFrameVersion,
+	currentTimeMs,
 }: AnnotationOverlayProps) {
 	const committedX = (annotation.position.x / 100) * containerWidth;
 	const committedY = (annotation.position.y / 100) * containerHeight;
@@ -283,7 +286,12 @@ export function AnnotationOverlay({
 
 	const renderContent = () => {
 		switch (annotation.type) {
-			case "text":
+			case "text": {
+				const animationState = getTextAnimationState(annotation, currentTimeMs);
+				const typewriterClip =
+					animationState.revealProgress < 1
+						? `inset(0 ${100 - animationState.revealProgress * 100}% 0 0)`
+						: undefined;
 				return (
 					<div
 						className="w-full h-full flex items-center p-2 overflow-hidden"
@@ -307,6 +315,11 @@ export function AnnotationOverlay({
 								fontStyle: annotation.style.fontStyle,
 								textDecoration: annotation.style.textDecoration,
 								textAlign: annotation.style.textAlign,
+								opacity: animationState.opacity,
+								transform: `translate(${animationState.translateX}px, ${animationState.translateY}px) scale(${animationState.scale})`,
+								transformOrigin: "center",
+								clipPath: typewriterClip,
+								WebkitClipPath: typewriterClip,
 								wordBreak: "break-word",
 								whiteSpace: "pre-wrap",
 								boxDecorationBreak: "clone",
@@ -320,6 +333,7 @@ export function AnnotationOverlay({
 						</span>
 					</div>
 				);
+			}
 
 			case "image":
 				if (annotation.content && annotation.content.startsWith("data:image")) {

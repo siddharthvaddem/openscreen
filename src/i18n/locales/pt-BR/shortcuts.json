@@ -1,0 +1,37 @@
+{
+	"title": "Atalhos de Teclado",
+	"customize": "Personalizar",
+	"configurable": "Configurável",
+	"fixed": "Fixo",
+	"pressKey": "Pressione uma tecla…",
+	"clickToChange": "Clique para alterar",
+	"pressEscToCancel": "Pressione Esc para cancelar",
+	"helpText": "Clique em um atalho e pressione a nova combinação de teclas. Pressione Esc para cancelar.",
+	"resetToDefaults": "Redefinir para os padrões",
+	"alreadyUsedBy": "Já utilizado por {{action}}",
+	"swap": "Trocar",
+	"reservedShortcut": "Este atalho é reservado para \"{{label}}\" e não pode ser reatribuído.",
+	"savedToast": "Atalhos de teclado salvos",
+	"resetToast": "Atalhos redefinidos para o padrão — clique em Salvar para aplicar",
+	"actions": {
+		"addZoom": "Adicionar Zoom",
+		"addTrim": "Adicionar Recorte",
+		"addSpeed": "Adicionar Velocidade",
+		"addAnnotation": "Adicionar Anotação",
+		"addBlur": "Adicionar Desfoque",
+		"addKeyframe": "Adicionar Quadro-chave",
+		"deleteSelected": "Excluir Selecionado",
+		"playPause": "Reproduzir / Pausar"
+	},
+	"fixedActions": {
+		"undo": "Desfazer",
+		"redo": "Refazer",
+		"cycleAnnotationsForward": "Alternar Anotações (Próximo)",
+		"cycleAnnotationsBackward": "Alternar Anotações (Anterior)",
+		"deleteSelectedAlt": "Excluir Selecionado (alt)",
+		"panTimeline": "Mover Linha do Tempo",
+		"zoomTimeline": "Zoom na Linha do Tempo",
+		"frameBack": "Quadro Anterior",
+		"frameForward": "Próximo Quadro"
+	}
+}

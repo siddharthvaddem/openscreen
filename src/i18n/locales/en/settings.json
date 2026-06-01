@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Hold to preview zoom effect",
 		"level": "Zoom Level",
 		"customScale": "Custom Zoom",
 		"selectRegion": "Select a zoom region to adjust",
@@ -97,7 +98,8 @@
 	},
 	"project": {
 		"save": "Save Project",
-		"load": "Load Project"
+		"load": "Load Project",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Export Video",
@@ -111,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Invalid file type",
-		"jpgOnly": "Please upload a JPG or JPEG image file.",
+		"jpgOnly": "Please upload a JPG, JPEG, or PNG image file.",
 		"uploadSuccess": "Custom image uploaded successfully!",
 		"failedToUpload": "Failed to upload image",
 		"errorReading": "There was an error reading the file."
@@ -173,6 +175,17 @@
 		"modern": "Modern",
 		"clean": "Clean"
 	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
+	},
 	"customFont": {
 		"dialogTitle": "Add Google Font",
 		"urlLabel": "Google Fonts Import URL",
@@ -202,5 +215,9 @@
 	},
 	"language": {
 		"title": "Language"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Show Audio Waveform on Trim Track"
 	}
 }

@@ -42,5 +42,21 @@
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran.",
 		"accessibilityAllowAndRetry": "Autorisez l'accès Accessibilité pour OpenScreen, puis appuyez de nouveau sur enregistrer pour lancer le compte à rebours."
 	},
-	"loadingVideo": "Chargement de la vidéo..."
+	"loadingVideo": "Chargement de la vidéo...",
+	"loadingEditor": "Chargement de l'éditeur...",
+	"emptyState": {
+		"title": "Aucun projet ouvert",
+		"description": "Importez une vidéo pour commencer à éditer, ou chargez un projet OpenScreen existant.",
+		"importVideoButton": "Importer un fichier vidéo…",
+		"loadProjectButton": "Charger un projet…",
+		"supportedFormats": "Formats pris en charge : MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "ou glissez-déposez un fichier .openscreen ici",
+		"dropOverlay": "Déposez le fichier de projet pour l'ouvrir",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Format non pris en charge",
+			"unsupportedFormatMessage": "Seuls les fichiers .openscreen peuvent être déposés ici. Pour importer une vidéo, utilisez plutôt le bouton \"Importer un fichier vidéo...\".",
+			"couldNotOpenTitle": "Impossible d'ouvrir le fichier",
+			"couldNotOpenMessage": "Le fichier de projet n'a pas pu être ouvert. La vidéo qu'il référence a peut-être été déplacée ou supprimée."
+		}
+	}
 }

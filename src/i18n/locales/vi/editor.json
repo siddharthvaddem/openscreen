@@ -6,6 +6,7 @@
 		"confirm": "Xác nhận"
 	},
 	"loadingVideo": "Đang tải video...",
+	"loadingEditor": "Đang tải trình chỉnh sửa...",
 	"errors": {
 		"noVideoLoaded": "Chưa tải video nào",
 		"videoNotReady": "Video chưa sẵn sàng",
@@ -42,5 +43,20 @@
 		"cameraNotFound": "Không tìm thấy máy ảnh.",
 		"permissionDenied": "Quyền ghi hình bị từ chối. Vui lòng cho phép ghi màn hình.",
 		"accessibilityAllowAndRetry": "Cho phép OpenScreen truy cập Trợ năng, sau đó nhấn ghi lại để bắt đầu đếm ngược."
+	},
+	"emptyState": {
+		"title": "Không có dự án nào được mở",
+		"description": "Nhập video để bắt đầu chỉnh sửa hoặc tải một dự án OpenScreen hiện có.",
+		"importVideoButton": "Nhập tệp video…",
+		"loadProjectButton": "Tải dự án…",
+		"supportedFormats": "Định dạng được hỗ trợ: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "hoặc kéo và thả tệp dự án .openscreen vào đây",
+		"dropOverlay": "Thả tệp dự án để mở",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Định dạng không được hỗ trợ",
+			"unsupportedFormatMessage": "Chỉ có thể thả các tệp dự án .openscreen vào đây. Để nhập video, hãy sử dụng nút \"Nhập tệp video...\" thay thế.",
+			"couldNotOpenTitle": "Không thể mở tệp",
+			"couldNotOpenMessage": "Không thể mở tệp dự án. Video mà nó tham chiếu có thể đã bị di chuyển hoặc xóa."
+		}
 	}
 }

@@ -6,6 +6,7 @@
 		"confirm": "確認"
 	},
 	"loadingVideo": "動画を読み込み中...",
+	"loadingEditor": "エディターを読み込み中...",
 	"errors": {
 		"noVideoLoaded": "動画が読み込まれていません",
 		"videoNotReady": "動画の準備ができていません",
@@ -42,5 +43,20 @@
 		"cameraDisconnected": "ウェブカメラが切断されました。",
 		"cameraNotFound": "カメラが見つかりません。",
 		"accessibilityAllowAndRetry": "OpenScreenにアクセシビリティアクセスを許可してから、もう一度録画を押してカウントダウンを開始してください。"
+	},
+	"emptyState": {
+		"title": "プロジェクトが開かれていません",
+		"description": "動画をインポートして編集を開始するか、既存の OpenScreen プロジェクトを読み込んでください。",
+		"importVideoButton": "動画ファイルをインポート…",
+		"loadProjectButton": "プロジェクトを読み込む…",
+		"supportedFormats": "対応フォーマット：MP4、MOV、WebM、MKV、AVI、M4V、WMV",
+		"dragDropHint": ".openscreen プロジェクトファイルをここにドラッグ＆ドロップ",
+		"dropOverlay": "プロジェクトファイルをドロップして開く",
+		"dropErrors": {
+			"unsupportedFormatTitle": "非対応フォーマット",
+			"unsupportedFormatMessage": "ここにドロップできるのは .openscreen プロジェクトファイルのみです。動画をインポートするには「動画ファイルをインポート...」ボタンをご使用ください。",
+			"couldNotOpenTitle": "ファイルを開けませんでした",
+			"couldNotOpenMessage": "プロジェクトファイルを開けませんでした。参照している動画が移動または削除された可能性があります。"
+		}
 	}
 }

@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "按住预览放大效果",
 		"level": "缩放级别",
 		"selectRegion": "选择要调整的缩放区域",
 		"deleteZoom": "删除缩放",
@@ -97,7 +98,8 @@
 	},
 	"project": {
 		"save": "保存项目",
-		"load": "加载项目"
+		"load": "加载项目",
+		"new": "新建项目"
 	},
 	"export": {
 		"videoButton": "导出视频",
@@ -111,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "无效的文件类型",
-		"jpgOnly": "请上传 JPG 或 JPEG 格式的图片文件。",
+		"jpgOnly": "请上传 JPG、JPEG 或 PNG 格式的图片文件。",
 		"uploadSuccess": "自定义图片上传成功！",
 		"failedToUpload": "上传图片失败",
 		"errorReading": "读取文件时出错。"
@@ -127,6 +129,8 @@
 		"textPlaceholder": "输入您的文本...",
 		"fontStyle": "字体样式",
 		"selectStyle": "选择样式",
+		"textAnimation": "文本动画",
+		"selectAnimation": "选择动画",
 		"size": "大小",
 		"customFonts": "自定义字体",
 		"textColor": "文本颜色",
@@ -202,5 +206,9 @@
 	},
 	"language": {
 		"title": "语言"
+	},
+	"timeline": {
+		"title": "时间轴",
+		"waveform": "在剪辑轨道上显示音频波形"
 	}
 }

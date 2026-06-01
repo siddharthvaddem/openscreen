@@ -41,13 +41,25 @@ import { RECORDINGS_DIR } from "../main";
 import { createCursorRecordingSession } from "../native-bridge/cursor/recording/factory";
 import { requestMacCursorAccessibilityAccess } from "../native-bridge/cursor/recording/macNativeCursorRecordingSession";
 import type { CursorRecordingSession } from "../native-bridge/cursor/recording/session";
+import { patchWebmDurationOnDisk } from "../recording/webm-duration";
 import { registerNativeBridgeHandlers } from "./nativeBridge";
+import { RecordingStreamRegistry, registerRecordingStreamHandlers } from "./recordingStream";
 
 const PROJECT_FILE_EXTENSION = "openscreen";
-const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
+export const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 const RECORDING_FILE_PREFIX = "recording-";
 const RECORDING_SESSION_SUFFIX = ".session.json";
-const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([".webm", ".mp4", ".mov", ".avi", ".mkv"]);
+const ALLOWED_IMPORT_VIDEO_EXTENSIONS = new Set([
+	".webm",
+	".mp4",
+	".mov",
+	".avi",
+	".mkv",
+	".m4v",
+	".wmv",
+	".flv",
+	".ts",
+]);
 const PREVIEW_AUDIO_DIR = path.join(app.getPath("userData"), "preview-audio");
 const nativeMacCaptureEvents = new EventEmitter();
 const FFMPEG_LIVE_STREAM_AUDIO_BITRATE = "160k";
@@ -383,6 +395,30 @@ function resolveRecordingOutputPath(fileName: string): string {
 	return path.join(RECORDINGS_DIR, parsedPath.base);
 }
 
+function isValidDurationMs(value: number | undefined): value is number {
+	return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * Finalize a single recording file: if it was streamed to disk, flush and close
+ * the stream; otherwise (a short recording, or the stream failed to open and the
+ * renderer fell back to in-memory buffering) write the buffered bytes. Returns
+ * whether the file was streamed, which the caller uses to decide whether the
+ * WebM duration needs patching on disk.
+ */
+async function finalizeRecordingFile(
+	registry: RecordingStreamRegistry,
+	fileName: string,
+	filePath: string,
+	videoData?: ArrayBuffer,
+): Promise<boolean> {
+	const streamed = await registry.finalize(fileName);
+	if (!streamed && videoData && videoData.byteLength > 0) {
+		await fs.writeFile(filePath, Buffer.from(videoData));
+	}
+	return streamed;
+}
+
 async function getApprovedProjectSession(
 	project: unknown,
 	projectFilePath?: string,
@@ -502,6 +538,10 @@ let nativeWindowsCaptureWebcamTargetPath: string | null = null;
 let nativeWindowsCaptureRecordingId: number | null = null;
 let nativeWindowsCursorOffsetMs = 0;
 let nativeWindowsCursorCaptureMode: CursorCaptureMode = "editable-overlay";
+let nativeWindowsCursorRecordingStartMs = 0;
+let nativeWindowsPauseStartedAtMs: number | null = null;
+let nativeWindowsPauseRanges: Array<{ startMs: number; endMs: number }> = [];
+let nativeWindowsIsPaused = false;
 const NATIVE_WINDOWS_CAPTURE_STOP_TIMEOUT_MS = 15_000;
 let nativeMacCaptureProcess: ChildProcessWithoutNullStreams | null = null;
 let nativeMacCaptureOutput = "";
@@ -989,6 +1029,18 @@ function completeNativeMacCursorPauseRange(endMs = Date.now()) {
 		endMs: Math.max(0, endMs - nativeMacCursorRecordingStartMs),
 	});
 	nativeMacPauseStartedAtMs = null;
+}
+
+function completeNativeWindowsCursorPauseRange(endMs = Date.now()) {
+	if (nativeWindowsPauseStartedAtMs === null || nativeWindowsCursorRecordingStartMs <= 0) {
+		return;
+	}
+
+	nativeWindowsPauseRanges.push({
+		startMs: Math.max(0, nativeWindowsPauseStartedAtMs - nativeWindowsCursorRecordingStartMs),
+		endMs: Math.max(0, endMs - nativeWindowsCursorRecordingStartMs),
+	});
+	nativeWindowsPauseStartedAtMs = null;
 }
 
 function waitForNativeWindowsCaptureStart(proc: ChildProcessWithoutNullStreams) {
@@ -1564,10 +1616,10 @@ export function registerIpcHandlers(
 	});
 
 	ipcMain.handle("switch-to-editor", () => {
-		const mainWin = getMainWindow();
-		if (mainWin) {
-			mainWin.close();
-		}
+		// createEditorWindow is createEditorWindowWrapper — it already closes
+		// the current mainWindow (the HUD) before opening the editor. Closing
+		// it here too causes a double-close which leaves ghost transparent
+		// windows and makes the HUD shadow compound on each cycle.
 		createEditorWindow();
 	});
 
@@ -1587,14 +1639,17 @@ export function registerIpcHandlers(
 			return;
 		}
 
-		if (!overlayWindow.isVisible()) {
-			overlayWindow.showInactive();
-		}
-
+		// Wait for the first frame to be painted before showing the window.
+		// Showing before ready-to-show produces a black rectangle flash because
+		// Chromium hasn't rendered any pixels yet.
 		if (overlayWindow.webContents.isLoading()) {
 			await new Promise<void>((resolve) => {
-				overlayWindow.webContents.once("did-finish-load", () => resolve());
+				overlayWindow.once("ready-to-show", resolve);
 			});
+		}
+
+		if (!overlayWindow.isVisible()) {
+			overlayWindow.showInactive();
 		}
 
 		overlayWindow.webContents.send("countdown-overlay-value", value, runId);
@@ -1759,9 +1814,14 @@ export function registerIpcHandlers(
 				nativeWindowsCaptureRecordingId = recordingId;
 				nativeWindowsCursorOffsetMs = 0;
 				nativeWindowsCursorCaptureMode = cursorCaptureMode;
+				nativeWindowsCursorRecordingStartMs = 0;
+				nativeWindowsPauseStartedAtMs = null;
+				nativeWindowsPauseRanges = [];
+				nativeWindowsIsPaused = false;
 
 				const cursorStartTimeMs = Date.now();
 				if (cursorCaptureMode === "editable-overlay") {
+					nativeWindowsCursorRecordingStartMs = cursorStartTimeMs;
 					await startCursorRecording(cursorStartTimeMs);
 					console.info("[native-wgc] cursor sampler ready", {
 						cursorStartTimeMs,
@@ -1811,6 +1871,10 @@ export function registerIpcHandlers(
 				nativeWindowsCaptureRecordingId = null;
 				nativeWindowsCursorOffsetMs = 0;
 				nativeWindowsCursorCaptureMode = "editable-overlay";
+				nativeWindowsCursorRecordingStartMs = 0;
+				nativeWindowsPauseStartedAtMs = null;
+				nativeWindowsPauseRanges = [];
+				nativeWindowsIsPaused = false;
 				await stopCursorRecording();
 				return { success: false, error: String(error) };
 			}
@@ -2012,6 +2076,50 @@ export function registerIpcHandlers(
 		}
 	});
 
+	ipcMain.handle("pause-native-windows-recording", async () => {
+		const proc = nativeWindowsCaptureProcess;
+		if (!proc) {
+			return { success: false, error: "Native Windows capture is not running." };
+		}
+		if (nativeWindowsIsPaused) {
+			return { success: true };
+		}
+		if (!proc.stdin.writable) {
+			return { success: false, error: "Native Windows capture command channel is closed." };
+		}
+
+		try {
+			proc.stdin.write("pause\n");
+			nativeWindowsIsPaused = true;
+			nativeWindowsPauseStartedAtMs = Date.now();
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: error instanceof Error ? error.message : String(error) };
+		}
+	});
+
+	ipcMain.handle("resume-native-windows-recording", async () => {
+		const proc = nativeWindowsCaptureProcess;
+		if (!proc) {
+			return { success: false, error: "Native Windows capture is not running." };
+		}
+		if (!nativeWindowsIsPaused) {
+			return { success: true };
+		}
+		if (!proc.stdin.writable) {
+			return { success: false, error: "Native Windows capture command channel is closed." };
+		}
+
+		try {
+			proc.stdin.write("resume\n");
+			completeNativeWindowsCursorPauseRange();
+			nativeWindowsIsPaused = false;
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: error instanceof Error ? error.message : String(error) };
+		}
+	});
+
 	ipcMain.handle("stop-native-windows-recording", async (_, discard?: boolean) => {
 		const proc = nativeWindowsCaptureProcess;
 		const preferredPath = nativeWindowsCaptureTargetPath;
@@ -2024,6 +2132,7 @@ export function registerIpcHandlers(
 		}
 
 		try {
+			completeNativeWindowsCursorPauseRange();
 			const stoppedPathPromise = waitForNativeWindowsCaptureStop(proc);
 			proc.stdin.write("stop\n");
 			const stoppedPath = await stoppedPathPromise;
@@ -2048,6 +2157,7 @@ export function registerIpcHandlers(
 			}
 
 			if (cursorCaptureMode === "editable-overlay") {
+				compactPendingCursorTelemetryPauseRanges(nativeWindowsPauseRanges);
 				shiftPendingCursorTelemetry(nativeWindowsCursorOffsetMs);
 				await writePendingCursorTelemetry(screenVideoPath);
 			}
@@ -2089,6 +2199,10 @@ export function registerIpcHandlers(
 			nativeWindowsCaptureRecordingId = null;
 			nativeWindowsCursorOffsetMs = 0;
 			nativeWindowsCursorCaptureMode = "editable-overlay";
+			nativeWindowsCursorRecordingStartMs = 0;
+			nativeWindowsPauseStartedAtMs = null;
+			nativeWindowsPauseRanges = [];
+			nativeWindowsIsPaused = false;
 			const source = selectedSource || { name: "Screen" };
 			if (onRecordingStateChange) {
 				onRecordingStateChange(false, source.name);
@@ -2242,6 +2356,12 @@ export function registerIpcHandlers(
 		},
 	);
 
+	// On-disk write streams for in-progress recordings, keyed by output file name.
+	// Chunks are appended as they arrive from ondataavailable so the renderer
+	// never buffers the full video in memory (the #616 fix).
+	const recordingStreams = new RecordingStreamRegistry();
+	registerRecordingStreamHandlers(ipcMain, recordingStreams, resolveRecordingOutputPath);
+
 	ipcMain.handle("store-recorded-session", async (_, payload: StoreRecordedSessionInput) => {
 		try {
 			return await storeRecordedSessionFiles(payload);
@@ -2262,12 +2382,37 @@ export function registerIpcHandlers(
 				: Date.now();
 		const cursorCaptureMode = normalizeCursorCaptureMode(payload.cursorCaptureMode);
 		const screenVideoPath = resolveRecordingOutputPath(payload.screen.fileName);
-		await fs.writeFile(screenVideoPath, Buffer.from(payload.screen.videoData));
+		const screenStreamed = await finalizeRecordingFile(
+			recordingStreams,
+			payload.screen.fileName,
+			screenVideoPath,
+			payload.screen.videoData,
+		);
 
 		let webcamVideoPath: string | undefined;
+		let webcamStreamed = false;
 		if (payload.webcam) {
 			webcamVideoPath = resolveRecordingOutputPath(payload.webcam.fileName);
-			await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
+			webcamStreamed = await finalizeRecordingFile(
+				recordingStreams,
+				payload.webcam.fileName,
+				webcamVideoPath,
+				payload.webcam.videoData,
+			);
+		}
+
+		// Streamed files lack the WebM Duration header (the renderer no longer holds
+		// the blob to patch). Patch on disk so the editor's seek bar and timeline
+		// work. Best-effort and independent per file, so the patches run together.
+		if (isValidDurationMs(payload.durationMs)) {
+			const patches: Promise<unknown>[] = [];
+			if (screenStreamed) {
+				patches.push(patchWebmDurationOnDisk(screenVideoPath, payload.durationMs));
+			}
+			if (webcamStreamed && webcamVideoPath) {
+				patches.push(patchWebmDurationOnDisk(webcamVideoPath, payload.durationMs));
+			}
+			await Promise.all(patches);
 		}
 
 		const session: RecordingSession = webcamVideoPath
@@ -2474,7 +2619,7 @@ export function registerIpcHandlers(
 					filters: [
 						{
 							name: mainT("dialogs", "fileDialogs.videoFiles"),
-							extensions: ["webm", "mp4", "mov", "avi", "mkv"],
+							extensions: ["webm", "mp4", "mov", "avi", "mkv", "m4v", "wmv", "flv", "ts"],
 						},
 						{ name: mainT("dialogs", "fileDialogs.allFiles"), extensions: ["*"] },
 					],
@@ -2702,6 +2847,51 @@ export function registerIpcHandlers(
 		}
 	}
 
+	ipcMain.handle("load-project-file-from-path", async (_event, filePath: string) => {
+		return loadProjectFileFromPath(filePath);
+	});
+
+	async function loadProjectFileFromPath(filePath: string): Promise<ProjectFileResult> {
+		try {
+			if (!filePath || typeof filePath !== "string") {
+				return { success: false, message: "Invalid file path" };
+			}
+			// Validate extension and readability
+			if (path.extname(filePath).toLowerCase() !== `.${PROJECT_FILE_EXTENSION}`) {
+				return { success: false, message: "Not an Openscreen project file" };
+			}
+			const stats = await fs.stat(filePath).catch(() => null);
+			if (!stats?.isFile()) {
+				return { success: false, message: "File not found" };
+			}
+			const content = await fs.readFile(filePath, "utf-8");
+			const project = JSON.parse(content);
+			currentProjectPath = filePath;
+
+			// Approve session paths; tolerate failures (e.g. video moved outside
+			// trusted dirs) so the project still loads and the renderer can surface
+			// a "video not found" error rather than a generic load failure.
+			let session: import("../../src/lib/recordingSession").RecordingSession | null = null;
+			try {
+				session = await getApprovedProjectSession(project, filePath);
+			} catch (sessionError) {
+				console.warn(
+					"[loadProjectFileFromPath] Could not approve session paths, proceeding without session:",
+					sessionError,
+				);
+			}
+			setCurrentRecordingSessionState(session);
+			return { success: true, path: filePath, project };
+		} catch (error) {
+			console.error("Failed to load project file from path:", error);
+			return {
+				success: false,
+				message: "Failed to load project file",
+				error: String(error),
+			};
+		}
+	}
+
 	ipcMain.handle("load-current-project-file", async () => {
 		return loadCurrentProjectFile();
 	});
@@ -2784,6 +2974,8 @@ export function registerIpcHandlers(
 
 	function clearCurrentVideoPath(): ProjectPathResult {
 		currentVideoPath = null;
+		currentProjectPath = null;
+		setCurrentRecordingSessionState(null);
 		return { success: true };
 	}
 
@@ -2992,6 +3184,7 @@ export function registerIpcHandlers(
 		saveProjectFile,
 		loadProjectFile,
 		loadCurrentProjectFile,
+		loadProjectFileFromPath,
 		setCurrentVideoPath,
 		getCurrentVideoPathResult,
 		clearCurrentVideoPath,

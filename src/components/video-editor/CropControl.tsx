@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
+import { DEFAULT_SOURCE_DIMENSIONS } from "./editorDefaults";
 
 interface CropRegion {
 	x: number; // 0-1 normalized
@@ -32,8 +33,8 @@ export function CropControl({ videoElement, cropRegion, onCropChange }: CropCont
 		const ctx = canvas.getContext("2d", { alpha: false });
 		if (!ctx) return;
 
-		canvas.width = videoElement.videoWidth || 1920;
-		canvas.height = videoElement.videoHeight || 1080;
+		canvas.width = videoElement.videoWidth || DEFAULT_SOURCE_DIMENSIONS.width;
+		canvas.height = videoElement.videoHeight || DEFAULT_SOURCE_DIMENSIONS.height;
 
 		const draw = () => {
 			if (videoElement.readyState >= 2) {

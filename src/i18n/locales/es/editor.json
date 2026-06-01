@@ -37,10 +37,26 @@
 		"accessibilityAllowAndRetry": "Permite el acceso de accesibilidad para OpenScreen y luego pulsa grabar de nuevo para iniciar la cuenta atrás."
 	},
 	"loadingVideo": "Cargando video...",
+	"loadingEditor": "Cargando editor...",
 	"newRecording": {
 		"title": "Volver a la grabadora",
 		"description": "Tu sesión actual ha sido guardada.",
 		"cancel": "Cancelar",
 		"confirm": "Confirmar"
+	},
+	"emptyState": {
+		"title": "No hay proyecto abierto",
+		"description": "Importa un video para empezar a editar o carga un proyecto de OpenScreen existente.",
+		"importVideoButton": "Importar archivo de video…",
+		"loadProjectButton": "Cargar proyecto…",
+		"supportedFormats": "Formatos compatibles: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "o arrastra y suelta un archivo .openscreen aquí",
+		"dropOverlay": "Suelta el archivo de proyecto para abrirlo",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Formato no compatible",
+			"unsupportedFormatMessage": "Solo se pueden soltar aquí archivos de proyecto .openscreen. Para importar un video, usa el botón \"Importar archivo de video...\" en su lugar.",
+			"couldNotOpenTitle": "No se pudo abrir el archivo",
+			"couldNotOpenMessage": "No se pudo abrir el archivo de proyecto. El video al que hace referencia puede haber sido movido o eliminado."
+		}
 	}
 }

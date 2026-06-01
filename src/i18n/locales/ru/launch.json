@@ -7,7 +7,9 @@
 		"pauseRecording": "Приостановить запись",
 		"resumeRecording": "Возобновить запись",
 		"openVideoFile": "Открыть видеофайл",
-		"openProject": "Открыть проект"
+		"openProject": "Открыть проект",
+		"useVerticalTray": "Использовать вертикальную панель",
+		"useHorizontalTray": "Использовать горизонтальную панель"
 	},
 	"audio": {
 		"enableSystemAudio": "Включить системное аудио",

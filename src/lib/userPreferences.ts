@@ -1,3 +1,7 @@
+import {
+	DEFAULT_EDITOR_LAYOUT_SETTINGS,
+	DEFAULT_EXPORT_SETTINGS,
+} from "@/components/video-editor/editorDefaults";
 import type { ExportFormat, ExportQuality } from "@/lib/exporter";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
@@ -25,16 +29,20 @@ export interface UserPreferences {
 	exportFormat: ExportFormat;
 	/** Folder used for the most recent successful export, if any */
 	exportFolder: string | null;
+	/** Recording HUD control layout */
+	trayLayout: "horizontal" | "vertical";
 }
 
-const DEFAULT_PREFS: UserPreferences = {
-	padding: 50,
-	aspectRatio: "16:9",
-	exportQuality: "good",
-	exportFormat: "mp4",
+export const DEFAULT_PREFS: UserPreferences = {
+	padding: DEFAULT_EDITOR_LAYOUT_SETTINGS.padding,
+	aspectRatio: DEFAULT_EDITOR_LAYOUT_SETTINGS.aspectRatio,
+	exportQuality: DEFAULT_EXPORT_SETTINGS.quality,
+	exportFormat: DEFAULT_EXPORT_SETTINGS.format,
 	exportFolder: null,
+	trayLayout: "horizontal",
 };
 
+/** Parses stored preferences without throwing on malformed JSON. */
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
 	if (!text) return null;
 	try {
@@ -83,6 +91,10 @@ export function loadUserPreferences(): UserPreferences {
 			typeof raw.exportFolder === "string" && raw.exportFolder.length > 0
 				? raw.exportFolder
 				: DEFAULT_PREFS.exportFolder,
+		trayLayout:
+			raw.trayLayout === "horizontal" || raw.trayLayout === "vertical"
+				? raw.trayLayout
+				: DEFAULT_PREFS.trayLayout,
 	};
 }
 

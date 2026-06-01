@@ -7,7 +7,9 @@
 		"pauseRecording": "녹화 일시정지",
 		"resumeRecording": "녹화 재개",
 		"openVideoFile": "비디오 파일 열기",
-		"openProject": "프로젝트 열기"
+		"openProject": "프로젝트 열기",
+		"useVerticalTray": "세로 트레이 사용",
+		"useHorizontalTray": "가로 트레이 사용"
 	},
 	"audio": {
 		"enableSystemAudio": "시스템 오디오 활성화",

@@ -6,6 +6,7 @@
 		"confirm": "Confirm"
 	},
 	"loadingVideo": "Loading video...",
+	"loadingEditor": "Loading editor...",
 	"errors": {
 		"noVideoLoaded": "No video loaded",
 		"videoNotReady": "Video not ready",
@@ -42,5 +43,20 @@
 		"cameraNotFound": "Camera not found.",
 		"permissionDenied": "Recording permission denied. Please allow screen recording.",
 		"accessibilityAllowAndRetry": "Allow Accessibility access for OpenScreen, then press record again to start the countdown."
+	},
+	"emptyState": {
+		"title": "No project open",
+		"description": "Import a video to start editing, or load an existing OpenScreen project.",
+		"importVideoButton": "Import Video File…",
+		"loadProjectButton": "Load Project…",
+		"supportedFormats": "Supported formats: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "or drag & drop a .openscreen project file here",
+		"dropOverlay": "Drop project file to open",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Unsupported Format",
+			"unsupportedFormatMessage": "Only .openscreen project files can be dropped here. To import a video file, use the \"Import Video File…\" button on this screen.",
+			"couldNotOpenTitle": "Could Not Open File",
+			"couldNotOpenMessage": "The project file could not be opened. The video it references may have been moved or deleted."
+		}
 	}
 }

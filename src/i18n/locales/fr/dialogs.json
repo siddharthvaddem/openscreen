@@ -51,6 +51,12 @@
 		"detail": "Voulez-vous enregistrer votre projet avant de fermer ?",
 		"saveAndClose": "Enregistrer et fermer",
 		"discardAndClose": "Ignorer et fermer",
+		"detailNewProject": "Voulez-vous enregistrer votre projet avant d'en créer un nouveau ?",
+		"saveAndNewProject": "Enregistrer et nouveau projet",
+		"discardAndNewProject": "Ignorer et nouveau projet",
+		"detailLoadProject": "Voulez-vous enregistrer votre projet avant d'en charger un autre ?",
+		"saveAndLoadProject": "Enregistrer et charger un projet",
+		"discardAndLoadProject": "Ignorer et charger un projet",
 		"loadProject": "Charger un projet…",
 		"saveProject": "Enregistrer le projet…",
 		"saveProjectAs": "Enregistrer le projet sous…"

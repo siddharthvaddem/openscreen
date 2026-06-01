@@ -279,6 +279,7 @@ bool AudioMixer::start() {
     stopRequested_ = false;
     emittedFrames_ = 0;
     timelineStarted_ = false;
+    paused_ = false;
     thread_ = std::thread([this] {
         mixLoop();
     });
@@ -292,6 +293,18 @@ void AudioMixer::beginTimeline() {
         microphoneQueue_.clear();
         emittedFrames_ = 0;
         timelineStarted_ = true;
+    }
+    cv_.notify_all();
+}
+
+void AudioMixer::setPaused(bool paused) {
+    {
+        std::scoped_lock lock(mutex_);
+        paused_ = paused;
+        if (paused_) {
+            systemQueue_.clear();
+            microphoneQueue_.clear();
+        }
     }
     cv_.notify_all();
 }
@@ -311,6 +324,9 @@ void AudioMixer::pushSystem(const BYTE* data, DWORD byteCount) {
 
     {
         std::scoped_lock lock(mutex_);
+        if (paused_) {
+            return;
+        }
         append(systemQueue_, data, byteCount, systemFormat_, 1.0);
     }
     cv_.notify_all();
@@ -323,6 +339,9 @@ void AudioMixer::pushMicrophone(const BYTE* data, DWORD byteCount) {
 
     {
         std::scoped_lock lock(mutex_);
+        if (paused_) {
+            return;
+        }
         append(microphoneQueue_, data, byteCount, microphoneFormat_, microphoneGain_);
     }
     cv_.notify_all();
@@ -371,13 +390,13 @@ void AudioMixer::mixLoop() {
                 const bool hasMicrophone = !includeMicrophone_ || microphoneQueue_.size() >= chunkBytes;
                 const bool hasAnySource = !systemQueue_.empty() || !microphoneQueue_.empty();
                 return stopRequested_.load() ||
-                    (timelineStarted_ && (hasSystem || hasMicrophone) && hasAnySource);
+                    (timelineStarted_ && !paused_ && (hasSystem || hasMicrophone) && hasAnySource);
             });
 
             if (stopRequested_) {
                 break;
             }
-            if (!timelineStarted_) {
+            if (!timelineStarted_ || paused_) {
                 continue;
             }
 

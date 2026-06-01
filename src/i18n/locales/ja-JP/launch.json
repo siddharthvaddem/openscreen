@@ -7,7 +7,9 @@
 		"pauseRecording": "録画を一時停止",
 		"resumeRecording": "録画を再開",
 		"openVideoFile": "動画ファイルを開く",
-		"openProject": "プロジェクトを開く"
+		"openProject": "プロジェクトを開く",
+		"useVerticalTray": "縦型トレイを使用",
+		"useHorizontalTray": "横型トレイを使用"
 	},
 	"audio": {
 		"enableSystemAudio": "システム音声を有効にする",

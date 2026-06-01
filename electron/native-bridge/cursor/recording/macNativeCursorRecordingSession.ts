@@ -6,9 +6,20 @@ import { type Rectangle, screen, systemPreferences } from "electron";
 import type {
 	CursorRecordingData,
 	CursorRecordingSample,
+	NativeCursorAsset,
 	NativeCursorType,
 } from "../../../../src/native/contracts";
 import type { CursorRecordingSession } from "./session";
+
+interface MacCursorAssetPayload {
+	id: string;
+	imageDataUrl: string;
+	width: number;
+	height: number;
+	hotspotX: number;
+	hotspotY: number;
+	scaleFactor?: number;
+}
 
 interface MacNativeCursorRecordingSessionOptions {
 	getDisplayBounds: () => Rectangle | null;
@@ -28,6 +39,8 @@ type MacCursorEvent =
 			type: "sample";
 			timestampMs: number;
 			cursorType?: NativeCursorType | null;
+			assetId?: string | null;
+			asset?: MacCursorAssetPayload | null;
 			leftButtonDown?: boolean;
 			leftButtonPressed?: boolean;
 			leftButtonReleased?: boolean;
@@ -170,6 +183,7 @@ function normalizeCursorType(value: unknown): NativeCursorType | null {
 
 export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 	private samples: CursorRecordingSample[] = [];
+	private assets = new Map<string, NativeCursorAsset>();
 	private process: ChildProcessByStdio<null, Readable, Readable> | null = null;
 	private lineBuffer = "";
 	private startTimeMs = 0;
@@ -187,6 +201,7 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 
 	async start(): Promise<void> {
 		this.samples = [];
+		this.assets.clear();
 		this.lineBuffer = "";
 		this.startTimeMs = this.options.startTimeMs ?? Date.now();
 		this.previousLeftButtonDown = false;
@@ -195,7 +210,8 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 		try {
 			systemPreferences.isTrustedAccessibilityClient(true);
 		} catch {
-			// Link cursor detection degrades to arrow when Accessibility is unavailable.
+			// Without Accessibility, text/pointer affordance detection is unavailable;
+			// cursor bitmaps are still captured natively via NSCursor.
 		}
 
 		const helperPath = findMacCursorHelperPath();
@@ -263,17 +279,36 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 
 		return {
 			version: 2,
-			provider: "none",
+			provider: this.assets.size > 0 ? "native" : "none",
 			samples: this.samples,
-			assets: [],
+			assets: [...this.assets.values()],
 		};
 	}
 
 	private startPositionOnlyFallback() {
-		this.captureSample(Date.now(), null, false, false, false);
+		this.captureSample(Date.now(), null, null, false, false, false);
 		this.fallbackInterval = setInterval(() => {
-			this.captureSample(Date.now(), null, false, false, false);
+			this.captureSample(Date.now(), null, null, false, false, false);
 		}, this.options.sampleIntervalMs);
+	}
+
+	private rememberAsset(asset: MacCursorAssetPayload | null | undefined) {
+		if (!asset?.id || this.assets.has(asset.id)) {
+			return;
+		}
+
+		const cursor = screen.getCursorScreenPoint();
+		const displayScaleFactor = screen.getDisplayNearestPoint(cursor).scaleFactor;
+		this.assets.set(asset.id, {
+			id: asset.id,
+			platform: "darwin",
+			imageDataUrl: asset.imageDataUrl,
+			width: asset.width,
+			height: asset.height,
+			hotspotX: asset.hotspotX,
+			hotspotY: asset.hotspotY,
+			scaleFactor: asset.scaleFactor ?? displayScaleFactor,
+		});
 	}
 
 	private handleStdoutChunk(chunk: string) {
@@ -299,7 +334,7 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 		if (payload.type === "ready") {
 			if (payload.accessibilityTrusted === false) {
 				console.warn(
-					"[cursor-macos] Accessibility is not trusted; cursor shape detection will be arrow-only.",
+					"[cursor-macos] Accessibility is not trusted; text/pointer affordance detection disabled (bitmap capture still active).",
 				);
 			}
 			this.resolveReady();
@@ -307,9 +342,11 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 		}
 
 		if (payload.type === "sample") {
+			this.rememberAsset(payload.asset);
 			this.captureSample(
 				payload.timestampMs,
 				normalizeCursorType(payload.cursorType),
+				payload.assetId ?? null,
 				payload.leftButtonDown === true,
 				payload.leftButtonPressed === true,
 				payload.leftButtonReleased === true,
@@ -320,6 +357,7 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 	private captureSample(
 		timestampMs: number,
 		cursorType: NativeCursorType | null,
+		assetId: string | null,
 		leftButtonDown: boolean,
 		leftButtonPressed: boolean,
 		leftButtonReleased: boolean,
@@ -357,6 +395,7 @@ export class MacNativeCursorRecordingSession implements CursorRecordingSession {
 			cy: clamp(normalizedY, 0, 1),
 			visible,
 			interactionType,
+			...(assetId ? { assetId } : {}),
 			...(cursorType ? { cursorType } : {}),
 		});
 

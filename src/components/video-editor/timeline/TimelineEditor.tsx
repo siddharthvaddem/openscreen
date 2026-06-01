@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { useAudioPeaks } from "@/hooks/useAudioPeaks";
 import { matchesShortcut } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import { ASPECT_RATIOS, type AspectRatio, getAspectRatioLabel } from "@/utils/aspectRatioUtils";
@@ -34,6 +35,7 @@ import type {
 	ZoomFocus,
 	ZoomRegion,
 } from "../types";
+import BackgroundWaveform from "./BackgroundWaveform";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import Row from "./Row";
@@ -88,6 +90,8 @@ interface TimelineEditorProps {
 	onSelectSpeed?: (id: string | null) => void;
 	aspectRatio: AspectRatio;
 	onAspectRatioChange: (aspectRatio: AspectRatio) => void;
+	videoUrl?: string;
+	showTrimWaveform?: boolean;
 }
 
 interface TimelineScaleConfig {
@@ -567,6 +571,8 @@ function Timeline({
 	selectedBlurId,
 	selectedSpeedId,
 	keyframes = [],
+	videoUrl,
+	showTrimWaveform = false,
 }: {
 	items: TimelineRenderItem[];
 	videoDurationMs: number;
@@ -584,12 +590,15 @@ function Timeline({
 	selectedBlurId?: string | null;
 	selectedSpeedId?: string | null;
 	keyframes?: { id: string; time: number }[];
+	videoUrl?: string;
+	showTrimWaveform?: boolean;
 }) {
 	const t = useScopedT("timeline");
 	const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
 	const localTimelineRef = useRef<HTMLDivElement | null>(null);
 	const isScrubbingTimelineRef = useRef(false);
 	const scrubPointerIdRef = useRef<number | null>(null);
+	const peaks = useAudioPeaks(showTrimWaveform ? videoUrl : undefined);
 
 	const setRefs = useCallback(
 		(node: HTMLDivElement | null) => {
@@ -788,7 +797,21 @@ function Timeline({
 				))}
 			</Row>
 
-			<Row id={TRIM_ROW_ID} isEmpty={trimItems.length === 0} hint={t("hints.pressTrim")}>
+			<Row
+				id={TRIM_ROW_ID}
+				isEmpty={trimItems.length === 0}
+				hint={t("hints.pressTrim")}
+				background={
+					showTrimWaveform ? (
+						<BackgroundWaveform
+							peaks={peaks}
+							videoDurationMs={videoDurationMs}
+							topInset={3}
+							bottomInset={3}
+						/>
+					) : undefined
+				}
+			>
 				{trimItems.map((item) => (
 					<Item
 						id={item.id}
@@ -899,6 +922,8 @@ export default function TimelineEditor({
 	onSelectSpeed,
 	aspectRatio,
 	onAspectRatioChange,
+	videoUrl,
+	showTrimWaveform = false,
 }: TimelineEditorProps) {
 	const t = useScopedT("timeline");
 	const totalMs = useMemo(() => Math.max(0, Math.round(videoDuration * 1000)), [videoDuration]);
@@ -1492,13 +1517,30 @@ export default function TimelineEditor({
 		return [...zooms, ...trims, ...annotations, ...blurs, ...speeds];
 	}, [zoomRegions, trimRegions, annotationRegions, blurRegions, speedRegions, t]);
 
-	// Flat list of all non-annotation region spans for neighbour-clamping during drag/resize
+	// Spans that participate in overlap resolution (clampToNeighbours).
+	// Excludes annotation/blur deliberately — those are allowed to overlap and
+	// must NOT act as hard constraints when a zoom/trim/speed drag is being
+	// resolved.
 	const allRegionSpans = useMemo(() => {
 		const zooms = zoomRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
 		const trims = trimRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
 		const speeds = speedRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
 		return [...zooms, ...trims, ...speeds];
 	}, [zoomRegions, trimRegions, speedRegions]);
+
+	// Additional snap targets that are NOT clamping constraints. Their edges
+	// pull during snap, but they don't push anyone away.
+	const softSnapSpans = useMemo(() => {
+		const annotations = annotationRegions.map((r) => ({
+			id: r.id,
+			start: r.startMs,
+			end: r.endMs,
+		}));
+		const blurs = blurRegions.map((r) => ({ id: r.id, start: r.startMs, end: r.endMs }));
+		return [...annotations, ...blurs];
+	}, [annotationRegions, blurRegions]);
+
+	const keyframeTimesMs = useMemo(() => keyframes.map((kf) => kf.time), [keyframes]);
 
 	const handleItemSpanChange = useCallback(
 		(id: string, span: Span) => {
@@ -1674,6 +1716,9 @@ export default function TimelineEditor({
 					minVisibleRangeMs={timelineScale.minVisibleRangeMs}
 					onItemSpanChange={handleItemSpanChange}
 					allRegionSpans={allRegionSpans}
+					softSnapSpans={softSnapSpans}
+					currentTimeMs={currentTimeMs}
+					keyframeTimesMs={keyframeTimesMs}
 				>
 					<KeyframeMarkers
 						keyframes={keyframes}
@@ -1700,6 +1745,8 @@ export default function TimelineEditor({
 						selectedBlurId={selectedBlurId}
 						selectedSpeedId={selectedSpeedId}
 						keyframes={keyframes}
+						videoUrl={videoUrl}
+						showTrimWaveform={showTrimWaveform}
 					/>
 				</TimelineWrapper>
 			</div>

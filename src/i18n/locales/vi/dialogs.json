@@ -51,6 +51,12 @@
 		"detail": "Bạn có muốn lưu dự án của mình trước khi đóng không?",
 		"saveAndClose": "Lưu & Đóng",
 		"discardAndClose": "Bỏ qua & Đóng",
+		"detailNewProject": "Bạn có muốn lưu dự án trước khi tạo dự án mới không?",
+		"saveAndNewProject": "Lưu & Dự án mới",
+		"discardAndNewProject": "Bỏ qua & Dự án mới",
+		"detailLoadProject": "Bạn có muốn lưu dự án của mình trước khi tải dự án khác không?",
+		"saveAndLoadProject": "Lưu & Tải dự án",
+		"discardAndLoadProject": "Bỏ qua & Tải dự án",
 		"loadProject": "Tải dự án…",
 		"saveProject": "Lưu dự án…",
 		"saveProjectAs": "Lưu dự án thành…"

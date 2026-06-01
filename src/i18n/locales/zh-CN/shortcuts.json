@@ -13,7 +13,9 @@
 	"reservedShortcut": "此快捷键已保留给 \"{{label}}\"，无法重新分配。",
 	"savedToast": "键盘快捷键已保存",
 	"resetToast": "已恢复默认快捷键 — 点击保存以应用",
+	"registrationFailed": "快捷键注册失败。可能已被其他应用占用。请尝试其他按键。",
 	"actions": {
+		"openApp": "打开应用",
 		"addZoom": "添加缩放",
 		"addTrim": "添加剪辑",
 		"addSpeed": "添加速度",

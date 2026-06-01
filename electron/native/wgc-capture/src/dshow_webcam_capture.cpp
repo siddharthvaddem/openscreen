@@ -5,21 +5,17 @@
 #include <wrl/client.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <exception>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 namespace {
 
 const CLSID CLSID_SampleGrabberLocal = {0xC1F400A0, 0x3F08, 0x11D3, {0x9F, 0x0B, 0x00, 0x60, 0x08, 0x03, 0x9E, 0x37}};
 const CLSID CLSID_NullRendererLocal = {0xC1F400A4, 0x3F08, 0x11D3, {0x9F, 0x0B, 0x00, 0x60, 0x08, 0x03, 0x9E, 0x37}};
-
-MIDL_INTERFACE("0579154A-2B53-4994-B0D0-E773148EFF85")
-ISampleGrabberCB : public IUnknown {
-public:
-    virtual HRESULT STDMETHODCALLTYPE SampleCB(double sampleTime, IMediaSample* sample) = 0;
-    virtual HRESULT STDMETHODCALLTYPE BufferCB(double sampleTime, BYTE* buffer, long bufferLength) = 0;
-};
 
 MIDL_INTERFACE("6B652FFF-11FE-4FCE-92AD-0266B5D7C78F")
 ISampleGrabber : public IUnknown {
@@ -30,7 +26,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE SetBufferSamples(BOOL bufferThem) = 0;
     virtual HRESULT STDMETHODCALLTYPE GetCurrentBuffer(long* bufferSize, long* buffer) = 0;
     virtual HRESULT STDMETHODCALLTYPE GetCurrentSample(IMediaSample** sample) = 0;
-    virtual HRESULT STDMETHODCALLTYPE SetCallback(ISampleGrabberCB* callback, long whichMethodToCallback) = 0;
+    virtual HRESULT STDMETHODCALLTYPE SetCallback(IUnknown* callback, long whichMethodToCallback) = 0;
 };
 
 bool succeeded(HRESULT hr, const char* label) {
@@ -43,6 +39,34 @@ bool succeeded(HRESULT hr, const char* label) {
     return false;
 }
 
+std::string guidToString(const GUID& guid) {
+    if (guid == MEDIASUBTYPE_RGB32) {
+        return "RGB32";
+    }
+    if (guid == MEDIASUBTYPE_YUY2) {
+        return "YUY2";
+    }
+    if (guid == MEDIASUBTYPE_NV12) {
+        return "NV12";
+    }
+
+    std::ostringstream stream;
+    stream << std::hex << std::setfill('0')
+           << '{' << std::setw(8) << guid.Data1
+           << '-' << std::setw(4) << guid.Data2
+           << '-' << std::setw(4) << guid.Data3
+           << '-';
+    for (int index = 0; index < 2; index += 1) {
+        stream << std::setw(2) << static_cast<int>(guid.Data4[index]);
+    }
+    stream << '-';
+    for (int index = 2; index < 8; index += 1) {
+        stream << std::setw(2) << static_cast<int>(guid.Data4[index]);
+    }
+    stream << '}';
+    return stream.str();
+}
+
 void freeMediaType(AM_MEDIA_TYPE& type) {
     if (type.cbFormat != 0) {
         CoTaskMemFree(type.pbFormat);
@@ -53,6 +77,20 @@ void freeMediaType(AM_MEDIA_TYPE& type) {
         type.pUnk->Release();
         type.pUnk = nullptr;
     }
+}
+
+BYTE clampToByte(int value) {
+    return static_cast<BYTE>(std::clamp(value, 0, 255));
+}
+
+std::array<BYTE, 3> yuvToBgr(int y, int u, int v) {
+    const int c = y - 16;
+    const int d = u - 128;
+    const int e = v - 128;
+    const int blue = (298 * c + 516 * d + 128) >> 8;
+    const int green = (298 * c - 100 * d - 208 * e + 128) >> 8;
+    const int red = (298 * c + 409 * e + 128) >> 8;
+    return {clampToByte(blue), clampToByte(green), clampToByte(red)};
 }
 
 } // namespace
@@ -137,9 +175,8 @@ bool DirectShowWebcamCapture::initialize(
 
     AM_MEDIA_TYPE requestedType{};
     requestedType.majortype = MEDIATYPE_Video;
-    requestedType.subtype = MEDIASUBTYPE_RGB32;
     requestedType.formattype = FORMAT_VideoInfo;
-    if (!succeeded(impl_->sampleGrabber->SetMediaType(&requestedType), "SetMediaType(DirectShow RGB32)")) {
+    if (!succeeded(impl_->sampleGrabber->SetMediaType(&requestedType), "SetMediaType(DirectShow video)")) {
         return false;
     }
 
@@ -170,16 +207,39 @@ bool DirectShowWebcamCapture::initialize(
     if (!succeeded(impl_->sampleGrabber->GetConnectedMediaType(&connectedType), "GetConnectedMediaType(DirectShow webcam)")) {
         return false;
     }
+    if (connectedType.subtype == MEDIASUBTYPE_YUY2) {
+        pixelFormat_ = PixelFormat::Yuy2;
+    } else if (connectedType.subtype == MEDIASUBTYPE_NV12) {
+        pixelFormat_ = PixelFormat::Nv12;
+    } else if (connectedType.subtype == MEDIASUBTYPE_RGB32) {
+        pixelFormat_ = PixelFormat::Bgra;
+    } else {
+        std::cerr << "ERROR: Unsupported DirectShow webcam media subtype "
+                  << guidToString(connectedType.subtype) << std::endl;
+        freeMediaType(connectedType);
+        return false;
+    }
     if (connectedType.formattype == FORMAT_VideoInfo && connectedType.pbFormat) {
         const auto* videoInfo = reinterpret_cast<VIDEOINFOHEADER*>(connectedType.pbFormat);
         width_ = std::abs(videoInfo->bmiHeader.biWidth);
         height_ = std::abs(videoInfo->bmiHeader.biHeight);
-        sourceTopDown_ = videoInfo->bmiHeader.biHeight < 0;
+        const int bitsPerPixel = videoInfo->bmiHeader.biBitCount > 0 ? videoInfo->bmiHeader.biBitCount : 16;
+        if (pixelFormat_ == PixelFormat::Nv12) {
+            sourceStride_ = ((width_ + 3) / 4) * 4;
+        } else {
+            sourceStride_ = ((width_ * bitsPerPixel + 31) / 32) * 4;
+        }
+        sourceTopDown_ = pixelFormat_ != PixelFormat::Bgra || videoInfo->bmiHeader.biHeight < 0;
     }
+    std::cerr << "INFO: DirectShow webcam connected subtype " << guidToString(connectedType.subtype)
+              << " " << width_ << "x" << height_ << " stride=" << sourceStride_ << std::endl;
     freeMediaType(connectedType);
     if (width_ <= 0 || height_ <= 0) {
         width_ = requestedWidth > 0 ? requestedWidth : 1280;
         height_ = requestedHeight > 0 ? requestedHeight : 720;
+    }
+    if (sourceStride_ <= 0) {
+        sourceStride_ = pixelFormat_ == PixelFormat::Bgra ? width_ * 4 : ((width_ + 3) / 4) * 4;
     }
 
     impl_->sampleGrabber->SetBufferSamples(TRUE);
@@ -262,36 +322,91 @@ void DirectShowWebcamCapture::captureLoop() {
 }
 
 void DirectShowWebcamCapture::storeFrame(const BYTE* buffer, long length) {
-    const int stride = width_ * 4;
-    const int expectedLength = stride * height_;
+    const int destinationStride = width_ * 4;
+    const int sourceStride = sourceStride_ > 0 ? sourceStride_ : destinationStride;
+    const int expectedLength = pixelFormat_ == PixelFormat::Nv12
+        ? sourceStride * height_ + sourceStride * ((height_ + 1) / 2)
+        : sourceStride * height_;
     if (!buffer || length < expectedLength || width_ <= 0 || height_ <= 0) {
         return;
     }
 
-    std::vector<BYTE> frame(static_cast<size_t>(expectedLength));
+    std::vector<BYTE> frame(static_cast<size_t>(destinationStride * height_));
     for (int y = 0; y < height_; y += 1) {
         const int sourceY = sourceTopDown_ ? y : height_ - 1 - y;
-        const BYTE* source = buffer + sourceY * stride;
-        BYTE* destination = frame.data() + y * stride;
-        std::copy(source, source + stride, destination);
-        for (int x = 0; x < width_; x += 1) {
-            destination[x * 4 + 3] = 255;
+        const BYTE* source = buffer + sourceY * sourceStride;
+        BYTE* destination = frame.data() + y * destinationStride;
+        if (pixelFormat_ == PixelFormat::Bgra) {
+            std::copy(source, source + destinationStride, destination);
+            for (int x = 0; x < width_; x += 1) {
+                destination[x * 4 + 3] = 255;
+            }
+            continue;
+        }
+
+        if (pixelFormat_ == PixelFormat::Nv12) {
+            const BYTE* yPlane = buffer + sourceY * sourceStride;
+            const BYTE* uvPlane = buffer + sourceStride * height_ + (sourceY / 2) * sourceStride;
+            for (int x = 0; x < width_; x += 1) {
+                const int uvX = (x / 2) * 2;
+                const auto color = yuvToBgr(yPlane[x], uvPlane[uvX], uvPlane[uvX + 1]);
+                BYTE* pixel = destination + x * 4;
+                pixel[0] = color[0];
+                pixel[1] = color[1];
+                pixel[2] = color[2];
+                pixel[3] = 255;
+            }
+            continue;
+        }
+
+        for (int x = 0; x + 1 < width_; x += 2) {
+            const BYTE y0 = source[x * 2];
+            const BYTE u = source[x * 2 + 1];
+            const BYTE y1 = source[x * 2 + 2];
+            const BYTE v = source[x * 2 + 3];
+            const auto first = yuvToBgr(y0, u, v);
+            const auto second = yuvToBgr(y1, u, v);
+            BYTE* firstPixel = destination + x * 4;
+            BYTE* secondPixel = firstPixel + 4;
+            firstPixel[0] = first[0];
+            firstPixel[1] = first[1];
+            firstPixel[2] = first[2];
+            firstPixel[3] = 255;
+            secondPixel[0] = second[0];
+            secondPixel[1] = second[1];
+            secondPixel[2] = second[2];
+            secondPixel[3] = 255;
+        }
+        if (width_ % 2 == 1) {
+            const int x = width_ - 1;
+            const int previousPairStart = ((x - 1) / 2) * 4;
+            const BYTE y = source[x * 2];
+            const BYTE u = source[previousPairStart + 1];
+            const BYTE v = source[previousPairStart + 3];
+            const auto color = yuvToBgr(y, u, v);
+            BYTE* pixel = destination + x * 4;
+            pixel[0] = color[0];
+            pixel[1] = color[1];
+            pixel[2] = color[2];
+            pixel[3] = 255;
         }
     }
 
     std::scoped_lock lock(frameMutex_);
     latestFrame_ = std::move(frame);
+    latestFrameSequence_ += 1;
 }
 
-bool DirectShowWebcamCapture::copyLatestFrame(std::vector<BYTE>& destination, int& width, int& height) {
+bool DirectShowWebcamCapture::copyLatestFrame(WebcamFrameSnapshot& destination) {
     std::scoped_lock lock(frameMutex_);
     if (latestFrame_.empty() || width_ <= 0 || height_ <= 0) {
         return false;
     }
 
-    destination = latestFrame_;
-    width = width_;
-    height = height_;
+    destination.data = latestFrame_;
+    destination.width = width_;
+    destination.height = height_;
+    destination.sequence = latestFrameSequence_;
     return true;
 }
 

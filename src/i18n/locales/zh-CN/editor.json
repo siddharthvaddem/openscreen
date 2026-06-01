@@ -6,6 +6,7 @@
 		"confirm": "确认"
 	},
 	"loadingVideo": "正在加载视频...",
+	"loadingEditor": "正在加载编辑器...",
 	"errors": {
 		"noVideoLoaded": "未加载视频",
 		"videoNotReady": "视频未就绪",
@@ -42,5 +43,20 @@
 		"cameraNotFound": "未找到摄像头。",
 		"permissionDenied": "录屏权限被拒绝。请允许屏幕录制。",
 		"accessibilityAllowAndRetry": "允许 OpenScreen 使用辅助功能权限，然后再次按录制以开始倒计时。"
+	},
+	"emptyState": {
+		"title": "未打开任何项目",
+		"description": "导入视频开始编辑，或加载已有的 OpenScreen 项目。",
+		"importVideoButton": "导入视频文件…",
+		"loadProjectButton": "加载项目…",
+		"supportedFormats": "支持的格式：MP4、MOV、WebM、MKV、AVI、M4V、WMV",
+		"dragDropHint": "或将 .openscreen 项目文件拖放到此处",
+		"dropOverlay": "将项目文件拖放至此以打开",
+		"dropErrors": {
+			"unsupportedFormatTitle": "不支持的格式",
+			"unsupportedFormatMessage": "此处只能拖放 .openscreen 项目文件。要导入视频，请使用\"导入视频文件...\"按钮。",
+			"couldNotOpenTitle": "无法打开文件",
+			"couldNotOpenMessage": "无法打开项目文件。它引用的视频可能已被移动或删除。"
+		}
 	}
 }

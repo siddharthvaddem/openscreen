@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Tieni premuto per vedere l'anteprima dell'effetto zoom",
 		"level": "Livello zoom",
 		"customScale": "Zoom personalizzato",
 		"selectRegion": "Seleziona una regione zoom da regolare",
@@ -104,8 +105,9 @@
 		"gifButton": "Esporta GIF",
 		"chooseSaveLocation": "Scegli posizione di salvataggio"
 	},
-	"links": {
+	"support": {
 		"reportBug": "Segnala bug",
+		"saveDiagnostics": "Salva dati diagnostici",
 		"starOnGithub": "Metti stella su GitHub"
 	},
 	"imageUpload": {
@@ -172,6 +174,17 @@
 		"modern": "Moderno",
 		"clean": "Pulito"
 	},
+	"textAnimation": {
+		"title": "Animazione testo",
+		"selectAnimation": "Seleziona animazione",
+		"none": "Nessuna",
+		"fade": "Dissolvenza",
+		"rise": "Ascesa",
+		"pop": "Apparizione",
+		"slideLeft": "Scivola a sinistra",
+		"typewriter": "Macchina da scrivere",
+		"pulse": "Pulsazione"
+	},
 	"customFont": {
 		"dialogTitle": "Aggiungi font Google",
 		"urlLabel": "URL importazione Google Fonts",
@@ -201,5 +214,9 @@
 	},
 	"language": {
 		"title": "Lingua"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Mostra la forma d'onda sulla traccia di ritaglio"
 	}
 }

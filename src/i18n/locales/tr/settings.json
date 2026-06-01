@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Yakınlaştırma efektini önizlemek için basılı tutun",
 		"level": "Yakınlaştırma Seviyesi",
 		"selectRegion": "Ayarlamak için bir yakınlaştırma bölgesi seçin",
 		"deleteZoom": "Yakınlaştırmayı Sil",
@@ -97,7 +98,8 @@
 	},
 	"project": {
 		"save": "Projeyi Kaydet",
-		"load": "Proje Yükle"
+		"load": "Proje Yükle",
+		"new": "Yeni Proje"
 	},
 	"export": {
 		"videoButton": "Videoyu Dışa Aktar",
@@ -111,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Geçersiz dosya türü",
-		"jpgOnly": "Lütfen bir JPG veya JPEG görüntü dosyası yükleyin.",
+		"jpgOnly": "Lütfen JPG, JPEG veya PNG görüntü dosyası yükleyin.",
 		"uploadSuccess": "Özel görüntü başarıyla yüklendi!",
 		"failedToUpload": "Görüntü yüklenemedi",
 		"errorReading": "Dosya okunurken bir hata oluştu."
@@ -127,6 +129,8 @@
 		"textPlaceholder": "Metninizi girin...",
 		"fontStyle": "Yazı Tipi Stili",
 		"selectStyle": "Stil seçin",
+		"textAnimation": "Metin Animasyonu",
+		"selectAnimation": "Animasyon seçin",
 		"size": "Boyut",
 		"customFonts": "Özel Yazı Tipleri",
 		"textColor": "Metin Rengi",
@@ -202,5 +206,9 @@
 	},
 	"language": {
 		"title": "Dil"
+	},
+	"timeline": {
+		"title": "Zaman Tüneli",
+		"waveform": "Kırpma Parçasında Ses Dalgasını Göster"
 	}
 }

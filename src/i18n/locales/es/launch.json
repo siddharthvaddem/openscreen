@@ -7,7 +7,9 @@
 		"pauseRecording": "Pausar grabación",
 		"resumeRecording": "Reanudar grabación",
 		"openVideoFile": "Abrir archivo de video",
-		"openProject": "Abrir proyecto"
+		"openProject": "Abrir proyecto",
+		"useVerticalTray": "Usar bandeja vertical",
+		"useHorizontalTray": "Usar bandeja horizontal"
 	},
 	"audio": {
 		"enableSystemAudio": "Activar audio del sistema",

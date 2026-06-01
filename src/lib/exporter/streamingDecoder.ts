@@ -137,6 +137,27 @@ export function shouldFailDecodeEndedEarly({
 	return true;
 }
 
+/**
+ * Loads a video file as an ArrayBuffer, delegating to
+ * `StreamingVideoDecoder.loadLocalSourceFile` for local paths (Electron IPC)
+ * and `StreamingVideoDecoder.loadRemoteSourceFile` for remote / blob / data URLs.
+ * Also returns the `contentType` derived from the blob (empty string for local
+ * IPC reads where no Content-Type is available).
+ */
+export async function loadFileAsArrayBuffer(
+	videoUrl: string,
+): Promise<{ data: ArrayBuffer; contentType: string }> {
+	const isRemoteUrl = /^(https?:|blob:|data:)/i.test(videoUrl);
+
+	if (!isRemoteUrl && window.electronAPI) {
+		const { blob } = await StreamingVideoDecoder.loadLocalSourceFile(videoUrl);
+		return { data: await blob.arrayBuffer(), contentType: "" };
+	}
+
+	const { blob } = await StreamingVideoDecoder.loadRemoteSourceFile(videoUrl);
+	return { data: await blob.arrayBuffer(), contentType: blob.type };
+}
+
 /** Caller must close the VideoFrame after use. */
 type OnFrameCallback = (
 	frame: VideoFrame,
@@ -157,40 +178,47 @@ export class StreamingVideoDecoder {
 	private cancelled = false;
 	private metadata: DecodedVideoInfo | null = null;
 
+	/** Routes to the appropriate loader based on whether the source is local or remote. */
 	private async loadSourceFile(videoUrl: string): Promise<{ file: File; blob: Blob }> {
 		const isRemoteUrl = /^(https?:|blob:|data:)/i.test(videoUrl);
-
-		if (!isRemoteUrl && window.electronAPI?.readBinaryFile) {
-			const result = await this.withTimeout(
-				window.electronAPI.readBinaryFile(videoUrl),
+		if (!isRemoteUrl && window.electronAPI) {
+			return this.withTimeout(
+				StreamingVideoDecoder.loadLocalSourceFile(videoUrl),
 				SOURCE_LOAD_TIMEOUT_MS,
 				"Timed out while loading the source video.",
 			);
-			if (!result.success || !result.data) {
-				throw new Error(result.message || result.error || "Failed to read source video");
-			}
-
-			const filename = (result.path || videoUrl).split(/[\\/]/).pop() || "video";
-			const blob = new Blob([result.data]);
-			return {
-				blob,
-				file: new File([blob], filename, { type: blob.type || "application/octet-stream" }),
-			};
 		}
-
-		const response = await this.withTimeout(
-			fetch(videoUrl),
+		return this.withTimeout(
+			StreamingVideoDecoder.loadRemoteSourceFile(videoUrl),
 			SOURCE_LOAD_TIMEOUT_MS,
 			"Timed out while loading the source video.",
 		);
+	}
+
+	/** Loads a local video file via the Electron IPC bridge. */
+	static async loadLocalSourceFile(videoUrl: string): Promise<{ file: File; blob: Blob }> {
+		const result = await window.electronAPI.readBinaryFile(videoUrl);
+		if (!result.success || !result.data) {
+			throw new Error(result.message || result.error || "Failed to read source video");
+		}
+
+		const filename = (result.path || videoUrl).split(/[\\/]/).pop() || "video";
+		const blob = new Blob([result.data]);
+		return {
+			blob,
+			file: new File([blob], filename, {
+				type: blob.type || "application/octet-stream",
+			}),
+		};
+	}
+
+	/** Loads a remote or blob video URL via fetch. */
+	static async loadRemoteSourceFile(videoUrl: string): Promise<{ file: File; blob: Blob }> {
+		const response = await fetch(videoUrl);
 		if (!response.ok) {
 			throw new Error(`Failed to fetch source video: ${response.status} ${response.statusText}`);
 		}
-		const blob = await this.withTimeout(
-			response.blob(),
-			SOURCE_LOAD_TIMEOUT_MS,
-			"Timed out while reading the source video.",
-		);
+		const blob = await response.blob();
 		const filename = videoUrl.split("/").pop() || "video";
 		return {
 			blob,
@@ -620,6 +648,10 @@ export class StreamingVideoDecoder {
 		}
 	}
 
+	/**
+	 * Converts trim regions into the segments that should be kept.
+	 * Returns a single full-duration segment when no trim regions are present.
+	 */
 	private computeSegments(
 		totalDuration: number,
 		trimRegions?: TrimRegion[],
@@ -648,6 +680,11 @@ export class StreamingVideoDecoder {
 		return segments;
 	}
 
+	/**
+	 * Calculates the effective output duration (in seconds) and total frame count
+	 * for a given combination of trim and speed regions at the target frame rate.
+	 * Requires `loadMetadata()` to have been called first.
+	 */
 	getExportMetrics(
 		targetFrameRate: number,
 		trimRegions?: TrimRegion[],
@@ -668,6 +705,10 @@ export class StreamingVideoDecoder {
 		};
 	}
 
+	/**
+	 * Splits keep-segments by overlapping speed regions, annotating each
+	 * sub-segment with its playback speed multiplier (defaults to 1×).
+	 */
 	private splitBySpeed(
 		segments: Array<{ startSec: number; endSec: number }>,
 		speedRegions?: SpeedRegion[],
@@ -700,14 +741,17 @@ export class StreamingVideoDecoder {
 		return result.filter((s) => s.endSec - s.startSec > 0.0001);
 	}
 
+	/** Returns the underlying WebDemuxer instance, or null if not yet loaded. */
 	getDemuxer(): WebDemuxer | null {
 		return this.demuxer;
 	}
 
+	/** Signals the decoder to stop processing at the next cancellation checkpoint. */
 	cancel(): void {
 		this.cancelled = true;
 	}
 
+	/** Cancels decoding and releases the VideoDecoder and WebDemuxer resources. */
 	destroy(): void {
 		this.cancelled = true;
 
@@ -730,6 +774,7 @@ export class StreamingVideoDecoder {
 		}
 	}
 
+	/** Wraps a promise with a hard timeout, rejecting with `message` if it exceeds `timeoutMs`. */
 	private withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			const timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);

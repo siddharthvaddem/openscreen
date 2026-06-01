@@ -44,6 +44,7 @@ public:
         ID3D11DeviceContext* context,
         const AudioInputFormat* audioFormat = nullptr);
     bool writeFrame(ID3D11Texture2D* texture, int64_t timestampHns, const BgraFrameView* webcamFrame = nullptr);
+    bool writeBgraFrame(const BgraFrameView& frame, int64_t timestampHns);
     bool writeAudio(const BYTE* data, DWORD byteCount, int64_t timestampHns, int64_t durationHns);
     bool finalize();
 
@@ -54,6 +55,7 @@ private:
         BYTE* destination,
         DWORD destinationSize,
         const BgraFrameView* webcamFrame);
+    bool copyBgraFrameToBuffer(const BgraFrameView& frame, BYTE* destination, DWORD destinationSize);
     bool configureAudioStream(const AudioInputFormat& audioFormat);
 
     Microsoft::WRL::ComPtr<IMFSinkWriter> sinkWriter_;

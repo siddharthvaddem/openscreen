@@ -408,8 +408,8 @@ function centerRectInBounds(params: { bounds: RenderRect; size: Size; maxSize: S
 	if (
 		maxWidth >= boundsWidth &&
 		maxHeight >= boundsHeight &&
-		Math.abs(boundsWidth - resolvedWidth) <= 1 &&
-		Math.abs(boundsHeight - resolvedHeight) <= 1
+		Math.abs(boundsWidth - resolvedWidth) <= 4 &&
+		Math.abs(boundsHeight - resolvedHeight) <= 4
 	) {
 		return {
 			x: boundsX,

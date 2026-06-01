@@ -46,6 +46,7 @@ release/**
 test-results
 playwright-report/
 
+
 # Vitest browser mode screenshots
 __screenshots__/
 
@@ -58,3 +59,7 @@ result-*
 
 #kilocode
 .kilo/
+
+#others
+
+**/*.import

@@ -6,6 +6,7 @@
 		"confirm": "تأكيد"
 	},
 	"loadingVideo": "جاري تحميل الفيديو...",
+	"loadingEditor": "جارٍ تحميل المحرر...",
 	"errors": {
 		"noVideoLoaded": "لم يتم تحميل أي فيديو",
 		"videoNotReady": "الفيديو غير جاهز",
@@ -42,5 +43,20 @@
 		"cameraNotFound": "لم يتم العثور على كاميرا.",
 		"permissionDenied": "تم رفض إذن التسجيل. يرجى السماح بتسجيل الشاشة.",
 		"accessibilityAllowAndRetry": "اسمح بوصول تسهيلات الاستخدام لـ OpenScreen، ثم اضغط على التسجيل مرة أخرى لبدء العد التنازلي."
+	},
+	"emptyState": {
+		"title": "لا يوجد مشروع مفتوح",
+		"description": "استورد مقطع فيديو للبدء في التحرير، أو حمّل مشروع OpenScreen موجود.",
+		"importVideoButton": "استيراد ملف فيديو...",
+		"loadProjectButton": "تحميل مشروع...",
+		"supportedFormats": "الصيغ المدعومة: MP4، MOV، WebM، MKV، AVI، M4V، WMV",
+		"dragDropHint": "أو اسحب وأفلت ملف مشروع .openscreen هنا",
+		"dropOverlay": "أفلت ملف المشروع لفتحه",
+		"dropErrors": {
+			"unsupportedFormatTitle": "تنسيق غير مدعوم",
+			"unsupportedFormatMessage": "يمكن إسقاط ملفات مشروع .openscreen فقط هنا. لاستيراد مقطع فيديو، استخدم زر \"استيراد ملف فيديو...\" بدلاً من ذلك.",
+			"couldNotOpenTitle": "تعذّر فتح الملف",
+			"couldNotOpenMessage": "تعذّر فتح ملف المشروع. ربما تم نقل الفيديو المرجعي أو حذفه."
+		}
 	}
 }

@@ -31,7 +31,7 @@ public:
         int requestedFps);
     bool start();
     void stop();
-    bool copyLatestFrame(std::vector<BYTE>& destination, int& width, int& height);
+    bool copyLatestFrame(WebcamFrameSnapshot& destination);
 
     int width() const;
     int height() const;
@@ -50,6 +50,7 @@ private:
     std::atomic<bool> stopRequested_ = false;
     std::mutex frameMutex_;
     std::vector<BYTE> latestFrame_;
+    uint64_t latestFrameSequence_ = 0;
     int width_ = 0;
     int height_ = 0;
     int fps_ = 30;

@@ -13,7 +13,9 @@
 	"reservedShortcut": "Phím tắt này được dành riêng cho \"{{label}}\" và không thể gán lại.",
 	"savedToast": "Đã lưu phím tắt",
 	"resetToast": "Đã đặt lại về phím tắt mặc định — nhấp Lưu để áp dụng",
+	"registrationFailed": "Không thể đăng ký phím tắt. Có thể đang được sử dụng bởi ứng dụng khác. Hãy thử phím khác.",
 	"actions": {
+		"openApp": "Mở ứng dụng",
 		"addZoom": "Thêm Thu phóng",
 		"addTrim": "Thêm Cắt",
 		"addSpeed": "Thêm Tốc độ",

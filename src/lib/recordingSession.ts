@@ -20,6 +20,14 @@ export interface StoreRecordedSessionInput {
 	webcam?: RecordedVideoAssetInput;
 	createdAt?: number;
 	cursorCaptureMode?: CursorCaptureMode;
+	/**
+	 * Recording wall-clock duration in milliseconds. Used by the main process
+	 * to patch the WebM Duration header on streamed recordings, since the
+	 * renderer no longer holds the bytes. Browser MediaRecorder writes WebM
+	 * with no/zero duration; without this patch, the editor's seek bar and
+	 * timeline break for any recording that took the streaming path.
+	 */
+	durationMs?: number;
 }
 
 export function normalizeCursorCaptureMode(value: unknown): CursorCaptureMode | undefined {

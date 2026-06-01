@@ -51,6 +51,12 @@
 		"detail": "Хотите сохранить проект перед закрытием?",
 		"saveAndClose": "Сохранить и закрыть",
 		"discardAndClose": "Отменить и закрыть",
+		"detailNewProject": "Хотите сохранить проект перед созданием нового?",
+		"saveAndNewProject": "Сохранить и новый проект",
+		"discardAndNewProject": "Отменить и новый проект",
+		"detailLoadProject": "Хотите сохранить проект перед загрузкой другого?",
+		"saveAndLoadProject": "Сохранить и загрузить проект",
+		"discardAndLoadProject": "Отменить и загрузить проект",
 		"loadProject": "Загрузить проект…",
 		"saveProject": "Сохранить проект…",
 		"saveProjectAs": "Сохранить проект как…"

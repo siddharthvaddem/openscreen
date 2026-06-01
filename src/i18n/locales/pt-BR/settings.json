@@ -1,0 +1,197 @@
+{
+	"zoom": {
+		"level": "Nível de Zoom",
+		"customScale": "Zoom Personalizado",
+		"selectRegion": "Selecione uma região de zoom para ajustar",
+		"deleteZoom": "Excluir Zoom",
+		"focusMode": {
+			"title": "Modo de Foco",
+			"manual": "Manual",
+			"auto": "Automático",
+			"autoDescription": "A câmera segue a posição do cursor gravado"
+		},
+		"threeD": {
+			"title": "Rotação 3D",
+			"preset": {
+				"iso": "Iso",
+				"left": "Esquerda",
+				"right": "Direita"
+			}
+		},
+		"position": {
+			"title": "Posição do Foco",
+			"x": "X (%)",
+			"y": "Y (%)",
+			"hint": "0 = mais à esquerda / topo, 100 = mais à direita / inferior"
+		}
+	},
+	"speed": {
+		"playbackSpeed": "Velocidade de Reprodução",
+		"selectRegion": "Selecione uma região de velocidade para ajustar",
+		"deleteRegion": "Excluir Região de Velocidade",
+		"customPlaybackSpeed": "Velocidade Personalizada",
+		"maxSpeedError": "A velocidade não pode ser superior a 16×"
+	},
+	"trim": {
+		"deleteRegion": "Excluir Região de Recorte"
+	},
+	"layout": {
+		"title": "Layout",
+		"preset": "Predefinição",
+		"selectPreset": "Selecionar predefinição",
+		"pictureInPicture": "Picture in Picture",
+		"verticalStack": "Empilhamento Vertical",
+		"dualFrame": "Quadro Duplo",
+		"noWebcam": "Sem Webcam",
+		"webcamShape": "Formato da Câmera",
+		"webcamSize": "Tamanho da Webcam"
+	},
+	"effects": {
+		"title": "Efeitos de Vídeo",
+		"blurBg": "Desfocar Fundo",
+		"motionBlur": "Desfoque de Movimento",
+		"off": "desativado",
+		"on": "ativado",
+		"shadow": "Sombra",
+		"roundness": "Arredondamento",
+		"padding": "Espaçamento"
+	},
+	"background": {
+		"title": "Fundo",
+		"image": "Imagem",
+		"color": "Cor",
+		"gradient": "Gradiente",
+		"uploadCustom": "Enviar Personalizada",
+		"gradientLabel": "Gradiente {{index}}",
+		"colorWheel": "Roda de Cores",
+		"colorPalette": "Paleta de Cores"
+	},
+	"crop": {
+		"title": "Cortar",
+		"cropVideo": "Cortar Vídeo",
+		"dragInstruction": "Arraste cada lado para ajustar a área de corte",
+		"ratio": "Proporção",
+		"free": "Livre",
+		"done": "Concluir",
+		"lockAspectRatio": "Bloquear proporção",
+		"unlockAspectRatio": "Desbloquear proporção"
+	},
+	"exportFormat": {
+		"mp4": "MP4",
+		"gif": "GIF",
+		"mp4Video": "Vídeo MP4",
+		"mp4Description": "Arquivo de vídeo de alta qualidade",
+		"gifAnimation": "Animação GIF",
+		"gifDescription": "Imagem animada para compartilhamento"
+	},
+	"exportQuality": {
+		"title": "Qualidade de Exportação",
+		"low": "Baixa",
+		"medium": "Média",
+		"high": "Alta"
+	},
+	"gifSettings": {
+		"frameRate": "Taxa de Quadros do GIF",
+		"size": "Tamanho do GIF",
+		"loop": "Loop no GIF"
+	},
+	"project": {
+		"save": "Salvar Projeto",
+		"load": "Carregar Projeto"
+	},
+	"export": {
+		"videoButton": "Exportar Vídeo",
+		"gifButton": "Exportar GIF",
+		"chooseSaveLocation": "Escolher Local para Salvar"
+	},
+	"links": {
+		"reportBug": "Relatar Bug",
+		"starOnGithub": "Dar Estrela no GitHub"
+	},
+	"imageUpload": {
+		"invalidFileType": "Tipo de arquivo inválido",
+		"jpgOnly": "Por favor, envie um arquivo de imagem JPG ou JPEG.",
+		"uploadSuccess": "Imagem personalizada enviada com sucesso!",
+		"failedToUpload": "Falha ao enviar imagem",
+		"errorReading": "Ocorreu um erro ao ler o arquivo."
+	},
+	"annotation": {
+		"title": "Configurações de Anotação",
+		"active": "Ativo",
+		"typeText": "Texto",
+		"typeImage": "Imagem",
+		"typeArrow": "Seta",
+		"typeBlur": "Desfoque",
+		"textContent": "Conteúdo do Texto",
+		"textPlaceholder": "Digite seu texto...",
+		"fontStyle": "Estilo da Fonte",
+		"selectStyle": "Selecionar estilo",
+		"size": "Tamanho",
+		"customFonts": "Fontes Personalizadas",
+		"textColor": "Cor do Texto",
+		"background": "Fundo",
+		"none": "Nenhum",
+		"color": "Cor",
+		"colorWheel": "Roda de Cores",
+		"colorPalette": "Paleta de Cores",
+		"clearBackground": "Limpar Fundo",
+		"uploadImage": "Enviar Imagem",
+		"supportedFormats": "Formatos suportados: JPG, PNG, GIF, WebP",
+		"arrowDirection": "Direção da Seta",
+		"strokeWidth": "Largura do Traço: {{width}}px",
+		"arrowColor": "Cor da Seta",
+		"blurType": "Tipo de Desfoque",
+		"blurTypeBlur": "Desfoque",
+		"blurTypeMosaic": "Mosaico",
+		"blurColor": "Cor do Desfoque",
+		"blurColorWhite": "Branco",
+		"blurColorBlack": "Preto",
+		"blurShape": "Formato do Desfoque",
+		"blurIntensity": "Intensidade do Desfoque",
+		"mosaicBlockSize": "Tamanho do Bloco do Mosaico",
+		"blurShapeRectangle": "Retângulo",
+		"blurShapeOval": "Oval",
+		"blurShapeFreehand": "Mão Livre",
+		"deleteAnnotation": "Excluir Anotação",
+		"shortcutsAndTips": "Atalhos e Dicas",
+		"tipMovePlayhead": "Mova o cursor de reprodução para a seção de anotação sobreposta e selecione um item.",
+		"tipTabCycle": "Use Tab para alternar entre itens sobrepostos.",
+		"tipShiftTabCycle": "Use Shift+Tab para alternar para trás.",
+		"invalidImageType": "Tipo de imagem inválido",
+		"imageFormatsOnly": "Por favor, envie um arquivo de imagem JPG, PNG, GIF ou WebP.",
+		"imageUploadSuccess": "Imagem enviada com sucesso!",
+		"failedImageUpload": "Falha ao enviar imagem"
+	},
+	"fontStyles": {
+		"classic": "Clássico",
+		"editor": "Editor",
+		"strong": "Forte",
+		"typewriter": "Máquina de Escrever",
+		"deco": "Deco",
+		"simple": "Simples",
+		"modern": "Moderno",
+		"clean": "Clean"
+	},
+	"customFont": {
+		"dialogTitle": "Adicionar Google Font",
+		"urlLabel": "URL de Importação do Google Fonts",
+		"urlPlaceholder": "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+		"urlHelp": "Pegue isso no Google Fonts: Selecione uma fonte → Clique em \"Get font\" → Copie a URL @import",
+		"nameLabel": "Nome de Exibição",
+		"namePlaceholder": "Minha Fonte Personalizada",
+		"nameHelp": "É assim que a fonte aparecerá no seletor de fontes",
+		"addButton": "Adicionar Fonte",
+		"addingButton": "Adicionando...",
+		"errorEmptyUrl": "Por favor, insira uma URL de importação do Google Fonts",
+		"errorInvalidUrl": "Por favor, insira uma URL válida do Google Fonts",
+		"errorEmptyName": "Por favor, insira um nome para a fonte",
+		"errorExtractFailed": "Não foi possível extrair a família da fonte da URL",
+		"successMessage": "Fonte \"{{fontName}}\" adicionada com sucesso",
+		"failedToAdd": "Falha ao adicionar fonte",
+		"errorTimeout": "A fonte demorou muito para carregar. Por favor, verifique a URL e tente novamente.",
+		"errorLoadFailed": "A fonte não pôde ser carregada. Por favor, verifique se a URL do Google Fonts está correta."
+	},
+	"language": {
+		"title": "Idioma"
+	}
+}

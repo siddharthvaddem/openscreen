@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "누르고 있으면 줌 효과 미리보기",
 		"level": "줌 레벨",
 		"customScale": "커스텀 줌",
 		"selectRegion": "조정할 줌 구간을 선택하세요",
@@ -97,7 +98,8 @@
 	},
 	"project": {
 		"save": "프로젝트 저장",
-		"load": "프로젝트 불러오기"
+		"load": "프로젝트 불러오기",
+		"new": "새 프로젝트"
 	},
 	"export": {
 		"videoButton": "비디오 내보내기",
@@ -111,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "지원하지 않는 파일 형식입니다",
-		"jpgOnly": "JPG 또는 JPEG 이미지 파일을 업로드해 주세요.",
+		"jpgOnly": "JPG, JPEG 또는 PNG 이미지 파일을 업로드해 주세요.",
 		"uploadSuccess": "커스텀 이미지가 성공적으로 업로드되었습니다!",
 		"failedToUpload": "이미지 업로드에 실패했습니다",
 		"errorReading": "파일을 읽는 중 오류가 발생했습니다."
@@ -122,6 +124,7 @@
 		"typeText": "텍스트",
 		"typeImage": "이미지",
 		"typeArrow": "화살표",
+		"typeBlur": "블러",
 		"textContent": "텍스트 내용",
 		"textPlaceholder": "텍스트를 입력하세요...",
 		"fontStyle": "폰트 스타일",
@@ -140,6 +143,18 @@
 		"arrowDirection": "화살표 방향",
 		"strokeWidth": "선 두께: {{width}}px",
 		"arrowColor": "화살표 색상",
+		"blurType": "블러 종류",
+		"blurTypeBlur": "블러",
+		"blurTypeMosaic": "모자이크 블러",
+		"blurColor": "블러 색상",
+		"blurColorWhite": "흰색",
+		"blurColorBlack": "검정",
+		"blurShape": "블러 모양",
+		"blurIntensity": "블러 강도",
+		"mosaicBlockSize": "모자이크 블록 크기",
+		"blurShapeRectangle": "사각형",
+		"blurShapeOval": "타원",
+		"blurShapeFreehand": "자유 곡선",
 		"deleteAnnotation": "주석 삭제",
 		"shortcutsAndTips": "단축키 및 팁",
 		"tipMovePlayhead": "재생 헤드를 주석 구간으로 옮겨 항목을 선택하세요.",
@@ -148,20 +163,7 @@
 		"invalidImageType": "지원하지 않는 파일 형식입니다",
 		"imageFormatsOnly": "JPG, PNG, GIF 또는 WebP 이미지 파일을 업로드해 주세요.",
 		"imageUploadSuccess": "이미지가 성공적으로 업로드되었습니다!",
-		"failedImageUpload": "이미지 업로드에 실패했습니다",
-		"blurColor": "블러 색상",
-		"blurColorBlack": "검정",
-		"blurColorWhite": "흰색",
-		"blurIntensity": "블러 강도",
-		"blurShape": "블러 모양",
-		"blurShapeFreehand": "자유 곡선",
-		"blurShapeOval": "타원",
-		"blurShapeRectangle": "사각형",
-		"blurType": "블러 종류",
-		"blurTypeBlur": "블러",
-		"blurTypeMosaic": "모자이크 블러",
-		"mosaicBlockSize": "모자이크 블록 크기",
-		"typeBlur": "블러"
+		"failedImageUpload": "이미지 업로드에 실패했습니다"
 	},
 	"fontStyles": {
 		"classic": "클래식",
@@ -172,6 +174,17 @@
 		"simple": "심플",
 		"modern": "모던",
 		"clean": "클린"
+	},
+	"textAnimation": {
+		"title": "텍스트 애니메이션",
+		"selectAnimation": "애니메이션 선택",
+		"none": "없음",
+		"fade": "페이드",
+		"rise": "상승",
+		"pop": "팝",
+		"slideLeft": "왼쪽 슬라이드",
+		"typewriter": "타자기",
+		"pulse": "펄스"
 	},
 	"customFont": {
 		"dialogTitle": "Google 폰트 추가",
@@ -202,5 +215,9 @@
 	},
 	"language": {
 		"title": "언어"
+	},
+	"timeline": {
+		"title": "타임라인",
+		"waveform": "트림 트랙에 오디오 파형 표시"
 	}
 }

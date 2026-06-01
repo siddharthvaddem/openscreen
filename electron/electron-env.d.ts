@@ -82,6 +82,12 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		openRecordingStream: (fileName: string) => Promise<{ success: boolean; error?: string }>;
+		appendRecordingChunk: (
+			fileName: string,
+			chunk: ArrayBuffer,
+		) => Promise<{ success: boolean; error?: string }>;
+		closeRecordingStream: (fileName: string) => Promise<{ success: boolean; error?: string }>;
 		getRecordedVideoPath: () => Promise<{
 			success: boolean;
 			path?: string;
@@ -116,6 +122,14 @@ interface Window {
 			session?: import("../src/lib/recordingSession").RecordingSession;
 			message?: string;
 			discarded?: boolean;
+			error?: string;
+		}>;
+		pauseNativeWindowsRecording: () => Promise<{
+			success: boolean;
+			error?: string;
+		}>;
+		resumeNativeWindowsRecording: () => Promise<{
+			success: boolean;
 			error?: string;
 		}>;
 		startNativeMacRecording: (
@@ -232,6 +246,17 @@ interface Window {
 			canceled?: boolean;
 			error?: string;
 		}>;
+		getPathForFile: (file: File) => string;
+		loadProjectFileFromPath: (filePath: string) => Promise<{
+			success: boolean;
+			path?: string;
+			project?: unknown;
+			message?: string;
+			canceled?: boolean;
+			error?: string;
+		}>;
+		onMenuNewProject: (callback: () => void) => () => void;
+		onMenuImportVideo: (callback: () => void) => () => void;
 		onMenuLoadProject: (callback: () => void) => () => void;
 		onMenuSaveProject: (callback: () => void) => () => void;
 		onMenuSaveProjectAs: (callback: () => void) => () => void;
@@ -249,6 +274,12 @@ interface Window {
 		) => Promise<{ success: boolean; error?: string; message?: string }>;
 		getShortcuts: () => Promise<Record<string, unknown> | null>;
 		saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>;
+		updateGlobalShortcut: (binding: {
+			key: string;
+			ctrl?: boolean;
+			shift?: boolean;
+			alt?: boolean;
+		}) => Promise<{ success: boolean }>;
 		hudOverlayHide: () => void;
 		hudOverlayClose: () => void;
 		setHudOverlayIgnoreMouseEvents: (ignore: boolean) => void;

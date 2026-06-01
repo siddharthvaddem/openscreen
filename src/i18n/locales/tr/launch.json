@@ -7,7 +7,9 @@
 		"pauseRecording": "Kaydı duraklat",
 		"resumeRecording": "Kayda devam et",
 		"openVideoFile": "Video dosyası aç",
-		"openProject": "Proje aç"
+		"openProject": "Proje aç",
+		"useVerticalTray": "Dikey araç çubuğunu kullan",
+		"useHorizontalTray": "Yatay araç çubuğunu kullan"
 	},
 	"audio": {
 		"enableSystemAudio": "Sistem sesini etkinleştir",

@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "按住預覽放大效果",
 		"level": "縮放級別",
 		"selectRegion": "選擇要調整的縮放區域",
 		"deleteZoom": "刪除縮放",
@@ -98,7 +99,8 @@
 	},
 	"project": {
 		"save": "儲存專案",
-		"load": "載入專案"
+		"load": "載入專案",
+		"new": "新增專案"
 	},
 	"export": {
 		"videoButton": "匯出影片",
@@ -112,7 +114,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "無效的檔案類型",
-		"jpgOnly": "請上傳 JPG 或 JPEG 格式的圖片檔案。",
+		"jpgOnly": "請上傳 JPG、JPEG 或 PNG 格式的圖片檔案。",
 		"uploadSuccess": "自訂圖片上傳成功！",
 		"failedToUpload": "上傳圖片失敗",
 		"errorReading": "讀取檔案時出錯。"
@@ -128,6 +130,8 @@
 		"textPlaceholder": "輸入您的文字...",
 		"fontStyle": "字體樣式",
 		"selectStyle": "選擇樣式",
+		"textAnimation": "文字動畫",
+		"selectAnimation": "選擇動畫",
 		"size": "大小",
 		"customFonts": "自訂字體",
 		"textColor": "文字顏色",
@@ -203,5 +207,9 @@
 	},
 	"language": {
 		"title": "語言"
+	},
+	"timeline": {
+		"title": "時間軸",
+		"waveform": "在剪輯軌道上顯示音訊波形"
 	}
 }

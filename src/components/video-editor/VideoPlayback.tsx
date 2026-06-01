@@ -50,22 +50,23 @@ import {
 } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
 import {
+	DEFAULT_CURSOR_SETTINGS,
+	DEFAULT_EDITOR_LAYOUT_SETTINGS,
+	DEFAULT_SOURCE_DIMENSIONS,
+} from "./editorDefaults";
+import {
 	type AnnotationRegion,
 	type BlurData,
 	type CursorTelemetryPoint,
 	computeRotation3DContainScale,
-	DEFAULT_CURSOR_CLICK_BOUNCE,
-	DEFAULT_CURSOR_MOTION_BLUR,
-	DEFAULT_CURSOR_SIZE,
-	DEFAULT_CURSOR_SMOOTHING,
 	DEFAULT_ROTATION_3D,
+	getZoomScale,
 	isRotation3DIdentity,
 	lerpRotation3D,
 	rotation3DPerspective,
 	type SpeedRegion,
 	type TrimRegion,
 	ZOOM_DEPTH_SCALES,
-	type ZoomDepth,
 	type ZoomFocus,
 	type ZoomRegion,
 } from "./types";
@@ -83,7 +84,7 @@ import {
 	PixiCursorOverlay,
 	preloadCursorAssets,
 } from "./videoPlayback/cursorRenderer";
-import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
+import { clampFocusToScale } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { clamp01 } from "./videoPlayback/mathUtils";
 import { updateOverlayIndicator } from "./videoPlayback/overlayUtils";
@@ -149,6 +150,9 @@ interface VideoPlaybackProps {
 	cursorMotionBlur?: number;
 	cursorClickBounce?: number;
 	cursorClipToBounds?: boolean;
+	// When true, render the selected zoom at the playhead even while paused —
+	// lets the editor preview the zoom effect without leaving the focus-edit view.
+	isPreviewingZoom?: boolean;
 }
 
 export interface VideoPlaybackRef {
@@ -244,7 +248,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			showBlur,
 			motionBlurAmount = 0,
 			borderRadius = 0,
-			padding = 50,
+			padding = DEFAULT_EDITOR_LAYOUT_SETTINGS.padding,
 			cropRegion,
 			trimRegions = [],
 			speedRegions = [],
@@ -265,11 +269,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			cursorTelemetry = [],
 			cursorClickTimestamps = [],
 			showCursor = false,
-			cursorSize = DEFAULT_CURSOR_SIZE,
-			cursorSmoothing = DEFAULT_CURSOR_SMOOTHING,
-			cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
-			cursorClickBounce = DEFAULT_CURSOR_CLICK_BOUNCE,
-			cursorClipToBounds = false,
+			cursorSize = DEFAULT_CURSOR_SETTINGS.size,
+			cursorSmoothing = DEFAULT_CURSOR_SETTINGS.smoothing,
+			cursorMotionBlur = DEFAULT_CURSOR_SETTINGS.motionBlur,
+			cursorClickBounce = DEFAULT_CURSOR_SETTINGS.clickBounce,
+			cursorClipToBounds = DEFAULT_CURSOR_SETTINGS.clipToBounds,
+			isPreviewingZoom = false,
 		},
 		ref,
 	) => {
@@ -341,6 +346,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const cursorMotionBlurRef = useRef(cursorMotionBlur);
 		const cursorClickBounceRef = useRef(cursorClickBounce);
 		const cursorClipToBoundsRef = useRef(cursorClipToBounds);
+		const isPreviewingZoomRef = useRef(isPreviewingZoom);
 		const motionBlurStateRef = useRef<MotionBlurState>(createMotionBlurState());
 		const onTimeUpdateRef = useRef(onTimeUpdate);
 		const onPlayStateChangeRef = useRef(onPlayStateChange);
@@ -471,8 +477,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			[onDurationChange, syncResolvedDuration],
 		);
 
-		const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
-			return clampFocusToStageUtil(focus, depth, stageSizeRef.current);
+		// IMPORTANT: must use clampFocusToScale(focus, getZoomScale(region)) here,
+		// NOT clampFocusToStage(focus, region.depth).
+		//
+		// region.depth is the preset slot (1×/2×/4×) and ignores customScale entirely.
+		// getZoomScale(region) returns customScale when set, falling back to the preset
+		// depth scale — so drag-to-reposition respects the actual zoom level the user
+		// configured, not the preset bucket it sits in.
+		//
+		// This was previously broken (invisible drag boundaries near canvas edges) and
+		// has been fixed twice. If you're refactoring this drag handler, keep this call
+		// as clampFocusForRegion(focus, region) — do not switch it back to region.depth.
+		const clampFocusForRegion = useCallback((focus: ZoomFocus, region: ZoomRegion) => {
+			return clampFocusToScale(focus, getZoomScale(region));
 		}, []);
 
 		const updateOverlayForRegion = useCallback(
@@ -666,7 +683,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				cx: clamp01(localX / stageWidth),
 				cy: clamp01(localY / stageHeight),
 			};
-			const clampedFocus = clampFocusToStage(unclampedFocus, region.depth);
+			const clampedFocus = clampFocusForRegion(unclampedFocus, region);
 
 			onZoomFocusChange(region.id, clampedFocus);
 			updateOverlayForRegion({ ...region, focus: clampedFocus }, clampedFocus);
@@ -831,6 +848,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		useEffect(() => {
 			cursorClipToBoundsRef.current = cursorClipToBounds;
 		}, [cursorClipToBounds]);
+
+		useEffect(() => {
+			isPreviewingZoomRef.current = isPreviewingZoom;
+		}, [isPreviewingZoom]);
 
 		// Sync cursor overlay config when settings change
 		useEffect(() => {
@@ -1309,7 +1330,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				// If a zoom is selected but video is not playing, show default unzoomed view
 				const selectedId = selectedZoomIdRef.current;
 				const hasSelectedZoom = selectedId !== null;
-				const shouldShowUnzoomedView = hasSelectedZoom && !isPlayingRef.current;
+				const shouldShowUnzoomedView =
+					hasSelectedZoom && !isPlayingRef.current && !isPreviewingZoomRef.current;
 
 				if (region && strength > 0 && !shouldShowUnzoomedView) {
 					const zoomScale = blendedScale ?? ZOOM_DEPTH_SCALES[region.depth];
@@ -1824,8 +1846,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						aspectRatio,
 						aspectRatio === "native"
 							? getNativeAspectRatioValue(
-									lockedVideoDimensionsRef.current?.width || 1920,
-									lockedVideoDimensionsRef.current?.height || 1080,
+									lockedVideoDimensionsRef.current?.width || DEFAULT_SOURCE_DIMENSIONS.width,
+									lockedVideoDimensionsRef.current?.height || DEFAULT_SOURCE_DIMENSIONS.height,
 									cropRegion,
 								)
 							: undefined,
@@ -2033,6 +2055,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										}
 										previewSourceCanvas={previewSnapshotCanvas}
 										previewFrameVersion={Math.round(currentTime * 1000)}
+										currentTimeMs={Math.round(currentTime * 1000)}
 									/>
 								));
 							})()}

@@ -6,6 +6,7 @@
 		"confirm": "확인"
 	},
 	"loadingVideo": "비디오 로드 중...",
+	"loadingEditor": "편집기 로드 중...",
 	"errors": {
 		"noVideoLoaded": "불러온 비디오가 없습니다",
 		"videoNotReady": "비디오가 준비되지 않았습니다",
@@ -42,5 +43,20 @@
 		"cameraDisconnected": "웹캠 연결이 끊어졌습니다.",
 		"cameraNotFound": "카메라를 찾을 수 없습니다.",
 		"accessibilityAllowAndRetry": "OpenScreen의 손쉬운 사용 접근을 허용한 다음, 카운트다운을 시작하려면 다시 녹화를 누르세요."
+	},
+	"emptyState": {
+		"title": "열린 프로젝트 없음",
+		"description": "동영상을 가져와 편집을 시작하거나 기존 OpenScreen 프로젝트를 불러오세요.",
+		"importVideoButton": "동영상 파일 가져오기…",
+		"loadProjectButton": "프로젝트 불러오기…",
+		"supportedFormats": "지원 형식: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": ".openscreen 프로젝트 파일을 여기에 드래그 앤 드롭",
+		"dropOverlay": "프로젝트 파일을 드롭하여 열기",
+		"dropErrors": {
+			"unsupportedFormatTitle": "지원되지 않는 형식",
+			"unsupportedFormatMessage": ".openscreen 프로젝트 파일만 여기에 드롭할 수 있습니다. 동영상을 가져오려면 \"동영상 파일 가져오기...\" 버튼을 사용하세요.",
+			"couldNotOpenTitle": "파일을 열 수 없음",
+			"couldNotOpenMessage": "프로젝트 파일을 열 수 없습니다. 참조된 동영상이 이동되었거나 삭제되었을 수 있습니다."
+		}
 	}
 }

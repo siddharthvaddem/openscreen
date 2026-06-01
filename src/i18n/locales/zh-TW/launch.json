@@ -7,7 +7,9 @@
 		"pauseRecording": "暫停錄製",
 		"resumeRecording": "繼續錄製",
 		"openVideoFile": "開啟影片檔案",
-		"openProject": "開啟專案"
+		"openProject": "開啟專案",
+		"useVerticalTray": "使用直向托盤",
+		"useHorizontalTray": "使用橫向托盤"
 	},
 	"audio": {
 		"enableSystemAudio": "啟用系統音訊",

@@ -6,6 +6,7 @@
 		"confirm": "確認"
 	},
 	"loadingVideo": "正在載入影片...",
+	"loadingEditor": "正在載入編輯器...",
 	"errors": {
 		"noVideoLoaded": "未載入影片",
 		"videoNotReady": "影片未就緒",
@@ -42,5 +43,20 @@
 		"cameraDisconnected": "網路攝影機已中斷連線。",
 		"cameraNotFound": "找不到攝影機。",
 		"accessibilityAllowAndRetry": "允許 OpenScreen 使用輔助使用權限，然後再次按下錄製以開始倒數。"
+	},
+	"emptyState": {
+		"title": "未開啟任何專案",
+		"description": "匯入影片以開始編輯，或載入現有的 OpenScreen 專案。",
+		"importVideoButton": "匯入影片檔案…",
+		"loadProjectButton": "載入專案…",
+		"supportedFormats": "支援的格式：MP4、MOV、WebM、MKV、AVI、M4V、WMV",
+		"dragDropHint": "或將 .openscreen 專案檔案拖放至此",
+		"dropOverlay": "將專案檔案拖放至此以開啟",
+		"dropErrors": {
+			"unsupportedFormatTitle": "不支援的格式",
+			"unsupportedFormatMessage": "此處只能拖放 .openscreen 專案檔案。要匯入影片，請使用「匯入影片檔案...」按鈕。",
+			"couldNotOpenTitle": "無法開啟檔案",
+			"couldNotOpenMessage": "無法開啟專案檔案。它所參照的影片可能已被移動或刪除。"
+		}
 	}
 }

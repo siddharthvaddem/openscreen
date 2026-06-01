@@ -37,6 +37,21 @@ function findVcVarsAll() {
 	return null;
 }
 
+function findWindowsSdkUmLibDir() {
+	const sdkLibRoot = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib";
+	if (!fs.existsSync(sdkLibRoot)) {
+		return null;
+	}
+
+	return fs
+		.readdirSync(sdkLibRoot, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => path.join(sdkLibRoot, entry.name, "um", "x64"))
+		.filter((candidate) => fs.existsSync(path.join(candidate, "kernel32.lib")))
+		.sort()
+		.at(-1);
+}
+
 function run(command, args, options = {}) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(command, args, {
@@ -64,6 +79,8 @@ async function runInVsEnv(command) {
 		);
 	}
 
+	const sdkUmLibDir = findWindowsSdkUmLibDir();
+
 	const cmdPath = path.join(os.tmpdir(), `openscreen-build-wgc-${process.pid}-${Date.now()}.cmd`);
 	fs.writeFileSync(
 		cmdPath,
@@ -72,9 +89,9 @@ async function runInVsEnv(command) {
 			`call "${vcvarsAll}" x64`,
 			"if errorlevel 1 exit /b %errorlevel%",
 			`if not exist "${COMPAT_LIB_DIR}" mkdir "${COMPAT_LIB_DIR}"`,
-			`for %%L in (gdi32.lib winspool.lib shell32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib) do if not exist "%WindowsSdkDir%Lib\\%WindowsSDKLibVersion%um\\x64\\%%L" copy /Y "%WindowsSdkDir%Lib\\%WindowsSDKLibVersion%um\\x64\\kernel32.Lib" "${COMPAT_LIB_DIR}\\%%L" >nul`,
+			`for %%L in (gdi32.lib gdiplus.lib winspool.lib shell32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib) do if not exist "%WindowsSdkDir%Lib\\%WindowsSDKLibVersion%um\\x64\\%%L" copy /Y "%WindowsSdkDir%Lib\\%WindowsSDKLibVersion%um\\x64\\kernel32.Lib" "${COMPAT_LIB_DIR}\\%%L" >nul`,
 			"if errorlevel 1 exit /b %errorlevel%",
-			`set "LIB=${COMPAT_LIB_DIR};%LIB%"`,
+			`set "LIB=${sdkUmLibDir ? `${sdkUmLibDir};` : ""}%LIB%;${COMPAT_LIB_DIR}"`,
 			command,
 			"exit /b %errorlevel%",
 			"",

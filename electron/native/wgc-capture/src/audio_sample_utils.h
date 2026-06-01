@@ -52,6 +52,7 @@ public:
 
     bool start();
     void beginTimeline();
+    void setPaused(bool paused);
     void stop();
     void pushSystem(const BYTE* data, DWORD byteCount);
     void pushMicrophone(const BYTE* data, DWORD byteCount);
@@ -81,5 +82,6 @@ private:
     std::thread thread_;
     std::atomic<bool> stopRequested_ = false;
     bool timelineStarted_ = false;
+    bool paused_ = false;
     uint64_t emittedFrames_ = 0;
 };

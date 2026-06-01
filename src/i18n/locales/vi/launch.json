@@ -7,7 +7,9 @@
 		"pauseRecording": "Tạm dừng ghi hình",
 		"resumeRecording": "Tiếp tục ghi hình",
 		"openVideoFile": "Mở tệp video",
-		"openProject": "Mở dự án"
+		"openProject": "Mở dự án",
+		"useVerticalTray": "Dùng khay dọc",
+		"useHorizontalTray": "Dùng khay ngang"
 	},
 	"audio": {
 		"enableSystemAudio": "Bật âm thanh hệ thống",

@@ -1,0 +1,50 @@
+{
+	"actions": {
+		"cancel": "Cancelar",
+		"save": "Salvar",
+		"delete": "Deletar",
+		"close": "Fechar",
+		"share": "Compartilhar",
+		"done": "Concluir",
+		"open": "Abrir",
+		"upload": "Upload",
+		"export": "Exportar",
+		"showInFolder": "Mostrar na Pasta",
+		"file": "Arquivo",
+		"edit": "Editar",
+		"view": "Visualizar",
+		"window": "Janela",
+		"quit": "Sair",
+		"stopRecording": "Parar Gravação",
+		"undo": "Desfazer",
+		"redo": "Refazer",
+		"cut": "Recortar",
+		"copy": "Copiar",
+		"paste": "Colar",
+		"selectAll": "Selecionar Tudo",
+		"minimize": "Minimizar",
+		"reload": "Recarregar",
+		"forceReload": "Forçar Recarregar",
+		"toggleDevTools": "Alternar ferramentas de desenvolvedor",
+		"actualSize": "Tamanho Original",
+		"zoomIn": "Aumentar Zoom",
+		"zoomOut": "Diminuir Zoom",
+		"toggleFullScreen": "Tela Cheia",
+		"recordingStatus": "Gravando: {{source}}",
+		"about": "Sobre o OpenScreen",
+		"services": "Serviços",
+		"hide": "Ocultar OpenScreen",
+		"hideOthers": "Ocultar Outros",
+		"unhide": "Mostrar Todos"
+	},
+	"playback": {
+		"play": "Play",
+		"pause": "Pause",
+		"fullscreen": "Tela Cheia",
+		"exitFullscreen": "Sair da Tela Cheia"
+	},
+	"locale": {
+		"name": "Português Brasileiro",
+		"short": "PT-BR"
+	}
+}

@@ -1,0 +1,45 @@
+{
+	"newRecording": {
+		"title": "Voltar ao Gravador",
+		"description": "Sua sessão atual foi salva.",
+		"cancel": "Cancelar",
+		"confirm": "Confirmar"
+	},
+	"loadingVideo": "Carregando vídeo...",
+	"errors": {
+		"noVideoLoaded": "Nenhum vídeo carregado",
+		"videoNotReady": "Vídeo não está pronto",
+		"unableToDetermineSourcePath": "Não foi possível determinar o caminho do vídeo de origem",
+		"failedToSaveGif": "Falha ao salvar GIF",
+		"gifExportFailed": "Falha na exportação do GIF",
+		"failedToSaveVideo": "Falha ao salvar vídeo",
+		"exportFailed": "Falha na exportação",
+		"exportFailedWithError": "Falha na exportação: {{error}}",
+		"exportBackgroundLoadFailed": "Falha na exportação: não foi possível carregar a imagem de fundo ({{url}})",
+		"failedToSaveExport": "Falha ao salvar exportação",
+		"failedToSaveExportedVideo": "Falha ao salvar vídeo exportado",
+		"failedToRevealInFolder": "Erro ao mostrar na pasta: {{error}}"
+	},
+	"export": {
+		"canceled": "Exportação cancelada",
+		"exportedSuccessfully": "{{format}} exportado com sucesso"
+	},
+	"project": {
+		"saveCanceled": "Salvamento do projeto cancelado",
+		"failedToSave": "Falha ao salvar o projeto",
+		"savedTo": "Projeto salvo em {{path}}",
+		"failedToLoad": "Falha ao carregar o projeto",
+		"invalidFormat": "Formato de arquivo de projeto inválido",
+		"loadedFrom": "Projeto carregado de {{path}}"
+	},
+	"recording": {
+		"failedCameraAccess": "Falha ao solicitar acesso à câmera.",
+		"cameraBlocked": "O acesso à câmera está bloqueado. Ative-o nas configurações do sistema para usar a webcam.",
+		"systemAudioUnavailable": "Áudio do sistema não disponível. Gravando sem áudio do sistema.",
+		"microphoneDenied": "Acesso ao microfone negado. A gravação continuará sem áudio.",
+		"cameraDenied": "Acesso à câmera negado. A gravação continuará sem webcam.",
+		"cameraDisconnected": "Webcam desconectada.",
+		"cameraNotFound": "Câmera não encontrada.",
+		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela."
+	}
+}

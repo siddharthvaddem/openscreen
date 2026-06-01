@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Mantener para previsualizar el efecto de zoom",
 		"level": "Nivel de zoom",
 		"selectRegion": "Selecciona una región de zoom para ajustar",
 		"deleteZoom": "Eliminar zoom",
@@ -97,7 +98,8 @@
 	},
 	"project": {
 		"save": "Guardar proyecto",
-		"load": "Cargar proyecto"
+		"load": "Cargar proyecto",
+		"new": "Nuevo proyecto"
 	},
 	"export": {
 		"videoButton": "Exportar video",
@@ -111,7 +113,7 @@
 	},
 	"imageUpload": {
 		"invalidFileType": "Tipo de archivo no válido",
-		"jpgOnly": "Por favor sube un archivo de imagen JPG o JPEG.",
+		"jpgOnly": "Por favor sube un archivo de imagen JPG, JPEG o PNG.",
 		"uploadSuccess": "¡Imagen personalizada subida exitosamente!",
 		"failedToUpload": "Error al subir la imagen",
 		"errorReading": "Hubo un error al leer el archivo."
@@ -173,6 +175,17 @@
 		"modern": "Moderno",
 		"clean": "Limpio"
 	},
+	"textAnimation": {
+		"title": "Animación de texto",
+		"selectAnimation": "Seleccionar animación",
+		"none": "Ninguna",
+		"fade": "Desvanecimiento",
+		"rise": "Ascender",
+		"pop": "Aparecer",
+		"slideLeft": "Deslizar izquierda",
+		"typewriter": "Máquina de escribir",
+		"pulse": "Pulso"
+	},
 	"customFont": {
 		"dialogTitle": "Agregar fuente de Google",
 		"urlLabel": "URL de importación de Google Fonts",
@@ -202,5 +215,9 @@
 	},
 	"language": {
 		"title": "Idioma"
+	},
+	"timeline": {
+		"title": "Línea de tiempo",
+		"waveform": "Mostrar forma de onda en pista de recorte"
 	}
 }

@@ -1,9 +1,17 @@
+import { normalizeTextAnimation } from "@/lib/annotationTextAnimation";
 import { normalizeBlurColor, normalizeBlurType } from "@/lib/blurEffects";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
 import { DEFAULT_WALLPAPER, WALLPAPER_PATHS } from "@/lib/wallpaper";
 import { ASPECT_RATIOS, type AspectRatio, isPortraitAspectRatio } from "@/utils/aspectRatioUtils";
+import {
+	DEFAULT_EDITOR_APPEARANCE_SETTINGS,
+	DEFAULT_EDITOR_LAYOUT_SETTINGS,
+	DEFAULT_EXPORT_SETTINGS,
+	DEFAULT_GIF_SETTINGS,
+	DEFAULT_WEBCAM_SETTINGS,
+} from "./editorDefaults";
 import {
 	type AnnotationRegion,
 	type CropRegion,
@@ -15,14 +23,10 @@ import {
 	DEFAULT_BLUR_DATA,
 	DEFAULT_BLUR_FREEHAND_POINTS,
 	DEFAULT_BLUR_INTENSITY,
-	DEFAULT_CROP_REGION,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
-	DEFAULT_WEBCAM_LAYOUT_PRESET,
-	DEFAULT_WEBCAM_MASK_SHAPE,
-	DEFAULT_WEBCAM_POSITION,
-	DEFAULT_WEBCAM_SIZE_PRESET,
 	DEFAULT_ZOOM_DEPTH,
+	DEFAULT_ZOOM_MOTION_BLUR,
 	MAX_BLUR_BLOCK_SIZE,
 	MAX_BLUR_INTENSITY,
 	MAX_PLAYBACK_SPEED,
@@ -62,6 +66,7 @@ export interface ProjectEditorState {
 	wallpaper: string;
 	shadowIntensity: number;
 	showBlur: boolean;
+	showTrimWaveform: boolean;
 	motionBlurAmount: number;
 	borderRadius: number;
 	padding: number;
@@ -104,13 +109,13 @@ function computeNormalizedWebcamLayoutPreset(
 		case "vertical-stack":
 			return isPortraitAspectRatio(normalizedAspectRatio)
 				? webcamLayoutPreset
-				: DEFAULT_WEBCAM_LAYOUT_PRESET;
+				: DEFAULT_WEBCAM_SETTINGS.layoutPreset;
 		case "dual-frame":
 			return isPortraitAspectRatio(normalizedAspectRatio)
-				? DEFAULT_WEBCAM_LAYOUT_PRESET
+				? DEFAULT_WEBCAM_SETTINGS.layoutPreset
 				: webcamLayoutPreset;
 		default:
-			return DEFAULT_WEBCAM_LAYOUT_PRESET;
+			return DEFAULT_WEBCAM_SETTINGS.layoutPreset;
 	}
 }
 
@@ -211,7 +216,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		editor.aspectRatio as AspectRatio,
 	)
 		? (editor.aspectRatio as AspectRatio)
-		: "16:9";
+		: DEFAULT_EDITOR_LAYOUT_SETTINGS.aspectRatio;
 	const normalizedWebcamLayoutPreset = computeNormalizedWebcamLayoutPreset(
 		editor.webcamLayoutPreset,
 		normalizedAspectRatio,
@@ -226,7 +231,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					cx: clamp((editor.webcamPosition as WebcamPosition).cx, 0, 1),
 					cy: clamp((editor.webcamPosition as WebcamPosition).cy, 0, 1),
 				}
-			: DEFAULT_WEBCAM_POSITION;
+			: DEFAULT_WEBCAM_SETTINGS.position;
 
 	const normalizedZoomRegions: ZoomRegion[] = Array.isArray(editor.zoomRegions)
 		? editor.zoomRegions
@@ -363,6 +368,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						style: {
 							...DEFAULT_ANNOTATION_STYLE,
 							...(region.style && typeof region.style === "object" ? region.style : {}),
+							textAnimation: normalizeTextAnimation(region.style?.textAnimation),
 						},
 						zIndex: isFiniteNumber(region.zIndex) ? region.zIndex : index + 1,
 						figureData: region.figureData
@@ -413,16 +419,16 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 
 	const rawCropX = isFiniteNumber(editor.cropRegion?.x)
 		? editor.cropRegion.x
-		: DEFAULT_CROP_REGION.x;
+		: DEFAULT_EDITOR_LAYOUT_SETTINGS.cropRegion.x;
 	const rawCropY = isFiniteNumber(editor.cropRegion?.y)
 		? editor.cropRegion.y
-		: DEFAULT_CROP_REGION.y;
+		: DEFAULT_EDITOR_LAYOUT_SETTINGS.cropRegion.y;
 	const rawCropWidth = isFiniteNumber(editor.cropRegion?.width)
 		? editor.cropRegion.width
-		: DEFAULT_CROP_REGION.width;
+		: DEFAULT_EDITOR_LAYOUT_SETTINGS.cropRegion.width;
 	const rawCropHeight = isFiniteNumber(editor.cropRegion?.height)
 		? editor.cropRegion.height
-		: DEFAULT_CROP_REGION.height;
+		: DEFAULT_EDITOR_LAYOUT_SETTINGS.cropRegion.height;
 
 	const cropX = clamp(rawCropX, 0, 1);
 	const cropY = clamp(rawCropY, 0, 1);
@@ -433,18 +439,33 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		wallpaper:
 			typeof editor.wallpaper === "string"
 				? normalizeWallpaperValue(editor.wallpaper)
-				: DEFAULT_WALLPAPER,
-		shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0,
-		showBlur: typeof editor.showBlur === "boolean" ? editor.showBlur : false,
+				: DEFAULT_EDITOR_LAYOUT_SETTINGS.wallpaper,
+		shadowIntensity:
+			typeof editor.shadowIntensity === "number"
+				? editor.shadowIntensity
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.shadowIntensity,
+		showBlur:
+			typeof editor.showBlur === "boolean"
+				? editor.showBlur
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.showBlur,
+		showTrimWaveform:
+			typeof editor.showTrimWaveform === "boolean"
+				? editor.showTrimWaveform
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.showTrimWaveform,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)
 			? clamp(editor.motionBlurAmount, 0, 1)
 			: typeof (editor as { motionBlurEnabled?: unknown }).motionBlurEnabled === "boolean"
 				? (editor as { motionBlurEnabled?: boolean }).motionBlurEnabled
-					? 0.35
-					: 0
-				: 0,
-		borderRadius: typeof editor.borderRadius === "number" ? editor.borderRadius : 0,
-		padding: isFiniteNumber(editor.padding) ? clamp(editor.padding, 0, 100) : 50,
+					? DEFAULT_ZOOM_MOTION_BLUR
+					: DEFAULT_EDITOR_APPEARANCE_SETTINGS.motionBlurAmount
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.motionBlurAmount,
+		borderRadius:
+			typeof editor.borderRadius === "number"
+				? editor.borderRadius
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.borderRadius,
+		padding: isFiniteNumber(editor.padding)
+			? clamp(editor.padding, 0, 100)
+			: DEFAULT_EDITOR_LAYOUT_SETTINGS.padding,
 		cropRegion: {
 			x: cropX,
 			y: cropY,
@@ -463,31 +484,31 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamMaskShape === "square" ||
 			editor.webcamMaskShape === "rounded"
 				? editor.webcamMaskShape
-				: DEFAULT_WEBCAM_MASK_SHAPE,
+				: DEFAULT_WEBCAM_SETTINGS.maskShape,
 		webcamSizePreset:
 			typeof editor.webcamSizePreset === "number" && isFiniteNumber(editor.webcamSizePreset)
 				? Math.max(10, Math.min(50, editor.webcamSizePreset))
-				: DEFAULT_WEBCAM_SIZE_PRESET,
+				: DEFAULT_WEBCAM_SETTINGS.sizePreset,
 		webcamPosition: normalizedWebcamPosition,
 		exportQuality:
 			editor.exportQuality === "medium" || editor.exportQuality === "source"
 				? editor.exportQuality
-				: "good",
-		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
+				: DEFAULT_EXPORT_SETTINGS.quality,
+		exportFormat: editor.exportFormat === "gif" ? "gif" : DEFAULT_EXPORT_SETTINGS.format,
 		gifFrameRate:
 			editor.gifFrameRate === 15 ||
 			editor.gifFrameRate === 20 ||
 			editor.gifFrameRate === 25 ||
 			editor.gifFrameRate === 30
 				? editor.gifFrameRate
-				: 15,
-		gifLoop: typeof editor.gifLoop === "boolean" ? editor.gifLoop : true,
+				: DEFAULT_GIF_SETTINGS.frameRate,
+		gifLoop: typeof editor.gifLoop === "boolean" ? editor.gifLoop : DEFAULT_GIF_SETTINGS.loop,
 		gifSizePreset:
 			editor.gifSizePreset === "medium" ||
 			editor.gifSizePreset === "large" ||
 			editor.gifSizePreset === "original"
 				? editor.gifSizePreset
-				: "medium",
+				: DEFAULT_GIF_SETTINGS.sizePreset,
 	};
 }
 

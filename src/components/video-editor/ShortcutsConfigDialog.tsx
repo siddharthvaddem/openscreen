@@ -102,10 +102,14 @@ export function ShortcutsConfigDialog() {
 	const handleCancelConflict = useCallback(() => setConflict(null), []);
 
 	const handleSave = useCallback(async () => {
-		setShortcuts(draft);
-		await persistShortcuts(draft);
-		toast.success(t("savedToast"));
-		closeConfig();
+		const success = await persistShortcuts(draft);
+		if (success) {
+			setShortcuts(draft);
+			toast.success(t("savedToast"));
+			closeConfig();
+		} else {
+			toast.error(t("registrationFailed"));
+		}
 	}, [draft, setShortcuts, persistShortcuts, closeConfig, t]);
 
 	const handleReset = useCallback(() => {
@@ -222,7 +226,7 @@ export function ShortcutsConfigDialog() {
 					<Button
 						variant="ghost"
 						size="sm"
-						className="text-slate-400 hover:text-white gap-1.5"
+						className="text-slate-400 gap-1.5"
 						onClick={handleReset}
 					>
 						<RotateCcw className="w-3 h-3" />

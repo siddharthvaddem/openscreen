@@ -51,6 +51,12 @@
 		"detail": "닫기 전에 프로젝트를 저장하시겠습니까?",
 		"saveAndClose": "저장 후 닫기",
 		"discardAndClose": "저장하지 않고 닫기",
+		"detailNewProject": "새 프로젝트를 만들기 전에 저장하시겠습니까?",
+		"saveAndNewProject": "저장 후 새 프로젝트",
+		"discardAndNewProject": "저장하지 않고 새 프로젝트",
+		"detailLoadProject": "다른 프로젝트를 불러오기 전에 저장하시겠습니까?",
+		"saveAndLoadProject": "저장 후 프로젝트 불러오기",
+		"discardAndLoadProject": "저장하지 않고 프로젝트 불러오기",
 		"loadProject": "프로젝트 불러오기...",
 		"saveProject": "프로젝트 저장...",
 		"saveProjectAs": "다른 이름으로 프로젝트 저장..."

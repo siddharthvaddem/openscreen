@@ -365,6 +365,7 @@ void WebcamCapture::captureLoop() {
         if (currentLength >= expectedLength && expectedLength > 0) {
             std::scoped_lock lock(frameMutex_);
             latestFrame_.assign(data, data + expectedLength);
+            latestFrameSequence_ += 1;
         }
 
         buffer->Unlock();
@@ -373,18 +374,19 @@ void WebcamCapture::captureLoop() {
     CoUninitialize();
 }
 
-bool WebcamCapture::copyLatestFrame(std::vector<BYTE>& destination, int& width, int& height) {
+bool WebcamCapture::copyLatestFrame(WebcamFrameSnapshot& destination) {
     if (usingDirectShow_) {
-        return directShowCapture_.copyLatestFrame(destination, width, height);
+        return directShowCapture_.copyLatestFrame(destination);
     }
     std::scoped_lock lock(frameMutex_);
     if (latestFrame_.empty() || width_ <= 0 || height_ <= 0) {
         return false;
     }
 
-    destination = latestFrame_;
-    width = width_;
-    height = height_;
+    destination.data = latestFrame_;
+    destination.width = width_;
+    destination.height = height_;
+    destination.sequence = latestFrameSequence_;
     return true;
 }
 
