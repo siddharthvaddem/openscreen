@@ -41,7 +41,7 @@ import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import Row from "./Row";
 import TimelineWrapper from "./TimelineWrapper";
-import { detectZoomDwellCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
+import { detectZoomCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
@@ -1191,7 +1191,7 @@ export default function TimelineEditor({
 			return;
 		}
 
-		const dwellCandidates = detectZoomDwellCandidates(normalizedSamples);
+		const dwellCandidates = detectZoomCandidates(normalizedSamples);
 
 		if (dwellCandidates.length === 0) {
 			toast.info(t("errors.noDwellMoments"), {

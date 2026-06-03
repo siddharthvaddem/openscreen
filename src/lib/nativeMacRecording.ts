@@ -46,6 +46,10 @@ export type NativeMacRecordingRequest = {
 		screenPath: string;
 		manifestPath?: string;
 	};
+	excludedApps?: Array<{
+		bundleIdentifier?: string;
+		processID?: number;
+	}>;
 };
 
 export type NativeMacHelperReadyEvent = {
