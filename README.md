@@ -43,6 +43,7 @@ Screen Studio is an awesome product and this is definitely not a 1:1 clone. Open
 - Blur effects to hide sensitive parts of the screen.
 - Cursor and click highlighting.
 - Text, arrow, and image annotations.
+- Offline auto-captions on macOS release builds, generated locally with bundled whisper.cpp helpers and the default `ggml-small` model.
 - Save and reopen projects without re-recording.
 - Export to MP4 or GIF in multiple aspect ratios and resolutions.
 - Translated into Arabic, English, Spanish, French, Japanese, Korean, Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese.
@@ -153,6 +154,8 @@ System audio capture relies on Electron's [desktopCapturer](https://www.electron
 - **macOS**: Requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below does not support system audio (mic still works).
 - **Windows**: Works out of the box.
 - **Linux**: Needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not support system audio (mic should still work).
+
+Offline auto-captions currently depend on packaged caption runtime assets. macOS release builds include the local whisper.cpp CLI, ffmpeg, and `ggml-small` model; other platforms report captions as unavailable until their helper assets are packaged.
 
 ## Built with
 - Electron

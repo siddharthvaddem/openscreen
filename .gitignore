@@ -20,6 +20,7 @@ dist-ssr
 /electron/native/screencapturekit/.build/
 /electron/native/screencapturekit/.swiftpm/
 /electron/native/bin/
+/electron/native/captions/*/
 
 # Native macOS generated files
 DerivedData/
