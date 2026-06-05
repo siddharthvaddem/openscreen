@@ -139,6 +139,8 @@
 		"clearBackground": "背景をクリア",
 		"uploadImage": "画像を読み込む",
 		"supportedFormats": "サポートされている形式: JPG, PNG, GIF, WebP",
+		"stickerPresets": "ステッカープリセット",
+		"stickerPresetsDescription": "ステッカーをクリックすると、この画像注釈として使用します。",
 		"arrowDirection": "矢印の方向",
 		"strokeWidth": "線の太さ: {{width}}px",
 		"arrowColor": "矢印の色",

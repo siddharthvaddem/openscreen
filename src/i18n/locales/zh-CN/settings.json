@@ -139,6 +139,8 @@
 		"clearBackground": "清除背景",
 		"uploadImage": "上传图片",
 		"supportedFormats": "支持的格式：JPG、PNG、GIF、WebP",
+		"stickerPresets": "内置贴纸",
+		"stickerPresetsDescription": "点击贴纸即可用作当前图片标注。",
 		"arrowDirection": "箭头方向",
 		"strokeWidth": "描边宽度：{{width}}px",
 		"arrowColor": "箭头颜色",

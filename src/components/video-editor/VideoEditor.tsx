@@ -16,6 +16,11 @@ import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { INITIAL_EDITOR_STATE, useEditorHistory } from "@/hooks/useEditorHistory";
 import { type Locale } from "@/i18n/config";
 import { getAvailableLocales, getLocaleName } from "@/i18n/loader";
+import {
+	type CaptionGenerationResult,
+	type CaptionSegment,
+	getWhisperLanguageForLocale,
+} from "@/lib/captions";
 import { hasNativeCursorRecordingData } from "@/lib/cursor/nativeCursor";
 import {
 	calculateEffectiveSourceDimensions,
@@ -48,6 +53,7 @@ import {
 	getNativeAspectRatioValue,
 	isPortraitAspectRatio,
 } from "@/utils/aspectRatioUtils";
+import { createCaptionAnnotations } from "./captionAnnotations";
 import { ExportDialog } from "./ExportDialog";
 import {
 	DEFAULT_CURSOR_SETTINGS,
@@ -92,6 +98,7 @@ import {
 	type ZoomRegion,
 } from "./types";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
+import { useAutoCaptionGeneration } from "./useAutoCaptionGeneration";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 
 function isClickInteractionType(interactionType: string | null | undefined) {
@@ -182,6 +189,7 @@ export default function VideoEditor() {
 	// ── Non-undoable state
 	const [videoPath, setVideoPath] = useState<string | null>(null);
 	const [videoSourcePath, setVideoSourcePath] = useState<string | null>(null);
+	const [autoCaptionSourcePath, setAutoCaptionSourcePath] = useState<string | null>(null);
 	const [webcamVideoPath, setWebcamVideoPath] = useState<string | null>(null);
 	const [webcamVideoSourcePath, setWebcamVideoSourcePath] = useState<string | null>(null);
 	const [currentProjectPath, setCurrentProjectPath] = useState<string | null>(null);
@@ -276,6 +284,7 @@ export default function VideoEditor() {
 	const t = useScopedT("editor");
 	const ts = useScopedT("settings");
 	const availableLocales = getAvailableLocales();
+	const captionLanguage = useMemo(() => getWhisperLanguageForLocale(locale), [locale]);
 
 	const nextAnnotationIdRef = useRef(1);
 	const nextAnnotationZIndexRef = useRef(1);
@@ -346,6 +355,7 @@ export default function VideoEditor() {
 			setError(null);
 			setVideoSourcePath(sourcePath);
 			setVideoPath(toFileUrl(sourcePath));
+			setAutoCaptionSourcePath(null);
 			setWebcamVideoSourcePath(webcamSourcePath);
 			setWebcamVideoPath(webcamSourcePath ? toFileUrl(webcamSourcePath) : null);
 			setRecordingCursorCaptureMode(projectCursorCaptureMode);
@@ -509,6 +519,7 @@ export default function VideoEditor() {
 							INITIAL_EDITOR_STATE,
 						),
 					);
+					setAutoCaptionSourcePath(sourcePath);
 					return;
 				}
 
@@ -521,6 +532,7 @@ export default function VideoEditor() {
 					setLastSavedSnapshot(
 						createProjectSnapshot({ screenVideoPath: result.path }, INITIAL_EDITOR_STATE),
 					);
+					setAutoCaptionSourcePath(null);
 				} else {
 					setError("No video to load. Please record or select a video.");
 				}
@@ -1938,6 +1950,53 @@ export default function VideoEditor() {
 		}
 	}, [exportError, editorState]);
 
+	const handleGeneratedCaptions = useCallback(
+		(segments: CaptionSegment[]) => {
+			if (segments.length === 0) return;
+
+			pushState((prev) => {
+				const annotations = createCaptionAnnotations(segments, {
+					existingIds: prev.annotationRegions.map((region) => region.id),
+					startZIndex: nextAnnotationZIndexRef.current,
+				});
+				nextAnnotationZIndexRef.current += annotations.length;
+				return {
+					annotationRegions: [...prev.annotationRegions, ...annotations],
+				};
+			});
+		},
+		[pushState],
+	);
+
+	const handleCaptionStatusMessage = useCallback(
+		(result: CaptionGenerationResult) => {
+			if (result.status === "success" && result.segments.length > 0) {
+				toast.success(t("captions.generated", { count: result.segments.length }));
+				return;
+			}
+			if (result.status === "skipped") {
+				toast.info(t("captions.skippedNoAudio"));
+				return;
+			}
+			if (result.status === "unavailable") {
+				toast.warning(t("captions.unavailable"));
+				return;
+			}
+			if (result.status === "error") {
+				toast.error(result.message || t("captions.failed"));
+			}
+		},
+		[t],
+	);
+
+	const captionStatus = useAutoCaptionGeneration({
+		sourcePath: autoCaptionSourcePath,
+		enabled: Boolean(autoCaptionSourcePath),
+		language: captionLanguage,
+		onCaptions: handleGeneratedCaptions,
+		onStatusMessage: handleCaptionStatusMessage,
+	});
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-screen bg-background">
@@ -2041,6 +2100,11 @@ export default function VideoEditor() {
 						<Save size={14} />
 						{ts("project.save")}
 					</button>
+					{captionStatus === "running" && (
+						<span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/80">
+							{t("captions.generating")}
+						</span>
+					)}
 				</div>
 			</div>
 

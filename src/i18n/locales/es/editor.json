@@ -42,5 +42,12 @@
 		"description": "Tu sesión actual ha sido guardada.",
 		"cancel": "Cancelar",
 		"confirm": "Confirmar"
+	},
+	"captions": {
+		"generating": "Generando subtítulos...",
+		"generated": "{{count}} subtítulos generados.",
+		"skippedNoAudio": "No se encontró pista de audio; se omitieron los subtítulos.",
+		"unavailable": "El modelo local de subtítulos no está disponible.",
+		"failed": "Error al generar subtítulos."
 	}
 }

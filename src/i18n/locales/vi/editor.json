@@ -42,5 +42,12 @@
 		"cameraNotFound": "Không tìm thấy máy ảnh.",
 		"permissionDenied": "Quyền ghi hình bị từ chối. Vui lòng cho phép ghi màn hình.",
 		"accessibilityAllowAndRetry": "Cho phép OpenScreen truy cập Trợ năng, sau đó nhấn ghi lại để bắt đầu đếm ngược."
+	},
+	"captions": {
+		"generating": "Đang tạo phụ đề...",
+		"generated": "Đã tạo {{count}} phụ đề.",
+		"skippedNoAudio": "Không tìm thấy bản âm thanh; đã bỏ qua phụ đề.",
+		"unavailable": "Mô hình phụ đề cục bộ không khả dụng.",
+		"failed": "Tạo phụ đề thất bại."
 	}
 }

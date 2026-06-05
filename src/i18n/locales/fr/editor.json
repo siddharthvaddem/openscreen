@@ -42,5 +42,12 @@
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran.",
 		"accessibilityAllowAndRetry": "Autorisez l'accès Accessibilité pour OpenScreen, puis appuyez de nouveau sur enregistrer pour lancer le compte à rebours."
 	},
-	"loadingVideo": "Chargement de la vidéo..."
+	"loadingVideo": "Chargement de la vidéo...",
+	"captions": {
+		"generating": "Génération des sous-titres...",
+		"generated": "{{count}} sous-titres générés.",
+		"skippedNoAudio": "Aucune piste audio trouvée ; sous-titres ignorés.",
+		"unavailable": "Le modèle de sous-titres local n'est pas disponible.",
+		"failed": "Échec de la génération des sous-titres."
+	}
 }

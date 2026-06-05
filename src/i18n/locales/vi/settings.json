@@ -137,6 +137,8 @@
 		"clearBackground": "Xóa nền",
 		"uploadImage": "Tải lên hình ảnh",
 		"supportedFormats": "Định dạng hỗ trợ: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Mẫu nhãn dán",
+		"stickerPresetsDescription": "Nhấp vào nhãn dán để dùng làm chú thích hình ảnh này.",
 		"arrowDirection": "Hướng mũi tên",
 		"strokeWidth": "Độ dày nét: {{width}}px",
 		"arrowColor": "Màu mũi tên",

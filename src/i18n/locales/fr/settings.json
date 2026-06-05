@@ -140,6 +140,8 @@
 		"clearBackground": "Supprimer l'arrière-plan",
 		"uploadImage": "Téléverser une image",
 		"supportedFormats": "Formats supportés : JPG, PNG, GIF, WebP",
+		"stickerPresets": "Préréglages de stickers",
+		"stickerPresetsDescription": "Cliquez sur un sticker pour l'utiliser comme annotation d'image.",
 		"arrowDirection": "Direction de la flèche",
 		"strokeWidth": "Épaisseur du trait : {{width}}px",
 		"arrowColor": "Couleur de la flèche",

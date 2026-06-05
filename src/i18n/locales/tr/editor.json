@@ -42,5 +42,12 @@
 		"description": "Mevcut oturumunuz kaydedildi.",
 		"cancel": "İptal",
 		"confirm": "Onayla"
+	},
+	"captions": {
+		"generating": "Altyazılar oluşturuluyor...",
+		"generated": "{{count}} altyazı oluşturuldu.",
+		"skippedNoAudio": "Ses parçası bulunamadı; altyazılar atlandı.",
+		"unavailable": "Yerel altyazı modeli kullanılamıyor.",
+		"failed": "Altyazılar oluşturulamadı."
 	}
 }

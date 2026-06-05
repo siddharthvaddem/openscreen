@@ -139,6 +139,8 @@
 		"clearBackground": "Arka Planı Temizle",
 		"uploadImage": "Görüntü Yükle",
 		"supportedFormats": "Desteklenen biçimler: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Hazır çıkartmalar",
+		"stickerPresetsDescription": "Bu görsel açıklama için kullanmak üzere bir çıkartmaya tıklayın.",
 		"arrowDirection": "Ok Yönü",
 		"strokeWidth": "Çizgi Kalınlığı: {{width}}px",
 		"arrowColor": "Ok Rengi",

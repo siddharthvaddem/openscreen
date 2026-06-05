@@ -42,5 +42,12 @@
 		"cameraNotFound": "Fotocamera non trovata.",
 		"permissionDenied": "Autorizzazione di registrazione negata. Consenti la registrazione dello schermo.",
 		"accessibilityAllowAndRetry": "Consenti l'accesso all'accessibilità per OpenScreen, poi premi di nuovo registra per avviare il conto alla rovescia."
+	},
+	"captions": {
+		"generating": "Generazione sottotitoli...",
+		"generated": "{{count}} sottotitoli generati.",
+		"skippedNoAudio": "Nessuna traccia audio trovata; sottotitoli saltati.",
+		"unavailable": "Il modello locale per i sottotitoli non è disponibile.",
+		"failed": "Impossibile generare i sottotitoli."
 	}
 }

@@ -139,6 +139,8 @@
 		"clearBackground": "Очистить фон",
 		"uploadImage": "Загрузить изображение",
 		"supportedFormats": "Поддерживаемые форматы: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Готовые стикеры",
+		"stickerPresetsDescription": "Нажмите стикер, чтобы использовать его как аннотацию-изображение.",
 		"arrowDirection": "Направление стрелки",
 		"strokeWidth": "Толщина линии: {{width}}px",
 		"arrowColor": "Цвет стрелки",

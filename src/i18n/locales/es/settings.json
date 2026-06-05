@@ -139,6 +139,8 @@
 		"clearBackground": "Quitar fondo",
 		"uploadImage": "Subir imagen",
 		"supportedFormats": "Formatos compatibles: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Stickers predefinidos",
+		"stickerPresetsDescription": "Haz clic en un sticker para usarlo como esta anotación de imagen.",
 		"arrowDirection": "Dirección de la flecha",
 		"strokeWidth": "Grosor del trazo: {{width}}px",
 		"arrowColor": "Color de la flecha",

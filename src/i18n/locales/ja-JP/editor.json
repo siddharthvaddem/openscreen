@@ -42,5 +42,12 @@
 		"cameraDisconnected": "ウェブカメラが切断されました。",
 		"cameraNotFound": "カメラが見つかりません。",
 		"accessibilityAllowAndRetry": "OpenScreenにアクセシビリティアクセスを許可してから、もう一度録画を押してカウントダウンを開始してください。"
+	},
+	"captions": {
+		"generating": "字幕を生成しています...",
+		"generated": "{{count}} 件の字幕を生成しました。",
+		"skippedNoAudio": "音声トラックが見つからないため、字幕生成をスキップしました。",
+		"unavailable": "ローカル字幕モデルを利用できません。",
+		"failed": "字幕の生成に失敗しました。"
 	}
 }

@@ -46,6 +46,8 @@ const AUDIO_BITRATE_SYSTEM = 192_000;
 
 const MIC_GAIN_BOOST = 1.4;
 const WEBCAM_TARGET_FRAME_RATE = 30;
+const SCREEN_CAPTUREKIT_PERMISSION_ERROR =
+	"Screen recording permission is required for ScreenCaptureKit capture";
 
 type UseScreenRecorderReturn = {
 	recording: boolean;
@@ -87,6 +89,13 @@ type NativeMacRecordingHandle = {
 	paused: boolean;
 };
 
+function isRecoverableNativeMacScreenPermissionError(message: string) {
+	return (
+		message.includes(SCREEN_CAPTUREKIT_PERMISSION_ERROR) ||
+		message.includes("screen-permission-denied")
+	);
+}
+
 export function useScreenRecorder(): UseScreenRecorderReturn {
 	const t = useScopedT("editor");
 	const [recording, setRecording] = useState(false);
@@ -104,6 +113,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const webcamRecorder = useRef<RecorderHandle | null>(null);
 	const nativeWindowsRecording = useRef<NativeWindowsRecordingHandle | null>(null);
 	const nativeMacRecording = useRef<NativeMacRecordingHandle | null>(null);
+	const cleanupScreenTrackEndedListener = useRef<(() => void) | null>(null);
 	const stream = useRef<MediaStream | null>(null);
 	const screenStream = useRef<MediaStream | null>(null);
 	const microphoneStream = useRef<MediaStream | null>(null);
@@ -167,6 +177,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	};
 
 	const teardownMedia = useCallback(() => {
+		cleanupScreenTrackEndedListener.current?.();
+		cleanupScreenTrackEndedListener.current = null;
 		if (stream.current) {
 			stream.current.getTracks().forEach((track) => track.stop());
 			stream.current = null;
@@ -679,17 +691,25 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	}, []);
 
 	useEffect(() => {
-		let cleanup: (() => void) | undefined;
+		let cleanupStopFromTray: (() => void) | undefined;
+		let cleanupNativeRecordingStopped: (() => void) | undefined;
 
 		if (window.electronAPI?.onStopRecordingFromTray) {
-			cleanup = window.electronAPI.onStopRecordingFromTray(() => {
+			cleanupStopFromTray = window.electronAPI.onStopRecordingFromTray(() => {
+				stopRecording.current();
+			});
+		}
+
+		if (window.electronAPI?.onNativeRecordingStopped) {
+			cleanupNativeRecordingStopped = window.electronAPI.onNativeRecordingStopped(() => {
 				stopRecording.current();
 			});
 		}
 
 		return () => {
 			const activeRunId = countdownRunId.current;
-			if (cleanup) cleanup();
+			if (cleanupStopFromTray) cleanupStopFromTray();
+			if (cleanupNativeRecordingStopped) cleanupNativeRecordingStopped();
 			countdownRunId.current += 1;
 			void safeHideCountdownOverlay(activeRunId);
 			allowAutoFinalize.current = false;
@@ -905,6 +925,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				return false;
 			}
 
+			// The current ScreenCaptureKit helper can write microphone samples as a
+			// separate track, but it does not yet mix them into the primary AAC track.
+			// Use the browser path for microphone recordings so the mic is captured
+			// into the MediaRecorder audio track reliably.
+			if (microphoneEnabled) {
+				return false;
+			}
+
 			const availability = await window.electronAPI.isNativeMacCaptureAvailable();
 			if (!availability.success || !availability.available) {
 				if (availability.reason === "unsupported-platform") {
@@ -1009,7 +1037,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				if (nativeWebcamRecorder && nativeWebcamRecorder.recorder.state !== "inactive") {
 					nativeWebcamRecorder.recorder.stop();
 				}
-				throw new Error(result.error ?? "Native macOS capture failed.");
+				const nativeError = result.error ?? "Native macOS capture failed.";
+				if (isRecoverableNativeMacScreenPermissionError(nativeError)) {
+					console.warn(
+						"Native macOS ScreenCaptureKit permission is unavailable; falling back to browser recording.",
+						nativeError,
+					);
+					return false;
+				}
+				throw new Error(nativeError);
 			}
 			if (!isCountdownRunActive(countdownRunToken)) {
 				if (nativeWebcamRecorder && nativeWebcamRecorder.recorder.state !== "inactive") {
@@ -1272,6 +1308,17 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			if (!videoTrack) {
 				throw new Error("Video track is not available.");
 			}
+			const handleScreenTrackEnded = () => {
+				if (!allowAutoFinalize.current) {
+					return;
+				}
+				stopRecording.current();
+			};
+			cleanupScreenTrackEndedListener.current?.();
+			videoTrack.addEventListener("ended", handleScreenTrackEnded, { once: true });
+			cleanupScreenTrackEndedListener.current = () => {
+				videoTrack.removeEventListener("ended", handleScreenTrackEnded);
+			};
 			stream.current.addTrack(videoTrack);
 
 			const systemAudioTrack = screenMediaStream.getAudioTracks()[0];

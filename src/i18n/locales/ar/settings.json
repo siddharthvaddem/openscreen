@@ -139,6 +139,8 @@
 		"clearBackground": "مسح الخلفية",
 		"uploadImage": "رفع صورة",
 		"supportedFormats": "الصيغ المدعومة: JPG, PNG, GIF, WebP",
+		"stickerPresets": "ملصقات جاهزة",
+		"stickerPresetsDescription": "انقر على ملصق لاستخدامه كتعليق صورة.",
 		"arrowDirection": "اتجاه السهم",
 		"strokeWidth": "عرض الخط: {{width}}px",
 		"arrowColor": "لون السهم",

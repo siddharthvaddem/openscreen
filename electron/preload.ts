@@ -133,6 +133,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("stop-recording-from-tray", listener);
 		return () => ipcRenderer.removeListener("stop-recording-from-tray", listener);
 	},
+	onNativeRecordingStopped: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("native-recording-stopped", listener);
+		return () => ipcRenderer.removeListener("native-recording-stopped", listener);
+	},
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},
@@ -162,6 +167,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	preparePreviewAudioTrack: (filePath: string) => {
 		return ipcRenderer.invoke("prepare-preview-audio-track", filePath);
+	},
+	startCaptionGeneration: (
+		videoPath: string,
+		options?: import("../src/lib/captions").CaptionGenerationOptions,
+	) => {
+		return ipcRenderer.invoke("start-caption-generation", videoPath, options);
+	},
+	cancelCaptionGeneration: (jobId: string) => {
+		return ipcRenderer.invoke("cancel-caption-generation", jobId);
 	},
 	clearCurrentVideoPath: () => {
 		return ipcRenderer.invoke("clear-current-video-path");

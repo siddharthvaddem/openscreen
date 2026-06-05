@@ -42,5 +42,12 @@
 		"cameraNotFound": "未找到摄像头。",
 		"permissionDenied": "录屏权限被拒绝。请允许屏幕录制。",
 		"accessibilityAllowAndRetry": "允许 OpenScreen 使用辅助功能权限，然后再次按录制以开始倒计时。"
+	},
+	"captions": {
+		"generating": "正在生成字幕...",
+		"generated": "已生成 {{count}} 条字幕。",
+		"skippedNoAudio": "未找到音轨，已跳过字幕生成。",
+		"unavailable": "本地字幕模型不可用。",
+		"failed": "字幕生成失败。"
 	}
 }

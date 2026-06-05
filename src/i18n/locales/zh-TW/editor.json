@@ -42,5 +42,12 @@
 		"cameraDisconnected": "網路攝影機已中斷連線。",
 		"cameraNotFound": "找不到攝影機。",
 		"accessibilityAllowAndRetry": "允許 OpenScreen 使用輔助使用權限，然後再次按下錄製以開始倒數。"
+	},
+	"captions": {
+		"generating": "正在產生字幕...",
+		"generated": "已產生 {{count}} 條字幕。",
+		"skippedNoAudio": "找不到音軌，已略過字幕產生。",
+		"unavailable": "本機字幕模型不可用。",
+		"failed": "字幕產生失敗。"
 	}
 }

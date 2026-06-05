@@ -42,5 +42,12 @@
 		"cameraDisconnected": "웹캠 연결이 끊어졌습니다.",
 		"cameraNotFound": "카메라를 찾을 수 없습니다.",
 		"accessibilityAllowAndRetry": "OpenScreen의 손쉬운 사용 접근을 허용한 다음, 카운트다운을 시작하려면 다시 녹화를 누르세요."
+	},
+	"captions": {
+		"generating": "자막을 생성하는 중...",
+		"generated": "자막 {{count}}개를 생성했습니다.",
+		"skippedNoAudio": "오디오 트랙을 찾을 수 없어 자막 생성을 건너뛰었습니다.",
+		"unavailable": "로컬 자막 모델을 사용할 수 없습니다.",
+		"failed": "자막 생성에 실패했습니다."
 	}
 }

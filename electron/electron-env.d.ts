@@ -171,6 +171,7 @@ interface Window {
 			error?: string;
 		}>;
 		onStopRecordingFromTray: (callback: () => void) => () => void;
+		onNativeRecordingStopped: (callback: () => void) => () => void;
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 		pickExportSavePath: (
 			fileName: string,
@@ -217,6 +218,11 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		startCaptionGeneration: (
+			videoPath: string,
+			options?: import("../src/lib/captions").CaptionGenerationOptions,
+		) => Promise<import("../src/lib/captions").CaptionGenerationResult>;
+		cancelCaptionGeneration: (jobId: string) => Promise<{ success: boolean; cancelled: boolean }>;
 		clearCurrentVideoPath: () => Promise<{ success: boolean }>;
 		saveProjectFile: (
 			projectData: unknown,

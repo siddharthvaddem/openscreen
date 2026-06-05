@@ -42,5 +42,12 @@
 		"cameraNotFound": "Camera not found.",
 		"permissionDenied": "Recording permission denied. Please allow screen recording.",
 		"accessibilityAllowAndRetry": "Allow Accessibility access for OpenScreen, then press record again to start the countdown."
+	},
+	"captions": {
+		"generating": "Generating captions...",
+		"generated": "Generated {{count}} captions.",
+		"skippedNoAudio": "No audio track found; captions skipped.",
+		"unavailable": "Local caption model is not available.",
+		"failed": "Failed to generate captions."
 	}
 }

@@ -41,7 +41,7 @@
     "target": [
       {
         "target": "dmg",
-        "arch": ["x64", "arm64"]
+        "arch": ["arm64"]
       }
     ],
     "icon": "icons/icons/mac/icon.icns",
@@ -50,7 +50,12 @@
       {
         "from": "electron/native/bin",
         "to": "electron/native/bin",
-        "filter": ["darwin-*/*"]
+        "filter": ["darwin-arm64/**/*"]
+      },
+      {
+        "from": "electron/native/captions",
+        "to": "electron/native/captions",
+        "filter": ["darwin-arm64/**/*"]
       }
     ],
     "extendInfo": {

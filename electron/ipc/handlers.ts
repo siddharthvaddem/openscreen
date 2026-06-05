@@ -35,6 +35,8 @@ import type {
 	ProjectFileResult,
 	ProjectPathResult,
 } from "../../src/native/contracts";
+import { CaptionJobRegistry } from "../captions/jobs";
+import { generateCaptionsWithWhisper } from "../captions/whisper";
 import { mainT } from "../i18n";
 import { RECORDINGS_DIR } from "../main";
 import { createCursorRecordingSession } from "../native-bridge/cursor/recording/factory";
@@ -355,6 +357,20 @@ let selectedDesktopSource: DesktopCapturerSource | null = null;
 let lastEnumeratedSources = new Map<string, DesktopCapturerSource>();
 let currentProjectPath: string | null = null;
 let currentRecordingSession: RecordingSession | null = null;
+const captionJobRegistry = new CaptionJobRegistry({
+	generate: (request) =>
+		generateCaptionsWithWhisper({
+			jobId: request.jobId,
+			videoPath: request.videoPath,
+			language: request.language,
+			signal: request.signal,
+			platform: process.platform,
+			arch: process.arch,
+			resourcesPath: process.resourcesPath,
+			tempDir: app.getPath("temp"),
+			env: process.env,
+		}),
+});
 
 /**
  * Returns the cached DesktopCapturerSource set when the user picked a source.
@@ -408,6 +424,10 @@ let nativeWindowsCaptureOutput = "";
 let nativeWindowsCaptureTargetPath: string | null = null;
 let nativeWindowsCaptureWebcamTargetPath: string | null = null;
 let nativeWindowsCaptureRecordingId: number | null = null;
+let nativeWindowsCaptureStarted = false;
+let nativeWindowsCaptureClosed = false;
+let nativeWindowsCaptureCloseCode: number | null = null;
+let nativeWindowsCaptureStopRequested = false;
 let nativeWindowsCursorOffsetMs = 0;
 let nativeWindowsCursorCaptureMode: CursorCaptureMode = "editable-overlay";
 let nativeWindowsCursorRecordingStartMs = 0;
@@ -419,6 +439,10 @@ let nativeMacCaptureProcess: ChildProcessWithoutNullStreams | null = null;
 let nativeMacCaptureOutput = "";
 let nativeMacCaptureTargetPath: string | null = null;
 let nativeMacCaptureRecordingId: number | null = null;
+let nativeMacCaptureStarted = false;
+let nativeMacCaptureClosed = false;
+let nativeMacCaptureCloseCode: number | null = null;
+let nativeMacCaptureStopRequested = false;
 let nativeMacCursorOffsetMs = 0;
 let nativeMacCursorCaptureMode: CursorCaptureMode = "editable-overlay";
 let nativeMacCursorRecordingStartMs = 0;
@@ -922,8 +946,7 @@ function waitForNativeWindowsCaptureStart(proc: ChildProcessWithoutNullStreams) 
 			reject(new Error("Timed out waiting for native Windows capture to start"));
 		}, 12000);
 
-		const onOutput = (chunk: Buffer) => {
-			nativeWindowsCaptureOutput += chunk.toString();
+		const onOutput = () => {
 			if (nativeWindowsCaptureOutput.includes("Recording started")) {
 				cleanup();
 				resolve();
@@ -954,6 +977,10 @@ function waitForNativeWindowsCaptureStart(proc: ChildProcessWithoutNullStreams) 
 		proc.stderr.on("data", onOutput);
 		proc.once("error", onError);
 		proc.once("exit", onExit);
+		if (nativeWindowsCaptureOutput.includes("Recording started")) {
+			cleanup();
+			resolve();
+		}
 	});
 }
 
@@ -972,14 +999,18 @@ function waitForNativeWindowsCaptureStop(proc: ChildProcessWithoutNullStreams) {
 				),
 			);
 		}, NATIVE_WINDOWS_CAPTURE_STOP_TIMEOUT_MS);
-		const onOutput = (chunk: Buffer) => {
-			nativeWindowsCaptureOutput += chunk.toString();
+		const onOutput = () => {
+			const stoppedPath = getNativeWindowsStoppedPathFromOutput();
+			if (stoppedPath) {
+				cleanup();
+				resolve(stoppedPath);
+			}
 		};
 		const onClose = (code: number | null) => {
 			cleanup();
-			const match = nativeWindowsCaptureOutput.match(/Recording stopped\. Output path: (.+)/);
-			if (match?.[1]) {
-				resolve(match[1].trim());
+			const stoppedPath = getNativeWindowsStoppedPathFromOutput();
+			if (stoppedPath) {
+				resolve(stoppedPath);
 				return;
 			}
 			if (code === 0 && nativeWindowsCaptureTargetPath) {
@@ -1009,7 +1040,58 @@ function waitForNativeWindowsCaptureStop(proc: ChildProcessWithoutNullStreams) {
 		proc.stderr.on("data", onOutput);
 		proc.once("close", onClose);
 		proc.once("error", onError);
+
+		const stoppedPath = getNativeWindowsStoppedPathFromOutput();
+		if (stoppedPath) {
+			cleanup();
+			resolve(stoppedPath);
+			return;
+		}
+		if (nativeWindowsCaptureClosed) {
+			cleanup();
+			if (nativeWindowsCaptureCloseCode === 0 && nativeWindowsCaptureTargetPath) {
+				resolve(nativeWindowsCaptureTargetPath);
+				return;
+			}
+			reject(
+				new Error(
+					nativeWindowsCaptureOutput.trim() ||
+						`Native Windows capture exited with code=${nativeWindowsCaptureCloseCode ?? "unknown"}`,
+				),
+			);
+		}
 	});
+}
+
+function attachNativeWindowsCaptureOutputDrain(proc: ChildProcessWithoutNullStreams) {
+	const drain = (chunk: Buffer) => {
+		nativeWindowsCaptureOutput += chunk.toString();
+	};
+	const cleanup = () => {
+		proc.stdout.off("data", drain);
+		proc.stderr.off("data", drain);
+		proc.off("close", cleanup);
+		proc.off("error", cleanup);
+	};
+
+	proc.stdout.on("data", drain);
+	proc.stderr.on("data", drain);
+	proc.once("close", cleanup);
+	proc.once("error", cleanup);
+}
+
+function getNativeWindowsStoppedPathFromOutput() {
+	for (const line of nativeWindowsCaptureOutput.split(/\r?\n/).reverse()) {
+		const event = tryParseNativeHelperEvent(line.trim());
+		if (event?.event === "recording-stopped" && typeof event.screenPath === "string") {
+			return event.screenPath;
+		}
+	}
+
+	const matches = [
+		...nativeWindowsCaptureOutput.matchAll(/Recording stopped\. Output path: ([^\r\n]+)/g),
+	];
+	return matches.at(-1)?.[1]?.trim() ?? null;
 }
 
 function readNativeWindowsWebcamFormat(output: string) {
@@ -1179,7 +1261,38 @@ function waitForNativeMacCaptureStop(proc: ChildProcessWithoutNullStreams) {
 		proc.once("close", onClose);
 		proc.once("error", onError);
 		inspectNativeMacCaptureOutput();
+
+		const stoppedPath = getNativeMacStoppedPathFromOutput();
+		if (stoppedPath) {
+			cleanup();
+			resolve(stoppedPath);
+			return;
+		}
+		if (nativeMacCaptureClosed) {
+			cleanup();
+			if (nativeMacCaptureCloseCode === 0 && nativeMacCaptureTargetPath) {
+				resolve(nativeMacCaptureTargetPath);
+				return;
+			}
+			reject(
+				new Error(
+					nativeMacCaptureOutput.trim() ||
+						`Native macOS capture exited with code=${nativeMacCaptureCloseCode ?? "unknown"}`,
+				),
+			);
+		}
 	});
+}
+
+function getNativeMacStoppedPathFromOutput() {
+	for (const line of nativeMacCaptureOutput.split(/\r?\n/).reverse()) {
+		const event = tryParseNativeHelperEvent(line.trim());
+		if (event?.event === "recording-stopped" && typeof event.screenPath === "string") {
+			return event.screenPath;
+		}
+	}
+
+	return null;
 }
 
 function setCurrentRecordingSessionState(session: RecordingSession | null) {
@@ -1304,6 +1417,15 @@ export function registerIpcHandlers(
 			console.error("Failed to request screen access:", error);
 			return { success: false, granted: false, status: "unknown", error: String(error) };
 		}
+	}
+
+	function notifyNativeRecordingStopped() {
+		const mainWindow = getMainWindow();
+		if (!mainWindow || mainWindow.isDestroyed()) {
+			return;
+		}
+
+		mainWindow.webContents.send("native-recording-stopped");
 	}
 
 	ipcMain.handle("get-sources", async (_, opts) => {
@@ -1623,6 +1745,10 @@ export function registerIpcHandlers(
 				nativeWindowsCaptureTargetPath = outputPath;
 				nativeWindowsCaptureWebcamTargetPath = request.webcam.enabled ? webcamOutputPath : null;
 				nativeWindowsCaptureRecordingId = recordingId;
+				nativeWindowsCaptureStarted = false;
+				nativeWindowsCaptureClosed = false;
+				nativeWindowsCaptureCloseCode = null;
+				nativeWindowsCaptureStopRequested = false;
 				nativeWindowsCursorOffsetMs = 0;
 				nativeWindowsCursorCaptureMode = cursorCaptureMode;
 				nativeWindowsCursorRecordingStartMs = 0;
@@ -1648,8 +1774,30 @@ export function registerIpcHandlers(
 					windowsHide: true,
 				});
 				nativeWindowsCaptureProcess = proc;
+				attachNativeWindowsCaptureOutputDrain(proc);
+				proc.once("close", (code) => {
+					nativeWindowsCaptureClosed = true;
+					nativeWindowsCaptureCloseCode = code;
+					if (
+						nativeWindowsCaptureStarted &&
+						!nativeWindowsCaptureStopRequested &&
+						(getNativeWindowsStoppedPathFromOutput() ||
+							(code === 0 && nativeWindowsCaptureTargetPath))
+					) {
+						notifyNativeRecordingStopped();
+					}
+				});
 
 				await waitForNativeWindowsCaptureStart(proc);
+				nativeWindowsCaptureStarted = true;
+				if (
+					nativeWindowsCaptureClosed &&
+					!nativeWindowsCaptureStopRequested &&
+					(getNativeWindowsStoppedPathFromOutput() ||
+						(nativeWindowsCaptureCloseCode === 0 && nativeWindowsCaptureTargetPath))
+				) {
+					notifyNativeRecordingStopped();
+				}
 				const captureStartedAtMs = Date.now();
 				nativeWindowsCursorOffsetMs =
 					cursorCaptureMode === "editable-overlay"
@@ -1680,6 +1828,10 @@ export function registerIpcHandlers(
 				nativeWindowsCaptureTargetPath = null;
 				nativeWindowsCaptureWebcamTargetPath = null;
 				nativeWindowsCaptureRecordingId = null;
+				nativeWindowsCaptureStarted = false;
+				nativeWindowsCaptureClosed = false;
+				nativeWindowsCaptureCloseCode = null;
+				nativeWindowsCaptureStopRequested = false;
 				nativeWindowsCursorOffsetMs = 0;
 				nativeWindowsCursorCaptureMode = "editable-overlay";
 				nativeWindowsCursorRecordingStartMs = 0;
@@ -1778,6 +1930,10 @@ export function registerIpcHandlers(
 			nativeMacCaptureOutput = "";
 			nativeMacCaptureTargetPath = outputPath;
 			nativeMacCaptureRecordingId = recordingId;
+			nativeMacCaptureStarted = false;
+			nativeMacCaptureClosed = false;
+			nativeMacCaptureCloseCode = null;
+			nativeMacCaptureStopRequested = false;
 			nativeMacCursorOffsetMs = 0;
 			nativeMacCursorCaptureMode = cursorCaptureMode;
 			nativeMacCursorRecordingStartMs = 0;
@@ -1799,8 +1955,28 @@ export function registerIpcHandlers(
 			});
 			nativeMacCaptureProcess = proc;
 			attachNativeMacCaptureOutputDrain(proc);
+			proc.once("close", (code) => {
+				nativeMacCaptureClosed = true;
+				nativeMacCaptureCloseCode = code;
+				if (
+					nativeMacCaptureStarted &&
+					!nativeMacCaptureStopRequested &&
+					(getNativeMacStoppedPathFromOutput() || (code === 0 && nativeMacCaptureTargetPath))
+				) {
+					notifyNativeRecordingStopped();
+				}
+			});
 
 			await waitForNativeMacCaptureStart(proc);
+			nativeMacCaptureStarted = true;
+			if (
+				nativeMacCaptureClosed &&
+				!nativeMacCaptureStopRequested &&
+				(getNativeMacStoppedPathFromOutput() ||
+					(nativeMacCaptureCloseCode === 0 && nativeMacCaptureTargetPath))
+			) {
+				notifyNativeRecordingStopped();
+			}
 			const captureStartedAtMs = Date.now();
 			nativeMacCursorOffsetMs =
 				cursorCaptureMode === "editable-overlay"
@@ -1824,6 +2000,10 @@ export function registerIpcHandlers(
 			nativeMacCaptureProcess = null;
 			nativeMacCaptureTargetPath = null;
 			nativeMacCaptureRecordingId = null;
+			nativeMacCaptureStarted = false;
+			nativeMacCaptureClosed = false;
+			nativeMacCaptureCloseCode = null;
+			nativeMacCaptureStopRequested = false;
 			nativeMacCursorOffsetMs = 0;
 			nativeMacCursorCaptureMode = "editable-overlay";
 			nativeMacCursorRecordingStartMs = 0;
@@ -1944,9 +2124,19 @@ export function registerIpcHandlers(
 
 		try {
 			completeNativeWindowsCursorPauseRange();
-			const stoppedPathPromise = waitForNativeWindowsCaptureStop(proc);
-			proc.stdin.write("stop\n");
-			const stoppedPath = await stoppedPathPromise;
+			let stoppedPath: string | null;
+			if (nativeWindowsCaptureClosed) {
+				stoppedPath =
+					getNativeWindowsStoppedPathFromOutput() ??
+					(nativeWindowsCaptureCloseCode === 0 ? preferredPath : null);
+			} else {
+				nativeWindowsCaptureStopRequested = true;
+				const stoppedPathPromise = waitForNativeWindowsCaptureStop(proc);
+				if (proc.stdin.writable) {
+					proc.stdin.write("stop\n");
+				}
+				stoppedPath = await stoppedPathPromise;
+			}
 			const screenVideoPath = stoppedPath || preferredPath;
 			if (!screenVideoPath) {
 				throw new Error("Native Windows capture did not return an output path.");
@@ -2008,6 +2198,10 @@ export function registerIpcHandlers(
 			nativeWindowsCaptureTargetPath = null;
 			nativeWindowsCaptureWebcamTargetPath = null;
 			nativeWindowsCaptureRecordingId = null;
+			nativeWindowsCaptureStarted = false;
+			nativeWindowsCaptureClosed = false;
+			nativeWindowsCaptureCloseCode = null;
+			nativeWindowsCaptureStopRequested = false;
 			nativeWindowsCursorOffsetMs = 0;
 			nativeWindowsCursorCaptureMode = "editable-overlay";
 			nativeWindowsCursorRecordingStartMs = 0;
@@ -2037,9 +2231,19 @@ export function registerIpcHandlers(
 
 		try {
 			completeNativeMacCursorPauseRange();
-			const stoppedPathPromise = waitForNativeMacCaptureStop(proc);
-			proc.stdin.write("stop\n");
-			const stoppedPath = await stoppedPathPromise;
+			let stoppedPath: string | null;
+			if (nativeMacCaptureClosed) {
+				stoppedPath =
+					getNativeMacStoppedPathFromOutput() ??
+					(nativeMacCaptureCloseCode === 0 ? preferredPath : null);
+			} else {
+				nativeMacCaptureStopRequested = true;
+				const stoppedPathPromise = waitForNativeMacCaptureStop(proc);
+				if (proc.stdin.writable) {
+					proc.stdin.write("stop\n");
+				}
+				stoppedPath = await stoppedPathPromise;
+			}
 			const screenVideoPath = stoppedPath || preferredPath;
 			if (!screenVideoPath) {
 				throw new Error("Native macOS capture did not return an output path.");
@@ -2093,6 +2297,10 @@ export function registerIpcHandlers(
 			nativeMacCaptureProcess = null;
 			nativeMacCaptureTargetPath = null;
 			nativeMacCaptureRecordingId = null;
+			nativeMacCaptureStarted = false;
+			nativeMacCaptureClosed = false;
+			nativeMacCaptureCloseCode = null;
+			nativeMacCaptureStopRequested = false;
 			nativeMacCursorOffsetMs = 0;
 			nativeMacCursorCaptureMode = "editable-overlay";
 			nativeMacCursorRecordingStartMs = 0;
@@ -2528,6 +2736,46 @@ export function registerIpcHandlers(
 				error: String(error),
 			};
 		}
+	});
+
+	ipcMain.handle(
+		"start-caption-generation",
+		async (
+			_,
+			videoPath: string,
+			options?: import("../../src/lib/captions").CaptionGenerationOptions,
+		) => {
+			try {
+				const jobId = options?.jobId ?? `caption-${Date.now()}`;
+				const normalizedPath = resolveApprovedVideoPath(videoPath);
+				if (!normalizedPath) {
+					return {
+						jobId,
+						status: "error",
+						segments: [],
+						message: "File path is not approved or is not a supported video file",
+					};
+				}
+
+				return await captionJobRegistry.start({
+					jobId,
+					videoPath: normalizedPath,
+					language: options?.language,
+				});
+			} catch (error) {
+				return {
+					jobId: options?.jobId ?? `caption-${Date.now()}`,
+					status: "error",
+					segments: [],
+					message: "Failed to generate captions",
+					error: String(error),
+				};
+			}
+		},
+	);
+
+	ipcMain.handle("cancel-caption-generation", (_, jobId: string) => {
+		return captionJobRegistry.cancel(jobId);
 	});
 
 	ipcMain.handle(

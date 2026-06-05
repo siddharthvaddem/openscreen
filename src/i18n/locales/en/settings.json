@@ -139,6 +139,8 @@
 		"clearBackground": "Clear Background",
 		"uploadImage": "Upload Image",
 		"supportedFormats": "Supported formats: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Sticker presets",
+		"stickerPresetsDescription": "Click a sticker to use it as this image annotation.",
 		"arrowDirection": "Arrow Direction",
 		"strokeWidth": "Stroke Width: {{width}}px",
 		"arrowColor": "Arrow Color",

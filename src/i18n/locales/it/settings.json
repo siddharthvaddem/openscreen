@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Tieni premuto per vedere l'anteprima dell'effetto zoom",
 		"level": "Livello zoom",
 		"customScale": "Zoom personalizzato",
 		"selectRegion": "Seleziona una regione zoom da regolare",
@@ -138,6 +139,8 @@
 		"clearBackground": "Rimuovi sfondo",
 		"uploadImage": "Carica immagine",
 		"supportedFormats": "Formati supportati: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Sticker predefiniti",
+		"stickerPresetsDescription": "Fai clic su uno sticker per usarlo come annotazione immagine.",
 		"arrowDirection": "Direzione freccia",
 		"strokeWidth": "Larghezza tratto: {{width}}px",
 		"arrowColor": "Colore freccia",

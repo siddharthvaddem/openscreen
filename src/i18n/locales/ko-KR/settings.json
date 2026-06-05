@@ -138,6 +138,8 @@
 		"clearBackground": "배경 지우기",
 		"uploadImage": "이미지 업로드",
 		"supportedFormats": "지원 형식: JPG, PNG, GIF, WebP",
+		"stickerPresets": "스티커 프리셋",
+		"stickerPresetsDescription": "스티커를 클릭하면 이 이미지 주석으로 사용됩니다.",
 		"arrowDirection": "화살표 방향",
 		"strokeWidth": "선 두께: {{width}}px",
 		"arrowColor": "화살표 색상",
