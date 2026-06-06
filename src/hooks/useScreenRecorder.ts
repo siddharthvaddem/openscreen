@@ -144,6 +144,22 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		return accumulatedDurationMs.current + segmentDuration;
 	}, []);
 
+	const safeShowRecordingAnnotationOverlay = useCallback(async () => {
+		try {
+			await window.electronAPI?.showRecordingAnnotationOverlay?.();
+		} catch (error) {
+			console.warn("Failed to show recording annotation overlay:", error);
+		}
+	}, []);
+
+	const safeHideRecordingAnnotationOverlay = useCallback(async () => {
+		try {
+			await window.electronAPI?.hideRecordingAnnotationOverlay?.();
+		} catch (error) {
+			console.warn("Failed to hide recording annotation overlay:", error);
+		}
+	}, []);
+
 	const selectMimeType = () => {
 		// H.264 first: hardware-accelerated on all modern devices, gives sharp
 		// real-time output. AV1/VP9 are great for distribution but too
@@ -347,6 +363,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				let webcamIncludedInSave = false;
 				try {
 					const screenBlob = await activeScreenRecorder.recordedBlobPromise;
+					await safeHideRecordingAnnotationOverlay();
 					if (discardRecordingId.current === activeRecordingId) {
 						window.electronAPI?.discardCursorTelemetry(activeRecordingId);
 						return;
@@ -410,6 +427,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				} catch (error) {
 					console.error("Error saving recording:", error);
 				} finally {
+					await safeHideRecordingAnnotationOverlay();
 					// Discard any recorder whose data was not part of a successful save
 					// — a discarded run, a failed save, or a webcam whose disk write
 					// failed (so it was omitted while the screen still saved) — so no
@@ -429,7 +447,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				}
 			})();
 		},
-		[cursorCaptureMode, teardownMedia],
+		[cursorCaptureMode, safeHideRecordingAnnotationOverlay, teardownMedia],
 	);
 
 	const finalizeNativeWindowsRecording = useCallback(
@@ -467,6 +485,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			try {
 				const result = await window.electronAPI.stopNativeWindowsRecording(discard);
+				await safeHideRecordingAnnotationOverlay();
 				if (discard || result.discarded) {
 					clearNativeRecordingState();
 					return true;
@@ -524,12 +543,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				activeNativeRecording.finalizing = false;
 				return true;
 			} finally {
+				await safeHideRecordingAnnotationOverlay();
 				if (discardRecordingId.current === activeNativeRecording.recordingId) {
 					discardRecordingId.current = null;
 				}
 			}
 		},
-		[cursorCaptureMode, getRecordingDurationMs],
+		[cursorCaptureMode, getRecordingDurationMs, safeHideRecordingAnnotationOverlay],
 	);
 
 	const finalizeNativeMacRecording = useCallback(
@@ -580,6 +600,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			try {
 				const result = await window.electronAPI.stopNativeMacRecording(discard);
+				await safeHideRecordingAnnotationOverlay();
 				const webcamAsset = await webcamAssetPromise;
 				if (discard || result.discarded) {
 					clearNativeRecordingState();
@@ -624,12 +645,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				activeNativeRecording.finalizing = false;
 				return true;
 			} finally {
+				await safeHideRecordingAnnotationOverlay();
 				if (discardRecordingId.current === activeNativeRecording.recordingId) {
 					discardRecordingId.current = null;
 				}
 			}
 		},
-		[cursorCaptureMode, getRecordingDurationMs],
+		[cursorCaptureMode, getRecordingDurationMs, safeHideRecordingAnnotationOverlay],
 	);
 
 	const stopRecording = useRef(() => {
@@ -712,6 +734,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			if (cleanupNativeRecordingStopped) cleanupNativeRecordingStopped();
 			countdownRunId.current += 1;
 			void safeHideCountdownOverlay(activeRunId);
+			void safeHideRecordingAnnotationOverlay();
 			allowAutoFinalize.current = false;
 			restarting.current = false;
 			discardRecordingId.current = null;
@@ -749,6 +772,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	}, [
 		teardownMedia,
 		safeHideCountdownOverlay,
+		safeHideRecordingAnnotationOverlay,
 		finalizeNativeWindowsRecording,
 		finalizeNativeMacRecording,
 	]);
@@ -1180,10 +1204,24 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				return;
 			}
 
+			await safeShowRecordingAnnotationOverlay();
+
+			if (!isCountdownRunActive(countdownRunToken)) {
+				await safeHideRecordingAnnotationOverlay();
+				teardownMedia();
+				return;
+			}
+
 			if (await startNativeWindowsRecordingIfAvailable(selectedSource, countdownRunToken)) {
+				if (!isCountdownRunActive(countdownRunToken)) {
+					await safeHideRecordingAnnotationOverlay();
+				}
 				return;
 			}
 			if (await startNativeMacRecordingIfAvailable(selectedSource, countdownRunToken)) {
+				if (!isCountdownRunActive(countdownRunToken)) {
+					await safeHideRecordingAnnotationOverlay();
+				}
 				return;
 			}
 
@@ -1454,6 +1492,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			segmentStartedAt.current = null;
 			screenRecorder.current = null;
 			webcamRecorder.current = null;
+			await safeHideRecordingAnnotationOverlay();
 			teardownMedia();
 		}
 	};

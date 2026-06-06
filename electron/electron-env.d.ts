@@ -267,6 +267,26 @@ interface Window {
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
 		hideCountdownOverlay: (runId: number) => Promise<void>;
+		showRecordingAnnotationOverlay: () => Promise<{ success: boolean; error?: string }>;
+		hideRecordingAnnotationOverlay: () => Promise<{ success: boolean; error?: string }>;
+		setRecordingAnnotationTool: (
+			tool: import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool | null,
+		) => Promise<{
+			success: boolean;
+			tool?: import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool | null;
+			error?: string;
+		}>;
+		clearRecordingAnnotations: () => Promise<{ success: boolean; error?: string }>;
+		undoRecordingAnnotation: () => Promise<{ success: boolean; error?: string }>;
+		onRecordingAnnotationToolChange: (
+			callback: (
+				tool:
+					| import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool
+					| null,
+			) => void,
+		) => () => void;
+		onRecordingAnnotationClear: (callback: () => void) => () => void;
+		onRecordingAnnotationUndo: (callback: () => void) => () => void;
 		onCountdownOverlayValue: (callback: (value: number | null) => void) => () => void;
 		setMicrophoneExpanded: (expanded: boolean) => void;
 		setHasUnsavedChanges: (hasChanges: boolean) => void;

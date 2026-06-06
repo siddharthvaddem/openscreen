@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { RecordingAnnotationTool } from "../src/components/launch/recordingAnnotations";
 import type { NativeMacRecordingRequest } from "../src/lib/nativeMacRecording";
 import type { NativeWindowsRecordingRequest } from "../src/lib/nativeWindowsRecording";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
@@ -241,6 +242,37 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	hideCountdownOverlay: (runId: number) => {
 		return ipcRenderer.invoke("countdown-overlay-hide", runId);
+	},
+	showRecordingAnnotationOverlay: () => {
+		return ipcRenderer.invoke("recording-annotation-overlay-show");
+	},
+	hideRecordingAnnotationOverlay: () => {
+		return ipcRenderer.invoke("recording-annotation-overlay-hide");
+	},
+	setRecordingAnnotationTool: (tool: RecordingAnnotationTool | null) => {
+		return ipcRenderer.invoke("recording-annotation-tool-set", tool);
+	},
+	clearRecordingAnnotations: () => {
+		return ipcRenderer.invoke("recording-annotation-clear");
+	},
+	undoRecordingAnnotation: () => {
+		return ipcRenderer.invoke("recording-annotation-undo");
+	},
+	onRecordingAnnotationToolChange: (callback: (tool: RecordingAnnotationTool | null) => void) => {
+		const listener = (_event: unknown, tool: unknown) =>
+			callback((typeof tool === "string" ? tool : null) as RecordingAnnotationTool | null);
+		ipcRenderer.on("recording-annotation-tool", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-tool", listener);
+	},
+	onRecordingAnnotationClear: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("recording-annotation-clear", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-clear", listener);
+	},
+	onRecordingAnnotationUndo: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("recording-annotation-undo", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-undo", listener);
 	},
 	onCountdownOverlayValue: (callback: (value: number | null) => void) => {
 		const listener = (_event: unknown, value: number | null) => callback(value);

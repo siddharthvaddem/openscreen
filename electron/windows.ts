@@ -53,7 +53,7 @@ export function createHudOverlayWindow(): BrowserWindow {
 	const primaryDisplay = screen.getPrimaryDisplay();
 	const { workArea } = primaryDisplay;
 
-	const windowWidth = 600;
+	const windowWidth = Math.min(880, Math.max(600, workArea.width - 24));
 	const windowHeight = 160;
 
 	const x = Math.floor(workArea.x + (workArea.width - windowWidth) / 2);
@@ -62,8 +62,8 @@ export function createHudOverlayWindow(): BrowserWindow {
 	const win = new BrowserWindow({
 		width: windowWidth,
 		height: windowHeight,
-		minWidth: 600,
-		maxWidth: 600,
+		minWidth: windowWidth,
+		maxWidth: windowWidth,
 		minHeight: 160,
 		maxHeight: 160,
 		x: x,
@@ -256,6 +256,50 @@ export function createCountdownOverlayWindow(): BrowserWindow {
 	} else {
 		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
 			query: { windowType: "countdown-overlay" },
+		});
+	}
+
+	return win;
+}
+
+export function createRecordingAnnotationOverlayWindow(bounds?: Electron.Rectangle): BrowserWindow {
+	const targetBounds = bounds ?? screen.getPrimaryDisplay().bounds;
+
+	const win = new BrowserWindow({
+		x: targetBounds.x,
+		y: targetBounds.y,
+		width: targetBounds.width,
+		height: targetBounds.height,
+		frame: false,
+		resizable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		focusable: true,
+		transparent: true,
+		backgroundColor: "#00000000",
+		hasShadow: false,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	win.setIgnoreMouseEvents(true, { forward: true });
+	win.setAlwaysOnTop(true, "floating");
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(VITE_DEV_SERVER_URL + "?windowType=recording-annotation-overlay");
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "recording-annotation-overlay" },
 		});
 	}
 

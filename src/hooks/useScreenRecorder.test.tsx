@@ -119,6 +119,8 @@ describe("useScreenRecorder", () => {
 	let screenStream: FakeMediaStream;
 	let storeRecordedSession: ReturnType<typeof vi.fn>;
 	let switchToEditor: ReturnType<typeof vi.fn>;
+	let showRecordingAnnotationOverlay: ReturnType<typeof vi.fn>;
+	let hideRecordingAnnotationOverlay: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -135,6 +137,8 @@ describe("useScreenRecorder", () => {
 			},
 		}));
 		switchToEditor = vi.fn(async () => undefined);
+		showRecordingAnnotationOverlay = vi.fn(async () => undefined);
+		hideRecordingAnnotationOverlay = vi.fn(async () => undefined);
 
 		vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
 		vi.stubGlobal("MediaStream", FakeMediaStream);
@@ -157,6 +161,8 @@ describe("useScreenRecorder", () => {
 			showCountdownOverlay: vi.fn(async () => undefined),
 			setCountdownOverlayValue: vi.fn(async () => undefined),
 			hideCountdownOverlay: vi.fn(async () => undefined),
+			showRecordingAnnotationOverlay,
+			hideRecordingAnnotationOverlay,
 			setRecordingState: vi.fn(async () => undefined),
 			openRecordingStream: vi.fn(async () => ({ success: false })),
 			appendRecordingChunk: vi.fn(async () => ({ success: true })),
@@ -196,6 +202,29 @@ describe("useScreenRecorder", () => {
 
 		expect(storeRecordedSession).toHaveBeenCalled();
 		expect(switchToEditor).toHaveBeenCalled();
+	});
+
+	it("shows the recording annotation overlay while recording and hides it after finalize", async () => {
+		const { result } = renderHook(() => useScreenRecorder(), { wrapper });
+
+		await act(async () => {
+			result.current.toggleRecording();
+			for (const ms of countdownValuesMs) {
+				await vi.advanceTimersByTimeAsync(ms);
+			}
+			await flushPromises();
+		});
+
+		expect(result.current.recording).toBe(true);
+		expect(showRecordingAnnotationOverlay).toHaveBeenCalledTimes(1);
+		expect(hideRecordingAnnotationOverlay).not.toHaveBeenCalled();
+
+		await act(async () => {
+			screenTrack.end();
+			await flushPromises();
+		});
+
+		expect(hideRecordingAnnotationOverlay).toHaveBeenCalled();
 	});
 
 	it("opens the editor when a native macOS full-screen recording stops externally", async () => {

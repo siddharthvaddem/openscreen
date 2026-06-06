@@ -1376,12 +1376,62 @@ export function registerIpcHandlers(
 	createEditorWindow: () => void,
 	createSourceSelectorWindow: () => BrowserWindow,
 	createCountdownOverlayWindow: () => BrowserWindow,
+	createRecordingAnnotationOverlayWindow: (bounds?: Electron.Rectangle) => BrowserWindow,
 	getMainWindow: () => BrowserWindow | null,
 	getSourceSelectorWindow: () => BrowserWindow | null,
 	getCountdownOverlayWindow?: () => BrowserWindow | null,
+	getRecordingAnnotationOverlayWindow?: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 	_switchToHud?: () => void,
 ) {
+	const recordingAnnotationTools = new Set([
+		"pen",
+		"arrow",
+		"rectangle",
+		"ellipse",
+		"highlight",
+		"text",
+	]);
+
+	function notifyRecordingAnnotationTool(tool: string | null) {
+		const mainWindow = getMainWindow();
+		if (mainWindow && !mainWindow.isDestroyed()) {
+			mainWindow.webContents.send("recording-annotation-tool", tool);
+		}
+
+		const overlayWindow = getRecordingAnnotationOverlayWindow?.();
+		if (overlayWindow && !overlayWindow.isDestroyed()) {
+			overlayWindow.webContents.send("recording-annotation-tool", tool);
+		}
+	}
+
+	async function ensureRecordingAnnotationOverlayWindow() {
+		const bounds = getSelectedSourceBounds();
+		const overlayWindow =
+			getRecordingAnnotationOverlayWindow?.() ?? createRecordingAnnotationOverlayWindow(bounds);
+
+		if (overlayWindow.isDestroyed()) {
+			return null;
+		}
+
+		overlayWindow.setBounds(bounds, false);
+		if (!overlayWindow.isVisible()) {
+			overlayWindow.showInactive();
+		}
+		if (overlayWindow.webContents.isLoading()) {
+			await new Promise<void>((resolve) => {
+				overlayWindow.webContents.once("did-finish-load", () => resolve());
+			});
+		}
+
+		const mainWindow = getMainWindow();
+		if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+			mainWindow.moveTop();
+		}
+
+		return overlayWindow;
+	}
+
 	async function requestScreenAccess() {
 		if (process.platform !== "darwin") {
 			return { success: true, granted: true, status: "granted" };
@@ -1605,6 +1655,64 @@ export function registerIpcHandlers(
 
 		overlayWindow.webContents.send("countdown-overlay-value", null, runId);
 		overlayWindow.hide();
+	});
+
+	ipcMain.handle("recording-annotation-overlay-show", async () => {
+		const overlayWindow = await ensureRecordingAnnotationOverlayWindow();
+		if (!overlayWindow) {
+			return { success: false, error: "Recording annotation overlay is unavailable." };
+		}
+
+		overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+		overlayWindow.webContents.send("recording-annotation-clear");
+		notifyRecordingAnnotationTool(null);
+		return { success: true };
+	});
+
+	ipcMain.handle("recording-annotation-overlay-hide", () => {
+		const overlayWindow = getRecordingAnnotationOverlayWindow?.();
+		if (!overlayWindow || overlayWindow.isDestroyed()) {
+			return { success: true };
+		}
+
+		notifyRecordingAnnotationTool(null);
+		overlayWindow.webContents.send("recording-annotation-clear");
+		overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+		overlayWindow.hide();
+		return { success: true };
+	});
+
+	ipcMain.handle("recording-annotation-tool-set", async (_, tool: unknown) => {
+		const normalizedTool =
+			typeof tool === "string" && recordingAnnotationTools.has(tool) ? tool : null;
+		const overlayWindow = await ensureRecordingAnnotationOverlayWindow();
+		if (!overlayWindow) {
+			return { success: false, error: "Recording annotation overlay is unavailable." };
+		}
+
+		overlayWindow.setIgnoreMouseEvents(!normalizedTool, { forward: true });
+		notifyRecordingAnnotationTool(normalizedTool);
+		return { success: true, tool: normalizedTool };
+	});
+
+	ipcMain.handle("recording-annotation-clear", () => {
+		const overlayWindow = getRecordingAnnotationOverlayWindow?.();
+		if (!overlayWindow || overlayWindow.isDestroyed()) {
+			return { success: true };
+		}
+
+		overlayWindow.webContents.send("recording-annotation-clear");
+		return { success: true };
+	});
+
+	ipcMain.handle("recording-annotation-undo", () => {
+		const overlayWindow = getRecordingAnnotationOverlayWindow?.();
+		if (!overlayWindow || overlayWindow.isDestroyed()) {
+			return { success: true };
+		}
+
+		overlayWindow.webContents.send("recording-annotation-undo");
+		return { success: true };
 	});
 
 	ipcMain.handle("is-native-windows-capture-available", async () => {
