@@ -460,12 +460,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			try {
 				const result = await window.electronAPI.stopNativeWindowsRecording(discard);
 				if (discard || result.discarded) {
+					// Streamed webcam left an open stream + partial file; drop it.
+					await activeWebcamRecorder?.discard().catch(() => undefined);
 					clearNativeRecordingState();
 					return true;
 				}
 				if (!result.success) {
 					console.error("Failed to stop native Windows recording:", result.error);
 					toast.error(result.error ?? "Failed to stop native Windows recording");
+					await activeWebcamRecorder?.discard().catch(() => undefined);
 					activeNativeRecording.finalizing = false;
 					return true;
 				}
@@ -927,6 +930,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				) {
 					browserWebcamRecorder.recorder.stop();
 				}
+				// The sidecar may already be streaming to disk; drop the partial file
+				// and close its stream so a failed start doesn't orphan it.
+				await browserWebcamRecorder?.discard().catch(() => undefined);
 				throw new Error(result.error ?? "Native Windows capture failed.");
 			}
 
@@ -1025,6 +1031,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				if (nativeWebcamRecorder && nativeWebcamRecorder.recorder.state !== "inactive") {
 					nativeWebcamRecorder.recorder.stop();
 				}
+				// Drop the partial streamed sidecar so a cancelled countdown can't orphan it.
+				await nativeWebcamRecorder?.discard().catch(() => undefined);
 				return true;
 			}
 			const request: NativeMacRecordingRequest = {
@@ -1074,12 +1082,16 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				if (nativeWebcamRecorder && nativeWebcamRecorder.recorder.state !== "inactive") {
 					nativeWebcamRecorder.recorder.stop();
 				}
+				// Drop the partial streamed sidecar so a failed start doesn't orphan it.
+				await nativeWebcamRecorder?.discard().catch(() => undefined);
 				throw new Error(result.error ?? "Native macOS capture failed.");
 			}
 			if (!isCountdownRunActive(countdownRunToken)) {
 				if (nativeWebcamRecorder && nativeWebcamRecorder.recorder.state !== "inactive") {
 					nativeWebcamRecorder.recorder.stop();
 				}
+				// Drop the partial streamed sidecar before bailing on the cancelled run.
+				await nativeWebcamRecorder?.discard().catch(() => undefined);
 				await window.electronAPI.stopNativeMacRecording(true);
 				return true;
 			}

@@ -2151,6 +2151,9 @@ export function registerIpcHandlers(
 	ipcMain.handle(
 		"attach-native-mac-webcam-recording",
 		async (_, payload: AttachNativeMacWebcamRecordingInput) => {
+			// When a streamed webcam is finalized to disk but a later step throws, this
+			// holds its path so the catch can remove the orphaned file.
+			let streamedWebcamRollbackPath: string | undefined;
 			try {
 				if (process.platform !== "darwin") {
 					return { success: false, error: "Native macOS webcam attachment requires macOS." };
@@ -2176,6 +2179,8 @@ export function registerIpcHandlers(
 				// Otherwise the renderer sent the whole clip in memory and we write it here.
 				const webcamStreamed = await recordingStreams.finalize(payload.webcam.fileName);
 				if (webcamStreamed) {
+					// The file is now kept on disk; mark it so a later failure rolls it back.
+					streamedWebcamRollbackPath = webcamVideoPath;
 					if (isValidDurationMs(payload.durationMs)) {
 						await patchWebmDurationOnDisk(webcamVideoPath, payload.durationMs);
 					}
@@ -2217,6 +2222,11 @@ export function registerIpcHandlers(
 				};
 			} catch (error) {
 				console.error("Failed to attach native macOS webcam recording:", error);
+				// A streamed webcam was already finalized to disk before this failure;
+				// remove the orphan so no stray *-webcam.webm lingers without a session.
+				if (streamedWebcamRollbackPath) {
+					await fs.unlink(streamedWebcamRollbackPath).catch(() => undefined);
+				}
 				return {
 					success: false,
 					error: error instanceof Error ? error.message : String(error),
