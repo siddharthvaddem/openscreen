@@ -18,6 +18,14 @@ export interface TranscribeMono16kResult {
 export interface TranscribeWorkerRequest {
 	samples: Float32Array;
 	trimRegions: TrimRegion[];
+	/**
+	 * Load the Whisper model + ORT wasm from bundled `caption-assets` instead of remote CDNs.
+	 * Required in the packaged app (runs from `file://` where remote fetches fail). The worker
+	 * can't read `window.electronAPI`, so the renderer resolves this here.
+	 */
+	useLocalModels: boolean;
+	/** Base URL of bundled resources (packaged: resourcesPath file:// URL); used when `useLocalModels`. */
+	assetBaseUrl?: string;
 }
 
 /** Messages the transcription worker posts back to the renderer. */
@@ -29,10 +37,9 @@ export type TranscribeWorkerResponse =
 /**
  * Transcribes mono 16 kHz audio into timed caption segments using in-browser Whisper.
  *
- * The model load and inference run inside a dedicated Web Worker so the editor's
- * main thread stays responsive (WASM inference does not yield). The first run
- * downloads model weights. Aborting (via `options.signal`) terminates the worker
- * immediately, since model load / inference cannot be cooperatively cancelled.
+ * Runs in a Web Worker so the editor's main thread stays responsive (WASM inference
+ * doesn't yield). First run downloads model weights. Aborting via `options.signal`
+ * terminates the worker, since load/inference can't be cooperatively cancelled.
  */
 export function transcribeMono16kToSegments(
 	samples: Float32Array,
@@ -80,11 +87,19 @@ export function transcribeMono16kToSegments(
 			finish(() => reject(new Error(e.message || "Caption transcription worker failed")));
 		};
 
-		// Structured-clone copy (not a transfer): the caller may reuse `samples`
-		// for the full-buffer retry pass, so the buffer must stay valid here.
+		// Packaged app runs from file:// (remote fetches fail), so load bundled assets.
+		// Dev runs from http://localhost where the remote path works.
+		const useLocalModels = typeof window !== "undefined" && window.location?.protocol === "file:";
+		const assetBaseUrl =
+			typeof window !== "undefined" ? window.electronAPI?.assetBaseUrl : undefined;
+
+		// Structured-clone copy, not a transfer: the caller may reuse `samples` for the
+		// full-buffer retry pass, so the buffer must stay valid here.
 		const request: TranscribeWorkerRequest = {
 			samples,
 			trimRegions: options?.trimRegions ?? [],
+			useLocalModels,
+			assetBaseUrl,
 		};
 		worker.postMessage(request);
 	});

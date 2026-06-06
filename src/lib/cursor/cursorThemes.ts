@@ -3,11 +3,10 @@ import type { NativeCursorType } from "@/native/contracts";
 /**
  * A single themed cursor image override for one {@link NativeCursorType}.
  *
- * `width`/`height`/`hotspot*` are expressed in the same ~32-logical-pixel reference
- * used by the built-in `PRETTY_NATIVE_CURSOR_ASSETS` in `nativeCursor.ts`, so a theme
- * asset renders at the same on-screen size as the default cursor regardless of the
- * source PNG resolution. The PNG itself can be higher-res (e.g. 128×128) and is
- * downscaled at draw time for crisper retina output.
+ * width/height/hotspot are in the same ~32-logical-pixel reference as the built-in
+ * PRETTY_NATIVE_CURSOR_ASSETS, so a theme asset matches the default cursor's on-screen
+ * size regardless of source PNG resolution. The PNG can be higher-res (e.g. 128x128)
+ * and is downscaled at draw time for crisper retina output.
  */
 export interface CursorThemeAsset {
 	/** Path relative to the public asset root, e.g. "cursors/hello-kitty-watermelon/arrow.png". */
@@ -20,13 +19,13 @@ export interface CursorThemeAsset {
 
 export interface CursorTheme {
 	id: string;
-	/** Display label. Theme names are proper nouns, so they are not run through i18n. */
+	/** Display label. Proper nouns, so not run through i18n. */
 	name: string;
 	/** Attribution / origin for the artwork. */
 	source?: string;
 	/**
-	 * Per-cursor-type overrides. Any type not present here falls back to the built-in
-	 * default cursor art. Sweezy packs only ship "arrow" and "pointer" art.
+	 * Per-cursor-type overrides. Missing types fall back to the built-in default art.
+	 * Sweezy packs only ship "arrow" and "pointer".
 	 */
 	assets: Partial<Record<NativeCursorType, CursorThemeAsset>>;
 }
@@ -35,8 +34,8 @@ export interface CursorTheme {
 export const DEFAULT_CURSOR_THEME_ID = "default";
 
 /**
- * Bundled cursor themes. To add a pack: drop `arrow.png`/`pointer.png` into
- * `public/cursors/<id>/` and add an entry here with hotspots normalized to the
+ * Bundled cursor themes. To add a pack: drop arrow.png/pointer.png into
+ * public/cursors/<id>/ and add an entry here with hotspots normalized to the
  * 32-logical reference (divide a 128px-pack hotspot by 4). No renderer changes needed.
  */
 export const CURSOR_THEMES: readonly CursorTheme[] = [

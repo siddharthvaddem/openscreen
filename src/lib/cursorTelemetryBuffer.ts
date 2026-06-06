@@ -1,10 +1,7 @@
 /**
- * A single cursor telemetry sample captured during a recording session.
- *
- * Coordinates (`cx`, `cy`) are clamped ratios in the `[0, 1]` range,
- * normalised against the captured surface's width and height by the
- * main-process `sampleCursorPoint()` before being pushed. `timeMs` is the
- * offset (in milliseconds) from the recording's start.
+ * A single cursor telemetry sample. cx/cy are clamped [0,1] ratios of the
+ * captured surface (normalised in the main process by sampleCursorPoint).
+ * timeMs is the offset from recording start.
  */
 export interface CursorTelemetryPoint {
 	timeMs: number;
@@ -13,9 +10,9 @@ export interface CursorTelemetryPoint {
 }
 
 /**
- * A completed batch of cursor samples, tagged with the recording id that
- * produced them. The id is supplied at `startSession()` time and travels
- * with the batch through the pending queue, retries, and discards.
+ * A completed batch of cursor samples, tagged with its recording id. The id
+ * (from startSession) travels with the batch through the queue, retries, and
+ * discards.
  */
 export interface CursorTelemetryBatch {
 	recordingId: number;
@@ -25,87 +22,64 @@ export interface CursorTelemetryBatch {
 /**
  * Per-session cursor telemetry buffer with bounded memory.
  *
- * Flow: `startSession(recordingId)` → `push(point)` N times → `endSession()`
- * enqueues the collected samples as a completed batch tagged with that
- * `recordingId`. The main process later drains batches in FIFO order via
- * `takeNextBatch()` to persist them to disk, and can `prependBatch()` on
- * write failure to retry without losing order. A discard request keys on
- * the recording id so an asynchronous "discard recording A" decision that
- * arrives after recording B has already enqueued its batch still drops
- * the right one.
+ * Flow: startSession(recordingId), push(point) N times, endSession() enqueues
+ * the samples as a batch tagged with that id. The main process drains batches
+ * FIFO via takeNextBatch() to persist, and prependBatch() on write failure to
+ * retry without losing order. Discard keys on the recording id so an async
+ * "discard recording A" that arrives after recording B has enqueued still
+ * drops the right batch.
  *
- * Memory is bounded by `maxActiveSamples` (ring buffer on the in-progress
- * batch) and `maxPendingBatches` (FIFO cap across completed batches).
+ * Memory bounded by maxActiveSamples (ring buffer on the in-progress batch)
+ * and maxPendingBatches (FIFO cap across completed batches).
  */
 export interface CursorTelemetryBuffer {
 	/**
-	 * Begin a new recording session under the given `recordingId`. Clears
-	 * any in-progress active samples (without touching already-completed
-	 * pending batches). Safe to call repeatedly — e.g. a rapid Stop →
-	 * Record sequence — and the most recent id wins.
+	 * Begin a new recording session. Clears in-progress active samples but
+	 * leaves completed pending batches. Safe to call repeatedly (e.g. a rapid
+	 * Stop then Record); the most recent id wins.
 	 */
 	startSession(recordingId: number): void;
 
 	/**
-	 * Append a telemetry sample to the current active session. When the
-	 * active buffer exceeds `maxActiveSamples`, the oldest sample is
-	 * dropped (ring behaviour).
+	 * Append a sample to the active session. Over maxActiveSamples, the oldest
+	 * sample is dropped (ring behaviour).
 	 */
 	push(point: CursorTelemetryPoint): void;
 
 	/**
-	 * Finalize the active session, moving its samples into the pending
-	 * queue as a single batch tagged with the current recording id. Empty
-	 * sessions are dropped (no empty batch is enqueued).
+	 * Finalize the active session into a single pending batch tagged with the
+	 * current recording id. Empty sessions enqueue nothing. Over
+	 * maxPendingBatches, oldest batches are evicted and a warn is logged so
+	 * pathological rapid-restart cases are observable.
 	 *
-	 * If the pending queue would exceed `maxPendingBatches`, the oldest
-	 * batches are evicted to bound memory. A `console.warn` is emitted
-	 * whenever at least one batch is dropped so that pathological rapid-
-	 * restart scenarios are observable.
-	 *
-	 * @returns the number of pending batches dropped by this call (0 under
-	 * normal operation).
+	 * @returns the number of pending batches dropped (0 normally).
 	 */
 	endSession(): number;
 
-	/**
-	 * Remove and return the oldest pending batch, or `null` if the queue
-	 * is empty.
-	 */
+	/** Remove and return the oldest pending batch, or null if empty. */
 	takeNextBatch(): CursorTelemetryBatch | null;
 
 	/**
-	 * Re-insert a batch at the front of the queue, preserving FIFO order
-	 * on retry paths (e.g. when persisting the batch failed and the
-	 * caller wants the next `takeNextBatch()` to yield it again).
-	 *
-	 * Empty batches are ignored. The pending cap is enforced defensively
-	 * — if prepending would push the queue past `maxPendingBatches`, the
-	 * oldest entries are evicted and a `console.warn` is emitted. In
-	 * normal retry usage this trim is a no-op because the caller has just
-	 * removed the batch via `takeNextBatch()`.
+	 * Re-insert a batch at the front, preserving FIFO order on retry (e.g.
+	 * persisting failed and the next takeNextBatch() should yield it again).
+	 * Empty batches are ignored. The pending cap is enforced defensively; in
+	 * normal retry usage the trim is a no-op since the caller just took it.
 	 */
 	prependBatch(batch: CursorTelemetryBatch): void;
 
 	/**
-	 * Drop the pending batch produced by the given `recordingId`. Used
-	 * when a recording is discarded after its `endSession()` has run but
-	 * before it has been persisted. Returns `true` if a batch was
-	 * removed, `false` otherwise (no matching id, or the batch was
-	 * already drained).
+	 * Drop the pending batch for the given recordingId, when a recording is
+	 * discarded after endSession() but before persistence. Returns true if a
+	 * batch was removed.
 	 *
-	 * Keying on the recording id (rather than "the latest pending batch")
-	 * avoids a real bug: when finalizing a recording does asynchronous
-	 * work like `fixWebmDuration`, a quick Stop → Record → Discard
-	 * sequence can interleave such that the latest pending batch belongs
-	 * to a *later* recording than the one being discarded.
+	 * Keys on the recording id rather than "the latest pending batch" to avoid
+	 * a bug: async finalize work (fixWebmDuration) means a quick Stop, Record,
+	 * Discard can leave the latest pending batch belonging to a later recording
+	 * than the one being discarded.
 	 */
 	discardBatch(recordingId: number): boolean;
 
-	/**
-	 * Clear both the active and pending state. Intended for tests and
-	 * full teardown paths.
-	 */
+	/** Clear active and pending state. For tests and full teardown. */
 	reset(): void;
 
 	readonly activeCount: number;
@@ -128,11 +102,8 @@ function sanitizeLimit(value: number | undefined, fallback: number): number {
 }
 
 /**
- * Create a cursor telemetry buffer.
- *
- * Numeric options are sanitized: non-finite, negative, or zero values fall
- * back to safe defaults so a bad caller cannot disable the memory bounds
- * (which would turn the trim loops into infinite loops).
+ * Create a cursor telemetry buffer. Options are sanitized so a bad caller
+ * cannot disable the memory bounds (which would make the trim loops infinite).
  *
  * @see CursorTelemetryBuffer for the full lifecycle contract.
  */

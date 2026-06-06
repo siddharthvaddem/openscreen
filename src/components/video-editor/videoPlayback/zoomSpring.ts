@@ -8,11 +8,11 @@ import {
 /**
  * Spring-chase for the camera zoom transform.
  *
- * The zoom envelope (`computeZoomTransform`) is a deterministic, time-driven *target* shaped by an
- * ease curve. Applying it straight to the camera reproduces every velocity discontinuity in that
- * curve — the steep launch of the ease-in, the seams between close regions — which reads as a jerk.
- * Instead we chase the target with a spring per axis: the target supplies the authored timing, the
- * spring guarantees the rendered motion is velocity-continuous, so it physically can't jerk.
+ * computeZoomTransform is a time-driven target shaped by an ease curve. Applying it
+ * straight to the camera reproduces every velocity discontinuity (the ease-in launch,
+ * seams between close regions), which reads as a jerk. Instead we chase the target with
+ * a per-axis spring: the target keeps the authored timing, the spring keeps the rendered
+ * motion velocity-continuous.
  */
 
 export interface ZoomTransform {
@@ -49,9 +49,9 @@ export function resetZoomSpring(state: ZoomSpringState, target: ZoomTransform): 
 }
 
 /**
- * Step one axis toward `target`, with a moving-target overshoot clamp: because the target moves every
- * frame, a fast (near-critical) spring can carry velocity past it on a reversal and wobble. If the
- * step crosses the target, we snap to it and zero the velocity — keeping the spring quick without jelly.
+ * Step one axis toward target with a moving-target overshoot clamp. The target moves
+ * every frame, so a fast spring can carry velocity past it on a reversal and wobble. If
+ * the step crosses the target, snap to it and zero the velocity to stay quick without jelly.
  */
 function stepAxis(
 	axis: SpringState,
@@ -70,10 +70,7 @@ function stepAxis(
 	return after;
 }
 
-/**
- * Advance the spring toward `target` by `deltaMs` (content time). Returns the smoothed transform to
- * apply to the camera.
- */
+/** Advance the spring toward target by deltaMs (content time); returns the smoothed transform. */
 export function stepZoomSpring(
 	state: ZoomSpringState,
 	target: ZoomTransform,

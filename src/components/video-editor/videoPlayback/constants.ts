@@ -11,3 +11,14 @@ export const ZOOM_SCALE_DEADZONE = 0.002;
 export const AUTO_FOLLOW_SMOOTHING_FACTOR = 0.1;
 export const AUTO_FOLLOW_SMOOTHING_FACTOR_MAX = 0.25;
 export const AUTO_FOLLOW_RAMP_DISTANCE = 0.15;
+// Reference frame interval so preview and export normalize their per-frame
+// smoothing identically regardless of render fps. Lower fps = floatier follow
+// (tuned to the live-preview feel).
+export const AUTO_FOLLOW_REFERENCE_MS = 1000 / 40;
+// Shared by preview and export so the camera follows the cursor identically.
+export const AUTO_FOLLOW_PARAMS = {
+	minFactor: AUTO_FOLLOW_SMOOTHING_FACTOR,
+	maxFactor: AUTO_FOLLOW_SMOOTHING_FACTOR_MAX,
+	rampDistance: AUTO_FOLLOW_RAMP_DISTANCE,
+	referenceMs: AUTO_FOLLOW_REFERENCE_MS,
+} as const;

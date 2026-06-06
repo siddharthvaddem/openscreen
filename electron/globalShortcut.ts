@@ -41,16 +41,14 @@ let currentAccelerator: string | null = null;
 export function registerOpenAppShortcut(binding: ShortcutBinding, onTrigger: () => void): boolean {
 	const accelerator = bindingToAccelerator(binding);
 
-	// Same shortcut already registered, nothing to do
 	if (accelerator === currentAccelerator) {
 		return true;
 	}
 
-	// Try to register new shortcut first (before unregistering old one)
+	// Register the new shortcut before unregistering the old, so a failure leaves the old binding intact
 	const success = globalShortcut.register(accelerator, onTrigger);
 
 	if (success) {
-		// Only unregister old shortcut after new one succeeds
 		if (currentAccelerator) {
 			globalShortcut.unregister(currentAccelerator);
 		}

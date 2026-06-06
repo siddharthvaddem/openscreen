@@ -115,7 +115,7 @@ import {
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 
-/** Single Sonner slot for auto-caption progress so phases update in place instead of stacking. */
+/** Single Sonner slot so auto-caption phases update in place instead of stacking. */
 const AUTO_CAPTION_PROGRESS_TOAST_ID = "auto-caption-progress";
 
 function isClickInteractionType(interactionType: string | null | undefined) {
@@ -211,7 +211,7 @@ export default function VideoEditor() {
 		webcamPosition,
 	} = editorState;
 
-	// ── Non-undoable state
+	// Non-undoable state
 	const [videoPath, setVideoPath] = useState<string | null>(null);
 	const [videoSourcePath, setVideoSourcePath] = useState<string | null>(null);
 	const [webcamVideoPath, setWebcamVideoPath] = useState<string | null>(null);
@@ -255,8 +255,8 @@ export default function VideoEditor() {
 	} | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
 	const [showCloseConfirmDialog, setShowCloseConfirmDialog] = useState(false);
-	// Unsaved-changes confirmation for New Project / Load Project actions.
-	// (The window-close flow uses showCloseConfirmDialog above.)
+	// Unsaved-changes confirmation for New Project / Load Project.
+	// The window-close flow uses showCloseConfirmDialog above.
 	const [confirmDialogVariant, setConfirmDialogVariant] = useState<
 		"newProject" | "loadProject" | null
 	>(null);
@@ -301,9 +301,9 @@ export default function VideoEditor() {
 	const nextSpeedIdRef = useRef(1);
 
 	const { shortcuts, isMac } = useShortcuts();
-	// Native Windows recordings include captured cursor assets. Native macOS
-	// recordings hide the system cursor in ScreenCaptureKit and use telemetry
-	// samples with OpenScreen's default arrow asset for the editable overlay.
+	// Windows recordings include captured cursor assets. macOS hides the system
+	// cursor in ScreenCaptureKit and renders telemetry samples with OpenScreen's
+	// default arrow asset for the editable overlay.
 	const hasEditableCursorRecording =
 		recordingCursorCaptureMode === "editable-overlay" &&
 		(nativePlatform === "win32" || nativePlatform === "darwin") &&
@@ -394,7 +394,7 @@ export default function VideoEditor() {
 			setRecordingCursorCaptureMode(projectCursorCaptureMode);
 			setCurrentProjectPath(path ?? null);
 
-			// A loaded project keeps its zooms exactly as saved — never auto-suggest
+			// A loaded project keeps its zooms exactly as saved, so never auto-suggest
 			// over it (even if it has zero zooms because the user deleted them all).
 			autoProcessedSourceRef.current = sourcePath;
 
@@ -589,8 +589,8 @@ export default function VideoEditor() {
 						createProjectSnapshot({ screenVideoPath: result.path }, INITIAL_EDITOR_STATE),
 					);
 				}
-				// No video/project/session — leave videoPath null so the
-				// EditorEmptyState dashboard renders instead of an error screen.
+				// No video/project/session, so leave videoPath null and let the
+				// EditorEmptyState dashboard render instead of an error screen.
 			} catch (err) {
 				setError("Error loading video: " + String(err));
 			} finally {
@@ -601,8 +601,7 @@ export default function VideoEditor() {
 		loadInitialData();
 	}, [applyLoadedProject]);
 
-	// Track whether user preferences have been loaded to avoid
-	// overwriting saved prefs with defaults on the first render
+	// Avoid overwriting saved prefs with defaults before they've loaded.
 	const [prefsHydrated, setPrefsHydrated] = useState(false);
 
 	// Load persisted user preferences on mount (intentionally runs once)
@@ -671,8 +670,8 @@ export default function VideoEditor() {
 					.split(/[\\/]/)
 					.pop()
 					?.replace(/\.[^.]+$/, "") || `project-${Date.now()}`;
-			// Match the normalization path used by `currentProjectSnapshot` so the
-			// post-save baseline compares equal and `hasUnsavedChanges` clears.
+			// Normalize the same way as currentProjectSnapshot so the post-save
+			// baseline compares equal and hasUnsavedChanges clears.
 			const projectSnapshot = createProjectSnapshot(currentProjectMedia, editorState);
 			const result = await nativeBridgeClient.project.saveProjectFile(
 				projectData,
@@ -1021,7 +1020,7 @@ export default function VideoEditor() {
 				depth: DEFAULT_ZOOM_DEPTH,
 				customScale: ZOOM_DEPTH_SCALES[DEFAULT_ZOOM_DEPTH],
 				focus: { cx: 0.5, cy: 0.5 },
-				// Auto-Focus toggle on → new zooms follow the cursor too.
+				// Auto-Focus on means new zooms follow the cursor too.
 				focusMode: autoFocusAll ? "auto" : undefined,
 				source: "manual",
 			};
@@ -1035,9 +1034,8 @@ export default function VideoEditor() {
 		[pushState, autoFocusAll],
 	);
 
-	// Builds fresh "auto" zoom regions from cursor telemetry, avoiding overlap with
-	// the regions already present. Used by both the on-load auto-suggest pass and
-	// the magic-wand toggle.
+	// Builds fresh "auto" zoom regions from cursor telemetry without overlapping
+	// existing ones. Used by both the on-load auto-suggest pass and the wand toggle.
 	const buildAutoZoomRegions = useCallback(
 		(existingRegions: ZoomRegion[]): ZoomRegion[] => {
 			const totalMs = Math.round(duration * 1000);
@@ -1063,8 +1061,7 @@ export default function VideoEditor() {
 
 	// Auto-suggest zooms once per fresh recording (no existing zooms, telemetry
 	// available, wand enabled). Loaded projects are marked processed elsewhere so
-	// they're never touched. The ref guard makes this run exactly once per source
-	// and survive undo.
+	// they're never touched. The ref guard runs this once per source and survives undo.
 	const autoProcessedSourceRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (!autoZoomEnabled || !cursorTelemetrySourcePath) return;
@@ -1089,8 +1086,8 @@ export default function VideoEditor() {
 		pushState,
 	]);
 
-	// Magic-wand toggle: ON regenerates suggestions around existing zooms; OFF
-	// removes only untouched auto zooms (manual + edited-to-manual survive).
+	// Wand toggle: ON regenerates suggestions around existing zooms; OFF removes
+	// only untouched auto zooms (manual and edited-to-manual survive).
 	const handleToggleAutoZoom = useCallback(
 		(enabled: boolean) => {
 			if (enabled) {
@@ -1109,8 +1106,7 @@ export default function VideoEditor() {
 		[pushState, buildAutoZoomRegions, cursorTelemetrySourcePath],
 	);
 
-	// Global Auto-Focus toggle: flip every zoom between auto (cursor-follow) and
-	// manual at once.
+	// Flip every zoom between auto (cursor-follow) and manual at once.
 	const handleToggleAutoFocusAll = useCallback(
 		(on: boolean) => {
 			pushState((prev) => ({
@@ -1177,7 +1173,7 @@ export default function VideoEditor() {
 		[pushState],
 	);
 
-	// Focus drag: updateState for live preview, commitState on pointer-up
+	// Focus drag: updateState for live preview, commitState on pointer-up.
 	const handleZoomFocusChange = useCallback(
 		(id: string, focus: ZoomFocus) => {
 			updateState((prev) => ({
@@ -1704,7 +1700,7 @@ export default function VideoEditor() {
 			}
 
 			if (matchesShortcut(e, shortcuts.playPause, isMac)) {
-				// Allow space only in inputs/textareas
+				// Let space pass through inside inputs/textareas.
 				if (isInput) {
 					return;
 				}
@@ -1840,9 +1836,8 @@ export default function VideoEditor() {
 				return;
 			}
 
-			// Ask the user where to save BEFORE starting the export. This avoids the
-			// post-export save dialog getting hidden behind other windows after a
-			// long-running export.
+			// Pick the save path before exporting, otherwise the save dialog can end up
+			// hidden behind other windows after a long-running export.
 			const isGifFormat = settings.format === "gif";
 			const targetFileName = `export-${Date.now()}.${isGifFormat ? "gif" : "mp4"}`;
 			const pickResult = await window.electronAPI.pickExportSavePath(
@@ -1878,7 +1873,7 @@ export default function VideoEditor() {
 						? getNativeAspectRatioValue(sourceWidth, sourceHeight, cropRegion)
 						: getAspectRatioValue(aspectRatio);
 
-				// Get preview CONTAINER dimensions for scaling
+				// Preview container dimensions, used for scaling.
 				const playbackRef = videoPlaybackRef.current;
 				const containerElement = playbackRef?.containerRef?.current;
 				const previewWidth = containerElement?.clientWidth || DEFAULT_SOURCE_DIMENSIONS.width;
@@ -2087,8 +2082,8 @@ export default function VideoEditor() {
 			} finally {
 				setIsExporting(false);
 				exporterRef.current = null;
-				// Reset dialog state to ensure it can be opened again on next export
-				// This fixes the bug where second export doesn't show save dialog
+				// Reset so the next export can reopen the dialog (second export
+				// otherwise wouldn't show the save dialog).
 				setShowExportDialog(false);
 				setExportProgress(null);
 			}
@@ -2266,9 +2261,8 @@ export default function VideoEditor() {
 				);
 				let transcribedFromTrimmedBuffer = true;
 
-				// Some recordings come back empty after leading-silence trimming even though the full
-				// source has recognizable speech. Retry once against the untouched audio buffer before
-				// giving up so we do not show "no speech detected" for a spoken clip.
+				// Leading-silence trimming can return empty even when the full source has
+				// speech. Retry once against the untrimmed buffer before giving up.
 				if (segmentsRaw.length === 0 && trimSec > 0) {
 					({ segments: segmentsRaw, granularity } = await transcribeMono16kToSegments(samples, {
 						trimRegions,
@@ -2540,7 +2534,7 @@ export default function VideoEditor() {
 				</div>
 			</div>
 
-			{/* Empty state — shown when no video is loaded */}
+			{/* Empty state shown when no video is loaded */}
 			{!videoPath && (
 				<div className="flex-1 min-h-0 relative">
 					<EditorEmptyState

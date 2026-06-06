@@ -1,8 +1,8 @@
 /**
- * Transformers always imports `onnxruntime-node`, then picks web vs node from `process.release.name`.
- * In Electron's renderer that name is often `"node"` while we still must use the WASM build — the real
- * `onnxruntime-node` package is aliased away (it pulls `fs`). Re-export `onnxruntime-web` here so the
- * "node" branch still receives a working ORT with `registerBackend` etc.
+ * Transformers imports `onnxruntime-node`, then picks web vs node from
+ * `process.release.name`, which is often `"node"` in Electron's renderer even
+ * though we need the WASM build. The real `onnxruntime-node` is aliased away (it
+ * pulls `fs`), so re-export `onnxruntime-web` to give the node branch a working ORT.
  */
 import * as ortWeb from "onnxruntime-web";
 

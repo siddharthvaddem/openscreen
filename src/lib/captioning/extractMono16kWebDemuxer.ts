@@ -89,8 +89,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 /**
- * Demux + WebCodecs audio decode (same stack as export). Use when
- * `decodeAudioData` cannot handle the container (e.g. WebM with video).
+ * Demux + WebCodecs audio decode (same stack as export). Use when `decodeAudioData`
+ * can't handle the container (e.g. WebM with video).
  */
 export async function extractMonoPcmViaWebDemuxer(
 	file: File,
@@ -128,9 +128,9 @@ export async function extractMonoPcmViaWebDemuxer(
 
 	const sampleRate = audioConfig.sampleRate || 48_000;
 
-	// Many WebM/Matroska files report a too-short duration; capping read at reported time stops
-	// demux early and mergeAndConsumeDecodedAudioToMonoLinear clips everything past that. Read up to the
-	// same ceiling as caption decode (demuxer stops when the track ends).
+	// Many WebM/Matroska files report a too-short duration, so capping read at reported time stops
+	// demux early and clips everything past that. Read to the caption-decode ceiling instead; the
+	// demuxer stops when the track ends.
 	const readEndSec = MAX_CAPTION_AUDIO_SEC + READ_END_PADDING_SEC;
 	const decodedFrames: AudioData[] = [];
 
@@ -178,8 +178,8 @@ export async function extractMonoPcmViaWebDemuxer(
 		if (end > maxEndUs) maxEndUs = end;
 	}
 	const inferredDurationSec = maxEndUs / 1e6;
-	// Prefer extent implied by decoded frames (fixes bad container duration). If frames lack
-	// duration, fall back to reported metadata.
+	// Prefer extent implied by decoded frames (fixes bad container duration); fall back to reported
+	// metadata when frames lack duration.
 	const durationSec = inferredDurationSec > 0.02 ? inferredDurationSec : reportedDurationSec;
 
 	const mono = mergeAndConsumeDecodedAudioToMonoLinear(decodedFrames, sampleRate, durationSec);

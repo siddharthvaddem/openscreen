@@ -2,10 +2,9 @@ import type { TrimRegion } from "@/components/video-editor/types";
 import type { CaptionSegment, TranscribeMono16kResult } from "./transcribe";
 
 /**
- * Pure transcription algorithm shared by the captioning Web Worker. It takes an
- * already-constructed Whisper `transcriber` and turns mono 16 kHz audio into
- * timed caption segments. Kept free of DOM / Transformers.js imports so it can
- * run inside a worker and be unit-tested in isolation.
+ * Pure transcription algorithm for the captioning Web Worker: takes a built Whisper
+ * `transcriber` and turns mono 16 kHz audio into timed caption segments. No DOM or
+ * Transformers.js imports so it runs in a worker and unit-tests in isolation.
  */
 
 /** A Transformers.js automatic-speech-recognition pipeline call. */
@@ -178,8 +177,8 @@ function extractChunksFromAsrResult(result: unknown): Array<{
 
 /**
  * Drives Whisper over (possibly sliced) mono 16 kHz audio and returns timed segments.
- * Long audio is split so one forward pass does not exhaust WASM memory; timestamps are
- * shifted back onto the full timeline. Tries word- then phrase-level timestamps, with a
+ * Long audio is split so one pass doesn't exhaust WASM memory; timestamps are shifted
+ * back onto the full timeline. Tries word- then phrase-level timestamps, with a
  * trim-ignoring retry, before giving up.
  */
 export async function runTranscription(

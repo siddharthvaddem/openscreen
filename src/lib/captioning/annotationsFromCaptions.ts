@@ -2,7 +2,7 @@ import type { AnnotationRegion, AnnotationTextStyle } from "@/components/video-e
 
 import type { CaptionSegment } from "./transcribe";
 
-/** Wide lower-third bar; `position.x` is top-left as % of container, so center with (100 − width) / 2. */
+/** Wide lower-third bar; `position.x` is top-left as % of container, so center with (100 - width) / 2. */
 const CAPTION_WIDTH = 92;
 const CAPTION_HEIGHT = 12;
 const CAPTION_BOTTOM_MARGIN = 2;
@@ -25,16 +25,10 @@ const CAPTION_STYLE: AnnotationTextStyle = {
 	textAlign: "center",
 };
 
-/**
- * Nudge caption **starts** earlier (seconds). Whisper onsets are often slightly late vs. what you
- * hear; do **not** apply the same offset to ends — that pulls lines off-screen too early.
- */
+/** Nudge caption starts earlier (seconds); Whisper onsets run slightly late. Do not offset ends too, that pulls lines off-screen early. */
 const AUTO_CAPTION_START_BIAS_SEC = 0;
 
-/**
- * Extra time held after Whisper’s segment **end** (seconds). Model end times are often early vs.
- * trailing vowels / room tone; this is separate from `AUTO_CAPTION_START_BIAS_SEC`.
- */
+/** Extra hold after Whisper's segment end (seconds); model end times run early vs trailing vowels. Separate from the start bias. */
 const AUTO_CAPTION_END_HOLD_SEC = 0;
 
 /** Inside one Whisper phrase, sub-lines can be shorter (do not steal time from neighbors). */
@@ -46,13 +40,10 @@ const CAPTION_LINE_END_TAIL_SEC = 0;
 /** A real silence between word-level timestamps should start a new caption run. */
 const WORD_RUN_BREAK_GAP_SEC = 0.24;
 
-/**
- * Minimum time between consecutive caption regions on the timeline (seconds). Keeps a visible gap
- * so blocks do not read as one clip; kept small so we do not erase natural short pauses between phrases.
- */
+/** Min time between consecutive caption regions (seconds); keeps a visible gap so blocks don't read as one clip. Small so short pauses survive. */
 const MIN_CAPTION_TIMELINE_GAP_SEC = 0;
 
-/** Same text again with almost no gap or overlap — common Whisper / chunk artifact. */
+/** Same text again with almost no gap or overlap; common Whisper/chunk artifact. */
 const DEDUPE_SAME_TEXT_MAX_GAP_SEC = 0.55;
 
 export const SAME_CONTENT_ECHO_MAX_GAP_SEC = 1.15;
@@ -96,10 +87,6 @@ export function collapseSameContentEchoes(segments: CaptionSegment[]): CaptionSe
 	return out;
 }
 
-/**
- * Only merge segments that are almost back-to-back (Whisper often splits mid-phrase with a tiny gap).
- * Wider gaps are usually silence or missed audio — merging those stretches word timing across dead air.
- */
 /**
  * Collapse adjacent duplicate lines (overlapping or tiny gap). Does not merge the same phrase
  * repeated later in the video when separated by real silence.
@@ -155,9 +142,8 @@ function finalizeCaptionSegmentsForPlayback(segments: CaptionSegment[]): Caption
 export const DEFAULT_AUTO_CAPTION_MIN_GAP_MS = Math.round(MIN_CAPTION_TIMELINE_GAP_SEC * 1000);
 
 /**
- * Enforces a minimum gap between consecutive `auto-caption` regions (by start time). Shortens the
- * previous region's end when possible; otherwise shifts the following region later so edits on
- * the timeline cannot squeeze caption blocks completely flush.
+ * Enforce a min gap between consecutive `auto-caption` regions (by start time). Shortens the previous
+ * region's end when possible, else shifts the following region later so blocks can't sit completely flush.
  */
 export function reconcileAutoCaptionTimelineGaps(
 	regions: AnnotationRegion[],
@@ -392,7 +378,7 @@ export function groupTimedCaptionWordsIntoLines(
 
 /**
  * Splits each merged transcription span into shorter captions with about
- * `minWords`–`maxWords` words. Times are interpolated by character weight inside the span.
+ * `minWords`-`maxWords` words. Times are interpolated by character weight inside the span.
  */
 export function splitMergedCaptionsByWordBounds(
 	merged: CaptionSegment[],
@@ -561,7 +547,7 @@ export function captionSegmentsToAnnotationRegions(
 	startZIndex: number,
 	layout?: CaptionSegmentLayoutOptions,
 ): { regions: AnnotationRegion[]; nextNumericId: number; nextZIndex: number } {
-	// Do not echo-collapse raw word tokens before grouping: repeated words ("I … I") share a
+	// Don't echo-collapse raw word tokens before grouping: repeated words ("I … I") share a
 	// normalized key and would merge spans while keeping only the first token's text.
 	const minW = layout?.minWordsPerCaption ?? 2;
 	const maxW = layout?.maxWordsPerCaption ?? 7;

@@ -21,11 +21,9 @@ interface TimelineWrapperProps {
 	minVisibleRangeMs: number;
 	gridSizeMs?: number;
 	onItemSpanChange: (id: string, span: Span) => void;
-	// Spans that act as hard overlap constraints (zoom/trim/speed). Used by
-	// clampToNeighbours AND as snap targets.
+	// Hard overlap constraints (zoom/trim/speed), used by clampToNeighbours and as snap targets.
 	allRegionSpans?: { id: string; start: number; end: number }[];
-	// Spans that act ONLY as snap targets (annotation/blur). They never push
-	// other items away during overlap resolution.
+	// Snap targets only (annotation/blur); never push other items during overlap resolution.
 	softSnapSpans?: { id: string; start: number; end: number }[];
 	currentTimeMs?: number;
 	keyframeTimesMs?: number[];
@@ -36,9 +34,8 @@ interface SnapGuideHandle {
 	hide: () => void;
 }
 
-// Lives inside TimelineContext so it can read valueToPixels. Updates DOM
-// directly via an imperative handle — same pattern as the drag tooltip — to
-// avoid re-rendering the timeline on every pointer move.
+// Lives inside TimelineContext to read valueToPixels. Updates the DOM directly via
+// an imperative handle (like the drag tooltip) to avoid re-rendering on every pointer move.
 const SnapGuide = forwardRef<SnapGuideHandle>((_, ref) => {
 	const { sidebarWidth, direction, range, valueToPixels } = useTimelineContext();
 	const elRef = useRef<HTMLDivElement>(null);
@@ -198,10 +195,9 @@ export default function TimelineWrapper({
 
 	const snapGuideRef = useRef<SnapGuideHandle>(null);
 
-	// Pull the active span's edges to nearby region boundaries, timeline bounds,
-	// the playhead, and keyframes. Threshold scales with zoom (~1% of visible
-	// range, min 50ms) so snap feels right at any zoom level.
-	// Returns the snapped span plus the actual snap target used (for guide rendering).
+	// Pull the active span's edges to nearby region boundaries, timeline bounds, playhead,
+	// and keyframes. Threshold scales with zoom (~1% of visible range, min 50ms). Returns
+	// the snapped span plus the snap target used (for guide rendering).
 	const snapSpanToTargets = useCallback(
 		(
 			span: Span,
@@ -296,12 +292,10 @@ export default function TimelineWrapper({
 		],
 	);
 
-	// dnd-timeline's resize event doesn't expose direction. Compare the live
-	// span to the committed one (committed spans only update on commit, so
-	// during a single resize they still reflect the pre-resize state).
-	// Returns null when the deltas are equal — including the common clamped
-	// case where both are 0 — because we can't tell which handle the user
-	// grabbed, and guessing wrong would snap the other edge.
+	// dnd-timeline's resize event doesn't expose direction, so compare the live span to
+	// the committed one (committed only updates on commit, so it's the pre-resize state).
+	// Returns null when deltas are equal (including the common clamped both-0 case): we
+	// can't tell which handle was grabbed, and guessing wrong snaps the other edge.
 	const inferResizeMode = useCallback(
 		(activeItemId: string, span: Span): "resize-left" | "resize-right" | null => {
 			const old =

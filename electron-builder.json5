@@ -8,6 +8,8 @@
     "**/*.node"
   ],
   "productName": "Openscreen",
+  // Fetch the auto-caption model + ORT wasm into caption-assets/ before packaging (idempotent).
+  "beforePack": "scripts/before-pack.cjs",
   "npmRebuild": true,
   // sharp ships ABI-stable (napi) prebuilt binaries with bundled libvips. Building it from source
   // needs a system libvips we don't provide and breaks on CI/local ("vips-cpp.42 not found"), so we
@@ -37,6 +39,10 @@
     {
       "from": "public/cursors",
       "to": "cursors"
+    },
+    {
+      "from": "caption-assets",
+      "to": "caption-assets"
     }
   ],
 

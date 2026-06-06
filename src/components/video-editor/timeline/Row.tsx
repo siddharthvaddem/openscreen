@@ -9,9 +9,8 @@ interface RowProps extends RowDefinition {
 }
 
 /**
- * A single horizontal lane in the timeline. Wraps the dnd-timeline `useRow`
- * hook and adds an optional `background` layer (e.g. `BackgroundWaveform`),
- * an empty-state hint label, and a minimum height.
+ * A horizontal timeline lane. Wraps dnd-timeline's `useRow` and adds an optional
+ * `background` layer, an empty-state hint label, and a minimum height.
  */
 export default function Row({ id, children, hint, isEmpty, background }: RowProps) {
 	const { setNodeRef, rowWrapperStyle, rowStyle } = useRow({ id });

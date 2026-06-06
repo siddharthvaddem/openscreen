@@ -11,11 +11,9 @@ import {
 let blurScratchCanvas: HTMLCanvasElement | null = null;
 let blurScratchCtx: CanvasRenderingContext2D | null = null;
 
-// Matches a single code point whose script is Han (including non-BMP
-// Extension A-F), Hiragana, Katakana (including halfwidth forms), or
-// Hangul. Used to split CJK text at character boundaries during wrap,
-// since CJK scripts have no word-separating whitespace. Unicode script
-// property escapes require ES2018+; tsconfig target is ES2020.
+// Han/Hiragana/Katakana/Hangul code points, to split CJK text at character
+// boundaries during wrap (CJK has no word-separating whitespace). Script
+// escapes need ES2018+; tsconfig targets ES2020.
 const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 type GraphemeSegmenter = {
@@ -39,10 +37,9 @@ function splitGraphemes(value: string): string[] {
 }
 
 function tokenizeForWrap(line: string): string[] {
-	// Split Latin text on whitespace (preserving the whitespace as its own token,
-	// matching the original behavior), and split CJK runs into individual
-	// characters so each one becomes a breakable unit. This mirrors the editor's
-	// CSS `word-break: break-word` handling for CJK content.
+	// Split Latin on whitespace (kept as its own token) and split CJK runs into
+	// individual chars so each is breakable, mirroring the editor's CSS
+	// word-break: break-word for CJK.
 	const tokens: string[] = [];
 	let buffer = "";
 	const chars = Array.from(line);
@@ -126,10 +123,8 @@ function renderArrow(
 	const offsetX = padding + (availableWidth - 100 * scale) / 2;
 	const offsetY = padding + (availableHeight - 100 * scale) / 2;
 
-	// Apply centering offset
 	ctx.translate(offsetX, offsetY);
 
-	// Apply shadow filter
 	ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
 	ctx.shadowBlur = 8 * scale;
 	ctx.shadowOffsetX = 0;
@@ -140,7 +135,7 @@ function renderArrow(
 	ctx.lineCap = "round";
 	ctx.lineJoin = "round";
 
-	// Draw all paths as a single shape to avoid overlapping shadows/strokes
+	// One shape so shadows/strokes don't overlap
 	ctx.beginPath();
 
 	for (const pathString of paths) {
@@ -278,7 +273,7 @@ function renderText(
 	ctx.translate(-transformOriginX, -transformOriginY);
 	ctx.globalAlpha *= animationState.opacity;
 
-	// Clip text to annotation box bounds (matches editor's overflow: hidden)
+	// Clip to box bounds, matching editor's overflow: hidden
 	ctx.beginPath();
 	ctx.rect(x, y, width, height);
 	ctx.clip();
@@ -414,7 +409,7 @@ async function renderImage(
 	return new Promise((resolve) => {
 		const img = new Image();
 		img.onload = () => {
-			// Preserve aspect ratio - contain the image within the bounds
+			// Contain within bounds, preserving aspect ratio
 			const imgAspect = img.width / img.height;
 			const boxAspect = width / height;
 
@@ -450,12 +445,11 @@ export async function renderAnnotations(
 	currentTimeMs: number,
 	scaleFactor: number = 1.0,
 ): Promise<void> {
-	// Filter active annotations at current time
 	const activeAnnotations = annotations.filter(
 		(ann) => currentTimeMs >= ann.startMs && currentTimeMs < ann.endMs,
 	);
 
-	// Sort by z-index (lower first, so higher z-index draws on top)
+	// Lower z-index first so higher draws on top
 	const sortedAnnotations = [...activeAnnotations].sort((a, b) => a.zIndex - b.zIndex);
 
 	for (const annotation of sortedAnnotations) {

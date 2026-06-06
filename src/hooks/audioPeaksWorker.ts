@@ -1,11 +1,8 @@
 /**
  * Web Worker: computes min/max peak pairs from raw audio channel data.
- *
- * Input message:  { channels: Float32Array[]; duration: number }
- * Output message: Float32Array of length 2*N — [min0, max0, min1, max1, …]
- *
- * Channel buffers are transferred (zero-copy) from the caller.
- * The peaks buffer is transferred back.
+ * In: { channels: Float32Array[]; duration: number }.
+ * Out: Float32Array of length 2*N, [min0, max0, min1, max1, ...].
+ * Channel buffers and the peaks buffer are transferred (zero-copy).
  */
 self.onmessage = (event: MessageEvent<{ channels: Float32Array[]; duration: number }>) => {
 	const { channels, duration } = event.data;
@@ -18,7 +15,7 @@ self.onmessage = (event: MessageEvent<{ channels: Float32Array[]; duration: numb
 	const totalSamples = channels[0].length;
 	const N = Math.min(24000, Math.ceil(duration * 200));
 	const blockSize = totalSamples / N;
-	const peaks = new Float32Array(N * 2); // [min0, max0, min1, max1, …]
+	const peaks = new Float32Array(N * 2); // [min0, max0, min1, max1, ...]
 
 	for (let i = 0; i < N; i++) {
 		const start = Math.floor(i * blockSize);

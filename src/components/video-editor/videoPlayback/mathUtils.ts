@@ -68,8 +68,7 @@ export function smoothStep(t: number) {
 }
 
 /**
- * Gentle ease-in-out cubic — slow start, smooth middle, gentle landing.
- * Used for zoom-in transitions.
+ * Ease-in-out cubic. Used for zoom-in transitions.
  */
 export function easeInOutCubic(t: number) {
 	const x = clamp01(t);
@@ -77,8 +76,7 @@ export function easeInOutCubic(t: number) {
 }
 
 /**
- * Ease-out cubic — starts at speed, then decelerates to a gentle stop.
- * Used for zoom-out transitions so strength eases smoothly to zero.
+ * Ease-out cubic. Used for zoom-out transitions so strength eases to zero.
  */
 export function easeOutCubic(t: number) {
 	const x = clamp01(t);

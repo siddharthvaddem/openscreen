@@ -6,7 +6,7 @@ function makeRecording(samples: CursorRecordingSample[]): CursorRecordingData {
 	return { version: 2, provider: "native", assets: [], samples };
 }
 
-/** Sum of squared second differences of x sampled on a uniform grid — a roughness proxy. */
+/** Roughness proxy: sum of squared second differences of x on a uniform grid. */
 function roughness(
 	sampleAt: (t: number) => { cx: number; cy: number } | null,
 	t0: number,

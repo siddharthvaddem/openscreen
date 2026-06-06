@@ -5,9 +5,8 @@ const SOURCE_LOAD_TIMEOUT_MS = 60_000;
 const EPSILON_SEC = 0.001;
 /**
  * Build a full WebCodecs-compatible AV1 codec string from the AV1CodecConfigurationRecord.
- * web-demuxer may return a bare "av01" when the WASM-side parser fails to read
- * the extradata (e.g. raw OBU sequence header from WebM instead of ISOBMFF av1C box).
- * This function parses the record if present, otherwise returns a safe default.
+ * web-demuxer can return a bare "av01" when the WASM parser fails to read the extradata.
+ * Parses the record if present, otherwise returns a safe default.
  *
  * @see https://aomediacodec.github.io/av1-isobmff/#av1codecconfigurationbox-section
  */
@@ -25,9 +24,8 @@ function buildAV1CodecString(description?: BufferSource): string {
 	//   Byte 0: marker (1) | version (7)
 	//   Byte 1: seq_profile (3) | seq_level_idx_0 (5)
 	//   Byte 2: seq_tier_0 (1) | high_bitdepth (1) | twelve_bit (1) | ...
-	// The spec says version should be 1, but Chrome/Electron's MediaRecorder
-	// may write version 127 (0xFF first byte). We accept any version as long
-	// as the marker bit is set and the record is long enough.
+	// Spec says version 1, but Chrome/Electron MediaRecorder may write 127 (0xFF),
+	// so accept any version as long as the marker bit is set and the record is long enough.
 	if (bytes.length < 4) return fallback;
 	if (!(bytes[0] & 0x80)) return fallback; // marker bit must be 1
 
@@ -71,26 +69,22 @@ const EARLY_DECODE_END_THRESHOLD_SEC = 1;
 const METADATA_TAIL_TOLERANCE_SEC = 2;
 const STREAM_DURATION_MATCH_TOLERANCE_SEC = 0.25;
 const DURATION_DIVERGENCE_THRESHOLD_SEC = 1.5;
-// Fallback upper bound for the packet scan when no reliable duration hint is
-// available. Explicit end is required (some containers are truncated without
-// one), but the hint-derived bound would cap the scan prematurely when
-// container/stream duration are missing or corrupt.
+// Fallback upper bound for the packet scan when no reliable duration hint exists.
+// An explicit end is required (some containers are truncated without one), but a
+// hint-derived bound would cap the scan early when duration is missing or corrupt.
 const SCAN_UNBOUNDED_FALLBACK_SEC = 24 * 60 * 60;
 
 /**
- * Validate container duration against actual packet timestamps.
- *
- * Chrome/Electron's MediaRecorder writes WebM containers with unreliable
- * Duration fields (often Infinity, 0, or inflated) — especially on Linux.
- * This function picks the most trustworthy duration value.
+ * Pick the most trustworthy duration. Chrome/Electron MediaRecorder writes WebM
+ * with unreliable Duration fields (often Infinity, 0, or inflated), especially on Linux.
  *
  * @param containerDuration  Duration from the container-level metadata
  * @param scannedDuration    Duration derived from actual packet timestamps (ground truth)
  */
 export function validateDuration(containerDuration: number, scannedDuration: number): number {
 	if (scannedDuration <= 0) {
-		// Zero scanned duration means corrupted/empty file — fall back to container
-		// (downstream shouldFailDecodeEndedEarly will catch truly empty files)
+		// Corrupted/empty file, fall back to container.
+		// (downstream shouldFailDecodeEndedEarly catches truly empty files)
 		return Number.isFinite(containerDuration) ? Math.max(containerDuration, 0) : 0;
 	}
 	if (!Number.isFinite(containerDuration) || containerDuration <= 0) {
@@ -138,11 +132,8 @@ export function shouldFailDecodeEndedEarly({
 }
 
 /**
- * Loads a video file as an ArrayBuffer, delegating to
- * `StreamingVideoDecoder.loadLocalSourceFile` for local paths (Electron IPC)
- * and `StreamingVideoDecoder.loadRemoteSourceFile` for remote / blob / data URLs.
- * Also returns the `contentType` derived from the blob (empty string for local
- * IPC reads where no Content-Type is available).
+ * Loads a video file as an ArrayBuffer via the local (Electron IPC) or remote loader.
+ * contentType is empty for local IPC reads, which carry no Content-Type.
  */
 export async function loadFileAsArrayBuffer(
 	videoUrl: string,
@@ -229,7 +220,7 @@ export class StreamingVideoDecoder {
 	async loadMetadata(videoUrl: string): Promise<DecodedVideoInfo> {
 		const { file } = await this.loadSourceFile(videoUrl);
 
-		// Relative URL so it resolves correctly in both dev (http) and packaged (file://) builds
+		// Relative URL so it resolves in both dev (http) and packaged (file://) builds
 		const wasmUrl = new URL("./wasm/web-demuxer.wasm", window.location.href).href;
 		this.demuxer = new WebDemuxer({ wasmFilePath: wasmUrl });
 		await this.withTimeout(
@@ -257,12 +248,11 @@ export class StreamingVideoDecoder {
 
 		const audioStream = mediaInfo.streams.find((s) => s.codec_type_string === "audio");
 
-		// Scan video packets to find the true content boundary.
-		// MediaRecorder (especially on Linux) writes unreliable container durations.
-		// Packet timestamps are ground truth — no decode needed, just timestamp reads.
-		// Pass explicit range because some containers are truncated without one.
-		// Sanitize because mediaInfo.duration can be NaN/Infinity (Chromium Linux bug),
-		// which would propagate into demuxer.read() as an invalid endpoint.
+		// Scan video packets for the true content boundary; MediaRecorder (especially on
+		// Linux) writes unreliable container durations and packet timestamps are ground truth.
+		// Pass an explicit range because some containers are truncated without one.
+		// Sanitize because mediaInfo.duration can be NaN/Infinity (Chromium Linux bug), which
+		// would reach demuxer.read() as an invalid endpoint.
 		const containerDurationSec = Number.isFinite(mediaInfo.duration) ? mediaInfo.duration : 0;
 		const streamDurationSec =
 			typeof videoStream?.duration === "number" && Number.isFinite(videoStream.duration)
@@ -307,12 +297,10 @@ export class StreamingVideoDecoder {
 		return this.metadata;
 	}
 	/**
-	 * Decodes all video frames from the loaded source and invokes a callback for each.
-	 * Handles trimming and speed adjustments, and resamples to the target frame rate.
-	 * On Windows, early decode termination is tolerated to work around driver quirks.
+	 * Decodes all video frames, applying trim/speed and resampling to the target frame rate.
 	 * @param targetFrameRate - Desired output frame rate.
-	 * @param trimRegions - Array of time regions to keep (others discarded).
-	 * @param speedRegions - Array of speed adjustments for specific time ranges.
+	 * @param trimRegions - Time regions to keep (others discarded).
+	 * @param speedRegions - Speed adjustments for specific time ranges.
 	 * @param onFrame - Async callback receiving each decoded VideoFrame.
 	 */
 	async decodeAll(
@@ -331,9 +319,8 @@ export class StreamingVideoDecoder {
 		console.log("[StreamingVideoDecoder] decoderConfig.codec:", decoderConfig.codec);
 		console.log("[StreamingVideoDecoder] decoderConfig.description:", decoderConfig.description);
 
-		// web-demuxer may return bare four-character code strings ("av01", "vp08",
-		// "vp09", "avc1") that WebCodecs rejects. Normalize them to the short or
-		// full parametrized forms that VideoDecoder accepts.
+		// web-demuxer can return bare fourcc strings ("av01", "vp08", "vp09", "avc1")
+		// that WebCodecs rejects; normalize to forms VideoDecoder accepts.
 		if (/^av01$/i.test(decoderConfig.codec)) {
 			decoderConfig.codec = buildAV1CodecString(
 				decoderConfig.description as BufferSource | undefined,
@@ -373,7 +360,7 @@ export class StreamingVideoDecoder {
 		);
 		const frameDurationUs = 1_000_000 / targetFrameRate;
 
-		// Async frame queue — decoder pushes, consumer pulls
+		// Async frame queue: decoder pushes, consumer pulls.
 		const pendingFrames: VideoFrame[] = [];
 		let frameResolve: ((frame: VideoFrame | null) => void) | null = null;
 		let decodeError: Error | null = null;
@@ -443,12 +430,12 @@ export class StreamingVideoDecoder {
 			});
 		};
 
-		// One forward stream through the whole file.
-		// Pass explicit range because some containers are truncated when no end is provided.
+		// One forward stream through the whole file. Pass an explicit range because
+		// some containers are truncated when no end is provided.
 		const readEndSec = this.metadata.duration + 0.5;
 		const reader = this.demuxer.read("video", 0, readEndSec).getReader();
 
-		// Feed chunks to decoder in background with backpressure
+		// Feed chunks to the decoder in the background with backpressure.
 		const feedPromise = (async () => {
 			try {
 				while (!this.cancelled) {
@@ -482,7 +469,7 @@ export class StreamingVideoDecoder {
 			}
 		})();
 
-		// Route decoded frames into segments by timestamp, then deliver with VFR→CFR resampling
+		// Route decoded frames into segments by timestamp, then deliver with VFR to CFR resampling.
 		let segmentIdx = 0;
 		let segmentFrameIndex = 0;
 		let exportFrameIndex = 0;
@@ -681,9 +668,8 @@ export class StreamingVideoDecoder {
 	}
 
 	/**
-	 * Calculates the effective output duration (in seconds) and total frame count
-	 * for a given combination of trim and speed regions at the target frame rate.
-	 * Requires `loadMetadata()` to have been called first.
+	 * Effective output duration (seconds) and total frame count for the given trim/speed
+	 * regions at the target frame rate. Requires loadMetadata() first.
 	 */
 	getExportMetrics(
 		targetFrameRate: number,

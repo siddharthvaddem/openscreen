@@ -37,11 +37,9 @@ import { openSourceSelectorWithPermissionRetry } from "./openSourceSelectorFlow"
 
 const ICON_SIZE = 20;
 
-// Gap (px) between the top of the bar and the device-selector popups in the
-// vertical tray layout: the bar's `bottom-5` offset (20px) plus an 8px gap.
+// Vertical tray gap (px): bar's `bottom-5` (20px) plus an 8px gap.
 const HUD_DEVICE_POPUP_GAP = 28;
-// Distance (px) of the device-selector popups from the window bottom in the
-// horizontal layout. Mirrors the `bottom-[68px]` utility class on that element.
+// Horizontal layout: mirrors the `bottom-[68px]` class on the popup element.
 const HUD_DEVICE_POPUP_HORIZONTAL_BOTTOM = 68;
 
 const ICON_CONFIG = {
@@ -149,8 +147,7 @@ export function LaunchWindow() {
 	const languageMenuPanelRef = useRef<HTMLDivElement | null>(null);
 	const hudBarRef = useRef<HTMLDivElement | null>(null);
 	const deviceSelectorRef = useRef<HTMLDivElement | null>(null);
-	// Measured height of the HUD bar, used to anchor the device-selector popups
-	// directly above the (potentially tall) vertical tray instead of overlapping it.
+	// Measured bar height, anchors the popups above the tall vertical tray so they don't overlap it.
 	const [hudBarHeight, setHudBarHeight] = useState(0);
 	const [languageMenuStyle, setLanguageMenuStyle] = useState<{
 		right: number;
@@ -303,45 +300,35 @@ export function LaunchWindow() {
 		return () => cancelAnimationFrame(id);
 	}, [isLanguageMenuOpen]);
 
-	// Resize the HUD overlay window to fit its rendered content. Without this the
-	// window stays at its fixed default size, so the vertical tray layout (which is
-	// much taller than the horizontal one) gets clipped and forces scrolling. We
-	// measure relative to the window's bottom-centre — the anchor the main process
-	// preserves — so the elements' fixed bottom/centre offsets keep this stable and
-	// it never oscillates.
+	// Resize the overlay window to fit content, else the taller vertical tray gets clipped
+	// and scrolls. Measure from the window's bottom-centre (the anchor the main process
+	// preserves) so fixed bottom/centre offsets keep this stable and it doesn't oscillate.
 	const lastHudSizeRef = useRef({ width: 0, height: 0 });
 	const measureHudSize = useCallback(() => {
 		const barEl = hudBarRef.current;
 		if (!barEl || !window.electronAPI?.setHudOverlaySize) return;
 
-		// Breathing room so the bar's drop shadow isn't clipped and content isn't
-		// flush against the edge. TOP_MARGIN must also exceed the slack in the bar's
-		// `max-h: calc(100vh - 2.5rem)` cap (40px reserved − 20px bottom gap = 20px)
-		// so the window is always tall enough for that cap not to engage and trigger
-		// an unwanted scrollbar.
+		// Breathing room so the drop shadow isn't clipped. TOP_MARGIN must also exceed the
+		// slack in the bar's `max-h: calc(100vh - 2.5rem)` cap (40px reserved - 20px bottom
+		// gap = 20px) so the window stays tall enough that the cap never engages and adds a scrollbar.
 		const SIDE_MARGIN = 24;
 		const TOP_MARGIN = 24;
-		// Keep the window wide enough that the language menu (11rem) never clips,
-		// even when the bar itself is narrow (vertical layout, no popups open).
+		// Wide enough that the language menu (11rem) never clips, even when the bar is narrow.
 		const MIN_WIDTH = 220;
 
 		const viewportHeight = window.innerHeight;
 		const centerX = window.innerWidth / 2;
 
-		// The bar is measured by its *natural* (scroll) size, not its clipped box: in
-		// vertical mode it carries a `max-h` + overflow cap as a small-screen
-		// fallback, and reading the clipped height would pin the window to that cap
-		// and never let it grow. scrollHeight reports the full content height (the cap
-		// then only engages when the main process clamps the window to the screen).
+		// Use natural (scroll) size, not the clipped box: vertical mode's max-h cap is a
+		// small-screen fallback, and reading clipped height would pin the window to it.
+		// scrollHeight gives full content height; the cap only engages when the main process clamps to screen.
 		let topFromBottom = viewportHeight - barEl.getBoundingClientRect().bottom + barEl.scrollHeight;
 		let halfWidth = barEl.scrollWidth / 2;
 
-		// Device-selector popups also drive both dimensions. Their vertical anchor
-		// depends on the bar height (they sit above the tall vertical tray), which is
-		// fed back through React state and lags the bar by a frame. So we derive
-		// their top edge analytically from the bar's natural height instead of from
-		// their (stale) rendered position — that keeps a single measurement pass
-		// authoritative and avoids a feedback re-measure.
+		// Popups drive both dimensions too. Their vertical anchor depends on bar height,
+		// which is fed back through React state and lags by a frame, so derive their top
+		// edge from the bar's natural height instead of the stale rendered position. Keeps
+		// one measurement pass authoritative and avoids a feedback re-measure.
 		if (deviceSelectorRef.current) {
 			const rect = deviceSelectorRef.current.getBoundingClientRect();
 			if (rect.width !== 0 || rect.height !== 0) {
@@ -354,9 +341,8 @@ export function LaunchWindow() {
 			}
 		}
 
-		// The language menu scrolls within the available height, so it only needs to
-		// influence width (not grow the window to the full height). Its presence in
-		// the DOM means it is open.
+		// The language menu scrolls within available height, so it only influences width.
+		// Its presence in the DOM means it's open.
 		if (languageMenuPanelRef.current) {
 			const rect = languageMenuPanelRef.current.getBoundingClientRect();
 			halfWidth = Math.max(halfWidth, centerX - rect.left, rect.right - centerX);
@@ -376,9 +362,8 @@ export function LaunchWindow() {
 		window.electronAPI.setHudOverlaySize(width, height);
 	}, [trayLayout]);
 
-	// A single persistent observer; elements wire themselves up via callback refs as
-	// they mount/unmount (device popups, language menu) so the measurement re-runs
-	// without recreating the observer or threading mount state through effect deps.
+	// One persistent observer; elements wire themselves up via callback refs as they
+	// mount/unmount so measurement re-runs without recreating it or threading mount state through deps.
 	const hudResizeObserverRef = useRef<ResizeObserver | null>(null);
 	useEffect(() => {
 		const observer = new ResizeObserver(() => measureHudSize());
@@ -515,10 +500,8 @@ export function LaunchWindow() {
 	};
 
 	return (
-		// Root fills the HUD window only. Avoid w-screen/h-screen (100vw/100vh):
-		// 100vw can exceed the inner layout width when scrollbars affect the
-		// viewport (notably on Windows), causing a horizontal scrollbar once the
-		// recording toolbar widened (issue #305).
+		// Avoid w-screen/h-screen: 100vw can exceed the inner layout width when scrollbars
+		// affect the viewport (Windows), causing a horizontal scrollbar (issue #305).
 		<div
 			className={`h-full w-full min-w-0 max-w-full overflow-x-hidden overflow-y-hidden bg-transparent ${styles.electronDrag}`}
 			onPointerMove={(event) => {
@@ -570,7 +553,7 @@ export function LaunchWindow() {
 				</div>
 			)}
 
-			{/* Device selectors — fixed above HUD bar, viewport-relative, never clipped */}
+			{/* Device selectors, fixed above HUD bar, viewport-relative, never clipped */}
 			{(showMicControls || showWebcamControls) && (
 				<div
 					ref={setDeviceSelectorEl}
@@ -578,8 +561,8 @@ export function LaunchWindow() {
 					className={`fixed left-1/2 -translate-x-1/2 flex items-center gap-2 animate-mic-panel-in ${trayLayout === "vertical" ? "" : "bottom-[68px]"} ${styles.electronNoDrag}`}
 					style={
 						trayLayout === "vertical"
-							? // Sit above the top of the (tall) vertical tray, anchored to the
-								// measured bar height. Matches the analytic offset in measureHudSize.
+							? // Sit above the tall vertical tray, anchored to the measured bar
+								// height. Matches the offset in measureHudSize.
 								{ bottom: hudBarHeight + HUD_DEVICE_POPUP_GAP }
 							: undefined
 					}
@@ -713,7 +696,7 @@ export function LaunchWindow() {
 				</div>
 			)}
 
-			{/* HUD bar — fixed at bottom center, viewport-relative, never moves */}
+			{/* HUD bar, fixed at bottom center, viewport-relative, never moves */}
 			<div
 				ref={setHudBarEl}
 				data-hud-interactive="true"

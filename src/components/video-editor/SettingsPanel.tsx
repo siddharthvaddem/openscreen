@@ -174,10 +174,8 @@ function ZoomFocusCoordInput({
 	disabled?: boolean;
 	ariaLabel: string;
 }) {
-	// While the input is focused (user is editing), show their draft text
-	// so partial entries like "5" or "" don't get overwritten by re-renders.
-	// When not focused, mirror the live prop value so external changes
-	// (dragging the overlay on the preview) update the displayed number in real time.
+	// While focused, show the draft so partial entries like "5" or "" survive re-renders.
+	// While not focused, mirror the live prop so overlay drags update the number live.
 	const [draft, setDraft] = useState<string | null>(null);
 	const display = percent.toFixed(1);
 
@@ -490,12 +488,11 @@ export function SettingsPanel({
 	const t = useScopedT("settings");
 	const [activePanelMode, setActivePanelMode] = useState<SettingsPanelMode>("background");
 	const sourceDimensions = formatSourceDimensions(videoElement, cropRegion);
-	// Resolved URLs are for DOM rendering only (backgroundImage). The canonical
-	// `/wallpapers/wallpaperN.jpg` form in WALLPAPER_PATHS is what gets persisted
-	// on click — never the machine-specific file:// URL.
+	// Resolved URLs are for DOM rendering only. We persist the canonical
+	// `/wallpapers/wallpaperN.jpg` form from WALLPAPER_PATHS, never the file:// URL.
 	const wallpaperPreviewUrls = useMemo(() => WALLPAPER_PATHS.map(resolveImageWallpaperUrl), []);
-	// "Default" (built-in art) plus each bundled cursor theme. Preview thumbnails use
-	// the theme's arrow asset; the persisted/selected value is the theme id.
+	// Built-in "Default" plus each bundled theme. Thumbnails use the theme's arrow asset;
+	// the persisted value is the theme id.
 	const cursorThemeOptions = useMemo(
 		() => [
 			{
@@ -731,13 +728,12 @@ export function SettingsPanel({
 	const handleRemoveCustomImage = (imageUrl: string, event: React.MouseEvent) => {
 		event.stopPropagation();
 		setCustomImages((prev) => prev.filter((img) => img !== imageUrl));
-		// If the removed image was selected, clear selection
+		// If the removed image was selected, reset to the first wallpaper.
 		if (selected === imageUrl) {
 			onWallpaperChange(WALLPAPER_PATHS[0]);
 		}
 	};
 
-	// Find selected annotation
 	const selectedAnnotation = selectedAnnotationId
 		? annotationRegions.find((a) => a.id === selectedAnnotationId)
 		: null;
@@ -781,7 +777,7 @@ export function SettingsPanel({
 		</div>
 	);
 
-	// If an annotation is selected, show annotation settings instead
+	// Annotation selected: show its settings panel instead.
 	if (
 		selectedAnnotation &&
 		onAnnotationContentChange &&

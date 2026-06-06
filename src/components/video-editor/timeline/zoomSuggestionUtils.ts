@@ -88,10 +88,9 @@ export interface AutoZoomSuggestion {
 }
 
 /**
- * Builds non-overlapping zoom suggestions from cursor telemetry: detects dwell
- * moments, ranks them by dwell duration, spaces them out by SUGGESTION_SPACING_MS,
- * and drops any that overlap an existing region. Pure — shared by the magic-wand
- * toggle and the on-load auto-suggest pass.
+ * Build non-overlapping zoom suggestions from cursor telemetry: detect dwell moments,
+ * rank by duration, space by SUGGESTION_SPACING_MS, drop any overlapping an existing
+ * region. Pure, shared by the magic-wand toggle and the on-load auto-suggest pass.
  */
 export function buildAutoZoomSuggestions(options: {
 	cursorTelemetry: CursorTelemetryPoint[];

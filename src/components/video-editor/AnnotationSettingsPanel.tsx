@@ -108,7 +108,6 @@ export function AnnotationSettingsPanel({
 	const getFontLabel = (font: (typeof FONT_FAMILIES)[number]) =>
 		font.labelKey ? fontStyleLabels[font.labelKey] : font.name;
 
-	// Load custom fonts on mount
 	useEffect(() => {
 		setCustomFonts(getCustomFonts());
 	}, []);
@@ -138,7 +137,6 @@ export function AnnotationSettingsPanel({
 
 		const file = files[0];
 
-		// Validate file type
 		const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
 		if (!validTypes.includes(file.type)) {
 			toast.error(t("annotation.invalidImageType"), {

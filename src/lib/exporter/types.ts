@@ -10,9 +10,9 @@ export interface ExportProgress {
 	currentFrame: number;
 	totalFrames: number;
 	percentage: number;
-	estimatedTimeRemaining: number; // in seconds
-	phase?: "extracting" | "finalizing"; // Phase of export
-	renderProgress?: number; // 0-100, progress of GIF rendering phase
+	estimatedTimeRemaining: number; // seconds
+	phase?: "extracting" | "finalizing";
+	renderProgress?: number; // 0-100, GIF render phase
 }
 
 export interface ExportResult {

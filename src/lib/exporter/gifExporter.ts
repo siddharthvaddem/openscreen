@@ -138,7 +138,6 @@ export class GifExporter {
 			this.cleanup();
 			this.cancelled = false;
 
-			// Initialize streaming decoder and load video metadata
 			this.streamingDecoder = new StreamingVideoDecoder();
 			const videoInfo = await this.streamingDecoder.loadMetadata(this.config.videoUrl);
 			let webcamInfo: Awaited<ReturnType<StreamingVideoDecoder["loadMetadata"]>> | null = null;
@@ -147,7 +146,6 @@ export class GifExporter {
 				webcamInfo = await this.webcamDecoder.loadMetadata(this.config.webcamVideoUrl);
 			}
 
-			// Initialize frame renderer
 			this.renderer = new FrameRenderer({
 				width: this.config.width,
 				height: this.config.height,
@@ -186,8 +184,7 @@ export class GifExporter {
 			});
 			await this.renderer.initialize();
 
-			// Initialize GIF encoder
-			// Loop: 0 = infinite loop, 1 = play once (no loop)
+			// gif.js repeat: 0 = infinite loop, 1 = play once
 			const repeat = this.config.loop ? 0 : 1;
 			const cores = navigator.hardwareConcurrency || 4;
 			const WORKER_COUNT = Math.max(1, Math.min(8, cores - 1));
@@ -203,14 +200,14 @@ export class GifExporter {
 				dither: "FloydSteinberg",
 			});
 
-			// Calculate effective duration and frame count (excluding trim regions)
+			// Effective duration and frame count, excluding trim regions
 			const { effectiveDuration, totalFrames } = this.streamingDecoder.getExportMetrics(
 				this.config.frameRate,
 				this.config.trimRegions,
 				this.config.speedRegions,
 			);
 
-			// Calculate frame delay in milliseconds (gif.js uses ms)
+			// gif.js wants frame delay in ms
 			const frameDelay = Math.round(1000 / this.config.frameRate);
 
 			console.log("[GifExporter] Original duration:", videoInfo.duration, "s");
@@ -260,7 +257,7 @@ export class GifExporter {
 						})()
 					: null;
 
-			// Stream decode and process frames — no seeking!
+			// Stream decode and process frames, no seeking
 			await this.streamingDecoder.decodeAll(
 				this.config.frameRate,
 				this.config.trimRegions,
@@ -280,19 +277,15 @@ export class GifExporter {
 							return;
 						}
 
-						// Render the frame with all effects using source timestamp
-						const sourceTimestampUs = sourceTimestampMs * 1000; // Convert to microseconds
+						const sourceTimestampUs = sourceTimestampMs * 1000; // us
 						await renderer.renderFrame(videoFrame, sourceTimestampUs, webcamFrame);
 
-						// Get the rendered canvas and add to GIF
 						const canvas = renderer.getCanvas();
 
-						// Add frame to GIF encoder with delay
 						this.gif!.addFrame(canvas, { delay: frameDelay, copy: true });
 
 						frameIndex++;
 
-						// Update progress
 						if (this.config.onProgress) {
 							this.config.onProgress({
 								currentFrame: frameIndex,
@@ -318,7 +311,7 @@ export class GifExporter {
 			this.webcamDecoder?.cancel();
 			await webcamDecodePromise;
 
-			// Update progress to show we're now in the finalizing phase
+			// Now in the finalizing phase
 			if (this.config.onProgress) {
 				this.config.onProgress({
 					currentFrame: totalFrames,
@@ -329,13 +322,11 @@ export class GifExporter {
 				});
 			}
 
-			// Render the GIF
 			const blob = await new Promise<Blob>((resolve, _reject) => {
 				this.gif!.on("finished", (blob: Blob) => {
 					resolve(blob);
 				});
 
-				// Track rendering progress
 				this.gif!.on("progress", (progress: number) => {
 					if (this.config.onProgress) {
 						this.config.onProgress({
@@ -349,7 +340,7 @@ export class GifExporter {
 					}
 				});
 
-				// gif.js doesn't have a typed 'error' event, but we can catch errors in the try/catch
+				// gif.js has no typed 'error' event; the outer try/catch handles failures
 				this.gif!.render();
 			});
 

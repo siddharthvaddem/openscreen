@@ -69,7 +69,7 @@ describe("computeCompositeLayout", () => {
 
 		expect(landscape).not.toBeNull();
 		expect(portrait).not.toBeNull();
-		// Same total pixel count — webcam area should be comparable
+		// Same total pixel count, so webcam area should be comparable.
 		const landscapeArea = landscape!.webcamRect!.width * landscape!.webcamRect!.height;
 		const portraitArea = portrait!.webcamRect!.width * portrait!.webcamRect!.height;
 		expect(landscapeArea).toBe(portraitArea);
@@ -135,10 +135,8 @@ describe("computeCompositeLayout", () => {
 			webcamSizePreset: 100,
 		});
 
-		// Values below 10 should clamp to 10
 		expect(belowMin!.webcamRect!.width).toBe(atMin!.webcamRect!.width);
 		expect(belowMin!.webcamRect!.height).toBe(atMin!.webcamRect!.height);
-		// Values above 50 should clamp to 50
 		expect(aboveMax!.webcamRect!.width).toBe(atMax!.webcamRect!.width);
 		expect(aboveMax!.webcamRect!.height).toBe(atMax!.webcamRect!.height);
 	});

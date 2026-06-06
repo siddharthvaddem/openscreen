@@ -529,11 +529,10 @@ export function resolvePrettyNativeCursorAsset(
 }
 
 /**
- * Infers "arrow" vs "pointer" from a captured cursor bitmap's hotspot, for platforms
- * (notably macOS) that don't tag samples with a `cursorType`. The arrow's hotspot sits
- * in the top-left tip; the pointing hand's fingertip hotspot sits in the upper-center
- * band. Anything else (text I-beam, crosshair, resize) is left unclassified so it keeps
- * its real captured cursor instead of being forced into a themed arrow/pointer.
+ * Infers "arrow" vs "pointer" from a captured bitmap's hotspot, for platforms (macOS)
+ * that don't tag samples with a `cursorType`. Arrow's hotspot is in the top-left tip;
+ * the pointing hand's fingertip is in the upper-center band. Anything else stays
+ * unclassified so it keeps its real captured cursor instead of a themed arrow/pointer.
  */
 function classifyCapturedCursorType(asset: NativeCursorAsset): NativeCursorType | null {
 	if (asset.width <= 0 || asset.height <= 0) {
@@ -551,10 +550,9 @@ function classifyCapturedCursorType(asset: NativeCursorAsset): NativeCursorType 
 }
 
 /**
- * Resolves the cursor-theme override for a given type, or null when the default
- * theme is active or the theme has no art for that type. The bundled asset URL is
- * resolved lazily (only when a theme is active) so this is safe to call from tests
- * and non-renderer contexts. A resolution failure degrades to the default art.
+ * Resolves the theme override for a cursor type, or null when the default theme is active
+ * or has no art for that type. The asset URL resolves lazily (only when a theme is active)
+ * so this is safe from tests and non-renderer contexts; a failure degrades to default art.
  */
 function resolveThemedCursorAsset(
 	themeId: string | null | undefined,
@@ -588,9 +586,9 @@ export function resolveNativeCursorRenderAsset(
 ) {
 	const cursorType = sample?.cursorType ?? asset.cursorType ?? null;
 	if (themeId && themeId !== DEFAULT_CURSOR_THEME_ID) {
-		// A known type uses its override when the theme provides one. Untyped samples —
-		// common on macOS, where the cursor type isn't tagged — are classified from the
-		// captured bitmap's hotspot so arrow→themed-arrow and hand→themed-pointer.
+		// A known type uses its override when the theme provides one. Untyped samples
+		// (common on macOS, where the type isn't tagged) are classified from the captured
+		// bitmap's hotspot so arrow becomes themed-arrow and hand becomes themed-pointer.
 		const themedType = cursorType ?? classifyCapturedCursorType(asset);
 		const themedAsset = themedType ? resolveThemedCursorAsset(themeId, themedType) : null;
 		if (themedAsset && themedType) {

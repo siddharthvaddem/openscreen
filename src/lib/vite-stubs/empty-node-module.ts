@@ -1,7 +1,7 @@
 /**
- * Default export with no enumerable keys. Used as a Vite alias target for Node
- * builtins that `@xenova/transformers` imports; `env.js` treats an empty object
- * as “no filesystem” so it stays on browser / remote paths.
+ * Empty default export, used as the Vite alias target for Node builtins that
+ * @xenova/transformers imports. Its env.js reads an empty object as "no filesystem"
+ * and stays on the browser/remote paths.
  */
 const empty = Object.create(null) as Record<string, never>;
 export default empty;

@@ -1,9 +1,8 @@
 import type React from "react";
 import type { SpeedRegion, TrimRegion } from "../types";
 
-// Keep "scrub mode" on for a brief tail after `seeked` — rapid drag-scrubbing
-// fires `seeking`/`seeked` dozens of times per second, and toggling effects
-// each time would flicker.
+// Keep "scrub mode" on for a brief tail after `seeked`: rapid drag-scrubbing fires
+// `seeking`/`seeked` dozens of times a second and toggling effects each time would flicker.
 const SCRUB_END_DEBOUNCE_MS = 150;
 
 interface VideoEventHandlersParams {
@@ -51,7 +50,6 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		onTimeUpdate(timeValue);
 	};
 
-	// Helper function to check if current time is within a trim region
 	const findActiveTrimRegion = (currentTimeMs: number): TrimRegion | null => {
 		const trimRegions = trimRegionsRef.current;
 		return (
@@ -61,7 +59,6 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		);
 	};
 
-	// Helper function to find the active speed region at the current time
 	const findActiveSpeedRegion = (currentTimeMs: number): SpeedRegion | null => {
 		return (
 			speedRegionsRef.current.find(
@@ -76,11 +73,11 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		const currentTimeMs = video.currentTime * 1000;
 		const activeTrimRegion = findActiveTrimRegion(currentTimeMs);
 
-		// If we're in a trim region during playback, skip to the end of it
+		// In a trim region during playback: skip to its end
 		if (activeTrimRegion && !video.paused && !video.ended) {
 			const skipToTime = activeTrimRegion.endMs / 1000;
 
-			// If the skip would take us past the video duration, pause instead
+			// Pause if the skip would run past the end
 			if (skipToTime >= video.duration) {
 				video.pause();
 			} else {
@@ -88,7 +85,6 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 				emitTime(skipToTime);
 			}
 		} else {
-			// Apply playback speed from active speed region
 			const activeSpeedRegion = findActiveSpeedRegion(currentTimeMs);
 			video.playbackRate = activeSpeedRegion ? activeSpeedRegion.speed : 1;
 			emitTime(video.currentTime);
@@ -143,7 +139,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		const currentTimeMs = video.currentTime * 1000;
 		const activeTrimRegion = findActiveTrimRegion(currentTimeMs);
 
-		// If we seeked into a trim region while playing, skip to the end
+		// Seeked into a trim region while playing: skip to the end
 		if (activeTrimRegion && isPlayingRef.current && !video.paused) {
 			const skipToTime = activeTrimRegion.endMs / 1000;
 

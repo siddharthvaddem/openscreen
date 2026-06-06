@@ -7,9 +7,7 @@ interface ArrowSvgProps {
 }
 
 /**
- * Inline SVG arrow components for 8 directions.
- * These match the visual style of the previous icon-based arrows but use
- * pure SVG paths for easy replication in export.
+ * Inline SVG arrows for 8 directions. Pure paths (not icon fonts) so export can replicate them.
  */
 
 export function ArrowUp({ color, strokeWidth, className }: ArrowSvgProps) {

@@ -4,12 +4,9 @@ import type { CursorRecordingData, CursorRecordingSample } from "@/native/contra
 /**
  * Offline cursor-path smoothing for native recordings.
  *
- * Live preview/export used to run a per-frame exponential filter over the cursor — causal,
- * framerate-dependent, and momentum-free. Because post-processing has the entire path up front, we
- * instead precompute a smoothed path once: resample to a fixed high rate, lightly denoise away
- * capture tremor, then drive a spring-damper (mass/stiffness/damping) over the result. The spring
- * gives the motion natural inertia — it trails the real cursor like a weight on a string — which
- * reads as a professional glide. The result is deterministic, so preview and export match exactly.
+ * We have the whole path up front, so instead of a per-frame causal filter we precompute once:
+ * resample to a fixed high rate, then run a spring-damper over it. The spring gives the motion
+ * inertia (it trails the real cursor) and is deterministic, so preview and export match exactly.
  */
 
 export interface SmoothedCursorPosition {
@@ -22,7 +19,7 @@ export interface SmoothedCursorPath {
 	sampleAt(timeMs: number): SmoothedCursorPosition | null;
 }
 
-/** Integration grid: 240 steps/sec keeps the spring stable and the output crisp at any playback fps. */
+/** 240 steps/sec keeps the spring stable and crisp at any playback fps. */
 const STEP_MS = 1000 / 240;
 const STEP_S = STEP_MS / 1000;
 
@@ -77,8 +74,8 @@ function interpolateRun(samples: CursorRecordingSample[], timeMs: number): Smoot
 }
 
 /**
- * Drive a critically-tunable spring across `targets`, returning the smoothed series. Semi-implicit
- * (symplectic) Euler in seconds — stable for these stiffness values at the 240Hz grid.
+ * Drive a spring across `targets`, returning the smoothed series. Semi-implicit
+ * (symplectic) Euler, stable for these stiffness values at the 240Hz grid.
  */
 function springSmooth(
 	targets: Float32Array,
@@ -100,7 +97,7 @@ function springSmooth(
 	return out;
 }
 
-/** Maximal sequences of visible samples — we never smooth across a hidden gap. */
+/** Maximal runs of visible samples, so we never smooth across a hidden gap. */
 function splitVisibleRuns(samples: CursorRecordingSample[]): CursorRecordingSample[][] {
 	const runs: CursorRecordingSample[][] = [];
 	let current: CursorRecordingSample[] = [];
@@ -137,8 +134,8 @@ function buildSmoothedRun(
 		rawY[i] = p.cy;
 	}
 	// The spring is itself a strong low-pass (~3Hz cutoff), so it removes capture tremor without a
-	// separate denoise pass — and chasing the *raw* target keeps the cursor accurate (no acausal
-	// pull toward neighbouring samples near sharp stops, which would offset clicks/dwells).
+	// separate denoise pass. Chasing the raw target keeps the cursor accurate near sharp stops (no
+	// acausal pull toward neighbouring samples that would offset clicks/dwells).
 	return {
 		start,
 		end,
@@ -188,8 +185,8 @@ function buildSmoothedPath(
 		return buildRawPath(runs);
 	}
 
-	// Use the slider value directly, matching the live cursor overlay's spring strength so the two
-	// cursor systems lag identically (an extra multiplier here over-smoothed → visible offset).
+	// Use the slider value directly to match the live overlay's spring strength so both cursor
+	// systems lag identically (an extra multiplier here over-smoothed, causing a visible offset).
 	const config = getCursorSpringConfig(clamp(smoothing01, 0, 1));
 
 	const smoothedRuns = runs.map((run) =>

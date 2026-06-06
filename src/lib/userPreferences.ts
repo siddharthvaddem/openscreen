@@ -55,10 +55,7 @@ function safeJsonParse(text: string | null): Record<string, unknown> | null {
 	}
 }
 
-/**
- * Load persisted user preferences from localStorage.
- * Returns defaults for any missing or invalid fields.
- */
+/** Load preferences from localStorage, falling back to defaults for missing or invalid fields. */
 export function loadUserPreferences(): UserPreferences {
 	let raw: Record<string, unknown> | null = null;
 	try {
@@ -106,15 +103,10 @@ export function loadUserPreferences(): UserPreferences {
 }
 
 /**
- * Extracts the parent directory from a saved file path. Handles both POSIX
- * and Windows separators since the path comes from the OS save dialog.
- *
- * Root directories are preserved with their trailing separator so that the
- * value is still a valid directory path:
- *   "/video.mp4"      -> "/"
- *   "C:\\video.mp4"   -> "C:\\"
- *
- * Returns null if no separator is found.
+ * Parent directory of a saved file path. Handles both POSIX and Windows
+ * separators since the path comes from the OS save dialog. Root dirs keep their
+ * trailing separator so the result stays a valid directory ("/video.mp4" -> "/",
+ * "C:\\video.mp4" -> "C:\\"). Returns null if no separator is found.
  */
 export function parentDirectoryOf(filePath: string): string | null {
 	const lastSep = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
@@ -131,33 +123,23 @@ export function parentDirectoryOf(filePath: string): string | null {
 	return filePath.slice(0, lastSep);
 }
 
-/**
- * Returns the remembered export folder as `string | undefined`, suitable for
- * passing directly to IPC handlers that treat absence as "use the default".
- */
+/** Remembered export folder as `string | undefined`, for IPC handlers that treat absence as "use the default". */
 export function getExportFolder(): string | undefined {
 	return loadUserPreferences().exportFolder ?? undefined;
 }
 
-/**
- * Returns the remembered open-project folder as `string | undefined`,
- * suitable for passing directly to IPC handlers that treat absence as
- * "use the default".
- */
+/** Remembered open-project folder as `string | undefined`, for IPC handlers that treat absence as "use the default". */
 export function getProjectFolder(): string | undefined {
 	return loadUserPreferences().projectFolder ?? undefined;
 }
 
-/**
- * Persist user preferences to localStorage.
- * Only the explicitly provided fields are updated.
- */
+/** Persist preferences to localStorage; only the provided fields are updated. */
 export function saveUserPreferences(partial: Partial<UserPreferences>): void {
 	const current = loadUserPreferences();
 	const merged = { ...current, ...partial };
 	try {
 		localStorage.setItem(PREFS_KEY, JSON.stringify(merged));
 	} catch {
-		// localStorage may be unavailable (e.g. private browsing quota exceeded)
+		// localStorage may be unavailable (e.g. private browsing, quota exceeded)
 	}
 }

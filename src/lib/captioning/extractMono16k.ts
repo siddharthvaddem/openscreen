@@ -22,9 +22,9 @@ async function fetchWithTimeout(url: string, signal?: AbortSignal): Promise<Resp
 }
 
 /**
- * Load the editor video the same way as `StreamingVideoDecoder`:
- * Electron `readBinaryFile` for local paths (fetch(file://) is unreliable in the renderer),
- * otherwise HTTP / blob / data URLs via fetch.
+ * Load the editor video like `StreamingVideoDecoder`: Electron `readBinaryFile`
+ * for local paths (fetch(file://) is unreliable in the renderer), otherwise
+ * HTTP/blob/data URLs via fetch.
  */
 async function loadSourceVideoFile(videoUrl: string, signal?: AbortSignal): Promise<File> {
 	const isRemoteUrl = /^(https?:|blob:|data:)/i.test(videoUrl);
@@ -104,7 +104,7 @@ async function truncateAndResampleTo16k(
 
 /**
  * Decode the video's audio track to mono 16 kHz float samples (Whisper input).
- * Prefers `decodeAudioData` when the container is supported; otherwise uses the same
+ * Prefers `decodeAudioData` when the container is supported, else the same
  * web-demuxer + AudioDecoder path as export.
  */
 export async function extractMono16kFromVideoUrl(
@@ -137,7 +137,7 @@ export async function extractMono16kFromVideoUrl(
 			const fromRate = audioBuffer.sampleRate;
 			const out = await truncateAndResampleTo16k(mono, fromRate, durationSec, options?.signal);
 			// decodeAudioData can resolve for some WebM/Matroska inputs yet yield almost no usable
-			// PCM; captions only run the demuxer path on throw today, so we never recover.
+			// PCM, and captions only fall back to the demuxer path on throw, so return null to recover.
 			if (out.samples.length < 800) {
 				return null;
 			}

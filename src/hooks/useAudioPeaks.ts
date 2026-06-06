@@ -10,8 +10,7 @@ function getAudioCtx(): AudioContext {
 
 /**
  * Offloads peak computation to a Web Worker (zero-copy via Transferable).
- * Accepts an optional AbortSignal — if aborted, the worker is terminated
- * immediately and the promise rejects with an AbortError.
+ * On abort, the worker is terminated and the promise rejects with AbortError.
  */
 function computePeaksInWorker(
 	audioBuffer: AudioBuffer,
@@ -60,15 +59,10 @@ function computePeaksInWorker(
 }
 
 /**
- * Decodes audio from `videoUrl` and returns a Float32Array of paired
- * [min, max] peak values (length = 2 * N blocks). Returns `null` while
- * decoding is in progress, and stays `null` when the file has no audio
- * track or decoding fails (silent degradation).
- *
- * - File loading uses the Electron IPC bridge for local paths (same as the exporter).
- * - Peak computation runs in a Web Worker to avoid blocking the main thread.
- * - Results are cached in a ref scoped to the hook instance (survives re-renders
- *   and waveform toggle off/on, but not component unmount).
+ * Decodes audio from `videoUrl` into paired [min, max] peaks (length = 2 * N
+ * blocks). Returns `null` while decoding, and stays `null` on no audio track or
+ * decode failure (silent degradation). Results are cached in a ref scoped to the
+ * hook instance, so they survive re-renders and waveform toggles but not unmount.
  */
 export function useAudioPeaks(videoUrl?: string): Float32Array | null {
 	const cacheRef = useRef<Map<string, Float32Array>>(new Map());
@@ -103,10 +97,10 @@ export function useAudioPeaks(videoUrl?: string): Float32Array | null {
 				cacheRef.current.set(videoUrl, p);
 				setPeaks(p);
 			} catch (err) {
-				// AbortError means the effect cleaned up — no state update needed.
+				// AbortError means the effect cleaned up, so no state update needed.
 				if (err instanceof DOMException && err.name === "AbortError") return;
-				// No audio track or unsupported format — degrade gracefully (no
-				// waveform), but log so an unexpectedly-missing waveform is diagnosable.
+				// No audio track or unsupported format: degrade to no waveform, but log
+				// so an unexpectedly-missing waveform is diagnosable.
 				console.warn("useAudioPeaks: could not decode audio for waveform:", err);
 				if (!cancelled) setPeaks(null);
 			}

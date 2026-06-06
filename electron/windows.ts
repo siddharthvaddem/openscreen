@@ -10,7 +10,7 @@ const RENDERER_DIST = path.join(APP_ROOT, "dist");
 const HEADLESS = process.env["HEADLESS"] === "true";
 
 // Asset base URL for renderer (wallpapers, etc.). Packaged: extraResources copies
-// public/wallpapers -> resources/wallpapers. Unpackaged: <appRoot>/public/.
+// public/wallpapers to resources/wallpapers. Unpackaged: <appRoot>/public/.
 const ASSET_BASE_DIR = process.defaultApp
 	? path.join(__dirname, "..", "public")
 	: process.resourcesPath;
@@ -44,11 +44,9 @@ ipcMain.on("hud-overlay-move-by", (_event, deltaX: number, deltaY: number) => {
 	hudOverlayWindow.setPosition(Math.round(x + deltaX), Math.round(y + deltaY), false);
 });
 
-// Resize the HUD to fit its rendered content (the renderer measures the bar and
-// its popups). The window is anchored by its bottom-centre so it stays put — and
-// respects wherever the user dragged it — while only growing/shrinking. This is
-// what lets the vertical tray layout become tall instead of scrolling inside a
-// fixed-height window.
+// Resize the HUD to fit its rendered content. Anchored by its bottom-centre so it
+// stays where the user dragged it while only growing/shrinking, which lets the
+// vertical tray layout grow tall instead of scrolling inside a fixed window.
 ipcMain.on("hud-overlay-set-size", (_event, width: number, height: number) => {
 	if (
 		!hudOverlayWindow ||
@@ -61,9 +59,8 @@ ipcMain.on("hud-overlay-set-size", (_event, width: number, height: number) => {
 
 	const bounds = hudOverlayWindow.getBounds();
 
-	// Clamp to the work area of the display the HUD currently sits on. The renderer
-	// reports the bar's natural size; on a short screen the vertical layout can be
-	// taller than the display, in which case the bar's own overflow scroll takes over.
+	// Clamp to the work area of the display the HUD sits on; on a short screen the
+	// vertical layout can exceed the display, where the bar's own overflow scroll takes over.
 	const { workArea } = screen.getDisplayMatching(bounds);
 	const nextWidth = Math.min(workArea.width, Math.max(1, Math.round(width)));
 	const nextHeight = Math.min(workArea.height, Math.max(1, Math.round(height)));
@@ -84,9 +81,8 @@ ipcMain.on("hud-overlay-set-size", (_event, width: number, height: number) => {
 });
 
 /**
- * Creates the always-on-top HUD overlay window centred at the bottom of the
- * primary display. The window is frameless, transparent, and follows the user
- * across macOS Spaces so it is never lost when switching virtual desktops.
+ * Frameless transparent HUD overlay, always-on-top, centred at the bottom of the
+ * primary display. Follows the user across macOS Spaces so it isn't lost on switch.
  */
 export function createHudOverlayWindow(): BrowserWindow {
 	const primaryDisplay = screen.getPrimaryDisplay();
@@ -101,21 +97,19 @@ export function createHudOverlayWindow(): BrowserWindow {
 	const win = new BrowserWindow({
 		width: windowWidth,
 		height: windowHeight,
-		// Min/max are intentionally loose: the renderer resizes the window to fit
-		// its content via the "hud-overlay-set-size" channel (see above), which is
-		// required for the vertical tray layout to grow taller than the default.
+		// Min/max are intentionally loose: the renderer resizes to fit content via
+		// "hud-overlay-set-size" (above), needed for the vertical tray to grow taller.
 		minWidth: 120,
 		minHeight: 80,
 		x: x,
 		y: y,
 		frame: false,
 		transparent: true,
-		// Fully-transparent ARGB backing. Without this, macOS falls back to an
-		// opaque/translucent window material and draws it as a rounded glass panel
-		// with a border around the HUD content.
+		// Fully-transparent ARGB backing. Without this macOS draws the window as a
+		// rounded glass panel with a border around the HUD content.
 		backgroundColor: "#00000000",
-		// Don't let macOS mask the (transparent) window into a rounded rect — the
-		// HUD bar provides its own rounding; the window itself must be invisible.
+		// Don't let macOS mask the window into a rounded rect; the HUD bar provides
+		// its own rounding and the window itself must be invisible.
 		roundedCorners: false,
 		resizable: false,
 		alwaysOnTop: true,
@@ -132,14 +126,14 @@ export function createHudOverlayWindow(): BrowserWindow {
 	});
 	win.setIgnoreMouseEvents(true, { forward: true });
 
-	// Follow the user across macOS Spaces (virtual desktops).
-	// Without this the HUD stays pinned to the Space it was first opened on.
+	// Follow the user across macOS Spaces, else the HUD stays pinned to the Space
+	// it was first opened on.
 	if (process.platform === "darwin") {
 		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	}
 
-	// Show only once content is painted — prevents the black rectangle flash
-	// that appears when a transparent window is shown before its first paint.
+	// Show only once painted to avoid the black rectangle flash when a transparent
+	// window is shown before its first paint.
 	win.once("ready-to-show", () => {
 		if (!HEADLESS) win.show();
 	});
@@ -168,8 +162,8 @@ export function createHudOverlayWindow(): BrowserWindow {
 }
 
 /**
- * Creates the main editor window. Starts maximised with a hidden title bar on
- * macOS. This window is not always-on-top and appears in the taskbar/dock.
+ * Main editor window. Starts maximised with a hidden title bar on macOS; not
+ * always-on-top and appears in the taskbar/dock.
  */
 export function createEditorWindow(): BrowserWindow {
 	const isMac = process.platform === "darwin";
@@ -200,16 +194,15 @@ export function createEditorWindow(): BrowserWindow {
 		},
 	});
 
-	// Maximize the window by default
 	win.maximize();
 
-	// Show only once content is painted — prevents white flash on cold Vite start.
+	// Show only once painted to avoid a white flash on cold Vite start.
 	win.once("ready-to-show", () => {
 		if (!HEADLESS) win.show();
 	});
 
-	// Inject dark background before any React paint so the sub-titlebar area
-	// never flashes white even on the very first cold Vite load.
+	// Inject dark background before any React paint so the sub-titlebar area never
+	// flashes white on a cold Vite load.
 	win.webContents.on("dom-ready", () => {
 		win.webContents.insertCSS("html, body, #root { background: #09090b !important; }").catch(() => {
 			// Best-effort cosmetic; ignore if the page is mid-teardown.
@@ -232,8 +225,8 @@ export function createEditorWindow(): BrowserWindow {
 }
 
 /**
- * Creates the floating source-selector window used to pick a screen or window
- * to record. Frameless, transparent, and follows the user across macOS Spaces.
+ * Floating source-selector window for picking a screen or window to record.
+ * Frameless, transparent, and follows the user across macOS Spaces.
  */
 export function createSourceSelectorWindow(): BrowserWindow {
 	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -258,8 +251,8 @@ export function createSourceSelectorWindow(): BrowserWindow {
 		},
 	});
 
-	// Follow the user across macOS Spaces so the selector appears on the
-	// active desktop regardless of where the HUD was originally opened.
+	// Follow the user across macOS Spaces so the selector appears on the active
+	// desktop regardless of where the HUD was opened.
 	if (process.platform === "darwin") {
 		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 	}
@@ -276,8 +269,8 @@ export function createSourceSelectorWindow(): BrowserWindow {
 }
 
 /**
- * Creates a centered transparent countdown overlay window that sits above the
- * HUD while recording pre-roll is running.
+ * Centered transparent countdown overlay that sits above the HUD during
+ * recording pre-roll.
  */
 export function createCountdownOverlayWindow(): BrowserWindow {
 	const { workArea } = screen.getPrimaryDisplay();

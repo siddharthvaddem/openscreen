@@ -8,7 +8,7 @@ const MAX_AMOUNT_BOOST = 2.2;
 
 function getMotionBlurAmountResponse(motionBlurAmount: number) {
 	const clampedAmount = Math.min(1, Math.max(0, motionBlurAmount));
-	// Keep the low end usable while giving the top of the slider substantially more headroom.
+	// Keep the low end usable while giving the top of the slider more headroom.
 	return clampedAmount * (1 + (MAX_AMOUNT_BOOST - 1) * clampedAmount);
 }
 
@@ -90,8 +90,7 @@ export function computeZoomTransform({
 	}
 
 	const progress = Math.min(1, Math.max(0, zoomProgress));
-	// Focus coordinates are stage-normalized (0-1 of full canvas),
-	// so map directly to stage pixels, not through baseMask.
+	// Focus coords are stage-normalized (0-1 of full canvas), so map directly to stage pixels, not via baseMask.
 	const focusStagePxX = focusX * stageSize.width;
 	const focusStagePxY = focusY * stageSize.height;
 	const stageCenterX = stageSize.width / 2;
@@ -173,7 +172,6 @@ export function applyZoomTransform({
 			focusY,
 		});
 
-	// Apply position & scale to camera container
 	cameraContainer.scale.set(transform.scale);
 	cameraContainer.position.set(transform.x, transform.y);
 

@@ -7,7 +7,7 @@ import { nativeBridgeClient } from "@/native";
 
 interface EditorEmptyStateProps {
 	onVideoImported: (videoPath: string) => void;
-	/** Called with the loaded project data — handles both button click and drag-drop */
+	/** Called with the loaded project data; handles both button click and drag-drop */
 	onProjectOpened: (project: unknown, path: string | null) => void;
 }
 
@@ -18,8 +18,8 @@ export function EditorEmptyState({ onVideoImported, onProjectOpened }: EditorEmp
 	const tc = useScopedT("common");
 	const [isDraggingOver, setIsDraggingOver] = useState(false);
 	const [dropError, setDropError] = useState<DropError>(null);
-	// Freeze the last non-null error type so dialog content doesn't snap to the
-	// else-branch during the closing animation (same pattern as UnsavedChangesDialog).
+	// Freeze the last non-null error type so dialog content doesn't snap to the else-branch
+	// during the closing animation (same pattern as UnsavedChangesDialog).
 	const lastDropErrorRef = useRef<Exclude<DropError, null>>("unsupported-format");
 	if (dropError !== null) {
 		lastDropErrorRef.current = dropError;
@@ -74,7 +74,7 @@ export function EditorEmptyState({ onVideoImported, onProjectOpened }: EditorEmp
 				return;
 			}
 
-			// Use Electron's webUtils.getPathForFile — File.path was removed in Electron 32+
+			// Use Electron's webUtils.getPathForFile; File.path was removed in Electron 32+
 			let filePath: string;
 			try {
 				filePath = window.electronAPI.getPathForFile(projectFile);

@@ -21,11 +21,10 @@ export interface StoreRecordedSessionInput {
 	createdAt?: number;
 	cursorCaptureMode?: CursorCaptureMode;
 	/**
-	 * Recording wall-clock duration in milliseconds. Used by the main process
-	 * to patch the WebM Duration header on streamed recordings, since the
-	 * renderer no longer holds the bytes. Browser MediaRecorder writes WebM
-	 * with no/zero duration; without this patch, the editor's seek bar and
-	 * timeline break for any recording that took the streaming path.
+	 * Recording wall-clock duration (ms). The main process patches the WebM Duration
+	 * header on streamed recordings (the renderer no longer holds the bytes). Browser
+	 * MediaRecorder writes no/zero duration, which breaks the editor seek bar and
+	 * timeline for anything that took the streaming path.
 	 */
 	durationMs?: number;
 }

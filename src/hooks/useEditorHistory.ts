@@ -22,8 +22,8 @@ import {
 } from "@/components/video-editor/types";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
-// Undoable state — selection IDs are intentionally excluded (undoing a
-// selection change would feel surprising to the user).
+// Undoable state. Selection IDs are excluded, since undoing a selection change
+// would feel surprising.
 export interface EditorState {
 	zoomRegions: ZoomRegion[];
 	/** Magic-wand auto-zoom toggle. When on, fresh recordings get suggested zooms. */
@@ -101,8 +101,8 @@ function withCheckpoint(history: History, newPresent: EditorState): History {
 export function useEditorHistory(initial: EditorState = INITIAL_EDITOR_STATE) {
 	const [history, setHistory] = useState<History>({ past: [], present: initial, future: [] });
 
-	// Tracks whether a live-update series (e.g. slider drag) is in progress.
-	// The first updateState call saves the pre-interaction state as a checkpoint.
+	// True while a live-update series (e.g. slider drag) is in progress. The first
+	// updateState call checkpoints the pre-interaction state.
 	const dirtyRef = useRef(false);
 
 	const pushState = useCallback((update: StateUpdate) => {

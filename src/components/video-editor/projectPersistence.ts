@@ -47,11 +47,10 @@ import {
 
 const VALID_BLUR_SHAPES = new Set(["rectangle", "oval", "freehand"] as const);
 
-// Pre-fix projects could persist resolved file:// URLs (machine-specific) for
-// bundled wallpapers. Rewrite only paths that match a known install layout
-// (resources/[assets/]wallpapers for packaged, public/wallpapers for dev) so
-// a legitimate user file that happens to live in a folder named "wallpapers"
-// elsewhere is never silently replaced.
+// Old projects persisted machine-specific file:// URLs for bundled wallpapers.
+// Match only the known install layouts (packaged resources/[assets/]wallpapers,
+// dev public/wallpapers) so a user's own file under some "wallpapers" folder isn't
+// silently replaced.
 const LEGACY_FILE_WALLPAPER_RE =
 	/^file:\/\/.*?\/(?:resources\/(?:assets\/)?|public\/)wallpapers\/(wallpaper\d+\.jpg)$/i;
 const CANONICAL_WALLPAPERS = new Set(WALLPAPER_PATHS);
@@ -485,8 +484,8 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			height: cropHeight,
 		},
 		zoomRegions: normalizedZoomRegions,
-		// Default on for legacy projects so re-opens behave like the new default;
-		// the on-load auto-suggest pass is gated separately so it won't add zooms.
+		// Default on for legacy projects so re-opens match the new default. The
+		// on-load auto-suggest pass is gated separately, so this won't add zooms.
 		autoZoomEnabled: typeof editor.autoZoomEnabled === "boolean" ? editor.autoZoomEnabled : true,
 		autoFocusAll: typeof editor.autoFocusAll === "boolean" ? editor.autoFocusAll : false,
 		trimRegions: normalizedTrimRegions,

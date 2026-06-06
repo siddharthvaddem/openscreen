@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type CursorTelemetryPoint, createCursorTelemetryBuffer } from "./cursorTelemetryBuffer";
 
 function sample(tag: number): CursorTelemetryPoint {
-	// Decouple the timestamp tag from the coordinate fixture so cursor
-	// points stay inside the normalized [0, 1] range that real samples use.
+	// Decouple the tag from coordinates so points stay in the normalized [0, 1] range.
 	const normalized = (tag % 100) / 100;
 	return { timeMs: tag, cx: normalized, cy: normalized };
 }
@@ -121,11 +120,9 @@ describe("createCursorTelemetryBuffer", () => {
 	});
 
 	it("discardBatch(id) targets the correct batch even when a later recording sits in front of it", () => {
-		// Regression test for the rapid Stop → Record → Discard sequence:
-		// recording A's finalize callback does async work (fixWebmDuration),
-		// recording B finishes in the meantime, then A's callback resolves
-		// with discard intent. The discard must drop A — not B, which
-		// happens to be the *latest* pending batch by the time discard runs.
+		// Regression for the rapid Stop/Record/Discard sequence: A's finalize callback does
+		// async work (fixWebmDuration), B finishes meanwhile, then A resolves with discard
+		// intent. The discard must drop A, not B, which is the latest pending batch by then.
 		const buf = createCursorTelemetryBuffer({ maxActiveSamples: 10 });
 
 		buf.startSession(1);
@@ -216,8 +213,8 @@ describe("createCursorTelemetryBuffer", () => {
 		expect(buf.pendingCount).toBe(2);
 		expect(warn).not.toHaveBeenCalled();
 
-		// Simulate a misuse where a retry prepends without first draining:
-		// queue would grow to 3, so the oldest-trailing entry must be evicted.
+		// Misuse: a retry prepends without draining first, so the queue would grow to 3
+		// and the oldest-trailing entry must be evicted.
 		buf.prependBatch({ recordingId: 99, samples: [sample(99)] });
 		expect(buf.pendingCount).toBe(2);
 		expect(warn).toHaveBeenCalledTimes(1);
@@ -232,8 +229,7 @@ describe("createCursorTelemetryBuffer", () => {
 	});
 
 	it("sanitizes non-finite or non-positive option values to safe defaults", () => {
-		// Infinity / NaN / negative would otherwise turn the trim loops
-		// into infinite loops. The buffer must fall back to defaults.
+		// Infinity/NaN/negative would turn the trim loops infinite; the buffer must fall back to defaults.
 		const buf = createCursorTelemetryBuffer({
 			maxActiveSamples: Number.POSITIVE_INFINITY,
 			maxPendingBatches: Number.NaN,
