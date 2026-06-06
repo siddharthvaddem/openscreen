@@ -133,6 +133,13 @@ export function createRecorderHandle(
 	}
 
 	async function discard(): Promise<void> {
+		// Wait for a pending open to settle before deciding. Otherwise an open that
+		// resolves just after an early discard() would set streamOpened = true and
+		// flush chunks to a file this discard already skipped — orphaning the stream
+		// and partial file. Draining writeChain too keeps the close ordered after any
+		// flushed chunks.
+		await openPromise.catch(() => undefined);
+		await writeChain;
 		if (streamOpened && fileName && api?.closeRecordingStream) {
 			await api.closeRecordingStream(fileName);
 		}

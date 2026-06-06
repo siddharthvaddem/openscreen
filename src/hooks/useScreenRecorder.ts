@@ -485,42 +485,49 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					const canStore = hasWebcamData && screenRead.success && !!screenRead.data;
 					// Once store-recorded-session is called it owns the webcam's disk stream
 					// (it finalizes the file). Until then, any opened stream is ours to drop.
+					// store-recorded-session finalizes (and thus owns) the webcam disk stream
+					// only once it returns success. Mark ownership after that resolves, and
+					// discard in `finally` so a throw in fixWebmDuration/storeRecordedSession
+					// still drops the partial sidecar instead of leaking it.
 					let storeOwnsWebcam = false;
-					if (canStore && screenRead.data) {
-						storeOwnsWebcam = true;
-						const nativeScreenFileName =
-							nativeScreenPath.split(/[\\/]/).pop() ??
-							`${RECORDING_FILE_PREFIX}${activeNativeRecording.recordingId}.mp4`;
-						const webcamFileName =
-							activeNativeRecording.webcamFileName ??
-							`${RECORDING_FILE_PREFIX}${activeNativeRecording.recordingId}${WEBCAM_FILE_SUFFIX}${VIDEO_FILE_EXTENSION}`;
-						// Streamed webcam bytes are already on disk; send an empty buffer and let
-						// the main process patch the WebM duration there (mirrors the screen path).
-						const webcamVideoData = webcamStreamed
-							? new ArrayBuffer(0)
-							: await (await fixWebmDuration(webcamBlob as Blob, duration)).arrayBuffer();
-						const stored = await window.electronAPI.storeRecordedSession({
-							screen: {
-								videoData: screenRead.data,
-								fileName: nativeScreenFileName,
-							},
-							webcam: {
-								videoData: webcamVideoData,
-								fileName: webcamFileName,
-							},
-							createdAt: activeNativeRecording.recordingId,
-							cursorCaptureMode,
-							durationMs: duration,
-						});
-						if (stored.success && stored.session) {
-							storedSession = stored.session;
+					try {
+						if (canStore && screenRead.data) {
+							const nativeScreenFileName =
+								nativeScreenPath.split(/[\\/]/).pop() ??
+								`${RECORDING_FILE_PREFIX}${activeNativeRecording.recordingId}.mp4`;
+							const webcamFileName =
+								activeNativeRecording.webcamFileName ??
+								`${RECORDING_FILE_PREFIX}${activeNativeRecording.recordingId}${WEBCAM_FILE_SUFFIX}${VIDEO_FILE_EXTENSION}`;
+							// Streamed webcam bytes are already on disk; send an empty buffer and let
+							// the main process patch the WebM duration there (mirrors the screen path).
+							const webcamVideoData = webcamStreamed
+								? new ArrayBuffer(0)
+								: await (await fixWebmDuration(webcamBlob as Blob, duration)).arrayBuffer();
+							const stored = await window.electronAPI.storeRecordedSession({
+								screen: {
+									videoData: screenRead.data,
+									fileName: nativeScreenFileName,
+								},
+								webcam: {
+									videoData: webcamVideoData,
+									fileName: webcamFileName,
+								},
+								createdAt: activeNativeRecording.recordingId,
+								cursorCaptureMode,
+								durationMs: duration,
+							});
+							storeOwnsWebcam = stored.success;
+							if (stored.success && stored.session) {
+								storedSession = stored.session;
+							}
 						}
-					}
-					if (!storeOwnsWebcam) {
-						// Webcam never reached a store call (no usable data, missing screen file,
-						// or a mid-stream write error left isStreaming() false). Drop any partial
-						// file/stream so it isn't orphaned. No-op for an in-memory recorder.
-						await activeWebcamRecorder.discard().catch(() => undefined);
+					} finally {
+						if (!storeOwnsWebcam) {
+							// Webcam never reached a successful store (no usable data, missing screen
+							// file, a mid-stream write error, or store threw/returned failure). Drop
+							// any partial file/stream. No-op for an in-memory recorder.
+							await activeWebcamRecorder.discard().catch(() => undefined);
+						}
 					}
 				}
 
