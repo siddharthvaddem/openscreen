@@ -358,6 +358,12 @@ type AttachNativeMacWebcamRecordingInput = {
 	recordingId?: number;
 	webcam?: RecordedVideoAssetInput;
 	cursorCaptureMode?: CursorCaptureMode;
+	/**
+	 * Recording duration in ms. Present when the webcam took the streaming path so
+	 * its on-disk WebM (which lacks a Duration header) can be patched here, exactly
+	 * as store-recorded-session patches streamed screen/webcam files.
+	 */
+	durationMs?: number;
 };
 
 let selectedSource: SelectedSource | null = null;
@@ -2149,6 +2155,14 @@ export function registerIpcHandlers(
 		}
 	});
 
+	// On-disk write streams for in-progress recordings, keyed by output file name.
+	// Chunks are appended as they arrive from ondataavailable so the renderer
+	// never buffers the full video in memory (the #616 fix). Declared before the
+	// handlers that consume it (attach-native-mac-webcam-recording finalizes a
+	// streamed webcam through this registry).
+	const recordingStreams = new RecordingStreamRegistry();
+	registerRecordingStreamHandlers(ipcMain, recordingStreams, resolveRecordingOutputPath);
+
 	ipcMain.handle(
 		"attach-native-mac-webcam-recording",
 		async (_, payload: AttachNativeMacWebcamRecordingInput) => {
@@ -2167,12 +2181,28 @@ export function registerIpcHandlers(
 
 				await fs.access(screenVideoPath, fsConstants.R_OK);
 
-				if (!payload.webcam?.fileName || !payload.webcam.videoData) {
+				if (!payload.webcam?.fileName) {
 					return { success: false, error: "Native macOS webcam attachment is missing video data." };
 				}
 
 				const webcamVideoPath = resolveRecordingOutputPath(payload.webcam.fileName);
-				await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
+				// Streamed webcam bytes are already on disk (appended chunk-by-chunk during
+				// recording, the #616 fix); finalize() closes the stream and keeps the file.
+				// Otherwise the renderer sent the whole clip in memory and we write it here.
+				const webcamStreamed = await recordingStreams.finalize(payload.webcam.fileName);
+				if (webcamStreamed) {
+					if (isValidDurationMs(payload.durationMs)) {
+						await patchWebmDurationOnDisk(webcamVideoPath, payload.durationMs);
+					}
+				} else {
+					if (!payload.webcam.videoData || payload.webcam.videoData.byteLength === 0) {
+						return {
+							success: false,
+							error: "Native macOS webcam attachment is missing video data.",
+						};
+					}
+					await fs.writeFile(webcamVideoPath, Buffer.from(payload.webcam.videoData));
+				}
 
 				const createdAt =
 					typeof payload.recordingId === "number" && Number.isFinite(payload.recordingId)
@@ -2209,12 +2239,6 @@ export function registerIpcHandlers(
 			}
 		},
 	);
-
-	// On-disk write streams for in-progress recordings, keyed by output file name.
-	// Chunks are appended as they arrive from ondataavailable so the renderer
-	// never buffers the full video in memory (the #616 fix).
-	const recordingStreams = new RecordingStreamRegistry();
-	registerRecordingStreamHandlers(ipcMain, recordingStreams, resolveRecordingOutputPath);
 
 	ipcMain.handle("store-recorded-session", async (_, payload: StoreRecordedSessionInput) => {
 		try {
