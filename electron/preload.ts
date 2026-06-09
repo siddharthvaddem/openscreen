@@ -1,8 +1,9 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import type { RecordingAnnotationTool } from "../src/components/launch/recordingAnnotations";
 import type { NativeMacRecordingRequest } from "../src/lib/nativeMacRecording";
 import type { NativeWindowsRecordingRequest } from "../src/lib/nativeWindowsRecording";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
+import type { ShortcutBinding } from "../src/lib/shortcuts";
 import { NATIVE_BRIDGE_CHANNEL, type NativeBridgeRequest } from "../src/native/contracts";
 
 // Asset base URL is passed from the main process via webPreferences.additionalArguments
@@ -28,6 +29,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	moveHudOverlayBy: (deltaX: number, deltaY: number) => {
 		ipcRenderer.send("hud-overlay-move-by", deltaX, deltaY);
+	},
+	setHudOverlaySize: (width: number, height: number) => {
+		ipcRenderer.send("hud-overlay-set-size", width, height);
 	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
@@ -184,11 +188,31 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	saveProjectFile: (projectData: unknown, suggestedName?: string, existingProjectPath?: string) => {
 		return ipcRenderer.invoke("save-project-file", projectData, suggestedName, existingProjectPath);
 	},
-	loadProjectFile: () => {
-		return ipcRenderer.invoke("load-project-file");
+	loadProjectFile: (projectFolder?: string) => {
+		return ipcRenderer.invoke("load-project-file", projectFolder);
+	},
+	loadProjectFileFromPath: (filePath: string) => {
+		return ipcRenderer.invoke("load-project-file-from-path", filePath);
+	},
+	getPathForFile: (file: File) => {
+		try {
+			return webUtils.getPathForFile(file);
+		} catch {
+			return "";
+		}
 	},
 	loadCurrentProjectFile: () => {
 		return ipcRenderer.invoke("load-current-project-file");
+	},
+	onMenuNewProject: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("menu-new-project", listener);
+		return () => ipcRenderer.removeListener("menu-new-project", listener);
+	},
+	onMenuImportVideo: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("menu-import-video", listener);
+		return () => ipcRenderer.removeListener("menu-import-video", listener);
 	},
 	onMenuLoadProject: (callback: () => void) => {
 		const listener = () => callback();
@@ -216,6 +240,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	saveShortcuts: (shortcuts: unknown) => {
 		return ipcRenderer.invoke("save-shortcuts", shortcuts);
+	},
+	updateGlobalShortcut: (binding: ShortcutBinding) => {
+		return ipcRenderer.invoke("update-global-shortcut", binding);
 	},
 	setLocale: (locale: string) => {
 		return ipcRenderer.invoke("set-locale", locale);

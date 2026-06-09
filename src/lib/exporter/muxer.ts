@@ -26,7 +26,6 @@ export class VideoMuxer {
 	}
 
 	async initialize(): Promise<void> {
-		// Create the buffer target
 		this.target = new BufferTarget();
 
 		this.output = new Output({
@@ -36,19 +35,17 @@ export class VideoMuxer {
 			target: this.target,
 		});
 
-		// Create video source - codec will be deduced from metadata
+		// Codec is deduced from the chunk metadata.
 		this.videoSource = new EncodedVideoPacketSource("avc");
 		this.output.addVideoTrack(this.videoSource, {
 			frameRate: this.config.frameRate,
 		});
 
-		// Create audio source if needed
 		if (this.hasAudio) {
 			this.audioSource = new EncodedAudioPacketSource(this.audioCodec);
 			this.output.addAudioTrack(this.audioSource);
 		}
 
-		// Start the output to begin accepting media data
 		await this.output.start();
 	}
 
@@ -57,10 +54,8 @@ export class VideoMuxer {
 			throw new Error("Muxer not initialized");
 		}
 
-		// Convert WebCodecs chunk to Mediabunny packet
 		const packet = EncodedPacket.fromEncodedChunk(chunk);
 
-		// Add metadata with the first chunk
 		await this.videoSource.add(packet, meta);
 	}
 
@@ -69,10 +64,8 @@ export class VideoMuxer {
 			throw new Error("Audio not configured for this muxer");
 		}
 
-		// Convert WebCodecs chunk to Mediabunny packet
 		const packet = EncodedPacket.fromEncodedChunk(chunk);
 
-		// Add metadata with the first chunk
 		await this.audioSource.add(packet, meta);
 	}
 

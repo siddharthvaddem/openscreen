@@ -69,6 +69,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ─── Ensure sharp prebuilt binary (+ bundled libvips) ─────
+      # `npm ci` can leave sharp without its prebuilt binary/vendored libvips,
+      # which makes electron-builder's native rebuild fail ("vips-cpp.42 not
+      # found"). Re-fetch the prebuilt (never compile from source).
+      - name: Ensure sharp prebuilt
+        run: npm rebuild sharp
+        env:
+          npm_config_build_from_source: "false"
+
       # ─── Import Code Signing Certificate ──────────────────────
       # This is the KEY step that makes CI signing work.
       # We create a temporary keychain, import the .p12 cert into it,
@@ -110,6 +119,17 @@ jobs:
       # ─── Build Vite + Electron ────────────────────────────────
       - name: Build Vite + Electron
         run: npx tsc && npx vite build
+
+      # ─── Build native macOS helpers ───────────────────────────
+      # The package step below calls electron-builder directly (not `npm run build:mac`),
+      # so the Swift screencapturekit + cursor helpers must be compiled here first or the
+      # packaged app ships without them (no recording, "cursor helper couldn't be found").
+      # Build the matrix arch into electron/native/bin/darwin-<arch> so each DMG gets its
+      # own native binary.
+      - name: Build native macOS helpers
+        run: npm run build:native:mac
+        env:
+          OPENSCREEN_MAC_HELPER_ARCHS: ${{ matrix.arch }}
 
       # ─── Package with electron-builder ────────────────────────
       # electron-builder handles deep codesigning the .app bundle

@@ -165,13 +165,23 @@ export type NativeBridgeRequest =
 	| {
 			domain: "project";
 			action: "loadProjectFile";
-			payload?: EmptyPayload;
+			payload?: {
+				/** Folder to pre-fill the open dialog with, usually the user's
+				 * last-opened project folder from userPreferences. */
+				projectFolder?: string;
+			};
 			requestId?: string;
 	  }
 	| {
 			domain: "project";
 			action: "loadCurrentProjectFile";
 			payload?: EmptyPayload;
+			requestId?: string;
+	  }
+	| {
+			domain: "project";
+			action: "loadProjectFileFromPath";
+			payload: { path: string };
 			requestId?: string;
 	  }
 	| {

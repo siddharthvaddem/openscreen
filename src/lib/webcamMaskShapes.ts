@@ -16,8 +16,8 @@ export function getCssClipPath(shape: WebcamMaskShape): string | null {
 }
 
 /**
- * Draws a Canvas 2D clip path for the given webcam mask shape.
- * Call ctx.beginPath() is handled internally; caller should call ctx.clip() after.
+ * Draws a Canvas 2D clip path for the given webcam mask shape. beginPath is
+ * handled internally; caller should call ctx.clip() after.
  */
 export function drawCanvasClipPath(
 	ctx: CanvasRenderingContext2D,

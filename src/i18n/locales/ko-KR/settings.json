@@ -9,7 +9,8 @@
 			"title": "포커스 모드",
 			"manual": "수동",
 			"auto": "자동",
-			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다"
+			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D 회전",
@@ -42,10 +43,13 @@
 		"selectPreset": "프리셋 선택",
 		"pictureInPicture": "화면 속 화면",
 		"verticalStack": "세로 배치",
+		"dualFrame": "듀얼 프레임",
+		"noWebcam": "웹캠 없음",
 		"webcamShape": "카메라 모양",
 		"webcamSize": "웹캠 크기",
-		"dualFrame": "듀얼 프레임",
-		"noWebcam": "웹캠 없음"
+		"mirrorWebcam": "웹캠 미러링",
+		"reactiveWebcam": "확대 시 축소",
+		"reactiveWebcamDescription": "확대하는 동안 카메라가 부드럽게 작아져 방해되지 않습니다."
 	},
 	"effects": {
 		"title": "비디오 효과",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "프로젝트 저장",
-		"load": "프로젝트 불러오기"
+		"load": "프로젝트 불러오기",
+		"new": "새 프로젝트"
 	},
 	"export": {
 		"videoButton": "비디오 내보내기",
@@ -123,6 +128,7 @@
 		"typeText": "텍스트",
 		"typeImage": "이미지",
 		"typeArrow": "화살표",
+		"typeBlur": "블러",
 		"textContent": "텍스트 내용",
 		"textPlaceholder": "텍스트를 입력하세요...",
 		"fontStyle": "폰트 스타일",
@@ -143,6 +149,18 @@
 		"arrowDirection": "화살표 방향",
 		"strokeWidth": "선 두께: {{width}}px",
 		"arrowColor": "화살표 색상",
+		"blurType": "블러 종류",
+		"blurTypeBlur": "블러",
+		"blurTypeMosaic": "모자이크 블러",
+		"blurColor": "블러 색상",
+		"blurColorWhite": "흰색",
+		"blurColorBlack": "검정",
+		"blurShape": "블러 모양",
+		"blurIntensity": "블러 강도",
+		"mosaicBlockSize": "모자이크 블록 크기",
+		"blurShapeRectangle": "사각형",
+		"blurShapeOval": "타원",
+		"blurShapeFreehand": "자유 곡선",
 		"deleteAnnotation": "주석 삭제",
 		"shortcutsAndTips": "단축키 및 팁",
 		"tipMovePlayhead": "재생 헤드를 주석 구간으로 옮겨 항목을 선택하세요.",
@@ -151,20 +169,7 @@
 		"invalidImageType": "지원하지 않는 파일 형식입니다",
 		"imageFormatsOnly": "JPG, PNG, GIF 또는 WebP 이미지 파일을 업로드해 주세요.",
 		"imageUploadSuccess": "이미지가 성공적으로 업로드되었습니다!",
-		"failedImageUpload": "이미지 업로드에 실패했습니다",
-		"blurColor": "블러 색상",
-		"blurColorBlack": "검정",
-		"blurColorWhite": "흰색",
-		"blurIntensity": "블러 강도",
-		"blurShape": "블러 모양",
-		"blurShapeFreehand": "자유 곡선",
-		"blurShapeOval": "타원",
-		"blurShapeRectangle": "사각형",
-		"blurType": "블러 종류",
-		"blurTypeBlur": "블러",
-		"blurTypeMosaic": "모자이크 블러",
-		"mosaicBlockSize": "모자이크 블록 크기",
-		"typeBlur": "블러"
+		"failedImageUpload": "이미지 업로드에 실패했습니다"
 	},
 	"fontStyles": {
 		"classic": "클래식",
@@ -175,6 +180,17 @@
 		"simple": "심플",
 		"modern": "모던",
 		"clean": "클린"
+	},
+	"textAnimation": {
+		"title": "텍스트 애니메이션",
+		"selectAnimation": "애니메이션 선택",
+		"none": "없음",
+		"fade": "페이드",
+		"rise": "상승",
+		"pop": "팝",
+		"slideLeft": "왼쪽 슬라이드",
+		"typewriter": "타자기",
+		"pulse": "펄스"
 	},
 	"customFont": {
 		"dialogTitle": "Google 폰트 추가",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "폰트를 불러올 수 없습니다. Google Fonts URL이 올바른지 확인해 주세요."
 	},
 	"cursor": {
+		"theme": "커서 스타일",
+		"themeDefault": "기본",
 		"show": "커서 표시",
 		"size": "크기",
 		"smoothing": "부드러움",
 		"motionBlur": "모션 블러",
 		"clickBounce": "클릭 바운스",
-		"clipToBounds": "캔버스에 맞춰 자르기"
+		"clipToBounds": "캔버스에 맞춰 자르기",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "언어"
+	},
+	"timeline": {
+		"title": "타임라인",
+		"waveform": "트림 트랙에 오디오 파형 표시"
 	}
 }

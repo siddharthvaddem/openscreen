@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MdCheck } from "react-icons/md";
 import { useScopedT } from "@/contexts/I18nContext";
 import { Button } from "../ui/button";
@@ -19,39 +19,49 @@ export function SourceSelector() {
 	const [sources, setSources] = useState<DesktopSource[]>([]);
 	const [selectedSource, setSelectedSource] = useState<DesktopSource | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [loadFailed, setLoadFailed] = useState(false);
+
+	const fetchSources = useCallback(async () => {
+		setLoading(true);
+		setLoadFailed(false);
+		try {
+			const rawSources = await window.electronAPI.getSources({
+				types: ["screen", "window"],
+				thumbnailSize: { width: 320, height: 180 },
+				fetchWindowIcons: true,
+			});
+			setSources(
+				rawSources.map((source) => ({
+					id: source.id,
+					name:
+						source.id.startsWith("window:") && source.name.includes(" — ")
+							? source.name.split(" — ")[1] || source.name
+							: source.name,
+					thumbnail: source.thumbnail,
+					display_id: source.display_id,
+					appIcon: source.appIcon,
+				})),
+			);
+			setSelectedSource((current) =>
+				current && rawSources.some((source) => source.id === current.id) ? current : null,
+			);
+		} catch (error) {
+			console.error("Error loading sources:", error);
+			setSources([]);
+			setSelectedSource(null);
+			setLoadFailed(true);
+		} finally {
+			setLoading(false);
+		}
+	}, []);
 
 	useEffect(() => {
-		async function fetchSources() {
-			setLoading(true);
-			try {
-				const rawSources = await window.electronAPI.getSources({
-					types: ["screen", "window"],
-					thumbnailSize: { width: 320, height: 180 },
-					fetchWindowIcons: true,
-				});
-				setSources(
-					rawSources.map((source) => ({
-						id: source.id,
-						name:
-							source.id.startsWith("window:") && source.name.includes(" — ")
-								? source.name.split(" — ")[1] || source.name
-								: source.name,
-						thumbnail: source.thumbnail,
-						display_id: source.display_id,
-						appIcon: source.appIcon,
-					})),
-				);
-			} catch (error) {
-				console.error("Error loading sources:", error);
-			} finally {
-				setLoading(false);
-			}
-		}
-		fetchSources();
-	}, []);
+		void fetchSources();
+	}, [fetchSources]);
 
 	const screenSources = sources.filter((s) => s.id.startsWith("screen:"));
 	const windowSources = sources.filter((s) => s.id.startsWith("window:"));
+	const hasNoSources = !loading && sources.length === 0;
 
 	const handleSourceSelect = (source: DesktopSource) => setSelectedSource(source);
 	const handleShare = async () => {
@@ -72,11 +82,38 @@ export function SourceSelector() {
 		);
 	}
 
+	if (hasNoSources) {
+		return (
+			<div
+				className={`h-full flex items-center justify-center ${styles.glassContainer}`}
+				style={{ minHeight: "100vh" }}
+			>
+				<div className="max-w-[320px] px-6 text-center">
+					<h2 className="text-sm font-semibold text-white">{t("sourceSelector.emptyTitle")}</h2>
+					<p className="mt-2 text-xs leading-5 text-zinc-400">
+						{loadFailed
+							? t("sourceSelector.loadFailedDescription")
+							: t("sourceSelector.emptyDescription")}
+					</p>
+					<Button
+						onClick={() => void fetchSources()}
+						className="mt-4 h-8 rounded-lg bg-[#34B27B] px-5 text-[11px] font-semibold text-white transition-transform duration-150 hover:bg-[#34B27B]/85 active:scale-95"
+					>
+						{tc("actions.reload")}
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
 	const renderSourceCard = (source: DesktopSource) => {
 		const isSelected = selectedSource?.id === source.id;
+		const sourceKind = source.id.startsWith("screen:") ? "screen" : "window";
 		return (
 			<div
 				key={source.id}
+				data-testid="source-selector-card"
+				data-source-kind={sourceKind}
 				className={`${styles.sourceCard} ${isSelected ? styles.selected : ""} p-1.5`}
 				onClick={() => handleSourceSelect(source)}
 			>

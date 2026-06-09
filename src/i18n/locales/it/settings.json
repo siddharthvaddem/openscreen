@@ -9,7 +9,8 @@
 			"title": "Modalità messa a fuoco",
 			"manual": "Manuale",
 			"auto": "Automatico",
-			"autoDescription": "La fotocamera segue la posizione del cursore registrato"
+			"autoDescription": "La fotocamera segue la posizione del cursore registrato",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Rotazione 3D",
@@ -45,7 +46,10 @@
 		"dualFrame": "Doppio frame",
 		"noWebcam": "Nessuna webcam",
 		"webcamShape": "Forma fotocamera",
-		"webcamSize": "Dimensione webcam"
+		"webcamSize": "Dimensione webcam",
+		"mirrorWebcam": "Specchia webcam",
+		"reactiveWebcam": "Riduci con lo zoom",
+		"reactiveWebcamDescription": "La webcam si riduce dolcemente durante lo zoom, così non intralcia."
 	},
 	"effects": {
 		"title": "Effetti video",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "Salva progetto",
-		"load": "Carica progetto"
+		"load": "Carica progetto",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Esporta video",
@@ -176,6 +181,17 @@
 		"modern": "Moderno",
 		"clean": "Pulito"
 	},
+	"textAnimation": {
+		"title": "Animazione testo",
+		"selectAnimation": "Seleziona animazione",
+		"none": "Nessuna",
+		"fade": "Dissolvenza",
+		"rise": "Ascesa",
+		"pop": "Apparizione",
+		"slideLeft": "Scivola a sinistra",
+		"typewriter": "Macchina da scrivere",
+		"pulse": "Pulsazione"
+	},
 	"customFont": {
 		"dialogTitle": "Aggiungi font Google",
 		"urlLabel": "URL importazione Google Fonts",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "Impossibile caricare il font. Verifica che l'URL di Google Fonts sia corretto."
 	},
 	"cursor": {
+		"theme": "Stile del cursore",
+		"themeDefault": "Predefinito",
 		"show": "Mostra cursore",
 		"size": "Dimensione",
 		"smoothing": "Smussatura",
 		"motionBlur": "Sfocatura movimento",
 		"clickBounce": "Rimbalzo clic",
-		"clipToBounds": "Ritaglia al canvas"
+		"clipToBounds": "Ritaglia al canvas",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Lingua"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Mostra la forma d'onda sulla traccia di ritaglio"
 	}
 }

@@ -235,7 +235,7 @@ interface Window {
 			canceled?: boolean;
 			error?: string;
 		}>;
-		loadProjectFile: () => Promise<{
+		loadProjectFile: (projectFolder?: string) => Promise<{
 			success: boolean;
 			path?: string;
 			project?: unknown;
@@ -251,6 +251,17 @@ interface Window {
 			canceled?: boolean;
 			error?: string;
 		}>;
+		getPathForFile: (file: File) => string;
+		loadProjectFileFromPath: (filePath: string) => Promise<{
+			success: boolean;
+			path?: string;
+			project?: unknown;
+			message?: string;
+			canceled?: boolean;
+			error?: string;
+		}>;
+		onMenuNewProject: (callback: () => void) => () => void;
+		onMenuImportVideo: (callback: () => void) => () => void;
 		onMenuLoadProject: (callback: () => void) => () => void;
 		onMenuSaveProject: (callback: () => void) => () => void;
 		onMenuSaveProjectAs: (callback: () => void) => () => void;
@@ -260,10 +271,17 @@ interface Window {
 		) => Promise<{ success: boolean; error?: string; message?: string }>;
 		getShortcuts: () => Promise<Record<string, unknown> | null>;
 		saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>;
+		updateGlobalShortcut: (binding: {
+			key: string;
+			ctrl?: boolean;
+			shift?: boolean;
+			alt?: boolean;
+		}) => Promise<{ success: boolean }>;
 		hudOverlayHide: () => void;
 		hudOverlayClose: () => void;
 		setHudOverlayIgnoreMouseEvents: (ignore: boolean) => void;
 		moveHudOverlayBy: (deltaX: number, deltaY: number) => void;
+		setHudOverlaySize: (width: number, height: number) => void;
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
 		hideCountdownOverlay: (runId: number) => Promise<void>;

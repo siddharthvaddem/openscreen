@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "押している間ズーム効果をプレビュー",
 		"level": "ズーム倍率",
+		"customScale": "カスタムズーム",
 		"selectRegion": "ズーム範囲を選択して調整",
 		"deleteZoom": "ズームを削除",
 		"focusMode": {
 			"title": "フォーカスモード",
 			"manual": "手動",
 			"auto": "自動",
-			"autoDescription": "表示範囲が録画中のカーソル位置に追従します"
+			"autoDescription": "表示範囲が録画中のカーソル位置に追従します",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D回転",
@@ -18,7 +20,6 @@
 				"right": "右"
 			}
 		},
-		"customScale": "カスタムズーム",
 		"position": {
 			"title": "フォーカス位置",
 			"x": "X (%)",
@@ -43,19 +44,22 @@
 		"pictureInPicture": "ピクチャーインピクチャ",
 		"verticalStack": "縦並び",
 		"dualFrame": "デュアルフレーム",
+		"noWebcam": "Webカメラなし",
 		"webcamShape": "カメラの形状",
 		"webcamSize": "カメラのサイズ",
-		"noWebcam": "Webカメラなし"
+		"mirrorWebcam": "Webカメラを反転",
+		"reactiveWebcam": "ズーム時に縮小",
+		"reactiveWebcamDescription": "ズーム中はカメラがスムーズに縮小し、邪魔になりません。"
 	},
 	"effects": {
 		"title": "動画効果",
 		"blurBg": "背景をぼかす",
 		"motionBlur": "モーションブラー",
 		"off": "オフ",
+		"on": "オン",
 		"shadow": "影",
 		"roundness": "丸み",
-		"padding": "余白",
-		"on": "オン"
+		"padding": "余白"
 	},
 	"background": {
 		"title": "背景",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "プロジェクトを保存",
-		"load": "プロジェクトを読み込む"
+		"load": "プロジェクトを読み込む",
+		"new": "新規プロジェクト"
 	},
 	"export": {
 		"videoButton": "動画をエクスポート",
@@ -176,6 +181,17 @@
 		"modern": "モダン",
 		"clean": "クリーン"
 	},
+	"textAnimation": {
+		"title": "テキストアニメーション",
+		"selectAnimation": "アニメーションを選択",
+		"none": "なし",
+		"fade": "フェード",
+		"rise": "上昇",
+		"pop": "ポップ",
+		"slideLeft": "左へスライド",
+		"typewriter": "タイプライター",
+		"pulse": "パルス"
+	},
 	"customFont": {
 		"dialogTitle": "Googleフォントを追加",
 		"urlLabel": "GoogleフォントのインポートURL",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "フォントを読み込めませんでした。GoogleフォントのURLが正しいことを確認してください。"
 	},
 	"cursor": {
+		"theme": "カーソルのスタイル",
+		"themeDefault": "デフォルト",
 		"show": "カーソルを表示",
 		"size": "サイズ",
 		"smoothing": "スムージング",
 		"motionBlur": "モーションブラー",
 		"clickBounce": "クリックバウンス",
-		"clipToBounds": "キャンバスにクリップ"
+		"clipToBounds": "キャンバスにクリップ",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "言語"
+	},
+	"timeline": {
+		"title": "タイムライン",
+		"waveform": "トリムトラックにオーディオ波形を表示"
 	}
 }

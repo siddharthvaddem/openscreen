@@ -37,7 +37,7 @@ target_compile_definitions(wgc-capture PRIVATE
   _WIN32_WINNT=0x0A00
 )
 
-target_compile_options(wgc-capture PRIVATE /EHsc /W4 /utf-8)
+target_compile_options(wgc-capture PRIVATE /EHsc /W4 /utf-8 /await)
 
 target_link_libraries(wgc-capture PRIVATE
   d3d11

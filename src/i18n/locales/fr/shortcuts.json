@@ -13,7 +13,9 @@
 	"reservedShortcut": "Ce raccourci est réservé pour « {{label}} » et ne peut pas être réassigné.",
 	"savedToast": "Raccourcis clavier enregistrés",
 	"resetToast": "Réinitialisé aux raccourcis par défaut — cliquez sur Enregistrer pour appliquer",
+	"registrationFailed": "Échec de l'enregistrement du raccourci. Il est peut-être utilisé par une autre application. Essayez une autre touche.",
 	"actions": {
+		"openApp": "Ouvrir l'application",
 		"addZoom": "Ajouter un zoom",
 		"addTrim": "Ajouter une coupe",
 		"addSpeed": "Ajouter une vitesse",

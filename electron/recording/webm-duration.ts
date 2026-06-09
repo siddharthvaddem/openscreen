@@ -9,23 +9,16 @@ export type DurationPatchResult =
 /**
  * Patch the WebM Duration header on a finalized recording file.
  *
- * Browser MediaRecorder writes WebM with no Duration EBML element. With the
- * streaming-to-disk path the renderer never holds the blob, so the historical
- * `fixWebmDuration(blob, durationMs)` call can't run. Patching on disk after
- * `WriteStream.end()` produces an equivalent result: the editor's seek bar and
- * timeline read a real duration instead of `N/A`.
+ * MediaRecorder writes WebM with no Duration EBML element, and the streaming-to-disk
+ * path never holds the blob so the old `fixWebmDuration(blob, durationMs)` can't run.
+ * Patching on disk after `WriteStream.end()` gives the editor a real duration instead of `N/A`.
  *
- * Atomic by design: writes the patched bytes to `<filePath>.duration-patch.tmp`
- * and renames in place. If the process crashes mid-rewrite, the original file
- * survives intact, so the user never loses their recording to a partial write.
+ * Atomic: writes to `<filePath>.duration-patch.tmp` and renames in place, so a mid-rewrite
+ * crash leaves the original intact. Best-effort: any read/parse/write failure logs and returns
+ * a non-`patched` result rather than throwing; the file still plays without the patch (decoders
+ * walk frames sequentially), only the seek bar and timeline break.
  *
- * Best-effort by intent: any failure (read, parse, write) logs and returns a
- * non-`patched` result rather than throwing. The file is still playable without
- * the patch (decoders walk frames sequentially); the only cost is that the
- * editor's seek bar and timeline break until it is patched.
- *
- * Memory: reads the whole file into a main-process Buffer, the same footprint
- * as the pre-streaming renderer path, just on the side without V8's heap cap.
+ * Reads the whole file into a main-process Buffer, off the renderer so it dodges V8's heap cap.
  */
 export async function patchWebmDurationOnDisk(
 	filePath: string,
@@ -37,9 +30,8 @@ export async function patchWebmDurationOnDisk(
 
 		const patched = fixParsedWebmDuration(webm, durationMs, { logger: false });
 		if (!patched) {
-			// fixParsedWebmDuration returns false for: missing Segment, missing
-			// Info, or a Duration that is already valid. The first two mean a
-			// malformed (most likely truncated) file; the third is a no-op.
+			// false means missing Segment, missing Info, or an already-valid Duration.
+			// The first two mean a malformed (likely truncated) file; the third is a no-op.
 			const reason = inferUnpatchedReason(webm);
 			if (reason === "no-section") {
 				console.warn(
@@ -66,8 +58,7 @@ export async function patchWebmDurationOnDisk(
 			return { patched: true };
 		} catch (writeError) {
 			console.error(`[webm-duration] failed to write patched ${filePath}:`, writeError);
-			// Best-effort cleanup of the temp file; if unlink also fails, leave it.
-			// The original recording is untouched because the rename never ran.
+			// Clean up the temp file; the original is untouched since the rename never ran.
 			await fs.unlink(tmpPath).catch(() => undefined);
 			return { patched: false, reason: "io-error" };
 		}
@@ -78,14 +69,12 @@ export async function patchWebmDurationOnDisk(
 }
 
 /**
- * Distinguish "no Segment/Info section" (malformed/truncated file) from "Info
- * present but Duration already valid" (patch unnecessary).
+ * Distinguish "no Segment/Info section" (malformed/truncated file) from "Info present
+ * but Duration already valid" (patch unnecessary).
  *
- * The IDs are the length-descriptor-stripped form that @fix-webm-duration/parser
- * uses as its lookup keys (Segment `0x8538067`, Info `0x549a966`), verified
- * against the parser's `src/lib/sections.js` — not the canonical 4-byte EBML
- * IDs (`0x18538067` / `0x1549A966`), which this parser's `getSectionById` would
- * never match.
+ * The IDs are the length-descriptor-stripped form @fix-webm-duration/parser uses as lookup
+ * keys (Segment `0x8538067`, Info `0x549a966`), per the parser's `src/lib/sections.js`, not
+ * the canonical 4-byte EBML IDs (`0x18538067` / `0x1549A966`) that `getSectionById` never matches.
  */
 function inferUnpatchedReason(webm: WebmFile): "no-section" | "already-valid" {
 	const segment = webm.getSectionById?.(0x8538067);

@@ -271,8 +271,8 @@ type DominantRegionResult = {
 };
 
 // Single-slot cache: the ticker calls findDominantRegion at 60fps with mostly
-// unchanged inputs (especially while paused). Reusing the previous result when
-// inputs match avoids the per-frame O(N) region scan + allocations.
+// unchanged inputs (especially while paused), so reusing the last result skips
+// the per-frame O(N) scan and allocations.
 let dominantRegionCache: {
 	regions: ZoomRegion[];
 	timeMsKey: number;

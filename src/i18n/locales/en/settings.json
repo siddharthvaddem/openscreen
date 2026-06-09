@@ -9,7 +9,8 @@
 			"title": "Focus Mode",
 			"manual": "Manual",
 			"auto": "Auto",
-			"autoDescription": "Camera follows the recorded cursor position"
+			"autoDescription": "Camera follows the recorded cursor position",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D Rotation",
@@ -45,7 +46,10 @@
 		"dualFrame": "Dual Frame",
 		"noWebcam": "No Webcam",
 		"webcamShape": "Camera Shape",
-		"webcamSize": "Webcam Size"
+		"webcamSize": "Webcam Size",
+		"mirrorWebcam": "Mirror Webcam",
+		"reactiveWebcam": "Shrink on Zoom",
+		"reactiveWebcamDescription": "Camera smoothly shrinks while the video is zoomed in, so it stays out of the way."
 	},
 	"effects": {
 		"title": "Video Effects",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "Save Project",
-		"load": "Load Project"
+		"load": "Load Project",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Export Video",
@@ -176,6 +181,17 @@
 		"modern": "Modern",
 		"clean": "Clean"
 	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
+	},
 	"customFont": {
 		"dialogTitle": "Add Google Font",
 		"urlLabel": "Google Fonts Import URL",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "The font could not be loaded. Please verify the Google Fonts URL is correct."
 	},
 	"cursor": {
+		"theme": "Cursor Style",
+		"themeDefault": "Default",
 		"show": "Show Cursor",
 		"size": "Size",
 		"smoothing": "Smoothing",
 		"motionBlur": "Motion Blur",
 		"clickBounce": "Click Bounce",
-		"clipToBounds": "Clip to Canvas"
+		"clipToBounds": "Clip to Canvas",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Language"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Show Audio Waveform on Trim Track"
 	}
 }

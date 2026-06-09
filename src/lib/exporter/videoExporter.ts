@@ -37,6 +37,8 @@ export interface VideoExporterConfig extends ExportConfig {
 	cropRegion: CropRegion;
 	webcamLayoutPreset?: WebcamLayoutPreset;
 	webcamMaskShape?: import("@/components/video-editor/types").WebcamMaskShape;
+	webcamMirrored?: boolean;
+	webcamReactiveZoom?: boolean;
 	webcamSizePreset?: WebcamSizePreset;
 	webcamPosition?: { cx: number; cy: number } | null;
 	cursorRecordingData?: CursorRecordingData | null;
@@ -45,6 +47,7 @@ export interface VideoExporterConfig extends ExportConfig {
 	cursorMotionBlur?: number;
 	cursorClickBounce?: number;
 	cursorClipToBounds?: boolean;
+	cursorTheme?: string;
 	annotationRegions?: AnnotationRegion[];
 	previewWidth?: number;
 	previewHeight?: number;
@@ -243,11 +246,14 @@ export class VideoExporter {
 				cursorMotionBlur: this.config.cursorMotionBlur,
 				cursorClickBounce: this.config.cursorClickBounce,
 				cursorClipToBounds: this.config.cursorClipToBounds,
+				cursorTheme: this.config.cursorTheme,
 				videoWidth: videoInfo.width,
 				videoHeight: videoInfo.height,
 				webcamSize: webcamInfo ? { width: webcamInfo.width, height: webcamInfo.height } : null,
 				webcamLayoutPreset: this.config.webcamLayoutPreset,
 				webcamMaskShape: this.config.webcamMaskShape,
+				webcamMirrored: this.config.webcamMirrored,
+				webcamReactiveZoom: this.config.webcamReactiveZoom,
 				webcamSizePreset: this.config.webcamSizePreset,
 				webcamPosition: this.config.webcamPosition,
 				annotationRegions: this.config.annotationRegions,

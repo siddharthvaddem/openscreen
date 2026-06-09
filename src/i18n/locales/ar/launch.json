@@ -7,7 +7,10 @@
 		"pauseRecording": "إيقاف التسجيل مؤقتاً",
 		"resumeRecording": "استئناف التسجيل",
 		"openVideoFile": "فتح ملف فيديو",
-		"openProject": "فتح مشروع"
+		"openProject": "فتح مشروع",
+		"useVerticalTray": "استخدام الشريط العمودي",
+		"useHorizontalTray": "استخدام الشريط الأفقي",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "تفعيل صوت النظام",
@@ -24,10 +27,17 @@
 		"noneFound": "لم يتم العثور على كاميرا",
 		"unavailable": "الكاميرا غير متوفرة"
 	},
+	"cursor": {
+		"useEditableCursor": "استخدام مؤشر قابل للتحرير",
+		"useSystemCursor": "استخدام مؤشر النظام"
+	},
 	"sourceSelector": {
 		"loading": "جاري تحميل المصادر...",
 		"screens": "الشاشات ({{count}})",
 		"windows": "النوافذ ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "الشاشة"
 	},
 	"recording": {
@@ -39,9 +49,5 @@
 		"description": "اكتشفنا أن {{language}} هي لغة نظامك. هل تريد تبديل OpenScreen إلى {{language}}؟",
 		"switch": "التبديل إلى {{language}}",
 		"keepDefault": "الاحتفاظ باللغة الحالية"
-	},
-	"cursor": {
-		"useEditableCursor": "استخدام مؤشر قابل للتحرير",
-		"useSystemCursor": "استخدام مؤشر النظام"
 	}
 }

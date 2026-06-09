@@ -43,11 +43,11 @@ export interface CursorRenderConfig {
 	dotRadius: number;
 	/** Cursor fill color (hex number for PixiJS) */
 	dotColor: number;
-	/** Cursor opacity (0–1) */
+	/** Cursor opacity (0-1) */
 	dotAlpha: number;
 	/** Unused, kept for interface compatibility */
 	trailLength: number;
-	/** Smoothing factor for cursor interpolation (0–1, lower = smoother/slower) */
+	/** Smoothing factor for cursor interpolation (0-1, lower = smoother/slower) */
 	smoothingFactor: number;
 	/** Directional cursor motion blur amount. */
 	motionBlur: number;
@@ -122,10 +122,9 @@ function getNormalizedAnchor(
 }
 
 /**
- * Loads an SVG at `sampleSize × sampleSize`, crops the trim region out of it,
- * and returns a PNG data-URL of the cropped result. This is required because
- * SVG files have their own natural pixel size (e.g. 32×32) which does not
- * match the 1024-sample coordinate space used by the trim measurements.
+ * Loads an SVG at `sampleSize × sampleSize`, crops the trim region, and returns
+ * a PNG data-URL. Needed because an SVG's natural size (e.g. 32×32) doesn't match
+ * the 1024-sample coordinate space the trim measurements use.
  */
 async function rasterizeAndCropSvg(
 	url: string,
@@ -137,14 +136,12 @@ async function rasterizeAndCropSvg(
 ): Promise<{ dataUrl: string; width: number; height: number }> {
 	const img = await loadImage(url);
 
-	// Draw at full sample size
 	const srcCanvas = document.createElement("canvas");
 	srcCanvas.width = sampleSize;
 	srcCanvas.height = sampleSize;
 	const srcCtx = srcCanvas.getContext("2d")!;
 	srcCtx.drawImage(img, 0, 0, sampleSize, sampleSize);
 
-	// Crop to trim bounds
 	const dstCanvas = document.createElement("canvas");
 	dstCanvas.width = trimWidth;
 	dstCanvas.height = trimHeight;
@@ -349,7 +346,7 @@ function findLatestInteractionSample(samples: CursorTelemetryPoint[], timeMs: nu
 }
 
 function findLatestStableCursorType(samples: CursorTelemetryPoint[], timeMs: number) {
-	// Binary search to find position at timeMs, then scan backwards
+	// Binary search to position at timeMs, then scan backwards
 	let lo = 0;
 	let hi = samples.length - 1;
 	while (lo < hi) {
@@ -361,8 +358,8 @@ function findLatestStableCursorType(samples: CursorTelemetryPoint[], timeMs: num
 		}
 	}
 
-	// Scan backwards from the position to find a sample with cursorType
-	// Skip click events only (not mouseup) to avoid transient re-type during clicks
+	// Scan back for a sample with cursorType. Skip click events (not mouseup) to
+	// avoid a transient re-type during clicks.
 	for (let index = lo; index >= 0; index -= 1) {
 		const sample = samples[index];
 		if (sample.timeMs > timeMs) {

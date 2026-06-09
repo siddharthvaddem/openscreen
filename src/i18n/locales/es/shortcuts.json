@@ -13,7 +13,9 @@
 	"reservedShortcut": "Este atajo está reservado para \"{{label}}\" y no se puede reasignar.",
 	"savedToast": "Atajos de teclado guardados",
 	"resetToast": "Restablecido a los atajos predeterminados — haz clic en Guardar para aplicar",
+	"registrationFailed": "Error al registrar el atajo. Puede estar en uso por otra aplicación. Prueba otra tecla.",
 	"actions": {
+		"openApp": "Abrir aplicación",
 		"addZoom": "Agregar zoom",
 		"addTrim": "Agregar recorte",
 		"addSpeed": "Agregar velocidad",

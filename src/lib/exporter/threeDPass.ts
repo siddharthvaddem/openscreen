@@ -5,10 +5,9 @@ import {
 	rotation3DPerspective,
 } from "@/components/video-editor/types";
 
-// CSS uses +y down, WebGL clip space uses +y up. We do all rotation math in CSS
-// convention (top-left origin, +y down) to match the preview, then flip
-// gl_Position.y at the end so WebGL's clip space lands the input's top edge at
-// the top of the output viewport.
+// Rotation math is done in CSS convention (+y down) to match the preview, then
+// gl_Position.y is flipped so WebGL clip space (+y up) lands the input's top edge
+// at the top of the viewport.
 const VERTEX_SHADER = `#version 300 es
 in vec2 aPos;
 in vec2 aUV;
@@ -151,10 +150,7 @@ function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
 
 export interface ThreeDPass {
 	apply(srcCanvas: HTMLCanvasElement | OffscreenCanvas, rot: Rotation3D): HTMLCanvasElement;
-	/**
-	 * Reads back the most recent apply() result into a Uint8ClampedArray suitable
-	 * for ImageData. Use this on platforms where drawImage(webglCanvas) is unreliable.
-	 */
+	/** Read the last apply() result as ImageData-ready pixels, for platforms where drawImage(webglCanvas) is unreliable. */
 	readPixels(): Uint8ClampedArray;
 	resize(width: number, height: number): void;
 	destroy(): void;
@@ -180,10 +176,9 @@ export function createThreeDPass(width: number, height: number): ThreeDPass {
 	const vao = gl.createVertexArray();
 	gl.bindVertexArray(vao);
 
-	// Quad: two triangles sharing UVs consistently per corner.
-	// pos.y ranges 0 (top of input) → 1 (bottom of input) following CSS convention.
-	// UV.y is inverted (1 - pos.y) so that with UNPACK_FLIP_Y_WEBGL the texture
-	// sample at the top of the input lands at the top of the rendered quad.
+	// Quad as two triangles. pos.y is 0 (top) to 1 (bottom) per CSS convention; UV.y
+	// is inverted so that with UNPACK_FLIP_Y_WEBGL the top of the input lands at the
+	// top of the rendered quad.
 	//   TL: pos(0,0) uv(0,1)   TR: pos(1,0) uv(1,1)
 	//   BL: pos(0,1) uv(0,0)   BR: pos(1,1) uv(1,0)
 	const verts = new Float32Array([
@@ -207,7 +202,7 @@ export function createThreeDPass(width: number, height: number): ThreeDPass {
 		1,
 		0,
 		1,
-		1, // TR (was 1,0,1,0 — broken)
+		1, // TR (was 1,0,1,0, broken)
 		1,
 		1,
 		1,
@@ -224,20 +219,17 @@ export function createThreeDPass(width: number, height: number): ThreeDPass {
 	const texture = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	// Plain bilinear, NO mipmaps. Mipmaps pre-blur the texture for downsampling, but
-	// at our moderate rotation angles (≤22°) the receding edge would still pick a
-	// smaller mipmap level, which softens fine details — specifically the few-pixel
-	// rounded-corner anti-alias ramp and the shadow's Gaussian falloff. The result
-	// is "rounding looks like a hard corner / shadow looks grimy". Sampling level 0
-	// directly preserves the source crispness.
+	// Plain bilinear, no mipmaps. Even at our moderate angles (<=22deg) the receding
+	// edge picks a smaller mip level, softening the rounded-corner AA ramp and shadow
+	// falloff (corners look hard, shadows grimy). Sampling level 0 keeps source crispness.
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-	// Anisotropic filtering still helps without mipmaps: at oblique viewing angles
-	// it samples multiple texels along the gradient direction at level 0, recovering
-	// detail that plain bilinear would lose. Cap to the device max (16× typical).
+	// Anisotropic filtering still helps without mipmaps: at oblique angles it samples
+	// multiple texels along the gradient at level 0, recovering detail bilinear loses.
+	// Cap to the device max (16x typical).
 	const anisoExt =
 		gl.getExtension("EXT_texture_filter_anisotropic") ||
 		gl.getExtension("MOZ_EXT_texture_filter_anisotropic") ||
@@ -263,15 +255,10 @@ export function createThreeDPass(width: number, height: number): ThreeDPass {
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		// CRITICAL: premultiply on upload. The source 2D canvas stores non-premultiplied
-		// RGBA (alpha=0 areas have RGB=0). Bilinear filtering between an inside-the-shape
-		// texel (alpha=1, RGB=color) and an outside texel (alpha=0, RGB=0) in
-		// non-premultiplied space yields (color/2, alpha=0.5), which the
-		// premultipliedAlpha:true canvas then interprets as half-strength color — visible
-		// as a dark halo around rounded corners and softened/grimy shadows. Premultiplying
-		// at upload time makes the bilinear math operate in linear-light premultiplied
-		// space, which is exactly the math used for compositing. Edges and shadows then
-		// reproduce the source crisply.
+		// Premultiply on upload. The source 2D canvas is non-premultiplied (alpha=0 areas
+		// have RGB=0), so bilinear filtering across a shape edge in that space gives
+		// half-strength color, showing as a dark halo on rounded corners and grimy shadows.
+		// Premultiplying makes the filter math match compositing, so edges stay crisp.
 		gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 		gl.texImage2D(
 			gl.TEXTURE_2D,
@@ -308,11 +295,9 @@ export function createThreeDPass(width: number, height: number): ThreeDPass {
 		const h = currentSize.height;
 		const buf = new Uint8Array(w * h * 4);
 		gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-		// gl.readPixels is bottom-up; flip to top-down for ImageData. We also need
-		// to un-premultiply the alpha here: the framebuffer holds premultiplied RGBA
-		// (we set UNPACK_PREMULTIPLY_ALPHA_WEBGL=true on upload), but ImageData /
-		// putImageData expect non-premultiplied. Without this divide, semi-transparent
-		// pixels get interpreted as darker than they should be.
+		// readPixels is bottom-up, so flip to top-down. Also un-premultiply: the
+		// framebuffer is premultiplied (UNPACK_PREMULTIPLY_ALPHA_WEBGL on upload) but
+		// ImageData expects non-premultiplied, else semi-transparent pixels read too dark.
 		const rowSize = w * 4;
 		const out = new Uint8ClampedArray(buf.length);
 		for (let row = 0; row < h; row += 1) {

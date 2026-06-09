@@ -632,8 +632,8 @@ int main(int argc, char* argv[]) {
                         (webcamOutputFrameIndex * 10'000'000ULL) / std::max(1, webcamCapture.fps()));
                     if (!webcamEncoder.writeBgraFrame(webcamFrame, webcamTimestampHns)) {
                         encodeFailed = true;
-                        stopRequested = true;
-                        cv.notify_all();
+                        control.stopRequested = true;
+                        control.cv.notify_all();
                         return;
                     }
                     lastWrittenWebcamSequence = latestWebcamSequence;

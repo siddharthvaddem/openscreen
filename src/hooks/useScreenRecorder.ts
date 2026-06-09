@@ -161,10 +161,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	}, []);
 
 	const selectMimeType = () => {
-		// H.264 first: hardware-accelerated on all modern devices, gives sharp
-		// real-time output. AV1/VP9 are great for distribution but too
-		// CPU-intensive for live 60 fps capture — they produce blurry frames
-		// when the software encoder can't keep up.
+		// H.264 first: hardware-accelerated, so sharp real-time output. AV1/VP9 are
+		// better for distribution but too CPU-heavy for live 60 fps capture (software
+		// encoder falls behind and produces blurry frames).
 		const preferred = [
 			"video/webm;codecs=h264",
 			"video/webm;codecs=vp8",
@@ -368,7 +367,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						window.electronAPI?.discardCursorTelemetry(activeRecordingId);
 						return;
 					}
-					// When streaming succeeded the blob is empty — the data is already on disk.
+					// When streaming succeeded the blob is empty; the data is already on disk.
 					if (!activeScreenRecorder.isStreaming() && screenBlob.size === 0) {
 						return;
 					}
@@ -428,10 +427,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					console.error("Error saving recording:", error);
 				} finally {
 					await safeHideRecordingAnnotationOverlay();
-					// Discard any recorder whose data was not part of a successful save
-					// — a discarded run, a failed save, or a webcam whose disk write
-					// failed (so it was omitted while the screen still saved) — so no
-					// stream or partial file is left open or orphaned.
+					// Discard any recorder whose data wasn't part of a successful save (discarded
+					// run, failed save, or a webcam whose disk write failed while the screen still
+					// saved) so no stream or partial file is left open or orphaned.
 					if (!storeSucceeded) {
 						await activeScreenRecorder.discard().catch(() => undefined);
 					}
@@ -1129,9 +1127,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		try {
 			const platform = await window.electronAPI.getPlatform();
 			if (platform === "darwin" && cursorCaptureMode === "editable-overlay") {
+				// The main process shows a native dialog that deep-links to the
+				// Accessibility settings pane when access is missing, so we just stop
+				// here and let the user grant it and press record again.
 				const access = await window.electronAPI.requestNativeMacCursorAccess();
 				if (!access.granted) {
-					toast.info(t("recording.accessibilityAllowAndRetry"));
 					return;
 				}
 			}

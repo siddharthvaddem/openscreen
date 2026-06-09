@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "Yakınlaştırma efektini önizlemek için basılı tutun",
 		"level": "Yakınlaştırma Seviyesi",
+		"customScale": "Özel Yakınlaştırma",
 		"selectRegion": "Ayarlamak için bir yakınlaştırma bölgesi seçin",
 		"deleteZoom": "Yakınlaştırmayı Sil",
 		"focusMode": {
 			"title": "Odak Modu",
 			"manual": "Manuel",
 			"auto": "Otomatik",
-			"autoDescription": "Kamera kaydedilen imleç konumunu takip eder"
+			"autoDescription": "Kamera kaydedilen imleç konumunu takip eder",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D Döndürme",
@@ -18,7 +20,6 @@
 				"right": "Sağ"
 			}
 		},
-		"customScale": "Özel Yakınlaştırma",
 		"position": {
 			"title": "Odak Konumu",
 			"x": "X (%)",
@@ -42,20 +43,23 @@
 		"selectPreset": "Ön ayar seçin",
 		"pictureInPicture": "Resim İçinde Resim",
 		"verticalStack": "Dikey Yığın",
-		"webcamShape": "Kamera Şekli",
 		"dualFrame": "Çift Kare",
+		"noWebcam": "Web kamerası yok",
+		"webcamShape": "Kamera Şekli",
 		"webcamSize": "Webcam Boyutu",
-		"noWebcam": "Web kamerası yok"
+		"mirrorWebcam": "Web kamerasını aynala",
+		"reactiveWebcam": "Yakınlaştırınca küçült",
+		"reactiveWebcamDescription": "Video yakınlaştırıldığında kamera yumuşakça küçülür, böylece yoldan çekilir."
 	},
 	"effects": {
 		"title": "Video Efektleri",
 		"blurBg": "Arka Planı Bulanıklaştır",
 		"motionBlur": "Hareket Bulanıklığı",
 		"off": "kapalı",
+		"on": "açık",
 		"shadow": "Gölge",
 		"roundness": "Yuvarlaklık",
-		"padding": "Dolgu",
-		"on": "açık"
+		"padding": "Dolgu"
 	},
 	"background": {
 		"title": "Arka Plan",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "Projeyi Kaydet",
-		"load": "Proje Yükle"
+		"load": "Proje Yükle",
+		"new": "Yeni Proje"
 	},
 	"export": {
 		"videoButton": "Videoyu Dışa Aktar",
@@ -144,8 +149,15 @@
 		"arrowDirection": "Ok Yönü",
 		"strokeWidth": "Çizgi Kalınlığı: {{width}}px",
 		"arrowColor": "Ok Rengi",
+		"blurType": "Bulanıklık Türü",
+		"blurTypeBlur": "Bulanık",
+		"blurTypeMosaic": "Mozaik Bulanıklık",
+		"blurColor": "Bulanıklık Rengi",
+		"blurColorWhite": "Beyaz",
+		"blurColorBlack": "Siyah",
 		"blurShape": "Bulanık Şekli",
 		"blurIntensity": "Bulanıklık Yoğunluğu",
+		"mosaicBlockSize": "Mozaik Blok Boyutu",
 		"blurShapeRectangle": "Dikdörtgen",
 		"blurShapeOval": "Oval",
 		"blurShapeFreehand": "Serbest",
@@ -157,14 +169,7 @@
 		"invalidImageType": "Geçersiz dosya türü",
 		"imageFormatsOnly": "Lütfen bir JPG, PNG, GIF veya WebP görüntü dosyası yükleyin.",
 		"imageUploadSuccess": "Görüntü başarıyla yüklendi!",
-		"failedImageUpload": "Görüntü yüklenemedi",
-		"blurColor": "Bulanıklık Rengi",
-		"blurColorBlack": "Siyah",
-		"blurColorWhite": "Beyaz",
-		"blurType": "Bulanıklık Türü",
-		"blurTypeBlur": "Bulanık",
-		"blurTypeMosaic": "Mozaik Bulanıklık",
-		"mosaicBlockSize": "Mozaik Blok Boyutu"
+		"failedImageUpload": "Görüntü yüklenemedi"
 	},
 	"fontStyles": {
 		"classic": "Klasik",
@@ -175,6 +180,17 @@
 		"simple": "Sade",
 		"modern": "Modern",
 		"clean": "Temiz"
+	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
 	},
 	"customFont": {
 		"dialogTitle": "Google Yazı Tipi Ekle",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "Yazı tipi yüklenemedi. Lütfen Google Fonts URL'sinin doğruluğunu kontrol edin."
 	},
 	"cursor": {
+		"theme": "İmleç Stili",
+		"themeDefault": "Varsayılan",
 		"show": "İmleci Göster",
 		"size": "Boyut",
 		"smoothing": "Yumuşatma",
 		"motionBlur": "Hareket Bulanıklığı",
 		"clickBounce": "Tıklama Sıçraması",
-		"clipToBounds": "Tuvale Kırp"
+		"clipToBounds": "Tuvale Kırp",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Dil"
+	},
+	"timeline": {
+		"title": "Zaman Tüneli",
+		"waveform": "Kırpma Parçasında Ses Dalgasını Göster"
 	}
 }

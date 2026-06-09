@@ -12,6 +12,9 @@ node_modules
 dist
 dist-electron
 dist-ssr
+/main.js
+/preload.mjs
+/index-*.js
 *.local
 .env
 

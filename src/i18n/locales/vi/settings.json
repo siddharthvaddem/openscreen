@@ -2,20 +2,15 @@
 	"zoom": {
 		"previewHold": "Giữ để xem trước hiệu ứng phóng to",
 		"level": "Mức độ thu phóng",
+		"customScale": "Thu phóng tùy chỉnh",
 		"selectRegion": "Chọn vùng thu phóng để điều chỉnh",
 		"deleteZoom": "Xóa thu phóng",
 		"focusMode": {
 			"title": "Chế độ lấy nét",
 			"manual": "Thủ công",
 			"auto": "Tự động",
-			"autoDescription": "Máy ảnh đi theo vị trí con trỏ đã ghi"
-		},
-		"customScale": "Thu phóng tùy chỉnh",
-		"position": {
-			"title": "Vị trí tiêu điểm",
-			"x": "X (%)",
-			"y": "Y (%)",
-			"hint": "0 = ngoài cùng trái / trên, 100 = ngoài cùng phải / dưới"
+			"autoDescription": "Máy ảnh đi theo vị trí con trỏ đã ghi",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Xoay 3D",
@@ -24,6 +19,12 @@
 				"left": "Trái",
 				"right": "Phải"
 			}
+		},
+		"position": {
+			"title": "Vị trí tiêu điểm",
+			"x": "X (%)",
+			"y": "Y (%)",
+			"hint": "0 = ngoài cùng trái / trên, 100 = ngoài cùng phải / dưới"
 		}
 	},
 	"speed": {
@@ -43,19 +44,22 @@
 		"pictureInPicture": "Hình trong hình",
 		"verticalStack": "Xếp chồng dọc",
 		"dualFrame": "Khung kép",
+		"noWebcam": "Không có webcam",
 		"webcamShape": "Hình dạng máy ảnh",
 		"webcamSize": "Kích thước Webcam",
-		"noWebcam": "Không có webcam"
+		"mirrorWebcam": "Lật webcam",
+		"reactiveWebcam": "Thu nhỏ khi phóng to",
+		"reactiveWebcamDescription": "Camera thu nhỏ mượt mà khi video được phóng to, để không che khuất."
 	},
 	"effects": {
 		"title": "Hiệu ứng video",
 		"blurBg": "Làm mờ nền",
 		"motionBlur": "Làm mờ chuyển động",
 		"off": "tắt",
+		"on": "bật",
 		"shadow": "Bóng đổ",
 		"roundness": "Độ bo tròn",
-		"padding": "Phần đệm",
-		"on": "bật"
+		"padding": "Phần đệm"
 	},
 	"background": {
 		"title": "Nền",
@@ -64,8 +68,8 @@
 		"gradient": "Dải màu",
 		"uploadCustom": "Tải lên tùy chỉnh",
 		"gradientLabel": "Dải màu {{index}}",
-		"colorPalette": "Bảng màu",
-		"colorWheel": "Vòng màu"
+		"colorWheel": "Vòng màu",
+		"colorPalette": "Bảng màu"
 	},
 	"crop": {
 		"title": "Cắt xén",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "Lưu dự án",
-		"load": "Tải dự án"
+		"load": "Tải dự án",
+		"new": "Dự án mới"
 	},
 	"export": {
 		"videoButton": "Xuất Video",
@@ -134,6 +139,8 @@
 		"background": "Nền",
 		"none": "Không có",
 		"color": "Màu sắc",
+		"colorWheel": "Vòng màu",
+		"colorPalette": "Bảng màu",
 		"clearBackground": "Xóa nền",
 		"uploadImage": "Tải lên hình ảnh",
 		"supportedFormats": "Định dạng hỗ trợ: JPG, PNG, GIF, WebP",
@@ -162,9 +169,7 @@
 		"invalidImageType": "Loại tệp không hợp lệ",
 		"imageFormatsOnly": "Vui lòng tải lên tệp hình ảnh JPG, PNG, GIF hoặc WebP.",
 		"imageUploadSuccess": "Tải lên hình ảnh thành công!",
-		"failedImageUpload": "Tải lên hình ảnh thất bại",
-		"colorPalette": "Bảng màu",
-		"colorWheel": "Vòng màu"
+		"failedImageUpload": "Tải lên hình ảnh thất bại"
 	},
 	"fontStyles": {
 		"classic": "Cổ điển",
@@ -175,6 +180,17 @@
 		"simple": "Đơn giản",
 		"modern": "Hiện đại",
 		"clean": "Sạch sẽ"
+	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
 	},
 	"customFont": {
 		"dialogTitle": "Thêm Google Font",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "Không thể tải phông chữ. Vui lòng xác minh URL Google Fonts là chính xác."
 	},
 	"cursor": {
+		"theme": "Kiểu con trỏ",
+		"themeDefault": "Mặc định",
 		"show": "Hiện con trỏ",
 		"size": "Kích thước",
 		"smoothing": "Làm mượt",
 		"motionBlur": "Làm mờ chuyển động",
 		"clickBounce": "Nảy khi nhấp",
-		"clipToBounds": "Cắt theo khung"
+		"clipToBounds": "Cắt theo khung",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Ngôn ngữ"
+	},
+	"timeline": {
+		"title": "Dòng thời gian",
+		"waveform": "Hiển thị dạng sóng âm thanh trên rãnh cắt"
 	}
 }

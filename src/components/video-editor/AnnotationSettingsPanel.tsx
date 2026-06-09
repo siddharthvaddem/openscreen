@@ -28,6 +28,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useScopedT } from "@/contexts/I18nContext";
+import { normalizeTextAnimation, TEXT_ANIMATION_OPTIONS } from "@/lib/annotationTextAnimation";
 import { type CustomFont, getCustomFonts } from "@/lib/customFonts";
 import { cn } from "@/lib/utils";
 import ColorPicker from "../ui/color-picker";
@@ -51,7 +52,11 @@ interface AnnotationSettingsPanelProps {
 	onDelete: () => void;
 }
 
-const FONT_FAMILIES = [
+const FONT_FAMILIES: Array<
+	| { value: string; labelKey: string; name?: never }
+	| { value: string; labelKey?: never; name: string }
+> = [
+	{ value: "Inter", name: "Inter" },
 	{ value: "system-ui, -apple-system, sans-serif", labelKey: "classic" },
 	{ value: "Georgia, serif", labelKey: "editor" },
 	{ value: "Impact, Arial Black, sans-serif", labelKey: "strong" },
@@ -60,6 +65,21 @@ const FONT_FAMILIES = [
 	{ value: "Arial, sans-serif", labelKey: "simple" },
 	{ value: "Verdana, sans-serif", labelKey: "modern" },
 	{ value: "Trebuchet MS, sans-serif", labelKey: "clean" },
+	{ value: '"Plus Jakarta Sans", sans-serif', name: "Plus Jakarta Sans" },
+	{ value: '"Space Grotesk", sans-serif', name: "Space Grotesk" },
+	{ value: '"DM Sans", sans-serif', name: "DM Sans" },
+	{ value: "Sora, sans-serif", name: "Sora" },
+	{ value: "Manrope, sans-serif", name: "Manrope" },
+	{ value: '"IBM Plex Sans", sans-serif', name: "IBM Plex Sans" },
+	{ value: '"Playfair Display", Georgia, serif', name: "Playfair Display" },
+	{ value: "Merriweather, Georgia, serif", name: "Merriweather" },
+	{ value: "Lora, Georgia, serif", name: "Lora" },
+	{ value: '"IBM Plex Mono", monospace', name: "IBM Plex Mono" },
+	{ value: '"Fira Code", monospace', name: "Fira Code" },
+	{ value: '"Bebas Neue", sans-serif', name: "Bebas Neue" },
+	{ value: "Oswald, sans-serif", name: "Oswald" },
+	{ value: "Caveat, cursive", name: "Caveat" },
+	{ value: '"Permanent Marker", cursive', name: "Permanent Marker" },
 ];
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 128];
@@ -86,8 +106,9 @@ export function AnnotationSettingsPanel({
 		modern: t("fontStyles.modern"),
 		clean: t("fontStyles.clean"),
 	};
+	const getFontLabel = (font: (typeof FONT_FAMILIES)[number]) =>
+		font.labelKey ? fontStyleLabels[font.labelKey] : font.name;
 
-	// Load custom fonts on mount
 	useEffect(() => {
 		setCustomFonts(getCustomFonts());
 	}, []);
@@ -117,7 +138,6 @@ export function AnnotationSettingsPanel({
 
 		const file = files[0];
 
-		// Validate file type
 		const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
 		if (!validTypes.includes(file.type)) {
 			toast.error(t("annotation.invalidImageType"), {
@@ -232,7 +252,7 @@ export function AnnotationSettingsPanel({
 													value={font.value}
 													style={{ fontFamily: font.value }}
 												>
-													{fontStyleLabels[font.labelKey]}
+													{getFontLabel(font)}
 												</SelectItem>
 											))}
 											{customFonts.length > 0 && (
@@ -284,6 +304,29 @@ export function AnnotationSettingsPanel({
 										onStyleChange({ fontFamily: font.fontFamily });
 									}}
 								/>
+							</div>
+
+							<div>
+								<label className="mb-2 block text-xs font-medium text-slate-200">
+									{t("annotation.textAnimation")}
+								</label>
+								<Select
+									value={normalizeTextAnimation(annotation.style.textAnimation)}
+									onValueChange={(value) =>
+										onStyleChange({ textAnimation: normalizeTextAnimation(value) })
+									}
+								>
+									<SelectTrigger className="h-9 w-full border-white/10 bg-white/5 text-xs text-slate-200">
+										<SelectValue placeholder={t("annotation.selectAnimation")} />
+									</SelectTrigger>
+									<SelectContent className="max-h-[240px] border-white/10 bg-[#1a1a1c] text-slate-200">
+										{TEXT_ANIMATION_OPTIONS.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{t(option.translationKey)}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 
 							{/* Formatting Toggles */}

@@ -2,6 +2,10 @@
 	"buttons": {
 		"addZoom": "Add Zoom (Z)",
 		"suggestZooms": "Suggest Zooms from Cursor",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "Add Trim (T)",
 		"addAnnotation": "Add Annotation (A)",
 		"addBlur": "Add Blur (B)",

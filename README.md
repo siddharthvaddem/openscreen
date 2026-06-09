@@ -1,52 +1,55 @@
 > [!WARNING]
-> This started as a side project that took off — it's not production grade and you'll hit bugs, but hopefully it covers what you need.
+> This started as a side project that blew up; not production grade and you'll hit bugs, but hopefully it covers what you need. **This project will soon be archived.**
+
 
 <p align="center">
   <img src="public/openscreen.png" alt="OpenScreen Logo" width="64" />
   <br />
   <br />
-	<a href="https://trendshift.io/repositories/17427" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17427" alt="siddharthvaddem%2Fopenscreen | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-	<br />
-	<br />
-  <a href="https://deepwiki.com/siddharthvaddem/openscreen">
-    <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" />
-  </a>
-  &nbsp;
-  <a href="https://discord.gg/yAQQhRaEeg">
-    <img src="https://dcbadge.limes.pink/api/server/https://discord.gg/yAQQhRaEeg?style=flat" alt="Join Discord" />
+	<a href="https://trendshift.io/repositories/17427" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17427" alt="siddharthvaddem%2Fopenscreen | Trendshift" style="width: 256px; height: 64px;" width="256" height="64"/></a>
+
+
   </a>
 </p>
 
 # <p align="center">OpenScreen</p>
 
-<p align="center"><strong>OpenScreen is your free, open-source alternative to Screen Studio (sort of).</strong></p>
+<p align="center"><strong>OpenScreen is your free, open-source alternative to Screen Studio.</strong></p>
 
-If you don't want to pay $29/month for Screen Studio but want a much simpler version that does what most people seem to need - quick, polished product demos and walkthroughs you'd post on X, Reddit. OpenScreen does not offer all Screen Studio features, but covers the basics well!
+If you don't want to pay $29/month for Screen Studio but want a version that does what most people seem to need - quick, polished product demos and walkthroughs you'd post on X, Reddit or Youtube. OpenScreen does not offer every Screen Studio feature, but covers a lot of the core functionality.
 
-Screen Studio is an awesome product and this is definitely not a 1:1 clone. OpenScreen is a much simpler take, just the basics for folks who want control and don't want to pay. If you need all the fancy features, your best bet is to support Screen Studio (they really do a great job, haha). But if you just want something free (no gotchas) and open, this project does the job!
+Screen Studio is an awesome product and this is definitely not a 1:1 clone. If you just want something fully free and open source, this project should cover most of your needs.
 
-**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it — just be cool 😁 and shout out the project if you feel like it.
+**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License.
+
+> [!NOTE]
+>Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
 
 <p align="center">
-	<img src="public/preview3.png" alt="OpenScreen App Preview 3" style="height: 0.2467; margin-right: 12px;" />
-	<img src="public/preview4.png" alt="OpenScreen App Preview 4" style="height: 0.1678; margin-right: 12px;" />
+	<img src="public/demo.png" alt="" style="height: 0.2467; margin-right: 12px;" />
+  <img src="public/sample.png" alt="" style="height: 0.2467; margin-right: 12px;" />
 </p>
 
 ## Core Features
-- Record a specific window, region, or your whole screen.
+- Record a specific window, or your whole screen.
 - Record microphone and system audio.
-- Webcam overlay with picture-in-picture, drag-to-position, and shape options.
-- Auto or manual zooms with adjustable depth, duration, easing, and pixel-precise position.
-- Wallpapers, solid colors, gradients, or a custom background.
-- Motion blur for smoother pan and zoom transitions.
+- Webcam overlay with picture-in-picture, drag-to-position, mirroring, and shape options.
+- Auto or manual zooms with adjustable depth, duration, easing, and pixel-precise position; auto-zoom follows your cursor as you work.
+- Custom cursor size, smoothing, and click effects, with cursor themes and post-recording path smoothing.
+- Automatic captions for voiceovers, generated on-device with no upload (works offline).
+- Wallpapers, solid colors, gradients, or your own background image.
+- Motion blur.
 - Crop, trim, and per-segment speed control on the timeline.
 - Blur effects to hide sensitive parts of the screen.
 - Cursor and click highlighting.
-- Text, arrow, and image annotations.
+- Text, arrow, and image annotations, with text animation presets.
 - Offline auto-captions on macOS release builds, generated locally with bundled whisper.cpp helpers and the default `ggml-small` model.
 - Save and reopen projects without re-recording.
+- Timeline snapping guides and an audio waveform to make trimming easier.
+- Customizable keyboard shortcuts.
 - Export to MP4 or GIF in multiple aspect ratios and resolutions.
-- Translated into Arabic, English, Spanish, French, Japanese, Korean, Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese.
+- Languages supported: Arabic, English, Spanish, French, Italian, Japanese, Korean, Portuguese (Brazil), Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese.
+
 
 ## Installation
 
@@ -76,6 +79,9 @@ xattr -rd com.apple.quarantine /Applications/Openscreen.app
 Note: Give your terminal Full Disk Access in **System Settings > Privacy & Security** to grant you access and then run the above command.
 
 After running this command, proceed to **System Preferences > Security & Privacy** to grant the necessary permissions for "screen recording" and "accessibility". Once permissions are granted, you can launch the app.
+
+> [!NOTE]
+> **Upgrading from an older version and hitting permission issues?** If you already had OpenScreen installed and the new version won't record (Screen Recording or Accessibility keep failing even after you grant them), uninstall the old version, remove OpenScreen's existing entries under **System Settings > Privacy & Security** (both Screen Recording and Accessibility), then do a fresh install and grant the permissions again when prompted.
 
 ### Windows
 
@@ -147,46 +153,21 @@ You may need to grant screen recording permissions depending on your desktop env
 ./Openscreen-Linux-*.AppImage --no-sandbox
 ```
 
-### Limitations
+### Platform differences
 
-System audio capture relies on Electron's [desktopCapturer](https://www.electronjs.org/docs/latest/api/desktop-capturer) and has some platform-specific quirks:
+Everything in the editor and export is the same on macOS, Windows, and Linux: zooms, backgrounds, motion blur, crop/trim/speed, blur regions, annotations, auto-captions, projects, export, and all languages. The differences are in **capture**, where macOS and Windows use a native pipeline that Linux doesn't have:
 
-- **macOS**: Requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below does not support system audio (mic still works).
-- **Windows**: Works out of the box.
-- **Linux**: Needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not support system audio (mic should still work).
+- **Native recording**: macOS (ScreenCaptureKit) and Windows (Windows Graphics Capture) record through a native pipeline for higher quality and clean window-level capture. Linux records through the browser pipeline instead.
+- **Custom cursors**: on macOS and Windows the real cursor is captured (shape, type, and clicks), which powers the cursor themes, click effects, and editable cursor overlay. On Linux only the cursor position is captured (used for auto-zoom), so those cursor options aren't available.
+- **Webcam**: captured natively on macOS and Windows; on Linux it's recorded through the browser, but still works as a picture-in-picture overlay.
+- **System audio** support varies by OS:
+  - **macOS**: requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below can't capture system audio (mic still works).
+  - **Windows**: works out of the box.
+  - **Linux**: needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not capture system audio (mic should still work).
 
 Offline auto-captions currently depend on packaged caption runtime assets. macOS release builds include the local whisper.cpp CLI, ffmpeg, and `ggml-small` model; other platforms report captions as unavailable until their helper assets are packaged.
 
-## Built with
-- Electron
-- React
-- TypeScript
-- Vite
-- PixiJS
-- dnd-timeline
-
 ---
-
-
-## Documentation
-
-See the documentation here:
-[OpenScreen Docs](https://deepwiki.com/siddharthvaddem/openscreen)
-Refresh if outdated.
-
-## Contributing
-
-Contributions are welcome - please **include screenshots or a short video** for any UI change or new user-facing feature. If it touches what users see or do, show it. Skip only when it genuinely doesn't apply. PRs that don't follow this will be closed.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=siddharthvaddem%2Fopenscreen&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&legend=top-left" />
- </picture>
-</a>
 
 ## License
 

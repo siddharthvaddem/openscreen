@@ -1,9 +1,6 @@
 import type { CursorTelemetryPoint, ZoomFocus } from "../types";
 
-/**
- * Binary-search the sorted telemetry array and linearly interpolate
- * the cursor position at the given playback time.
- */
+/** Binary-search the sorted telemetry and lerp the cursor position at the given playback time. */
 export function interpolateCursorAt(
 	telemetry: CursorTelemetryPoint[],
 	timeMs: number,
@@ -44,7 +41,7 @@ export function interpolateCursorAt(
 
 /**
  * Exponential smoothing to reduce jitter from high-frequency cursor data.
- * Lower factor = smoother / more lag, higher = more responsive.
+ * Lower factor = smoother/more lag, higher = more responsive.
  */
 export function smoothCursorFocus(raw: ZoomFocus, prev: ZoomFocus, factor: number): ZoomFocus {
 	return {
@@ -53,10 +50,54 @@ export function smoothCursorFocus(raw: ZoomFocus, prev: ZoomFocus, factor: numbe
 	};
 }
 
+export interface FollowParams {
+	minFactor: number;
+	maxFactor: number;
+	rampDistance: number;
+	referenceMs: number;
+}
+
 /**
- * Compute an adaptive smoothing factor that scales with distance:
- * far from target → faster (maxFactor), close → slower (minFactor).
- * This replaces the hard deadzone with a natural deceleration curve.
+ * Advance the auto-follow focus from `prev` toward target `raw` over `dtMs` of content time. The
+ * distance-adaptive factor is reframed against `referenceMs` so convergence is content-time based and
+ * matches between preview and export. Returns `prev` unchanged when paused so the camera holds still.
+ */
+export function advanceFollowFocus(
+	prev: ZoomFocus,
+	raw: ZoomFocus,
+	dtMs: number,
+	params: FollowParams,
+): ZoomFocus {
+	if (!(dtMs > 0)) return prev;
+	const base = adaptiveSmoothFactor(
+		raw,
+		prev,
+		params.minFactor,
+		params.maxFactor,
+		params.rampDistance,
+	);
+	const factor = timeCorrectedFollowFactor(base, dtMs, params.referenceMs);
+	return smoothCursorFocus(raw, prev, factor);
+}
+
+/**
+ * Make a per-frame smoothing `baseFactor` frame-rate independent by reframing it in content time.
+ * The camera converges as `(1 - baseFactor)^(dtMs / referenceMs)` regardless of frame chunking, so
+ * preview (variable fps) and export (fixed fps) follow at the same speed. Larger `referenceMs` =
+ * floatier. Returns 0 when paused so the camera holds still.
+ */
+export function timeCorrectedFollowFactor(
+	baseFactor: number,
+	dtMs: number,
+	referenceMs: number,
+): number {
+	if (!(dtMs > 0) || !(referenceMs > 0)) return 0;
+	return 1 - (1 - baseFactor) ** (dtMs / referenceMs);
+}
+
+/**
+ * Adaptive smoothing factor that scales with distance: far from target = faster (maxFactor), close =
+ * slower (minFactor). Replaces a hard deadzone with a natural deceleration curve.
  */
 export function adaptiveSmoothFactor(
 	raw: ZoomFocus,

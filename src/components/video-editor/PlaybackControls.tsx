@@ -96,7 +96,8 @@ export default function PlaybackControls({
 				<Button
 					onClick={onToggleFullscreen}
 					size="icon"
-					className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent hover:bg-white/10 text-white hover:border-white/10 shrink-0 shadow-none ml-0.5"
+					variant="ghost"
+					className="w-7 h-7 rounded-full transition-all duration-200 border border-transparent bg-transparent hover:bg-white/10 text-white hover:text-white hover:border-white/10 shrink-0 shadow-none ml-0.5"
 					aria-label={isFullscreen ? t("playback.exitFullscreen") : t("playback.fullscreen")}
 				>
 					{isFullscreen ? (

@@ -30,14 +30,13 @@ export function ExportDialog({
 	const t = useScopedT("dialogs");
 	const [showSuccess, setShowSuccess] = useState(false);
 
-	// Reset showSuccess when a new export starts or dialog reopens
 	useEffect(() => {
 		if (isExporting) {
 			setShowSuccess(false);
 		}
 	}, [isExporting]);
 
-	// Reset showSuccess when dialog opens fresh
+	// Reset when the dialog opens fresh (not mid-export).
 	useEffect(() => {
 		if (isOpen && !isExporting && !progress) {
 			setShowSuccess(false);
@@ -59,13 +58,12 @@ export function ExportDialog({
 
 	const formatLabel = exportFormat === "gif" ? "GIF" : "Video";
 
-	// Determine if we're in the compiling phase (frames done but still exporting)
+	// Compiling phase: frames are done but the export is still finishing.
 	const isCompiling =
 		isExporting && progress && progress.percentage >= 100 && exportFormat === "gif";
 	const isFinalizing = progress?.phase === "finalizing";
 	const renderProgress = progress?.renderProgress;
 
-	// Get status message based on phase
 	const getStatusMessage = () => {
 		if (error) return t("export.tryAgain");
 		if (isCompiling || isFinalizing) {
@@ -80,7 +78,6 @@ export function ExportDialog({
 		return t("export.takeMoment");
 	};
 
-	// Get title based on phase
 	const getTitle = () => {
 		if (error) return t("export.failed");
 		if (isFinalizing && exportFormat === "mp4") return t("export.finalizingVideoTitle");
@@ -194,7 +191,7 @@ export function ExportDialog({
 							</div>
 							<div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
 								{isCompiling || isFinalizing ? (
-									// Show render progress if available, otherwise animated indeterminate bar
+									// Real progress if we have it, otherwise an indeterminate bar.
 									renderProgress !== undefined && renderProgress > 0 ? (
 										<div
 											className="h-full bg-[#34B27B] shadow-[0_0_10px_rgba(52,178,123,0.3)] transition-all duration-300 ease-out"

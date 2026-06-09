@@ -91,7 +91,7 @@ describe("useCameraDevices", () => {
 			expect(result.current.selectedDeviceId).toBe("cam1");
 		});
 
-		// Simulate cam1 being unplugged — only cam2 remains
+		// Simulate cam1 being unplugged, only cam2 remains
 		const cam2Only = [
 			{ kind: "videoinput", deviceId: "cam2", label: "Camera 2", groupId: "group1" },
 		];

@@ -7,7 +7,10 @@
 		"pauseRecording": "Приостановить запись",
 		"resumeRecording": "Возобновить запись",
 		"openVideoFile": "Открыть видеофайл",
-		"openProject": "Открыть проект"
+		"openProject": "Открыть проект",
+		"useVerticalTray": "Использовать вертикальную панель",
+		"useHorizontalTray": "Использовать горизонтальную панель",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "Включить системное аудио",
@@ -24,10 +27,17 @@
 		"noneFound": "Камера не найдена",
 		"unavailable": "Камера недоступна"
 	},
+	"cursor": {
+		"useEditableCursor": "Использовать редактируемый курсор",
+		"useSystemCursor": "Использовать системный курсор"
+	},
 	"sourceSelector": {
 		"loading": "Загрузка источников...",
 		"screens": "Экраны ({{count}})",
 		"windows": "Окна ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "Экран"
 	},
 	"recording": {
@@ -39,9 +49,5 @@
 		"description": "Мы обнаружили {{language}} как системный язык. Хотите переключить OpenScreen на {{language}}?",
 		"switch": "Переключить на {{language}}",
 		"keepDefault": "Оставить текущий язык"
-	},
-	"cursor": {
-		"useEditableCursor": "Использовать редактируемый курсор",
-		"useSystemCursor": "Использовать системный курсор"
 	}
 }

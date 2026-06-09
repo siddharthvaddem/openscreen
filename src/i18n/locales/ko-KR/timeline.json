@@ -2,17 +2,21 @@
 	"buttons": {
 		"addZoom": "줌 추가 (Z)",
 		"suggestZooms": "커서 기반 줌 제안",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "트림 추가 (T)",
 		"addAnnotation": "주석 추가 (A)",
-		"addSpeed": "속도 추가 (S)",
-		"addBlur": "블러 추가 (B)"
+		"addBlur": "블러 추가 (B)",
+		"addSpeed": "속도 추가 (S)"
 	},
 	"hints": {
 		"pressZoom": "Z를 눌러 줌 추가",
 		"pressTrim": "T를 눌러 트림 추가",
 		"pressAnnotation": "A를 눌러 주석 추가",
-		"pressSpeed": "S를 눌러 속도 추가",
-		"pressBlur": "B 키를 눌러 블러 영역을 추가하세요"
+		"pressBlur": "B 키를 눌러 블러 영역을 추가하세요",
+		"pressSpeed": "S를 눌러 속도 추가"
 	},
 	"labels": {
 		"pan": "이동",
@@ -23,9 +27,9 @@
 		"trimItem": "트림 {{index}}",
 		"speedItem": "속도 {{index}}",
 		"annotationItem": "주석",
+		"blurItem": "블러 {{index}}",
 		"imageItem": "이미지",
-		"emptyText": "빈 텍스트",
-		"blurItem": "블러 {{index}}"
+		"emptyText": "빈 텍스트"
 	},
 	"emptyState": {
 		"noVideo": "불러온 비디오 없음",

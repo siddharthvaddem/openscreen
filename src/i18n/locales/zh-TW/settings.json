@@ -2,15 +2,16 @@
 	"zoom": {
 		"previewHold": "按住預覽放大效果",
 		"level": "縮放級別",
+		"customScale": "自訂縮放",
 		"selectRegion": "選擇要調整的縮放區域",
 		"deleteZoom": "刪除縮放",
 		"focusMode": {
 			"title": "對焦模式",
 			"manual": "手動",
 			"auto": "自動",
-			"autoDescription": "攝影機跟隨錄製時的游標位置"
+			"autoDescription": "攝影機跟隨錄製時的游標位置",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
-		"speed": {},
 		"threeD": {
 			"title": "3D 旋轉",
 			"preset": {
@@ -19,7 +20,6 @@
 				"right": "右"
 			}
 		},
-		"customScale": "自訂縮放",
 		"position": {
 			"title": "焦點位置",
 			"x": "X (%)",
@@ -44,19 +44,22 @@
 		"pictureInPicture": "子母畫面",
 		"verticalStack": "垂直堆疊",
 		"dualFrame": "雙畫框",
+		"noWebcam": "無網路攝影機",
 		"webcamShape": "攝影機形狀",
 		"webcamSize": "攝影機大小",
-		"noWebcam": "無網路攝影機"
+		"mirrorWebcam": "鏡像攝影機",
+		"reactiveWebcam": "縮放時縮小",
+		"reactiveWebcamDescription": "放大影片時鏡頭會平滑縮小，以免遮擋內容。"
 	},
 	"effects": {
 		"title": "影片效果",
 		"blurBg": "模糊背景",
 		"motionBlur": "動態模糊",
 		"off": "關",
+		"on": "開",
 		"shadow": "陰影",
 		"roundness": "圓角",
-		"padding": "內邊距",
-		"on": "開"
+		"padding": "內邊距"
 	},
 	"background": {
 		"title": "背景",
@@ -99,7 +102,8 @@
 	},
 	"project": {
 		"save": "儲存專案",
-		"load": "載入專案"
+		"load": "載入專案",
+		"new": "新增專案"
 	},
 	"export": {
 		"videoButton": "匯出影片",
@@ -145,8 +149,15 @@
 		"arrowDirection": "箭頭方向",
 		"strokeWidth": "描邊寬度：{{width}}px",
 		"arrowColor": "箭頭顏色",
+		"blurType": "模糊類型",
+		"blurTypeBlur": "模糊",
+		"blurTypeMosaic": "馬賽克模糊",
+		"blurColor": "模糊顏色",
+		"blurColorWhite": "白色",
+		"blurColorBlack": "黑色",
 		"blurShape": "模糊形狀",
 		"blurIntensity": "模糊強度",
+		"mosaicBlockSize": "馬賽克區塊大小",
 		"blurShapeRectangle": "矩形",
 		"blurShapeOval": "橢圓",
 		"blurShapeFreehand": "自由手繪",
@@ -158,14 +169,7 @@
 		"invalidImageType": "無效的檔案類型",
 		"imageFormatsOnly": "請上傳 JPG、PNG、GIF 或 WebP 格式的圖片檔案。",
 		"imageUploadSuccess": "圖片上傳成功！",
-		"failedImageUpload": "上傳圖片失敗",
-		"blurColor": "模糊顏色",
-		"blurColorBlack": "黑色",
-		"blurColorWhite": "白色",
-		"blurType": "模糊類型",
-		"blurTypeBlur": "模糊",
-		"blurTypeMosaic": "馬賽克模糊",
-		"mosaicBlockSize": "馬賽克區塊大小"
+		"failedImageUpload": "上傳圖片失敗"
 	},
 	"fontStyles": {
 		"classic": "經典",
@@ -176,6 +180,17 @@
 		"simple": "簡約",
 		"modern": "現代",
 		"clean": "簡潔"
+	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
 	},
 	"customFont": {
 		"dialogTitle": "新增 Google 字體",
@@ -197,14 +212,21 @@
 		"errorLoadFailed": "無法載入該字體。請確認 Google Fonts URL 是否正確。"
 	},
 	"cursor": {
+		"theme": "游標樣式",
+		"themeDefault": "預設",
 		"show": "顯示游標",
 		"size": "大小",
 		"smoothing": "平滑",
 		"motionBlur": "動態模糊",
 		"clickBounce": "點擊彈跳",
-		"clipToBounds": "裁切至畫布"
+		"clipToBounds": "裁切至畫布",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "語言"
+	},
+	"timeline": {
+		"title": "時間軸",
+		"waveform": "在剪輯軌道上顯示音訊波形"
 	}
 }

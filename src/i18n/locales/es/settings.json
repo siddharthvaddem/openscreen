@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "Mantener para previsualizar el efecto de zoom",
 		"level": "Nivel de zoom",
+		"customScale": "Zoom personalizado",
 		"selectRegion": "Selecciona una región de zoom para ajustar",
 		"deleteZoom": "Eliminar zoom",
 		"focusMode": {
 			"title": "Modo de enfoque",
 			"manual": "Manual",
 			"auto": "Auto",
-			"autoDescription": "La cámara sigue la posición del cursor grabado"
+			"autoDescription": "La cámara sigue la posición del cursor grabado",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Rotación 3D",
@@ -18,7 +20,6 @@
 				"right": "Derecha"
 			}
 		},
-		"customScale": "Zoom personalizado",
 		"position": {
 			"title": "Posición de enfoque",
 			"x": "X (%)",
@@ -43,19 +44,22 @@
 		"pictureInPicture": "Imagen en imagen",
 		"verticalStack": "Apilado vertical",
 		"dualFrame": "Marco dual",
+		"noWebcam": "Sin cámara",
 		"webcamShape": "Forma de cámara",
 		"webcamSize": "Tamaño de cámara",
-		"noWebcam": "Sin cámara"
+		"mirrorWebcam": "Reflejar cámara",
+		"reactiveWebcam": "Reducir al ampliar",
+		"reactiveWebcamDescription": "La cámara se reduce suavemente mientras el vídeo está ampliado, para no estorbar."
 	},
 	"effects": {
 		"title": "Efectos de video",
 		"blurBg": "Desenfocar fondo",
 		"motionBlur": "Desenfoque de movimiento",
 		"off": "desactivado",
+		"on": "activado",
 		"shadow": "Sombra",
 		"roundness": "Redondez",
-		"padding": "Relleno",
-		"on": "activado"
+		"padding": "Relleno"
 	},
 	"background": {
 		"title": "Fondo",
@@ -98,7 +102,8 @@
 	},
 	"project": {
 		"save": "Guardar proyecto",
-		"load": "Cargar proyecto"
+		"load": "Cargar proyecto",
+		"new": "Nuevo proyecto"
 	},
 	"export": {
 		"videoButton": "Exportar video",
@@ -176,6 +181,17 @@
 		"modern": "Moderno",
 		"clean": "Limpio"
 	},
+	"textAnimation": {
+		"title": "Animación de texto",
+		"selectAnimation": "Seleccionar animación",
+		"none": "Ninguna",
+		"fade": "Desvanecimiento",
+		"rise": "Ascender",
+		"pop": "Aparecer",
+		"slideLeft": "Deslizar izquierda",
+		"typewriter": "Máquina de escribir",
+		"pulse": "Pulso"
+	},
 	"customFont": {
 		"dialogTitle": "Agregar fuente de Google",
 		"urlLabel": "URL de importación de Google Fonts",
@@ -196,14 +212,21 @@
 		"errorLoadFailed": "No se pudo cargar la fuente. Por favor verifica que la URL de Google Fonts sea correcta."
 	},
 	"cursor": {
+		"theme": "Estilo del cursor",
+		"themeDefault": "Predeterminado",
 		"show": "Mostrar cursor",
 		"size": "Tamaño",
 		"smoothing": "Suavizado",
 		"motionBlur": "Desenfoque de movimiento",
 		"clickBounce": "Rebote al clic",
-		"clipToBounds": "Recortar al lienzo"
+		"clipToBounds": "Recortar al lienzo",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Idioma"
+	},
+	"timeline": {
+		"title": "Línea de tiempo",
+		"waveform": "Mostrar forma de onda en pista de recorte"
 	}
 }

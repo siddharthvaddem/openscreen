@@ -210,9 +210,8 @@ export class AudioProcessor {
 	}
 
 	/**
-	 * Audio export has two modes:
-	 * 1) no speed regions -> fast WebCodecs trim-only pipeline
-	 * 2) speed regions present -> pitch-preserving rendered timeline pipeline
+	 * Two modes: no speed regions uses the fast WebCodecs trim-only pipeline; speed
+	 * regions use the pitch-preserving rendered timeline pipeline.
 	 */
 	async process(
 		demuxer: WebDemuxer,
@@ -230,7 +229,7 @@ export class AudioProcessor {
 					.sort((a, b) => a.startMs - b.startMs)
 			: [];
 
-		// Speed edits must use timeline playback to preserve pitch
+		// Speed edits need timeline playback to preserve pitch.
 		if (sortedSpeedRegions.length > 0) {
 			const renderedAudioBlob = await this.renderPitchPreservedTimelineAudio(
 				videoUrl,
@@ -245,14 +244,14 @@ export class AudioProcessor {
 			return;
 		}
 
-		// No speed edits: keep the original demux/decode/encode path with trim timestamp remap.
-		// The +0.5s buffer mirrors streamingDecoder.decodeAll's read window so the trim-only
-		// and speed-aware paths agree on how far to read past the validated duration boundary.
+		// No speed edits: demux/decode/encode with trim timestamp remap. The +0.5s mirrors
+		// streamingDecoder.decodeAll's read window so both paths read the same distance past
+		// the validated duration boundary.
 		const readEndSec = validatedDurationSec + 0.5;
 		await this.processTrimOnlyAudio(demuxer, muxer, sortedTrims, readEndSec, exportCodec);
 	}
 
-	// Legacy trim-only path. This is still used for projects without speed regions.
+	// Trim-only path, used for projects without speed regions.
 	private async processTrimOnlyAudio(
 		demuxer: WebDemuxer,
 		muxer: VideoMuxer,
@@ -274,7 +273,7 @@ export class AudioProcessor {
 			return;
 		}
 
-		// Phase 1: Decode audio from source, skipping trimmed regions
+		// Phase 1: decode, skipping trimmed regions.
 		const decodedFrames: AudioData[] = [];
 
 		const decoder = new AudioDecoder({
@@ -325,7 +324,7 @@ export class AudioProcessor {
 			return;
 		}
 
-		// Phase 2: Re-encode with timestamps adjusted for trim gaps
+		// Phase 2: re-encode with timestamps adjusted for trim gaps.
 		const encodedChunks: { chunk: EncodedAudioChunk; meta?: EncodedAudioChunkMetadata }[] = [];
 
 		const encoder = new AudioEncoder({
@@ -391,7 +390,7 @@ export class AudioProcessor {
 			encoder.close();
 		}
 
-		// Phase 3: Flush encoded chunks to muxer
+		// Phase 3: flush encoded chunks to muxer.
 		for (const { chunk, meta } of encodedChunks) {
 			if (this.cancelled) break;
 			await muxer.addAudioChunk(chunk, meta);
@@ -402,8 +401,8 @@ export class AudioProcessor {
 		);
 	}
 
-	// Speed-aware path that mirrors preview semantics (trim skipping + playbackRate regions)
-	// preserve pitch through browser media playback behavior to avoid chipmunk effect.
+	// Speed-aware path mirroring preview semantics (trim skipping + playbackRate). Relies on
+	// browser media playback to preserve pitch and avoid the chipmunk effect.
 	private async renderPitchPreservedTimelineAudio(
 		videoUrl: string,
 		trimRegions: TrimRegion[],
@@ -442,9 +441,8 @@ export class AudioProcessor {
 				await audioContext.resume();
 			}
 
-			// Skip past any initial trim region(s) before recording starts to avoid
-			// capturing trimmed audio during the first rAF frames of playback.
-			// Loops to handle back-to-back or overlapping trims at t=0.
+			// Skip initial trim region(s) before recording so the first rAF frames don't
+			// capture trimmed audio. Loops to handle back-to-back/overlapping trims at t=0.
 			const effectiveEnd = validatedDurationSec;
 			let startPosition = 0;
 			for (let i = 0; i <= trimRegions.length; i++) {
@@ -455,19 +453,19 @@ export class AudioProcessor {
 			}
 
 			if (startPosition >= effectiveEnd) {
-				// All content is trimmed — return silent blob
+				// Everything is trimmed; return a silent blob.
 				return new Blob([], { type: "audio/webm" });
 			}
 
 			await this.seekTo(media, startPosition);
 
-			// Set initial playback rate for the starting position
+			// Set initial playback rate for the starting position.
 			const initialSpeedRegion = this.findActiveSpeedRegion(startPosition * 1000, speedRegions);
 			if (initialSpeedRegion) {
 				media.playbackRate = initialSpeedRegion.speed;
 			}
 
-			// Start recording only AFTER seeking past trims
+			// Start recording only after seeking past trims.
 			const recording = this.startAudioRecording(destinationNode.stream);
 			recorder = recording.recorder;
 			recordedBlobPromise = recording.recordedBlobPromise;
@@ -500,8 +498,8 @@ export class AudioProcessor {
 						return;
 					}
 
-					// Stop playback at validated duration — browser's media.duration
-					// may be inflated from bad container metadata.
+					// Stop at validated duration; media.duration can be inflated by bad
+					// container metadata.
 					if (media.currentTime >= validatedDurationSec) {
 						media.pause();
 						cleanup();
@@ -520,8 +518,7 @@ export class AudioProcessor {
 							resolve();
 							return;
 						}
-						// Pause recording during trim seek to prevent capturing
-						// silence/noise as the audio element seeks.
+						// Pause recording during the seek so we don't capture silence/noise.
 						media.pause();
 						if (recorder?.state === "recording") recorder.pause();
 						const onSeeked = () => {
@@ -591,9 +588,8 @@ export class AudioProcessor {
 		}
 
 		if (!recordedBlobPromise) {
-			// Invariant: either an early return above fires, or startAudioRecording ran and
-			// populated recordedBlobPromise before the playback Promise resolved. Reaching
-			// here means that contract was broken — fail loud instead of returning silence.
+			// Either an early return fired or startAudioRecording set this before playback
+			// resolved. Reaching here means that broke; fail loud rather than return silence.
 			throw new Error("Audio recorder finished without assigning recordedBlobPromise");
 		}
 		const recordedBlob = await recordedBlobPromise;
@@ -603,7 +599,7 @@ export class AudioProcessor {
 		return recordedBlob;
 	}
 
-	// Demuxes the rendered speed-adjusted blob and feeds encoded chunks into the MP4 muxer.
+	// Demux the rendered speed-adjusted blob and feed its chunks into the MP4 muxer.
 	private async muxRenderedAudioBlob(
 		blob: Blob,
 		muxer: VideoMuxer,

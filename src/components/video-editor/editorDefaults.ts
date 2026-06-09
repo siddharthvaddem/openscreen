@@ -1,3 +1,4 @@
+import { DEFAULT_CURSOR_THEME_ID } from "@/lib/cursor/cursorThemes";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { DEFAULT_WALLPAPER } from "@/lib/wallpaper";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
@@ -34,11 +35,13 @@ export const DEFAULT_EDITOR_APPEARANCE_SETTINGS: {
 	showBlur: boolean;
 	motionBlurAmount: number;
 	borderRadius: number;
+	showTrimWaveform: boolean;
 } = {
 	shadowIntensity: 0,
 	showBlur: false,
 	motionBlurAmount: 0,
 	borderRadius: 0,
+	showTrimWaveform: true,
 };
 
 export const DEFAULT_EDITOR_LAYOUT_SETTINGS: {
@@ -65,13 +68,14 @@ export const DEFAULT_WEBCAM_SETTINGS = {
 	position: WebcamPosition | null;
 };
 
-export const DEFAULT_CURSOR_SETTINGS: CursorVisualSettings & { show: boolean } = {
+export const DEFAULT_CURSOR_SETTINGS: CursorVisualSettings & { show: boolean; theme: string } = {
 	show: true,
 	size: DEFAULT_CURSOR_SIZE,
 	smoothing: DEFAULT_CURSOR_SMOOTHING,
 	motionBlur: DEFAULT_CURSOR_MOTION_BLUR,
 	clickBounce: DEFAULT_CURSOR_CLICK_BOUNCE,
 	clipToBounds: DEFAULT_CURSOR_CLIP_TO_BOUNDS,
+	theme: DEFAULT_CURSOR_THEME_ID,
 };
 
 export const DEFAULT_EXPORT_SETTINGS: {

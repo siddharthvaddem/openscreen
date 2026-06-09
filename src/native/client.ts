@@ -84,15 +84,22 @@ export const nativeBridgeClient = {
 					existingProjectPath,
 				},
 			}),
-		loadProjectFile: () =>
+		loadProjectFile: (projectFolder?: string) =>
 			requireNativeBridgeData<ProjectFileResult>({
 				domain: "project",
 				action: "loadProjectFile",
+				payload: { projectFolder },
 			}),
 		loadCurrentProjectFile: () =>
 			requireNativeBridgeData<ProjectFileResult>({
 				domain: "project",
 				action: "loadCurrentProjectFile",
+			}),
+		loadProjectFileFromPath: (path: string) =>
+			requireNativeBridgeData<ProjectFileResult>({
+				domain: "project",
+				action: "loadProjectFileFromPath",
+				payload: { path },
 			}),
 		setCurrentVideoPath: (path: string) =>
 			requireNativeBridgeData<ProjectPathResult>({

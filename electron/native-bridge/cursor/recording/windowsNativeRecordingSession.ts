@@ -22,10 +22,14 @@ function getCursorSamplerCandidates(): string[] {
 		const p = join(app.getAppPath(), ...segs);
 		return app.isPackaged ? p.replace(/\.asar([/\\])/, ".asar.unpacked$1") : p;
 	};
+	const resolvePackaged = (...segs: string[]) => {
+		return app.isPackaged ? join(process.resourcesPath, ...segs) : null;
+	};
 	return [
 		envPath,
 		resolve("electron", "native", "wgc-capture", "build", "cursor-sampler.exe"),
 		resolve("electron", "native", "bin", archTag, "cursor-sampler.exe"),
+		resolvePackaged("electron", "native", "bin", archTag, "cursor-sampler.exe"),
 	].filter((c): c is string => Boolean(c));
 }
 

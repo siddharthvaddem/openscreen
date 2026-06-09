@@ -6,6 +6,7 @@
 		"confirm": "確認"
 	},
 	"loadingVideo": "動画を読み込み中...",
+	"loadingEditor": "エディターを読み込み中...",
 	"errors": {
 		"noVideoLoaded": "動画が読み込まれていません",
 		"videoNotReady": "動画の準備ができていません",
@@ -15,10 +16,10 @@
 		"failedToSaveVideo": "動画の保存に失敗しました",
 		"exportFailed": "エクスポートに失敗しました",
 		"exportFailedWithError": "エクスポートに失敗しました: {{error}}",
+		"exportBackgroundLoadFailed": "エクスポートに失敗しました: 背景画像を読み込めませんでした ({{url}})",
 		"failedToSaveExport": "エクスポートの保存に失敗しました",
 		"failedToSaveExportedVideo": "エクスポートした動画の保存に失敗しました",
-		"failedToRevealInFolder": "フォルダの表示に失敗しました: {{error}}",
-		"exportBackgroundLoadFailed": "エクスポートに失敗しました: 背景画像を読み込めませんでした ({{url}})"
+		"failedToRevealInFolder": "フォルダの表示に失敗しました: {{error}}"
 	},
 	"export": {
 		"canceled": "エクスポートがキャンセルされました",
@@ -38,9 +39,9 @@
 		"systemAudioUnavailable": "システム音声を利用できません。システム音声なしで録画します。",
 		"microphoneDenied": "マイクへのアクセスが拒否されました。音声なしで録画を続行します。",
 		"cameraDenied": "カメラのアクセスが拒否されました。ウェブカメラなしで録画を続行します。",
-		"permissionDenied": "録画の権限が拒否されました。画面録画を許可してください。",
 		"cameraDisconnected": "ウェブカメラが切断されました。",
 		"cameraNotFound": "カメラが見つかりません。",
+		"permissionDenied": "録画の権限が拒否されました。画面録画を許可してください。",
 		"accessibilityAllowAndRetry": "OpenScreenにアクセシビリティアクセスを許可してから、もう一度録画を押してカウントダウンを開始してください。"
 	},
 	"captions": {
@@ -49,5 +50,20 @@
 		"skippedNoAudio": "音声トラックが見つからないため、字幕生成をスキップしました。",
 		"unavailable": "ローカル字幕モデルを利用できません。",
 		"failed": "字幕の生成に失敗しました。"
+	},
+	"emptyState": {
+		"title": "プロジェクトが開かれていません",
+		"description": "動画をインポートして編集を開始するか、既存の OpenScreen プロジェクトを読み込んでください。",
+		"importVideoButton": "動画ファイルをインポート…",
+		"loadProjectButton": "プロジェクトを読み込む…",
+		"supportedFormats": "対応フォーマット：MP4、MOV、WebM、MKV、AVI、M4V、WMV",
+		"dragDropHint": ".openscreen プロジェクトファイルをここにドラッグ＆ドロップ",
+		"dropOverlay": "プロジェクトファイルをドロップして開く",
+		"dropErrors": {
+			"unsupportedFormatTitle": "非対応フォーマット",
+			"unsupportedFormatMessage": "ここにドロップできるのは .openscreen プロジェクトファイルのみです。動画をインポートするには「動画ファイルをインポート...」ボタンをご使用ください。",
+			"couldNotOpenTitle": "ファイルを開けませんでした",
+			"couldNotOpenMessage": "プロジェクトファイルを開けませんでした。参照している動画が移動または削除された可能性があります。"
+		}
 	}
 }

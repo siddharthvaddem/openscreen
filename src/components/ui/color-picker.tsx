@@ -46,8 +46,7 @@ export default function ColorPicker(props: ColorPickerProps) {
 		return "#ffffff";
 	};
 
-	// Normalize the hex input.
-	// Adds a # at the beginning of the input if it's not there.
+	// Prefix a # when the user typed a bare hex value.
 	const normalizeHexDraft = (raw: string) => {
 		const trimmed = raw.trim();
 		if (trimmed === "") return "";
@@ -58,8 +57,7 @@ export default function ColorPicker(props: ColorPickerProps) {
 	const handleColorInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const normalized = normalizeHexDraft(e.target.value);
 		setHexInput(normalized);
-		// Check if the normalized hex is a valid hex color.
-		// It should follow the format #RRGGBB or #RGB.
+		// Only push when it's a complete #RGB or #RRGGBB value.
 		const isValidHexColor =
 			/^#[0-9A-Fa-f]{3}$/.test(normalized) || /^#[0-9A-Fa-f]{6}$/.test(normalized);
 		if (isValidHexColor) {

@@ -18,14 +18,24 @@ const cursorHelperName = "openscreen-macos-cursor-helper";
 const packageDir = path.join(root, "electron", "native", "screencapturekit");
 const buildDir = path.join(packageDir, "build");
 const swiftBuildDir = path.join(buildDir, "swiftpm");
-const builtHelperPath = path.join(swiftBuildDir, "release", helperName);
 const localHelperPath = path.join(buildDir, helperName);
-const builtCursorHelperPath = path.join(swiftBuildDir, "release", cursorHelperName);
 const localCursorHelperPath = path.join(buildDir, cursorHelperName);
-const archTag = process.arch === "arm64" ? "darwin-arm64" : "darwin-x64";
-const distributableDir = path.join(root, "electron", "native", "bin", archTag);
-const distributablePath = path.join(distributableDir, helperName);
-const distributableCursorHelperPath = path.join(distributableDir, cursorHelperName);
+
+// Build a separate single-arch binary per requested arch and place each in its own
+// electron/native/bin/darwin-<arch> folder (the runtime resolves that folder by the running app's
+// arch). No universal/fat binary. Defaults to the host arch for local builds; CI sets
+// OPENSCREEN_MAC_HELPER_ARCHS per matrix entry (accepts arm64, x64, or x86_64).
+function normalizeArch(value) {
+	return value === "x64" || value === "x86_64"
+		? { swift: "x86_64", tag: "darwin-x64" }
+		: { swift: "arm64", tag: "darwin-arm64" };
+}
+const hostArch = process.arch === "arm64" ? "arm64" : "x86_64";
+const archs = (process.env.OPENSCREEN_MAC_HELPER_ARCHS ?? hostArch)
+	.split(",")
+	.map((a) => a.trim())
+	.filter(Boolean)
+	.map(normalizeArch);
 
 const xcodebuildVersion = spawnSync("xcodebuild", ["-version"], {
 	cwd: root,
@@ -50,42 +60,85 @@ if (xcodebuildVersion.status !== 0) {
 	process.exit(1);
 }
 
-const result = spawnSync(
-	"swift",
-	["build", "-c", "release", "--package-path", packageDir, "--build-path", swiftBuildDir],
-	{
-		cwd: root,
-		stdio: "inherit",
-	},
-);
+// SwiftPM writes a single-arch release build to <buildPath>/<swiftArch>-apple-macosx/release/<name>.
+// Fall back to a search that skips the identically-named file inside the .dSYM debug bundle (matching
+// that file and feeding it forward is what produced an unrunnable "exec format error" binary before).
+function findExecutable(dir, swiftArch, name) {
+	const expected = path.join(dir, `${swiftArch}-apple-macosx`, "release", name);
+	if (fs.existsSync(expected)) return expected;
 
-if (result.error) {
-	console.error(`Failed to start Swift build: ${result.error.message}`);
-	process.exit(1);
-}
-
-if (result.status !== 0) {
-	process.exit(result.status ?? 1);
+	const stack = [dir];
+	const matches = [];
+	while (stack.length > 0) {
+		const current = stack.pop();
+		let entries;
+		try {
+			entries = fs.readdirSync(current, { withFileTypes: true });
+		} catch {
+			continue;
+		}
+		for (const entry of entries) {
+			if (entry.name.endsWith(".dSYM")) continue;
+			const full = path.join(current, entry.name);
+			if (entry.isDirectory()) stack.push(full);
+			else if (entry.isFile() && entry.name === name && /[/\\]release[/\\]/i.test(full)) {
+				matches.push(full);
+			}
+		}
+	}
+	return matches[0] ?? null;
 }
 
 fs.mkdirSync(buildDir, { recursive: true });
-fs.mkdirSync(distributableDir, { recursive: true });
-for (const artifactPath of [builtHelperPath, builtCursorHelperPath]) {
-	if (!fs.existsSync(artifactPath)) {
-		console.error(`Swift build completed but expected artifact was not found: ${artifactPath}`);
+
+for (const { swift, tag } of archs) {
+	const archBuildDir = path.join(swiftBuildDir, swift);
+	const result = spawnSync(
+		"swift",
+		[
+			"build",
+			"-c",
+			"release",
+			"--arch",
+			swift,
+			"--package-path",
+			packageDir,
+			"--build-path",
+			archBuildDir,
+		],
+		{
+			cwd: root,
+			stdio: "inherit",
+		},
+	);
+	if (result.error) {
+		console.error(`Failed to start Swift build (${swift}): ${result.error.message}`);
 		process.exit(1);
 	}
-}
-fs.copyFileSync(builtHelperPath, localHelperPath);
-fs.copyFileSync(builtHelperPath, distributablePath);
-fs.copyFileSync(builtCursorHelperPath, localCursorHelperPath);
-fs.copyFileSync(builtCursorHelperPath, distributableCursorHelperPath);
-fs.chmodSync(localHelperPath, 0o755);
-fs.chmodSync(distributablePath, 0o755);
-fs.chmodSync(localCursorHelperPath, 0o755);
-fs.chmodSync(distributableCursorHelperPath, 0o755);
+	if (result.status !== 0) {
+		process.exit(result.status ?? 1);
+	}
 
-console.log(`Built macOS ScreenCaptureKit helper: ${localHelperPath}`);
-console.log(`Copied redistributable helper: ${distributablePath}`);
-console.log(`Built macOS cursor helper: ${localCursorHelperPath}`);
-console.log(`Copied redistributable cursor helper: ${distributableCursorHelperPath}`);
+	const targetDir = path.join(root, "electron", "native", "bin", tag);
+	fs.mkdirSync(targetDir, { recursive: true });
+
+	for (const [name, localPath] of [
+		[helperName, localHelperPath],
+		[cursorHelperName, localCursorHelperPath],
+	]) {
+		const exe = findExecutable(archBuildDir, swift, name);
+		if (!exe) {
+			console.error(`Swift build (${swift}) completed but executable was not found: ${name}`);
+			process.exit(1);
+		}
+		// Always place it in the arch's bin folder; mirror the host-arch build into the dev build
+		// dir so `npm run dev` (candidate path #2) can spawn it.
+		const dests = [path.join(targetDir, name)];
+		if (swift === hostArch) dests.push(localPath);
+		for (const dest of dests) {
+			fs.copyFileSync(exe, dest);
+			fs.chmodSync(dest, 0o755);
+		}
+	}
+	console.log(`Built ${tag} helpers (${swift})`);
+}

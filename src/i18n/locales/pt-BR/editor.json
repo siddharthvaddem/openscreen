@@ -1,0 +1,69 @@
+{
+	"newRecording": {
+		"title": "Voltar ao Gravador",
+		"description": "Sua sessão atual foi salva.",
+		"cancel": "Cancelar",
+		"confirm": "Confirmar"
+	},
+	"loadingVideo": "Carregando vídeo...",
+	"loadingEditor": "Loading editor...",
+	"errors": {
+		"noVideoLoaded": "Nenhum vídeo carregado",
+		"videoNotReady": "Vídeo não está pronto",
+		"unableToDetermineSourcePath": "Não foi possível determinar o caminho do vídeo de origem",
+		"failedToSaveGif": "Falha ao salvar GIF",
+		"gifExportFailed": "Falha na exportação do GIF",
+		"failedToSaveVideo": "Falha ao salvar vídeo",
+		"exportFailed": "Falha na exportação",
+		"exportFailedWithError": "Falha na exportação: {{error}}",
+		"exportBackgroundLoadFailed": "Falha na exportação: não foi possível carregar a imagem de fundo ({{url}})",
+		"failedToSaveExport": "Falha ao salvar exportação",
+		"failedToSaveExportedVideo": "Falha ao salvar vídeo exportado",
+		"failedToRevealInFolder": "Erro ao mostrar na pasta: {{error}}"
+	},
+	"export": {
+		"canceled": "Exportação cancelada",
+		"exportedSuccessfully": "{{format}} exportado com sucesso"
+	},
+	"project": {
+		"saveCanceled": "Salvamento do projeto cancelado",
+		"failedToSave": "Falha ao salvar o projeto",
+		"savedTo": "Projeto salvo em {{path}}",
+		"failedToLoad": "Falha ao carregar o projeto",
+		"invalidFormat": "Formato de arquivo de projeto inválido",
+		"loadedFrom": "Projeto carregado de {{path}}"
+	},
+	"recording": {
+		"failedCameraAccess": "Falha ao solicitar acesso à câmera.",
+		"cameraBlocked": "O acesso à câmera está bloqueado. Ative-o nas configurações do sistema para usar a webcam.",
+		"systemAudioUnavailable": "Áudio do sistema não disponível. Gravando sem áudio do sistema.",
+		"microphoneDenied": "Acesso ao microfone negado. A gravação continuará sem áudio.",
+		"cameraDenied": "Acesso à câmera negado. A gravação continuará sem webcam.",
+		"cameraDisconnected": "Webcam desconectada.",
+		"cameraNotFound": "Câmera não encontrada.",
+		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela.",
+		"accessibilityAllowAndRetry": "Allow Accessibility access for OpenScreen, then press record again to start the countdown."
+	},
+	"captions": {
+		"generating": "Generating captions...",
+		"generated": "Generated {{count}} captions.",
+		"skippedNoAudio": "No audio track found; captions skipped.",
+		"unavailable": "Local caption model is not available.",
+		"failed": "Failed to generate captions."
+	},
+	"emptyState": {
+		"title": "No project open",
+		"description": "Import a video to start editing, or load an existing OpenScreen project.",
+		"importVideoButton": "Import Video File…",
+		"loadProjectButton": "Load Project…",
+		"supportedFormats": "Supported formats: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "or drag & drop a .openscreen project file here",
+		"dropOverlay": "Drop project file to open",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Unsupported Format",
+			"unsupportedFormatMessage": "Only .openscreen project files can be dropped here. To import a video file, use the \"Import Video File…\" button on this screen.",
+			"couldNotOpenTitle": "Could Not Open File",
+			"couldNotOpenMessage": "The project file could not be opened. The video it references may have been moved or deleted."
+		}
+	}
+}

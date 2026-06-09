@@ -1,4 +1,5 @@
 import { type AnnotationRegion, type ArrowDirection } from "@/components/video-editor/types";
+import { getTextAnimationState } from "@/lib/annotationTextAnimation";
 import {
 	applyMosaicToImageData,
 	getBlurOverlayColor,
@@ -10,18 +11,35 @@ import {
 let blurScratchCanvas: HTMLCanvasElement | null = null;
 let blurScratchCtx: CanvasRenderingContext2D | null = null;
 
-// Matches a single code point whose script is Han (including non-BMP
-// Extension A-F), Hiragana, Katakana (including halfwidth forms), or
-// Hangul. Used to split CJK text at character boundaries during wrap,
-// since CJK scripts have no word-separating whitespace. Unicode script
-// property escapes require ES2018+; tsconfig target is ES2020.
+// Han/Hiragana/Katakana/Hangul code points, to split CJK text at character
+// boundaries during wrap (CJK has no word-separating whitespace). Script
+// escapes need ES2018+; tsconfig targets ES2020.
 const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
+type GraphemeSegmenter = {
+	segment(value: string): Iterable<{ segment: string }>;
+};
+
+type IntlWithSegmenter = typeof Intl & {
+	Segmenter?: new (
+		locales?: string | string[],
+		options?: { granularity?: "grapheme" },
+	) => GraphemeSegmenter;
+};
+
+const Segmenter = (Intl as IntlWithSegmenter).Segmenter;
+const graphemeSegmenter =
+	typeof Segmenter === "function" ? new Segmenter(undefined, { granularity: "grapheme" }) : null;
+
+function splitGraphemes(value: string): string[] {
+	if (!graphemeSegmenter) return Array.from(value);
+	return Array.from(graphemeSegmenter.segment(value), ({ segment }) => segment);
+}
+
 function tokenizeForWrap(line: string): string[] {
-	// Split Latin text on whitespace (preserving the whitespace as its own token,
-	// matching the original behavior), and split CJK runs into individual
-	// characters so each one becomes a breakable unit. This mirrors the editor's
-	// CSS `word-break: break-word` handling for CJK content.
+	// Split Latin on whitespace (kept as its own token) and split CJK runs into
+	// individual chars so each is breakable, mirroring the editor's CSS
+	// word-break: break-word for CJK.
 	const tokens: string[] = [];
 	let buffer = "";
 	const chars = Array.from(line);
@@ -105,10 +123,8 @@ function renderArrow(
 	const offsetX = padding + (availableWidth - 100 * scale) / 2;
 	const offsetY = padding + (availableHeight - 100 * scale) / 2;
 
-	// Apply centering offset
 	ctx.translate(offsetX, offsetY);
 
-	// Apply shadow filter
 	ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
 	ctx.shadowBlur = 8 * scale;
 	ctx.shadowOffsetX = 0;
@@ -119,7 +135,7 @@ function renderArrow(
 	ctx.lineCap = "round";
 	ctx.lineJoin = "round";
 
-	// Draw all paths as a single shape to avoid overlapping shadows/strokes
+	// One shape so shadows/strokes don't overlap
 	ctx.beginPath();
 
 	for (const pathString of paths) {
@@ -242,12 +258,22 @@ function renderText(
 	width: number,
 	height: number,
 	scaleFactor: number,
+	currentTimeMs: number,
 ) {
 	const style = annotation.style;
+	const animationState = getTextAnimationState(annotation, currentTimeMs);
 
 	ctx.save();
 
-	// Clip text to annotation box bounds (matches editor's overflow: hidden)
+	const transformOriginX = x + width / 2;
+	const transformOriginY = y + height / 2;
+	ctx.translate(transformOriginX, transformOriginY);
+	ctx.translate(animationState.translateX * scaleFactor, animationState.translateY * scaleFactor);
+	ctx.scale(animationState.scale, animationState.scale);
+	ctx.translate(-transformOriginX, -transformOriginY);
+	ctx.globalAlpha *= animationState.opacity;
+
+	// Clip to box bounds, matching editor's overflow: hidden
 	ctx.beginPath();
 	ctx.rect(x, y, width, height);
 	ctx.clip();
@@ -301,24 +327,39 @@ function renderText(
 
 	lines.forEach((line, index) => {
 		const currentY = startY + index * lineHeight;
+		const revealProgress = animationState.revealProgress;
+		const graphemes = splitGraphemes(line);
+		const visibleCount = Math.ceil(graphemes.length * revealProgress);
+		const visibleLine = revealProgress >= 1 ? line : graphemes.slice(0, visibleCount).join("");
+		if (!visibleLine && revealProgress < 1) return;
+
+		const previousAlign = ctx.textAlign;
+		const fullMetrics = ctx.measureText(line);
+		let startX = textX;
+
+		if (ctx.textAlign === "center") {
+			startX = textX - fullMetrics.width / 2;
+			ctx.textAlign = "left";
+		} else if (ctx.textAlign === "right" || ctx.textAlign === "end") {
+			startX = textX - fullMetrics.width;
+			ctx.textAlign = "left";
+		}
 
 		if (style.backgroundColor && style.backgroundColor !== "transparent") {
-			const metrics = ctx.measureText(line);
+			const metrics = ctx.measureText(visibleLine);
 			const verticalPadding = scaledFontSize * 0.1;
 			const horizontalPadding = scaledFontSize * 0.2;
 			const borderRadius = 4 * scaleFactor;
 
-			let bgX = textX - horizontalPadding;
+			let bgX = startX - horizontalPadding;
 			const bgWidth = metrics.width + horizontalPadding * 2;
 
 			const contentHeight = scaledFontSize * 1.4;
 			const bgHeight = contentHeight + verticalPadding * 2;
 			const bgY = currentY - bgHeight / 2;
 
-			if (style.textAlign === "center") {
-				bgX = textX - bgWidth / 2;
-			} else if (style.textAlign === "right") {
-				bgX = textX - bgWidth;
+			if (previousAlign === "left" || previousAlign === "start") {
+				bgX = textX - horizontalPadding;
 			}
 
 			ctx.fillStyle = style.backgroundColor;
@@ -328,17 +369,15 @@ function renderText(
 		}
 
 		ctx.fillStyle = style.color;
-		ctx.fillText(line, textX, currentY);
+		ctx.fillText(visibleLine, startX, currentY);
 
 		if (style.textDecoration === "underline") {
-			const metrics = ctx.measureText(line);
-			let underlineX = textX;
+			const metrics = ctx.measureText(visibleLine);
+			let underlineX = startX;
 			const underlineY = currentY + scaledFontSize * 0.15;
 
-			if (style.textAlign === "center") {
-				underlineX = textX - metrics.width / 2;
-			} else if (style.textAlign === "right") {
-				underlineX = textX - metrics.width;
+			if (previousAlign === "left" || previousAlign === "start") {
+				underlineX = textX;
 			}
 
 			ctx.strokeStyle = style.color;
@@ -348,6 +387,8 @@ function renderText(
 			ctx.lineTo(underlineX + metrics.width, underlineY);
 			ctx.stroke();
 		}
+
+		ctx.textAlign = previousAlign;
 	});
 
 	ctx.restore();
@@ -368,7 +409,7 @@ async function renderImage(
 	return new Promise((resolve) => {
 		const img = new Image();
 		img.onload = () => {
-			// Preserve aspect ratio - contain the image within the bounds
+			// Contain within bounds, preserving aspect ratio
 			const imgAspect = img.width / img.height;
 			const boxAspect = width / height;
 
@@ -404,12 +445,11 @@ export async function renderAnnotations(
 	currentTimeMs: number,
 	scaleFactor: number = 1.0,
 ): Promise<void> {
-	// Filter active annotations at current time
 	const activeAnnotations = annotations.filter(
 		(ann) => currentTimeMs >= ann.startMs && currentTimeMs < ann.endMs,
 	);
 
-	// Sort by z-index (lower first, so higher z-index draws on top)
+	// Lower z-index first so higher draws on top
 	const sortedAnnotations = [...activeAnnotations].sort((a, b) => a.zIndex - b.zIndex);
 
 	for (const annotation of sortedAnnotations) {
@@ -420,7 +460,7 @@ export async function renderAnnotations(
 
 		switch (annotation.type) {
 			case "text":
-				renderText(ctx, annotation, x, y, width, height, scaleFactor);
+				renderText(ctx, annotation, x, y, width, height, scaleFactor, currentTimeMs);
 				break;
 
 			case "image":

@@ -9,7 +9,10 @@
   ],
   "productName": "Openscreen",
   "npmRebuild": true,
-  "buildDependenciesFromSource": true,
+  // sharp ships ABI-stable (napi) prebuilt binaries with bundled libvips. Building it from source
+  // needs a system libvips we don't provide and breaks on CI/local ("vips-cpp.42 not found"), so we
+  // let electron-builder use the prebuilt instead of recompiling.
+  "buildDependenciesFromSource": false,
   "compression": "normal",
   "directories": {
     "output": "release/${version}"
@@ -24,12 +27,16 @@
     "!CONTRIBUTING.md",
     "!LICENSE"
   ],
-  // Asset layout contract: "wallpapers/" under resourcesPath must align with
-  // assetBaseDir in electron/preload.ts (packaged branch).
+  // Asset layout contract: "wallpapers/" and "cursors/" under resourcesPath must
+  // align with assetBaseDir in electron/preload.ts (packaged branch).
   "extraResources": [
     {
       "from": "public/wallpapers",
       "to": "wallpapers"
+    },
+    {
+      "from": "public/cursors",
+      "to": "cursors"
     }
   ],
 
@@ -41,7 +48,7 @@
     "target": [
       {
         "target": "dmg",
-        "arch": ["arm64"]
+        "arch": ["x64", "arm64"]
       }
     ],
     "icon": "icons/icons/mac/icon.icns",
@@ -50,12 +57,12 @@
       {
         "from": "electron/native/bin",
         "to": "electron/native/bin",
-        "filter": ["darwin-arm64/**/*"]
+        "filter": ["darwin-*/*"]
       },
       {
         "from": "electron/native/captions",
         "to": "electron/native/captions",
-        "filter": ["darwin-arm64/**/*"]
+        "filter": ["darwin-*/*"]
       }
     ],
     "extendInfo": {

@@ -13,7 +13,9 @@
 	"reservedShortcut": "Bu kısayol \"{{label}}\" için ayrılmıştır ve yeniden atanamaz.",
 	"savedToast": "Klavye kısayolları kaydedildi",
 	"resetToast": "Varsayılan kısayollara sıfırlandı — uygulamak için Kaydet'e tıklayın",
+	"registrationFailed": "Kısayol kaydedilemedi. Başka bir uygulama tarafından kullanılıyor olabilir. Farklı bir tuş deneyin.",
 	"actions": {
+		"openApp": "Uygulamayı Aç",
 		"addZoom": "Yakınlaştırma Ekle",
 		"addTrim": "Kırpma Ekle",
 		"addSpeed": "Hız Ekle",

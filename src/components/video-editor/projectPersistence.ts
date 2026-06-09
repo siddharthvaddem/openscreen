@@ -1,4 +1,6 @@
+import { normalizeTextAnimation } from "@/lib/annotationTextAnimation";
 import { normalizeBlurColor, normalizeBlurType } from "@/lib/blurEffects";
+import { normalizeCursorThemeId } from "@/lib/cursor/cursorThemes";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import type { ProjectMedia } from "@/lib/recordingSession";
 import { normalizeProjectMedia } from "@/lib/recordingSession";
@@ -24,6 +26,8 @@ import {
 	DEFAULT_BLUR_INTENSITY,
 	DEFAULT_FIGURE_DATA,
 	DEFAULT_PLAYBACK_SPEED,
+	DEFAULT_WEBCAM_MIRRORED,
+	DEFAULT_WEBCAM_REACTIVE_ZOOM,
 	DEFAULT_ZOOM_DEPTH,
 	DEFAULT_ZOOM_MOTION_BLUR,
 	MAX_BLUR_BLOCK_SIZE,
@@ -43,11 +47,10 @@ import {
 
 const VALID_BLUR_SHAPES = new Set(["rectangle", "oval", "freehand"] as const);
 
-// Pre-fix projects could persist resolved file:// URLs (machine-specific) for
-// bundled wallpapers. Rewrite only paths that match a known install layout
-// (resources/[assets/]wallpapers for packaged, public/wallpapers for dev) so
-// a legitimate user file that happens to live in a folder named "wallpapers"
-// elsewhere is never silently replaced.
+// Old projects persisted machine-specific file:// URLs for bundled wallpapers.
+// Match only the known install layouts (packaged resources/[assets/]wallpapers,
+// dev public/wallpapers) so a user's own file under some "wallpapers" folder isn't
+// silently replaced.
 const LEGACY_FILE_WALLPAPER_RE =
 	/^file:\/\/.*?\/(?:resources\/(?:assets\/)?|public\/)wallpapers\/(wallpaper\d+\.jpg)$/i;
 const CANONICAL_WALLPAPERS = new Set(WALLPAPER_PATHS);
@@ -65,17 +68,22 @@ export interface ProjectEditorState {
 	wallpaper: string;
 	shadowIntensity: number;
 	showBlur: boolean;
+	showTrimWaveform: boolean;
 	motionBlurAmount: number;
 	borderRadius: number;
 	padding: number;
 	cropRegion: CropRegion;
 	zoomRegions: ZoomRegion[];
+	autoZoomEnabled: boolean;
+	autoFocusAll: boolean;
 	trimRegions: TrimRegion[];
 	speedRegions: SpeedRegion[];
 	annotationRegions: AnnotationRegion[];
 	aspectRatio: AspectRatio;
 	webcamLayoutPreset: WebcamLayoutPreset;
 	webcamMaskShape: WebcamMaskShape;
+	webcamMirrored: boolean;
+	webcamReactiveZoom: boolean;
 	webcamSizePreset: WebcamSizePreset;
 	webcamPosition: WebcamPosition | null;
 	exportQuality: ExportQuality;
@@ -83,6 +91,7 @@ export interface ProjectEditorState {
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
+	cursorTheme: string;
 }
 
 export interface EditorProjectData {
@@ -256,6 +265,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							cy: clamp(isFiniteNumber(region.focus?.cy) ? region.focus.cy : 0.5, 0, 1),
 						},
 						focusMode: region.focusMode === "auto" ? "auto" : "manual",
+						source: region.source === "auto" ? "auto" : "manual",
 						...(validPreset ? { rotationPreset: validPreset } : {}),
 					};
 				})
@@ -331,6 +341,8 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						content: typeof region.content === "string" ? region.content : "",
 						textContent: typeof region.textContent === "string" ? region.textContent : undefined,
 						imageContent: typeof region.imageContent === "string" ? region.imageContent : undefined,
+						annotationSource:
+							region.annotationSource === "auto-caption" ? ("auto-caption" as const) : undefined,
 						position: {
 							x: clamp(
 								isFiniteNumber(region.position?.x)
@@ -366,6 +378,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 						style: {
 							...DEFAULT_ANNOTATION_STYLE,
 							...(region.style && typeof region.style === "object" ? region.style : {}),
+							textAnimation: normalizeTextAnimation(region.style?.textAnimation),
 						},
 						zIndex: isFiniteNumber(region.zIndex) ? region.zIndex : index + 1,
 						figureData: region.figureData
@@ -433,6 +446,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 	const cropHeight = clamp(rawCropHeight, 0.01, 1 - cropY);
 
 	return {
+		cursorTheme: normalizeCursorThemeId(editor.cursorTheme),
 		wallpaper:
 			typeof editor.wallpaper === "string"
 				? normalizeWallpaperValue(editor.wallpaper)
@@ -445,6 +459,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			typeof editor.showBlur === "boolean"
 				? editor.showBlur
 				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.showBlur,
+		showTrimWaveform:
+			typeof editor.showTrimWaveform === "boolean"
+				? editor.showTrimWaveform
+				: DEFAULT_EDITOR_APPEARANCE_SETTINGS.showTrimWaveform,
 		motionBlurAmount: isFiniteNumber(editor.motionBlurAmount)
 			? clamp(editor.motionBlurAmount, 0, 1)
 			: typeof (editor as { motionBlurEnabled?: unknown }).motionBlurEnabled === "boolean"
@@ -466,6 +484,10 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			height: cropHeight,
 		},
 		zoomRegions: normalizedZoomRegions,
+		// Default on for legacy projects so re-opens match the new default. The
+		// on-load auto-suggest pass is gated separately, so this won't add zooms.
+		autoZoomEnabled: typeof editor.autoZoomEnabled === "boolean" ? editor.autoZoomEnabled : true,
+		autoFocusAll: typeof editor.autoFocusAll === "boolean" ? editor.autoFocusAll : false,
 		trimRegions: normalizedTrimRegions,
 		speedRegions: normalizedSpeedRegions,
 		annotationRegions: normalizedAnnotationRegions,
@@ -478,6 +500,12 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.webcamMaskShape === "rounded"
 				? editor.webcamMaskShape
 				: DEFAULT_WEBCAM_SETTINGS.maskShape,
+		webcamMirrored:
+			typeof editor.webcamMirrored === "boolean" ? editor.webcamMirrored : DEFAULT_WEBCAM_MIRRORED,
+		webcamReactiveZoom:
+			typeof editor.webcamReactiveZoom === "boolean"
+				? editor.webcamReactiveZoom
+				: DEFAULT_WEBCAM_REACTIVE_ZOOM,
 		webcamSizePreset:
 			typeof editor.webcamSizePreset === "number" && isFiniteNumber(editor.webcamSizePreset)
 				? Math.max(10, Math.min(50, editor.webcamSizePreset))

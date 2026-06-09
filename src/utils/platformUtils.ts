@@ -12,7 +12,7 @@ export const getPlatform = async (): Promise<string> => {
 		return platform;
 	} catch (error) {
 		console.warn("Failed to get platform from Electron, falling back to navigator:", error);
-		// Fallback for development/testing
+		// Fallback for dev/testing
 		let fallbackPlatform = "win32";
 		if (typeof navigator !== "undefined") {
 			if (/Mac|iPhone|iPad|iPod/.test(navigator.platform)) {

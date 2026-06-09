@@ -23,8 +23,8 @@ export function useCameraDevices(enabled: boolean = false) {
 				setIsLoading(true);
 				setError(null);
 
-				// Enumerate without requesting a second stream — the recorder handles
-				// the real acquisition; unlabeled devices fall back to their device ID.
+				// Enumerate without requesting a second stream; the recorder handles
+				// the real acquisition. Unlabeled devices fall back to their device ID.
 				const allDevices = await navigator.mediaDevices.enumerateDevices();
 				const videoInputs = allDevices
 					.filter((device) => device.kind === "videoinput")

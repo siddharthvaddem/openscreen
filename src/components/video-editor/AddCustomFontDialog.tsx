@@ -36,7 +36,6 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 	const handleImportUrlChange = (url: string) => {
 		setImportUrl(url);
 
-		// Auto-extract font name if valid Google Fonts URL
 		if (isValidGoogleFontsUrl(url)) {
 			const extracted = parseFontFamilyFromImport(url);
 			if (extracted && !fontName) {
@@ -46,7 +45,6 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 	};
 
 	const handleAdd = async () => {
-		// Validate inputs
 		if (!importUrl.trim()) {
 			toast.error(t("customFont.errorEmptyUrl"));
 			return;
@@ -65,7 +63,6 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 		setLoading(true);
 
 		try {
-			// Extract font family from URL
 			const fontFamily = parseFontFamilyFromImport(importUrl);
 			if (!fontFamily) {
 				toast.error(t("customFont.errorExtractFailed"));
@@ -73,7 +70,6 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 				return;
 			}
 
-			// Create custom font object
 			const newFont: CustomFont = {
 				id: generateFontId(fontName),
 				name: fontName.trim(),
@@ -81,17 +77,15 @@ export function AddCustomFontDialog({ onFontAdded }: AddCustomFontDialogProps) {
 				importUrl: importUrl.trim(),
 			};
 
-			// Add font (this will load and verify it) - throws if it fails
+			// Loads and verifies the font; throws on failure
 			await addCustomFont(newFont);
 
-			// Notify parent
 			if (onFontAdded) {
 				onFontAdded(newFont);
 			}
 
 			toast.success(t("customFont.successMessage", { fontName }));
 
-			// Reset and close
 			setImportUrl("");
 			setFontName("");
 			setOpen(false);

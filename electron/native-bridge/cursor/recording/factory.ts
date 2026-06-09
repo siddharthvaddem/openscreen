@@ -36,7 +36,7 @@ export function createCursorRecordingSession(
 	}
 
 	// Linux: capture cursor positions via Electron's `screen` API on an interval.
-	// No cursor sprites/assets and no clicks — just position telemetry.
+	// No cursor sprites/assets and no clicks, just position telemetry.
 	return new TelemetryRecordingSession({
 		getDisplayBounds: options.getDisplayBounds,
 		maxSamples: options.maxSamples,

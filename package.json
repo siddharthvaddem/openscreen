@@ -1,7 +1,7 @@
 {
 	"name": "openscreen",
 	"private": true,
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"type": "module",
 	"packageManager": "npm@10.9.4",
 	"engines": {

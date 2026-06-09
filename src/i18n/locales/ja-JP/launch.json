@@ -7,7 +7,10 @@
 		"pauseRecording": "録画を一時停止",
 		"resumeRecording": "録画を再開",
 		"openVideoFile": "動画ファイルを開く",
-		"openProject": "プロジェクトを開く"
+		"openProject": "プロジェクトを開く",
+		"useVerticalTray": "縦型トレイを使用",
+		"useHorizontalTray": "横型トレイを使用",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "システム音声を有効にする",
@@ -32,6 +35,9 @@
 		"loading": "ソースを読み込み中...",
 		"screens": "画面 ({{count}})",
 		"windows": "ウィンドウ ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "画面"
 	},
 	"recording": {

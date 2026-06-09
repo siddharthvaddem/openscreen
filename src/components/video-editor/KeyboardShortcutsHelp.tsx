@@ -2,6 +2,7 @@ import { HelpCircle, Settings2 } from "lucide-react";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
 import { FIXED_SHORTCUTS, formatBinding, SHORTCUT_ACTIONS } from "@/lib/shortcuts";
+import { BLUR_REGIONS_ENABLED } from "./featureFlags";
 
 export function KeyboardShortcutsHelp() {
 	const { shortcuts, isMac, openConfig } = useShortcuts();
@@ -26,14 +27,16 @@ export function KeyboardShortcutsHelp() {
 				</div>
 
 				<div className="space-y-1.5 text-[10px]">
-					{SHORTCUT_ACTIONS.map((action) => (
-						<div key={action} className="flex items-center justify-between">
-							<span className="text-slate-400">{t(`actions.${action}`)}</span>
-							<kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-mono">
-								{formatBinding(shortcuts[action], isMac)}
-							</kbd>
-						</div>
-					))}
+					{SHORTCUT_ACTIONS.filter((action) => BLUR_REGIONS_ENABLED || action !== "addBlur").map(
+						(action) => (
+							<div key={action} className="flex items-center justify-between">
+								<span className="text-slate-400">{t(`actions.${action}`)}</span>
+								<kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[#34B27B] font-mono">
+									{formatBinding(shortcuts[action], isMac)}
+								</kbd>
+							</div>
+						),
+					)}
 
 					<div className="pt-1 border-t border-white/5 mt-1 space-y-1.5">
 						{FIXED_SHORTCUTS.map((fixed) => (

@@ -1,9 +1,20 @@
 import AppKit
 import ApplicationServices
+import CryptoKit
 import Foundation
 
 struct CursorHelperRequest: Decodable {
 	let sampleIntervalMs: Int?
+}
+
+struct CapturedCursorAsset {
+	let id: String
+	let imageDataUrl: String
+	let width: Int
+	let height: Int
+	let hotspotX: Double
+	let hotspotY: Double
+	let scaleFactor: Double
 }
 
 final class MouseButtonTracker {
@@ -211,10 +222,60 @@ func currentCursorType() -> String? {
 	)
 
 	guard result == .success, let element else {
-		return "arrow"
+		return nil
 	}
 
-	return cursorTypeForElement(element) ?? "arrow"
+	// Returns nil for anything that is not a text/pointer affordance so the
+	// renderer falls through to the natively captured cursor bitmap (this is
+	// what makes default and custom cursors render as their real images).
+	return cursorTypeForElement(element)
+}
+
+func currentCursorAsset() -> CapturedCursorAsset? {
+	guard let cursor = NSCursor.currentSystem ?? NSCursor.current as NSCursor? else {
+		return nil
+	}
+
+	let image = cursor.image
+	let pointSize = image.size
+	guard pointSize.width > 0, pointSize.height > 0 else {
+		return nil
+	}
+
+	var proposedRect = NSRect(origin: .zero, size: pointSize)
+	guard let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) else {
+		return nil
+	}
+
+	let bitmap = NSBitmapImageRep(cgImage: cgImage)
+	guard let png = bitmap.representation(using: .png, properties: [:]) else {
+		return nil
+	}
+
+	let pixelsWide = bitmap.pixelsWide
+	let pixelsHigh = bitmap.pixelsHigh
+	guard pixelsWide > 0, pixelsHigh > 0 else {
+		return nil
+	}
+
+	// Intrinsic backing scale of the cursor image (e.g. 2.0 on Retina). The
+	// renderer divides pixel dimensions/hotspot by this to recover point sizes.
+	let scaleFactor = Double(pixelsWide) / Double(pointSize.width)
+	let hotSpot = cursor.hotSpot
+
+	let digest = SHA256.hash(data: png)
+	let id = digest.map { String(format: "%02x", $0) }.joined()
+	let imageDataUrl = "data:image/png;base64,\(png.base64EncodedString())"
+
+	return CapturedCursorAsset(
+		id: id,
+		imageDataUrl: imageDataUrl,
+		width: pixelsWide,
+		height: pixelsHigh,
+		hotspotX: hotSpot.x * scaleFactor,
+		hotspotY: hotSpot.y * scaleFactor,
+		scaleFactor: scaleFactor
+	)
 }
 
 func timestampMs() -> Int {
@@ -253,16 +314,39 @@ emit([
 	"mouseTapReady": mouseTapReady,
 ])
 
+// Process-wide set so each unique cursor shape is serialised at most once,
+// even if the user alternates between shapes (e.g. arrow → text → arrow).
+var emittedAssetIds = Set<String>()
+
 while true {
-	mouseTracker.pump()
-	let mouseEvents = mouseTracker.consume()
-	emit([
-		"type": "sample",
-		"timestampMs": timestampMs(),
-		"cursorType": currentCursorType(),
-		"leftButtonDown": leftButtonDown(),
-		"leftButtonPressed": mouseEvents.leftDownCount > 0,
-		"leftButtonReleased": mouseEvents.leftUpCount > 0,
-	])
-	Thread.sleep(forTimeInterval: Double(intervalMs) / 1000.0)
+	autoreleasepool {
+		mouseTracker.pump()
+		let mouseEvents = mouseTracker.consume()
+		let asset = currentCursorAsset()
+		// Only ship the (large) base64 payload the first time a cursor shape is seen;
+		// subsequent samples reference it by assetId so stdout stays small.
+		var assetPayload: [String: Any]?
+		if let asset, emittedAssetIds.insert(asset.id).inserted {
+			assetPayload = [
+				"id": asset.id,
+				"imageDataUrl": asset.imageDataUrl,
+				"width": asset.width,
+				"height": asset.height,
+				"hotspotX": asset.hotspotX,
+				"hotspotY": asset.hotspotY,
+				"scaleFactor": asset.scaleFactor,
+			]
+		}
+		emit([
+			"type": "sample",
+			"timestampMs": timestampMs(),
+			"cursorType": currentCursorType(),
+			"assetId": asset?.id,
+			"asset": assetPayload,
+			"leftButtonDown": leftButtonDown(),
+			"leftButtonPressed": mouseEvents.leftDownCount > 0,
+			"leftButtonReleased": mouseEvents.leftUpCount > 0,
+		])
+		Thread.sleep(forTimeInterval: Double(intervalMs) / 1000.0)
+	}
 }

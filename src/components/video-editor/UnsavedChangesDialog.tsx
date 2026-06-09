@@ -10,6 +10,7 @@ import { useScopedT } from "@/contexts/I18nContext";
 
 interface UnsavedChangesDialogProps {
 	isOpen: boolean;
+	variant?: "close" | "newProject" | "loadProject";
 	onSaveAndClose: () => void;
 	onDiscardAndClose: () => void;
 	onCancel: () => void;
@@ -17,12 +18,32 @@ interface UnsavedChangesDialogProps {
 
 export function UnsavedChangesDialog({
 	isOpen,
+	variant = "close",
 	onSaveAndClose,
 	onDiscardAndClose,
 	onCancel,
 }: UnsavedChangesDialogProps) {
 	const td = useScopedT("dialogs");
 	const tc = useScopedT("common");
+
+	const detail =
+		variant === "newProject"
+			? td("unsavedChanges.detailNewProject")
+			: variant === "loadProject"
+				? td("unsavedChanges.detailLoadProject")
+				: td("unsavedChanges.detail");
+	const saveLabel =
+		variant === "newProject"
+			? td("unsavedChanges.saveAndNewProject")
+			: variant === "loadProject"
+				? td("unsavedChanges.saveAndLoadProject")
+				: td("unsavedChanges.saveAndClose");
+	const discardLabel =
+		variant === "newProject"
+			? td("unsavedChanges.discardAndNewProject")
+			: variant === "loadProject"
+				? td("unsavedChanges.discardAndLoadProject")
+				: td("unsavedChanges.discardAndClose");
 
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
@@ -42,9 +63,7 @@ export function UnsavedChangesDialog({
 				</DialogHeader>
 
 				<p className="text-sm text-slate-300 mb-1">{td("unsavedChanges.message")}</p>
-				<DialogDescription className="text-sm text-slate-500 mb-6">
-					{td("unsavedChanges.detail")}
-				</DialogDescription>
+				<DialogDescription className="text-sm text-slate-500 mb-6">{detail}</DialogDescription>
 
 				<div className="flex flex-col gap-2">
 					<button
@@ -53,7 +72,7 @@ export function UnsavedChangesDialog({
 						className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-[#34B27B] hover:bg-[#2d9e6c] active:bg-[#27885c] text-white font-medium text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#34B27B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
 					>
 						<Save className="w-4 h-4" />
-						{td("unsavedChanges.saveAndClose")}
+						{saveLabel}
 					</button>
 					<button
 						type="button"
@@ -61,7 +80,7 @@ export function UnsavedChangesDialog({
 						className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-white/5 hover:bg-red-500/15 border border-white/10 hover:border-red-500/30 text-slate-300 hover:text-red-400 font-medium text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
 					>
 						<Trash2 className="w-4 h-4" />
-						{td("unsavedChanges.discardAndClose")}
+						{discardLabel}
 					</button>
 					<button
 						type="button"

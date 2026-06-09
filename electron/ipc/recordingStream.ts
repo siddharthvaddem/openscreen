@@ -3,23 +3,18 @@ import { unlink } from "node:fs/promises";
 import type { IpcMain } from "electron";
 
 /**
- * Owns the lifecycle of on-disk write streams for in-progress recordings, keyed
- * by the recording's output file name. Browser MediaRecorder chunks are appended
- * here as they arrive so a long recording never buffers the whole video in the
- * renderer (the #616 fix).
- *
- * The file name is the key because it is the one value the renderer and main
- * process already exchange and it is globally unique per recording, so there is
- * no derived/offset key to keep in sync across the IPC boundary.
+ * Owns write streams for in-progress recordings, keyed by output file name.
+ * MediaRecorder chunks are appended as they arrive so a long recording never
+ * buffers the whole video in the renderer (#616 fix). File name is the key
+ * because it's already exchanged across IPC and is unique per recording.
  */
 export class RecordingStreamRegistry {
 	private readonly streams = new Map<string, WriteStream>();
 
 	/**
-	 * Open a write stream and resolve only once the OS confirms it is writable.
-	 * Resolving on the `open` event (rather than on `createWriteStream` returning)
-	 * means a bad path or permission error rejects here instead of surfacing as a
-	 * silent chunk drop later, so the renderer's fallback can take over.
+	 * Open a write stream, resolving only on the `open` event so a bad path or
+	 * permission error rejects here instead of becoming a silent chunk drop later,
+	 * letting the renderer's fallback take over.
 	 */
 	async open(fileName: string, filePath: string): Promise<void> {
 		await this.endStream(fileName);
@@ -33,9 +28,8 @@ export class RecordingStreamRegistry {
 				resolve();
 			});
 		});
-		// Keep a listener for the stream's lifetime so a late error logs rather
-		// than crashing the main process with an unhandled 'error' event. Per-write
-		// failures still surface through the `append` callback below.
+		// Keep a lifetime listener so a late error logs instead of crashing the main
+		// process with an unhandled 'error'. Per-write failures still surface in `append`.
 		ws.on("error", (error) => {
 			console.error(`[recording-stream] ${fileName}:`, error);
 		});
@@ -59,9 +53,8 @@ export class RecordingStreamRegistry {
 	}
 
 	/**
-	 * Flush and close the stream, keeping the file. Returns whether a stream was
-	 * open — i.e. whether the recording was streamed to disk (true) or needs its
-	 * in-memory buffer written by the caller (false).
+	 * Flush and close the stream, keeping the file. Returns true if a stream was
+	 * open (streamed to disk) or false if the caller still needs to write its buffer.
 	 */
 	async finalize(fileName: string): Promise<boolean> {
 		const ws = this.streams.get(fileName);
@@ -76,9 +69,8 @@ export class RecordingStreamRegistry {
 	}
 
 	/**
-	 * Close the stream (if any) and delete the partial file. Used when a streamed
-	 * recording is discarded or fails before a successful save, so cancelled runs
-	 * don't leak file descriptors or orphan partial recordings on disk.
+	 * Close the stream (if any) and delete the partial file, so a discarded or
+	 * failed recording doesn't leak descriptors or orphan partial files on disk.
 	 */
 	async discard(fileName: string, filePath: string): Promise<void> {
 		await this.endStream(fileName);
