@@ -155,6 +155,7 @@ interface Window {
 			recordingId: number;
 			webcam: import("../src/lib/recordingSession").RecordedVideoAssetInput;
 			cursorCaptureMode?: import("../src/lib/recordingSession").CursorCaptureMode;
+			durationMs?: number;
 		}) => Promise<{
 			success: boolean;
 			path?: string;
