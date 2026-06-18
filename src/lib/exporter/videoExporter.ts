@@ -152,7 +152,6 @@ export class VideoExporter {
 	private videoColorSpace: VideoColorSpaceInit | undefined;
 	private muxingPromises: Promise<void>[] = [];
 	private chunkCount = 0;
-	private lastEncoderOutputAt = 0;
 	private fatalEncoderError: Error | null = null;
 
 	constructor(config: VideoExporterConfig) {
@@ -384,12 +383,16 @@ export class VideoExporter {
 							exportFrame = new VideoFrame(canvas, { timestamp, duration: frameDuration });
 						}
 
+						// Timer resets each time we enter the queue-full wait, so a long
+						// trimmed-region decode (decoder busy discarding frames) doesn't
+						// make the stall check fire spuriously.
+						const stallWaitStartAt = Date.now();
 						while (
 							this.encoder &&
 							this.encoder.encodeQueueSize >= maxEncodeQueue &&
 							!this.cancelled
 						) {
-							if (Date.now() - this.lastEncoderOutputAt > ENCODER_STALL_TIMEOUT_MS) {
+							if (Date.now() - stallWaitStartAt > ENCODER_STALL_TIMEOUT_MS) {
 								exportFrame.close();
 								throw new Error(
 									encoderPreference === "prefer-hardware"
@@ -496,14 +499,11 @@ export class VideoExporter {
 		this.encodeQueue = 0;
 		this.muxingPromises = [];
 		this.chunkCount = 0;
-		this.lastEncoderOutputAt = Date.now();
 		this.fatalEncoderError = null;
 		let videoDescription: Uint8Array | undefined;
 
 		this.encoder = new VideoEncoder({
 			output: (chunk, meta) => {
-				this.lastEncoderOutputAt = Date.now();
-
 				if (meta?.decoderConfig?.description && !videoDescription) {
 					const desc = meta.decoderConfig.description;
 					if (desc instanceof ArrayBuffer || desc instanceof SharedArrayBuffer) {
@@ -648,7 +648,6 @@ export class VideoExporter {
 		this.chunkCount = 0;
 		this.videoDescription = undefined;
 		this.videoColorSpace = undefined;
-		this.lastEncoderOutputAt = 0;
 		this.fatalEncoderError = null;
 	}
 
