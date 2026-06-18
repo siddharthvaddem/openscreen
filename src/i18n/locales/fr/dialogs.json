@@ -57,6 +57,8 @@
 		"detailLoadProject": "Voulez-vous enregistrer votre projet avant d'en charger un autre ?",
 		"saveAndLoadProject": "Enregistrer et charger un projet",
 		"discardAndLoadProject": "Ignorer et charger un projet",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "Charger un projet…",
 		"saveProject": "Enregistrer le projet…",
 		"saveProjectAs": "Enregistrer le projet sous…"

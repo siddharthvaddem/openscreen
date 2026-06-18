@@ -9,7 +9,8 @@
 			"title": "포커스 모드",
 			"manual": "수동",
 			"auto": "자동",
-			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다"
+			"autoDescription": "녹화된 커서 위치를 따라 카메라가 이동합니다",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D 회전",
@@ -42,10 +43,10 @@
 		"selectPreset": "프리셋 선택",
 		"pictureInPicture": "화면 속 화면",
 		"verticalStack": "세로 배치",
-		"webcamShape": "카메라 모양",
-		"webcamSize": "웹캠 크기",
 		"dualFrame": "듀얼 프레임",
 		"noWebcam": "웹캠 없음",
+		"webcamShape": "카메라 모양",
+		"webcamSize": "웹캠 크기",
 		"mirrorWebcam": "웹캠 미러링",
 		"reactiveWebcam": "확대 시 축소",
 		"reactiveWebcamDescription": "확대하는 동안 카메라가 부드럽게 작아져 방해되지 않습니다."
@@ -143,6 +144,8 @@
 		"clearBackground": "배경 지우기",
 		"uploadImage": "이미지 업로드",
 		"supportedFormats": "지원 형식: JPG, PNG, GIF, WebP",
+		"stickerPresets": "스티커 프리셋",
+		"stickerPresetsDescription": "스티커를 클릭하면 이 이미지 주석으로 사용됩니다.",
 		"arrowDirection": "화살표 방향",
 		"strokeWidth": "선 두께: {{width}}px",
 		"arrowColor": "화살표 색상",
@@ -216,7 +219,8 @@
 		"smoothing": "부드러움",
 		"motionBlur": "모션 블러",
 		"clickBounce": "클릭 바운스",
-		"clipToBounds": "캔버스에 맞춰 자르기"
+		"clipToBounds": "캔버스에 맞춰 자르기",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "언어"

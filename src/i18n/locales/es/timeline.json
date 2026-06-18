@@ -2,17 +2,21 @@
 	"buttons": {
 		"addZoom": "Agregar zoom (Z)",
 		"suggestZooms": "Sugerir zooms desde el cursor",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "Agregar recorte (T)",
 		"addAnnotation": "Agregar anotación (A)",
-		"addSpeed": "Agregar velocidad (S)",
-		"addBlur": "Agregar desenfoque (B)"
+		"addBlur": "Agregar desenfoque (B)",
+		"addSpeed": "Agregar velocidad (S)"
 	},
 	"hints": {
 		"pressZoom": "Presiona Z para agregar zoom",
 		"pressTrim": "Presiona T para agregar recorte",
 		"pressAnnotation": "Presiona A para agregar anotación",
-		"pressSpeed": "Presiona S para agregar velocidad",
-		"pressBlur": "Presiona B para agregar una región de desenfoque"
+		"pressBlur": "Presiona B para agregar una región de desenfoque",
+		"pressSpeed": "Presiona S para agregar velocidad"
 	},
 	"labels": {
 		"pan": "Desplazar",
@@ -23,9 +27,9 @@
 		"trimItem": "Recorte {{index}}",
 		"speedItem": "Velocidad {{index}}",
 		"annotationItem": "Anotación",
+		"blurItem": "Desenfoque {{index}}",
 		"imageItem": "Imagen",
-		"emptyText": "Texto vacío",
-		"blurItem": "Desenfoque {{index}}"
+		"emptyText": "Texto vacío"
 	},
 	"emptyState": {
 		"noVideo": "No hay video cargado",

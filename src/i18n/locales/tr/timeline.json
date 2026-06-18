@@ -2,17 +2,21 @@
 	"buttons": {
 		"addZoom": "Yakınlaştırma Ekle (Z)",
 		"suggestZooms": "İmleçten Yakınlaştırma Öner",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "Kırpma Ekle (T)",
 		"addAnnotation": "Açıklama Ekle (A)",
-		"addSpeed": "Hız Ekle (S)",
-		"addBlur": "Bulanık ekle (B)"
+		"addBlur": "Bulanık ekle (B)",
+		"addSpeed": "Hız Ekle (S)"
 	},
 	"hints": {
 		"pressZoom": "Yakınlaştırma eklemek için Z tuşuna basın",
 		"pressTrim": "Kırpma eklemek için T tuşuna basın",
 		"pressAnnotation": "Açıklama eklemek için A tuşuna basın",
-		"pressSpeed": "Hız eklemek için S tuşuna basın",
-		"pressBlur": "Bulanık bölge eklemek için B tuşuna basın"
+		"pressBlur": "Bulanık bölge eklemek için B tuşuna basın",
+		"pressSpeed": "Hız eklemek için S tuşuna basın"
 	},
 	"labels": {
 		"pan": "Kaydır",
@@ -23,9 +27,9 @@
 		"trimItem": "Kırpma {{index}}",
 		"speedItem": "Hız {{index}}",
 		"annotationItem": "Açıklama",
+		"blurItem": "Bulanık {{index}}",
 		"imageItem": "Görüntü",
-		"emptyText": "Boş metin",
-		"blurItem": "Bulanık {{index}}"
+		"emptyText": "Boş metin"
 	},
 	"emptyState": {
 		"noVideo": "Video Yüklenmedi",

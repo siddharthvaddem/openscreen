@@ -1,4 +1,19 @@
-import { Check, ChevronDown, Clapperboard, Columns3, Languages, Rows3 } from "lucide-react";
+import {
+	ArrowUpRight,
+	Check,
+	ChevronDown,
+	Circle,
+	Clapperboard,
+	Columns3,
+	Eraser,
+	Highlighter,
+	Languages,
+	Pencil,
+	Rows3,
+	Square,
+	Type,
+	Undo2,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BsPauseCircle, BsPlayCircle, BsRecordCircle } from "react-icons/bs";
@@ -34,6 +49,7 @@ import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 import styles from "./LaunchWindow.module.css";
 import { openSourceSelectorWithPermissionRetry } from "./openSourceSelectorFlow";
+import type { RecordingAnnotationTool } from "./recordingAnnotations";
 
 const ICON_SIZE = 20;
 
@@ -87,6 +103,19 @@ const windowBtnClasses =
 const hudSidebarClasses = "ml-0.5 pl-1.5 border-l border-white/10 flex items-center gap-0.5";
 const hudSidebarVerticalClasses =
 	"mt-0.5 pt-1.5 border-t border-white/10 flex flex-col items-center gap-0.5";
+
+const annotationToolConfig = [
+	{ tool: "pen", label: "Pen / brush", icon: Pencil },
+	{ tool: "arrow", label: "Arrow", icon: ArrowUpRight },
+	{ tool: "rectangle", label: "Rectangle", icon: Square },
+	{ tool: "ellipse", label: "Circle", icon: Circle },
+	{ tool: "highlight", label: "Highlight", icon: Highlighter },
+	{ tool: "text", label: "Text", icon: Type },
+] satisfies Array<{
+	tool: RecordingAnnotationTool;
+	label: string;
+	icon: typeof Pencil;
+}>;
 
 /** Launches the floating recording HUD and its recorder controls. */
 export function LaunchWindow() {
@@ -143,6 +172,9 @@ export function LaunchWindow() {
 		() => loadUserPreferences().trayLayout,
 	);
 	const [supportsCursorModeToggle, setSupportsCursorModeToggle] = useState(false);
+	const [activeAnnotationTool, setActiveAnnotationTool] = useState<RecordingAnnotationTool | null>(
+		null,
+	);
 	const languageTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const languageMenuPanelRef = useRef<HTMLDivElement | null>(null);
 	const hudBarRef = useRef<HTMLDivElement | null>(null);
@@ -233,6 +265,20 @@ export function LaunchWindow() {
 		void requestCameraAccess().catch((error) => {
 			console.warn("Failed to trigger camera access request during development:", error);
 		});
+	}, []);
+
+	useEffect(() => {
+		if (!recording && activeAnnotationTool) {
+			setActiveAnnotationTool(null);
+		}
+	}, [activeAnnotationTool, recording]);
+
+	useEffect(() => {
+		const cleanup = window.electronAPI?.onRecordingAnnotationToolChange?.((nextTool) => {
+			setActiveAnnotationTool(nextTool);
+		});
+
+		return () => cleanup?.();
 	}, []);
 
 	useEffect(() => {
@@ -475,6 +521,30 @@ export function LaunchWindow() {
 			setMicrophoneEnabled(!microphoneEnabled);
 		}
 	};
+
+	const selectAnnotationTool = useCallback(
+		(tool: RecordingAnnotationTool) => {
+			const nextTool = activeAnnotationTool === tool ? null : tool;
+			setActiveAnnotationTool(nextTool);
+			window.electronAPI?.setRecordingAnnotationTool(nextTool).catch((error) => {
+				console.warn("Failed to update recording annotation tool:", error);
+				setActiveAnnotationTool(activeAnnotationTool);
+			});
+		},
+		[activeAnnotationTool],
+	);
+
+	const undoRecordingAnnotation = useCallback(() => {
+		window.electronAPI?.undoRecordingAnnotation?.().catch((error) => {
+			console.warn("Failed to undo recording annotation:", error);
+		});
+	}, []);
+
+	const clearRecordingAnnotations = useCallback(() => {
+		window.electronAPI?.clearRecordingAnnotations?.().catch((error) => {
+			console.warn("Failed to clear recording annotations:", error);
+		});
+	}, []);
 	const dragLastPositionRef = useRef<{ x: number; y: number } | null>(null);
 	const handleHudDragPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		event.preventDefault();
@@ -842,6 +912,60 @@ export function LaunchWindow() {
 						</button>
 					)}
 				</div>
+
+				{recording && (
+					<div
+						className={`${hudGroupClasses} ${trayLayout === "vertical" ? "flex-col py-0.5" : "px-0.5"} ${styles.electronNoDrag}`}
+					>
+						{annotationToolConfig.map(({ tool, label, icon: Icon }) => {
+							const isActive = activeAnnotationTool === tool;
+							return (
+								<Tooltip key={tool} content={label}>
+									<button
+										type="button"
+										className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 active:scale-95 ${
+											isActive
+												? "bg-[#34B27B]/18 text-[#6ee7a8] shadow-[inset_0_0_0_1px_rgba(110,231,168,0.28)]"
+												: "text-white/50 hover:bg-white/10 hover:text-white/80"
+										}`}
+										onClick={() => selectAnnotationTool(tool)}
+										aria-pressed={isActive}
+										title={label}
+									>
+										<Icon size={15} strokeWidth={2.3} />
+									</button>
+								</Tooltip>
+							);
+						})}
+						<div
+							className={
+								trayLayout === "vertical"
+									? "my-0.5 h-px w-5 bg-white/10"
+									: "mx-0.5 h-5 w-px bg-white/10"
+							}
+						/>
+						<Tooltip content="Undo annotation">
+							<button
+								type="button"
+								className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition-all duration-150 hover:bg-white/10 hover:text-white/80 active:scale-95"
+								onClick={undoRecordingAnnotation}
+								title="Undo annotation"
+							>
+								<Undo2 size={15} strokeWidth={2.3} />
+							</button>
+						</Tooltip>
+						<Tooltip content="Clear annotations">
+							<button
+								type="button"
+								className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition-all duration-150 hover:bg-red-500/12 hover:text-red-300 active:scale-95"
+								onClick={clearRecordingAnnotations}
+								title="Clear annotations"
+							>
+								<Eraser size={15} strokeWidth={2.3} />
+							</button>
+						</Tooltip>
+					</div>
+				)}
 
 				{/* Record/Stop group */}
 				<button

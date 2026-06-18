@@ -29,14 +29,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Cache the downloaded caption model so we don't re-fetch from HuggingFace every run
-      # (and to avoid 429s when the platform matrix builds hit it at once).
-      - name: Cache caption assets
-        uses: actions/cache@v4
-        with:
-          path: caption-assets
-          key: caption-assets-${{ hashFiles('scripts/fetch-caption-model.mjs') }}
-
       - name: Build Windows app
         run: npm run build:win
         env:
@@ -85,14 +77,6 @@ jobs:
         run: npm rebuild sharp
         env:
           npm_config_build_from_source: "false"
-
-      # ─── Cache caption assets ─────────────────────────────────
-      # Avoid re-fetching the Whisper model from HuggingFace every run (and 429s under the matrix).
-      - name: Cache caption assets
-        uses: actions/cache@v4
-        with:
-          path: caption-assets
-          key: caption-assets-${{ hashFiles('scripts/fetch-caption-model.mjs') }}
 
       # ─── Import Code Signing Certificate ──────────────────────
       # This is the KEY step that makes CI signing work.
@@ -271,14 +255,6 @@ jobs:
       # packages. AppImage and deb don't need it; ubuntu-latest doesn't ship it.
       - name: Install pacman build dependencies
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
-
-      # Cache the downloaded caption model so we don't re-fetch from HuggingFace every run
-      # (and to avoid 429s when the platform matrix builds hit it at once).
-      - name: Cache caption assets
-        uses: actions/cache@v4
-        with:
-          path: caption-assets
-          key: caption-assets-${{ hashFiles('scripts/fetch-caption-model.mjs') }}
 
       - name: Build Linux app
         run: npm run build:linux

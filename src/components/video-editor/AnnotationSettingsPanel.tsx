@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import ColorPicker from "../ui/color-picker";
 import { AddCustomFontDialog } from "./AddCustomFontDialog";
 import { getArrowComponent } from "./ArrowSvgs";
+import { ANNOTATION_STICKER_PRESETS } from "./annotationStickers";
 import {
 	type AnnotationRegion,
 	type AnnotationType,
@@ -514,6 +515,40 @@ export function AnnotationSettingsPanel({
 							<Upload className="w-5 h-5" />
 							{t("annotation.uploadImage")}
 						</Button>
+
+						<div className="space-y-2">
+							<div>
+								<label className="text-xs font-medium text-slate-200 block">
+									{t("annotation.stickerPresets")}
+								</label>
+								<p className="mt-1 text-[11px] text-slate-500 leading-relaxed">
+									{t("annotation.stickerPresetsDescription")}
+								</p>
+							</div>
+							<div className="grid grid-cols-4 gap-2">
+								{ANNOTATION_STICKER_PRESETS.map((sticker) => (
+									<button
+										key={sticker.id}
+										type="button"
+										aria-label={`${sticker.label} sticker`}
+										title={sticker.label}
+										onClick={() => onContentChange(sticker.dataUrl)}
+										className={cn(
+											"h-14 rounded-xl border border-white/10 bg-white/[0.04] p-2",
+											"transition-all hover:border-[#34B27B]/60 hover:bg-[#34B27B]/10 active:scale-95",
+											"focus:outline-none focus:ring-2 focus:ring-[#34B27B] focus:ring-offset-2 focus:ring-offset-[#0f1117]",
+										)}
+									>
+										<img
+											src={sticker.dataUrl}
+											alt=""
+											className="h-full w-full object-contain"
+											draggable={false}
+										/>
+									</button>
+								))}
+							</div>
+						</div>
 
 						{annotation.content && annotation.content.startsWith("data:image") && (
 							<div className="rounded-lg border border-white/10 overflow-hidden bg-white/5 p-2">

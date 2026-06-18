@@ -171,6 +171,7 @@ interface Window {
 			error?: string;
 		}>;
 		onStopRecordingFromTray: (callback: () => void) => () => void;
+		onNativeRecordingStopped: (callback: () => void) => () => void;
 		openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 		pickExportSavePath: (
 			fileName: string,
@@ -217,6 +218,11 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		startCaptionGeneration: (
+			videoPath: string,
+			options?: import("../src/lib/captions").CaptionGenerationOptions,
+		) => Promise<import("../src/lib/captions").CaptionGenerationResult>;
+		cancelCaptionGeneration: (jobId: string) => Promise<{ success: boolean; cancelled: boolean }>;
 		clearCurrentVideoPath: () => Promise<{ success: boolean }>;
 		saveProjectFile: (
 			projectData: unknown,
@@ -279,6 +285,26 @@ interface Window {
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
 		hideCountdownOverlay: (runId: number) => Promise<void>;
+		showRecordingAnnotationOverlay: () => Promise<{ success: boolean; error?: string }>;
+		hideRecordingAnnotationOverlay: () => Promise<{ success: boolean; error?: string }>;
+		setRecordingAnnotationTool: (
+			tool: import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool | null,
+		) => Promise<{
+			success: boolean;
+			tool?: import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool | null;
+			error?: string;
+		}>;
+		clearRecordingAnnotations: () => Promise<{ success: boolean; error?: string }>;
+		undoRecordingAnnotation: () => Promise<{ success: boolean; error?: string }>;
+		onRecordingAnnotationToolChange: (
+			callback: (
+				tool:
+					| import("../src/components/launch/recordingAnnotations").RecordingAnnotationTool
+					| null,
+			) => void,
+		) => () => void;
+		onRecordingAnnotationClear: (callback: () => void) => () => void;
+		onRecordingAnnotationUndo: (callback: () => void) => () => void;
 		onCountdownOverlayValue: (callback: (value: number | null) => void) => () => void;
 		setMicrophoneExpanded: (expanded: boolean) => void;
 		setHasUnsavedChanges: (hasChanges: boolean) => void;

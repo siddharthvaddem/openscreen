@@ -2,20 +2,15 @@
 	"zoom": {
 		"previewHold": "اضغط مع الاستمرار لمعاينة تأثير التكبير",
 		"level": "مستوى التكبير",
+		"customScale": "تكبير مخصص",
 		"selectRegion": "حدد منطقة التكبير للتعديل",
 		"deleteZoom": "حذف التكبير",
 		"focusMode": {
 			"title": "وضع التركيز",
 			"manual": "يدوي",
 			"auto": "تلقائي",
-			"autoDescription": "الكاميرا تتبع موضع المؤشر المسجل"
-		},
-		"customScale": "تكبير مخصص",
-		"position": {
-			"title": "موضع التركيز",
-			"x": "X (%)",
-			"y": "Y (%)",
-			"hint": "0 = أقصى اليسار / الأعلى، 100 = أقصى اليمين / الأسفل"
+			"autoDescription": "الكاميرا تتبع موضع المؤشر المسجل",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "دوران ثلاثي الأبعاد",
@@ -24,6 +19,12 @@
 				"left": "يسار",
 				"right": "يمين"
 			}
+		},
+		"position": {
+			"title": "موضع التركيز",
+			"x": "X (%)",
+			"y": "Y (%)",
+			"hint": "0 = أقصى اليسار / الأعلى، 100 = أقصى اليمين / الأسفل"
 		}
 	},
 	"speed": {
@@ -43,9 +44,9 @@
 		"pictureInPicture": "صورة داخل صورة",
 		"verticalStack": "تكدس عمودي",
 		"dualFrame": "إطار مزدوج",
+		"noWebcam": "بدون كاميرا",
 		"webcamShape": "شكل الكاميرا",
 		"webcamSize": "حجم كاميرا الويب",
-		"noWebcam": "بدون كاميرا",
 		"mirrorWebcam": "عكس كاميرا الويب",
 		"reactiveWebcam": "تصغير عند التكبير",
 		"reactiveWebcamDescription": "تتقلص الكاميرا بسلاسة أثناء تكبير الفيديو حتى لا تعيق الرؤية."
@@ -132,8 +133,6 @@
 		"textPlaceholder": "أدخل النص هنا...",
 		"fontStyle": "نمط الخط",
 		"selectStyle": "حدد النمط",
-		"textAnimation": "تحريك النص",
-		"selectAnimation": "حدد الحركة",
 		"size": "الحجم",
 		"customFonts": "خطوط مخصصة",
 		"textColor": "لون النص",
@@ -145,6 +144,8 @@
 		"clearBackground": "مسح الخلفية",
 		"uploadImage": "رفع صورة",
 		"supportedFormats": "الصيغ المدعومة: JPG, PNG, GIF, WebP",
+		"stickerPresets": "ملصقات جاهزة",
+		"stickerPresetsDescription": "انقر على ملصق لاستخدامه كتعليق صورة.",
 		"arrowDirection": "اتجاه السهم",
 		"strokeWidth": "عرض الخط: {{width}}px",
 		"arrowColor": "لون السهم",
@@ -180,6 +181,17 @@
 		"modern": "حديث",
 		"clean": "نظيف"
 	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
+	},
 	"customFont": {
 		"dialogTitle": "إضافة خط Google",
 		"urlLabel": "رابط استيراد خطوط Google",
@@ -207,7 +219,8 @@
 		"smoothing": "التنعيم",
 		"motionBlur": "ضبابية الحركة",
 		"clickBounce": "ارتداد النقر",
-		"clipToBounds": "القص ضمن اللوحة"
+		"clipToBounds": "القص ضمن اللوحة",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "اللغة"

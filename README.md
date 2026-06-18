@@ -24,7 +24,7 @@ If you don't want to pay $29/month for Screen Studio but want a version that doe
 
 Screen Studio is an awesome product and this is definitely not a 1:1 clone. If you just want something fully free and open source, this project should cover most of your needs.
 
-**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License. 
+**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License.
 
 > [!NOTE]
 >Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
@@ -44,7 +44,11 @@ Screen Studio is an awesome product and this is definitely not a 1:1 clone. If y
 - Wallpapers, solid colors, gradients, or your own background image.
 - Motion blur.
 - Crop, trim, and per-segment speed control on the timeline.
+- Blur effects to hide sensitive parts of the screen.
+- Cursor and click highlighting.
 - Text, arrow, and image annotations, with text animation presets.
+- Offline auto-captions on macOS release builds, generated locally with bundled whisper.cpp helpers and the default `ggml-small` model.
+- Save and reopen projects without re-recording.
 - Timeline snapping guides and an audio waveform to make trimming easier.
 - Customizable keyboard shortcuts.
 - Export to MP4 or GIF in multiple aspect ratios and resolutions.
@@ -164,6 +168,8 @@ Everything in the editor and export is the same on macOS, Windows, and Linux: zo
   - **macOS**: requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below can't capture system audio (mic still works).
   - **Windows**: works out of the box.
   - **Linux**: needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not capture system audio (mic should still work).
+
+Offline auto-captions currently depend on packaged caption runtime assets. macOS release builds include the local whisper.cpp CLI, ffmpeg, and `ggml-small` model; other platforms report captions as unavailable until their helper assets are packaged.
 
 ---
 

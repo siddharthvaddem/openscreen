@@ -1,4 +1,12 @@
 {
+	"newRecording": {
+		"title": "Volver a la grabadora",
+		"description": "Tu sesión actual ha sido guardada.",
+		"cancel": "Cancelar",
+		"confirm": "Confirmar"
+	},
+	"loadingVideo": "Cargando video...",
+	"loadingEditor": "Cargando editor...",
 	"errors": {
 		"noVideoLoaded": "No hay video cargado",
 		"videoNotReady": "El video no está listo",
@@ -36,32 +44,12 @@
 		"permissionDenied": "Permiso de grabación denegado. Por favor permite la grabación de pantalla.",
 		"accessibilityAllowAndRetry": "Permite el acceso de accesibilidad para OpenScreen y luego pulsa grabar de nuevo para iniciar la cuenta atrás."
 	},
-	"loadingVideo": "Cargando video...",
-	"loadingEditor": "Cargando editor...",
-	"newRecording": {
-		"title": "Volver a la grabadora",
-		"description": "Tu sesión actual ha sido guardada.",
-		"cancel": "Cancelar",
-		"confirm": "Confirmar"
-	},
-	"autoCaptions": {
-		"button": "Subtítulos automáticos",
-		"dialogTitle": "Subtítulos automáticos",
-		"dialogDescription": "Elige aproximadamente cuántas palabras muestra cada subtítulo a la vez. El tiempo se reparte entre las palabras de esa frase.",
-		"minWords": "Número mínimo de palabras por subtítulo",
-		"maxWords": "Número máximo de palabras por subtítulo",
-		"wordsCount": "{{count}} palabras",
-		"generate": "Generar",
-		"dialogCancel": "Cancelar",
-		"generating": "Generando subtítulos a partir del audio…",
-		"loadingModel": "Cargando el modelo de voz (el primer uso descarga ~75 MB)…",
-		"transcribing": "Transcribiendo el habla…",
-		"busy": "La generación de subtítulos ya está en curso.",
-		"done": "Se añadieron {{count}} subtítulos.",
-		"noneHeard": "No se detectó voz.",
-		"noAudio": "Este video no tiene audio utilizable para transcribir.",
-		"failed": "No se pudieron generar los subtítulos.",
-		"truncated": "Solo se transcribieron los primeros {{minutes}} minutos."
+	"captions": {
+		"generating": "Generando subtítulos...",
+		"generated": "{{count}} subtítulos generados.",
+		"skippedNoAudio": "No se encontró pista de audio; se omitieron los subtítulos.",
+		"unavailable": "El modelo local de subtítulos no está disponible.",
+		"failed": "Error al generar subtítulos."
 	},
 	"emptyState": {
 		"title": "No hay proyecto abierto",

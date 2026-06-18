@@ -6,6 +6,7 @@
 		"confirm": "Confirmar"
 	},
 	"loadingVideo": "Carregando vídeo...",
+	"loadingEditor": "Loading editor...",
 	"errors": {
 		"noVideoLoaded": "Nenhum vídeo carregado",
 		"videoNotReady": "Vídeo não está pronto",
@@ -40,25 +41,29 @@
 		"cameraDenied": "Acesso à câmera negado. A gravação continuará sem webcam.",
 		"cameraDisconnected": "Webcam desconectada.",
 		"cameraNotFound": "Câmera não encontrada.",
-		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela."
+		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela.",
+		"accessibilityAllowAndRetry": "Allow Accessibility access for OpenScreen, then press record again to start the countdown."
 	},
-	"autoCaptions": {
-		"button": "Legendas automáticas",
-		"dialogTitle": "Legendas automáticas",
-		"dialogDescription": "Escolha aproximadamente quantas palavras cada legenda mostra de cada vez. O tempo é distribuído entre as palavras da frase.",
-		"minWords": "Mínimo de palavras por legenda",
-		"maxWords": "Máximo de palavras por legenda",
-		"wordsCount": "{{count}} palavras",
-		"generate": "Gerar",
-		"dialogCancel": "Cancelar",
-		"generating": "Gerando legendas a partir do áudio…",
-		"loadingModel": "Carregando o modelo de fala (o primeiro uso baixa ~75 MB)…",
-		"transcribing": "Transcrevendo a fala…",
-		"busy": "A geração de legendas já está em andamento.",
-		"done": "{{count}} legendas adicionadas.",
-		"noneHeard": "Nenhuma fala foi detectada.",
-		"noAudio": "Este vídeo não tem áudio utilizável para transcrição.",
-		"failed": "Não foi possível gerar as legendas.",
-		"truncated": "Apenas os primeiros {{minutes}} minutos foram transcritos."
+	"captions": {
+		"generating": "Generating captions...",
+		"generated": "Generated {{count}} captions.",
+		"skippedNoAudio": "No audio track found; captions skipped.",
+		"unavailable": "Local caption model is not available.",
+		"failed": "Failed to generate captions."
+	},
+	"emptyState": {
+		"title": "No project open",
+		"description": "Import a video to start editing, or load an existing OpenScreen project.",
+		"importVideoButton": "Import Video File…",
+		"loadProjectButton": "Load Project…",
+		"supportedFormats": "Supported formats: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "or drag & drop a .openscreen project file here",
+		"dropOverlay": "Drop project file to open",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Unsupported Format",
+			"unsupportedFormatMessage": "Only .openscreen project files can be dropped here. To import a video file, use the \"Import Video File…\" button on this screen.",
+			"couldNotOpenTitle": "Could Not Open File",
+			"couldNotOpenMessage": "The project file could not be opened. The video it references may have been moved or deleted."
+		}
 	}
 }

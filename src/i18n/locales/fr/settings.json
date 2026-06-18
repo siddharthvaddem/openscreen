@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "Maintenir pour prévisualiser l'effet de zoom",
 		"level": "Niveau de zoom",
+		"customScale": "Zoom personnalisé",
 		"selectRegion": "Sélectionnez une région de zoom à ajuster",
 		"deleteZoom": "Supprimer le zoom",
 		"focusMode": {
 			"title": "Mode focus",
 			"manual": "Manuel",
 			"auto": "Auto",
-			"autoDescription": "La caméra suit la position du curseur enregistré"
+			"autoDescription": "La caméra suit la position du curseur enregistré",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Rotation 3D",
@@ -18,7 +20,6 @@
 				"right": "Droite"
 			}
 		},
-		"customScale": "Zoom personnalisé",
 		"position": {
 			"title": "Position du focus",
 			"x": "X (%)",
@@ -43,9 +44,9 @@
 		"pictureInPicture": "Incrustation d'image",
 		"verticalStack": "Empilement vertical",
 		"dualFrame": "Double cadre",
+		"noWebcam": "Sans webcam",
 		"webcamShape": "Forme de la caméra",
 		"webcamSize": "Taille de la caméra",
-		"noWebcam": "Sans webcam",
 		"mirrorWebcam": "Inverser la webcam",
 		"reactiveWebcam": "Réduire au zoom",
 		"reactiveWebcamDescription": "La caméra rétrécit doucement pendant le zoom, pour ne pas gêner."
@@ -55,10 +56,10 @@
 		"blurBg": "Flou arrière-plan",
 		"motionBlur": "Flou de mouvement",
 		"off": "désactivé",
+		"on": "activé",
 		"shadow": "Ombre",
 		"roundness": "Arrondi",
-		"padding": "Marge",
-		"on": "activé"
+		"padding": "Marge"
 	},
 	"background": {
 		"title": "Arrière-plan",
@@ -143,6 +144,8 @@
 		"clearBackground": "Supprimer l'arrière-plan",
 		"uploadImage": "Téléverser une image",
 		"supportedFormats": "Formats supportés : JPG, PNG, GIF, WebP",
+		"stickerPresets": "Préréglages de stickers",
+		"stickerPresetsDescription": "Cliquez sur un sticker pour l'utiliser comme annotation d'image.",
 		"arrowDirection": "Direction de la flèche",
 		"strokeWidth": "Épaisseur du trait : {{width}}px",
 		"arrowColor": "Couleur de la flèche",
@@ -216,7 +219,8 @@
 		"smoothing": "Lissage",
 		"motionBlur": "Flou de mouvement",
 		"clickBounce": "Rebond au clic",
-		"clipToBounds": "Rogner au canevas"
+		"clipToBounds": "Rogner au canevas",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Langue"

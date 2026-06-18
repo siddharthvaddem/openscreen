@@ -39,29 +39,17 @@
 		"systemAudioUnavailable": "系統音訊不可用。將在無系統音訊的情況下錄製。",
 		"microphoneDenied": "麥克風權限被拒絕。錄製將繼續，但不包含音訊。",
 		"cameraDenied": "攝影機權限被拒絕。錄製將繼續，但不包含攝影機畫面。",
-		"permissionDenied": "錄影權限被拒絕。請允許螢幕錄製。",
 		"cameraDisconnected": "網路攝影機已中斷連線。",
 		"cameraNotFound": "找不到攝影機。",
+		"permissionDenied": "錄影權限被拒絕。請允許螢幕錄製。",
 		"accessibilityAllowAndRetry": "允許 OpenScreen 使用輔助使用權限，然後再次按下錄製以開始倒數。"
 	},
-	"autoCaptions": {
-		"button": "自動字幕",
-		"dialogTitle": "自動字幕",
-		"dialogDescription": "大致選擇每條字幕一次顯示多少字詞。時間會在該語句內的字詞之間分配。",
-		"minWords": "每條字幕的最少字數",
-		"maxWords": "每條字幕的最多字數",
-		"wordsCount": "{{count}} 個詞",
-		"generate": "產生",
-		"dialogCancel": "取消",
-		"generating": "正在從音訊產生字幕…",
-		"loadingModel": "正在載入語音模型（首次使用將下載約 75 MB）…",
-		"transcribing": "正在轉錄語音…",
-		"busy": "字幕產生已在進行中。",
-		"done": "已新增 {{count}} 條字幕。",
-		"noneHeard": "未偵測到語音。",
-		"noAudio": "此影片沒有可用於轉寫的音訊。",
-		"failed": "無法產生字幕。",
-		"truncated": "僅轉寫了最前 {{minutes}} 分鐘。"
+	"captions": {
+		"generating": "正在產生字幕...",
+		"generated": "已產生 {{count}} 條字幕。",
+		"skippedNoAudio": "找不到音軌，已略過字幕產生。",
+		"unavailable": "本機字幕模型不可用。",
+		"failed": "字幕產生失敗。"
 	},
 	"emptyState": {
 		"title": "未開啟任何專案",

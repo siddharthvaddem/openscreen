@@ -39,29 +39,17 @@
 		"systemAudioUnavailable": "시스템 오디오를 사용할 수 없습니다. 시스템 오디오 없이 녹화합니다.",
 		"microphoneDenied": "마이크 접근이 거부되었습니다. 오디오 없이 녹화를 계속합니다.",
 		"cameraDenied": "카메라 접근이 거부되었습니다. 웹캠 없이 녹화를 계속합니다.",
-		"permissionDenied": "녹화 권한이 거부되었습니다. 화면 녹화를 허용해 주세요.",
 		"cameraDisconnected": "웹캠 연결이 끊어졌습니다.",
 		"cameraNotFound": "카메라를 찾을 수 없습니다.",
+		"permissionDenied": "녹화 권한이 거부되었습니다. 화면 녹화를 허용해 주세요.",
 		"accessibilityAllowAndRetry": "OpenScreen의 손쉬운 사용 접근을 허용한 다음, 카운트다운을 시작하려면 다시 녹화를 누르세요."
 	},
-	"autoCaptions": {
-		"button": "자동 자막",
-		"dialogTitle": "자동 자막",
-		"dialogDescription": "각 자막에 한 번에 표시할 단어 수의 대략적인 값을 선택하세요. 타이밍은 해당 구문의 단어들에 나뉩니다.",
-		"minWords": "자막당 최소 단어 수",
-		"maxWords": "자막당 최대 단어 수",
-		"wordsCount": "{{count}}개 단어",
-		"generate": "생성",
-		"dialogCancel": "취소",
-		"generating": "오디오에서 자막을 생성하는 중…",
-		"loadingModel": "음성 모델을 불러오는 중(첫 사용 시 약 75MB 다운로드)…",
-		"transcribing": "음성을 전사하는 중…",
-		"busy": "자막 생성이 이미 진행 중입니다.",
-		"done": "자막 {{count}}개를 추가했습니다.",
-		"noneHeard": "음성이 감지되지 않았습니다.",
-		"noAudio": "이 동영상에는 전사에 사용할 수 있는 음성이 없습니다.",
-		"failed": "자막을 생성할 수 없습니다.",
-		"truncated": "처음 {{minutes}}분만 전사되었습니다."
+	"captions": {
+		"generating": "자막을 생성하는 중...",
+		"generated": "자막 {{count}}개를 생성했습니다.",
+		"skippedNoAudio": "오디오 트랙을 찾을 수 없어 자막 생성을 건너뛰었습니다.",
+		"unavailable": "로컬 자막 모델을 사용할 수 없습니다.",
+		"failed": "자막 생성에 실패했습니다."
 	},
 	"emptyState": {
 		"title": "열린 프로젝트 없음",

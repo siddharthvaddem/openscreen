@@ -6,6 +6,7 @@
 		"confirm": "Conferma"
 	},
 	"loadingVideo": "Caricamento video...",
+	"loadingEditor": "Loading editor...",
 	"errors": {
 		"noVideoLoaded": "Nessun video caricato",
 		"videoNotReady": "Video non pronto",
@@ -43,23 +44,26 @@
 		"permissionDenied": "Autorizzazione di registrazione negata. Consenti la registrazione dello schermo.",
 		"accessibilityAllowAndRetry": "Consenti l'accesso all'accessibilità per OpenScreen, poi premi di nuovo registra per avviare il conto alla rovescia."
 	},
-	"autoCaptions": {
-		"button": "Sottotitoli automatici",
-		"dialogTitle": "Sottotitoli automatici",
-		"dialogDescription": "Scegli all'incirca quante parole mostrare per ogni sottotitolo. La temporizzazione viene distribuita tra le parole della frase.",
-		"minWords": "Numero minimo di parole per sottotitolo",
-		"maxWords": "Numero massimo di parole per sottotitolo",
-		"wordsCount": "{{count}} parole",
-		"generate": "Genera",
-		"dialogCancel": "Annulla",
-		"generating": "Generazione dei sottotitoli dall'audio…",
-		"loadingModel": "Caricamento del modello vocale (al primo utilizzo vengono scaricati ~75 MB)…",
-		"transcribing": "Trascrizione del parlato…",
-		"busy": "La generazione dei sottotitoli è già in corso.",
-		"done": "Aggiunti {{count}} sottotitoli.",
-		"noneHeard": "Nessun parlato rilevato.",
-		"noAudio": "Questo video non contiene audio utilizzabile per la trascrizione.",
-		"failed": "Impossibile generare i sottotitoli.",
-		"truncated": "Sono stati trascritti solo i primi {{minutes}} minuti."
+	"captions": {
+		"generating": "Generazione sottotitoli...",
+		"generated": "{{count}} sottotitoli generati.",
+		"skippedNoAudio": "Nessuna traccia audio trovata; sottotitoli saltati.",
+		"unavailable": "Il modello locale per i sottotitoli non è disponibile.",
+		"failed": "Impossibile generare i sottotitoli."
+	},
+	"emptyState": {
+		"title": "No project open",
+		"description": "Import a video to start editing, or load an existing OpenScreen project.",
+		"importVideoButton": "Import Video File…",
+		"loadProjectButton": "Load Project…",
+		"supportedFormats": "Supported formats: MP4, MOV, WebM, MKV, AVI, M4V, WMV",
+		"dragDropHint": "or drag & drop a .openscreen project file here",
+		"dropOverlay": "Drop project file to open",
+		"dropErrors": {
+			"unsupportedFormatTitle": "Unsupported Format",
+			"unsupportedFormatMessage": "Only .openscreen project files can be dropped here. To import a video file, use the \"Import Video File…\" button on this screen.",
+			"couldNotOpenTitle": "Could Not Open File",
+			"couldNotOpenMessage": "The project file could not be opened. The video it references may have been moved or deleted."
+		}
 	}
 }

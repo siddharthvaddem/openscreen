@@ -9,7 +9,8 @@
 		"openVideoFile": "Apri file video",
 		"openProject": "Apri progetto",
 		"useVerticalTray": "Usa barra verticale",
-		"useHorizontalTray": "Usa barra orizzontale"
+		"useHorizontalTray": "Usa barra orizzontale",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "Abilita audio di sistema",
@@ -34,6 +35,9 @@
 		"loading": "Caricamento sorgenti...",
 		"screens": "Schermi ({{count}})",
 		"windows": "Finestre ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "Schermo"
 	},
 	"recording": {

@@ -42,7 +42,6 @@
 		"step1Title": "1. 削除範囲を追加",
 		"step1DescriptionBefore": "キーボードの",
 		"step1DescriptionAfter": "、またはハサミのアイコンをクリックして、削除したい範囲を指定します。",
-
 		"step2Title": "2. 範囲を調整",
 		"step2Description": "赤い領域の両端をドラッグして、削除したい範囲を正確に調整します。"
 	},
@@ -58,6 +57,8 @@
 		"detailLoadProject": "別のプロジェクトを読み込む前にプロジェクトを保存しますか？",
 		"saveAndLoadProject": "保存してプロジェクトを読み込む",
 		"discardAndLoadProject": "破棄してプロジェクトを読み込む",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "プロジェクトを読み込む…",
 		"saveProject": "プロジェクトを保存…",
 		"saveProjectAs": "プロジェクトを名前を付けて保存…"

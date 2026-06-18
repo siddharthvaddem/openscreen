@@ -5,6 +5,8 @@
 		"cancel": "Annuler",
 		"confirm": "Confirmer"
 	},
+	"loadingVideo": "Chargement de la vidéo...",
+	"loadingEditor": "Chargement de l'éditeur...",
 	"errors": {
 		"noVideoLoaded": "Aucune vidéo chargée",
 		"videoNotReady": "Vidéo non prête",
@@ -42,26 +44,12 @@
 		"permissionDenied": "Permission d'enregistrement refusée. Veuillez autoriser l'enregistrement d'écran.",
 		"accessibilityAllowAndRetry": "Autorisez l'accès Accessibilité pour OpenScreen, puis appuyez de nouveau sur enregistrer pour lancer le compte à rebours."
 	},
-	"loadingVideo": "Chargement de la vidéo...",
-	"loadingEditor": "Chargement de l'éditeur...",
-	"autoCaptions": {
-		"button": "Sous-titres automatiques",
-		"dialogTitle": "Sous-titres automatiques",
-		"dialogDescription": "Choisissez approximativement combien de mots chaque sous-titre affiche à la fois. Le timing est réparti entre les mots de cette phrase.",
-		"minWords": "Nombre minimum de mots par sous-titre",
-		"maxWords": "Nombre maximum de mots par sous-titre",
-		"wordsCount": "{{count}} mots",
-		"generate": "Générer",
-		"dialogCancel": "Annuler",
-		"generating": "Génération des sous-titres à partir de l'audio…",
-		"loadingModel": "Chargement du modèle vocal (le premier usage télécharge ~75 MB)…",
-		"transcribing": "Transcription de la parole…",
-		"busy": "La génération des sous-titres est déjà en cours.",
-		"done": "{{count}} sous-titres ajoutés.",
-		"noneHeard": "Aucune parole n'a été détectée.",
-		"noAudio": "Cette vidéo ne contient pas d'audio exploitable pour la transcription.",
-		"failed": "Impossible de générer les sous-titres.",
-		"truncated": "Seules les {{minutes}} premières minutes ont été transcrites."
+	"captions": {
+		"generating": "Génération des sous-titres...",
+		"generated": "{{count}} sous-titres générés.",
+		"skippedNoAudio": "Aucune piste audio trouvée ; sous-titres ignorés.",
+		"unavailable": "Le modèle de sous-titres local n'est pas disponible.",
+		"failed": "Échec de la génération des sous-titres."
 	},
 	"emptyState": {
 		"title": "Aucun projet ouvert",

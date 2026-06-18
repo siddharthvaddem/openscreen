@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import type { RecordingAnnotationTool } from "../src/components/launch/recordingAnnotations";
 import type { NativeMacRecordingRequest } from "../src/lib/nativeMacRecording";
 import type { NativeWindowsRecordingRequest } from "../src/lib/nativeWindowsRecording";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
@@ -137,6 +138,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("stop-recording-from-tray", listener);
 		return () => ipcRenderer.removeListener("stop-recording-from-tray", listener);
 	},
+	onNativeRecordingStopped: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("native-recording-stopped", listener);
+		return () => ipcRenderer.removeListener("native-recording-stopped", listener);
+	},
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},
@@ -166,6 +172,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	preparePreviewAudioTrack: (filePath: string) => {
 		return ipcRenderer.invoke("prepare-preview-audio-track", filePath);
+	},
+	startCaptionGeneration: (
+		videoPath: string,
+		options?: import("../src/lib/captions").CaptionGenerationOptions,
+	) => {
+		return ipcRenderer.invoke("start-caption-generation", videoPath, options);
+	},
+	cancelCaptionGeneration: (jobId: string) => {
+		return ipcRenderer.invoke("cancel-caption-generation", jobId);
 	},
 	clearCurrentVideoPath: () => {
 		return ipcRenderer.invoke("clear-current-video-path");
@@ -254,6 +269,37 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	hideCountdownOverlay: (runId: number) => {
 		return ipcRenderer.invoke("countdown-overlay-hide", runId);
+	},
+	showRecordingAnnotationOverlay: () => {
+		return ipcRenderer.invoke("recording-annotation-overlay-show");
+	},
+	hideRecordingAnnotationOverlay: () => {
+		return ipcRenderer.invoke("recording-annotation-overlay-hide");
+	},
+	setRecordingAnnotationTool: (tool: RecordingAnnotationTool | null) => {
+		return ipcRenderer.invoke("recording-annotation-tool-set", tool);
+	},
+	clearRecordingAnnotations: () => {
+		return ipcRenderer.invoke("recording-annotation-clear");
+	},
+	undoRecordingAnnotation: () => {
+		return ipcRenderer.invoke("recording-annotation-undo");
+	},
+	onRecordingAnnotationToolChange: (callback: (tool: RecordingAnnotationTool | null) => void) => {
+		const listener = (_event: unknown, tool: unknown) =>
+			callback((typeof tool === "string" ? tool : null) as RecordingAnnotationTool | null);
+		ipcRenderer.on("recording-annotation-tool", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-tool", listener);
+	},
+	onRecordingAnnotationClear: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("recording-annotation-clear", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-clear", listener);
+	},
+	onRecordingAnnotationUndo: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("recording-annotation-undo", listener);
+		return () => ipcRenderer.removeListener("recording-annotation-undo", listener);
 	},
 	onCountdownOverlayValue: (callback: (value: number | null) => void) => {
 		const listener = (_event: unknown, value: number | null) => callback(value);

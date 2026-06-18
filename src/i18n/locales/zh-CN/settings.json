@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "按住预览放大效果",
 		"level": "缩放级别",
+		"customScale": "自定义缩放",
 		"selectRegion": "选择要调整的缩放区域",
 		"deleteZoom": "删除缩放",
 		"focusMode": {
 			"title": "对焦模式",
 			"manual": "手动",
 			"auto": "自动",
-			"autoDescription": "摄像头跟随录制时的光标位置"
+			"autoDescription": "摄像头跟随录制时的光标位置",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D 旋转",
@@ -18,7 +20,6 @@
 				"right": "右"
 			}
 		},
-		"customScale": "自定义缩放",
 		"position": {
 			"title": "焦点位置",
 			"x": "X (%)",
@@ -43,9 +44,9 @@
 		"pictureInPicture": "画中画",
 		"verticalStack": "垂直堆叠",
 		"dualFrame": "双画框",
+		"noWebcam": "无摄像头",
 		"webcamShape": "摄像头形状",
 		"webcamSize": "摄像头大小",
-		"noWebcam": "无摄像头",
 		"mirrorWebcam": "镜像摄像头",
 		"reactiveWebcam": "缩放时缩小",
 		"reactiveWebcamDescription": "放大视频时摄像头会平滑缩小，以免遮挡内容。"
@@ -55,10 +56,10 @@
 		"blurBg": "模糊背景",
 		"motionBlur": "运动模糊",
 		"off": "关",
+		"on": "开",
 		"shadow": "阴影",
 		"roundness": "圆角",
-		"padding": "内边距",
-		"on": "开"
+		"padding": "内边距"
 	},
 	"background": {
 		"title": "背景",
@@ -132,8 +133,6 @@
 		"textPlaceholder": "输入您的文本...",
 		"fontStyle": "字体样式",
 		"selectStyle": "选择样式",
-		"textAnimation": "文本动画",
-		"selectAnimation": "选择动画",
 		"size": "大小",
 		"customFonts": "自定义字体",
 		"textColor": "文本颜色",
@@ -145,11 +144,20 @@
 		"clearBackground": "清除背景",
 		"uploadImage": "上传图片",
 		"supportedFormats": "支持的格式：JPG、PNG、GIF、WebP",
+		"stickerPresets": "内置贴纸",
+		"stickerPresetsDescription": "点击贴纸即可用作当前图片标注。",
 		"arrowDirection": "箭头方向",
 		"strokeWidth": "描边宽度：{{width}}px",
 		"arrowColor": "箭头颜色",
+		"blurType": "模糊类型",
+		"blurTypeBlur": "模糊",
+		"blurTypeMosaic": "马赛克模糊",
+		"blurColor": "模糊颜色",
+		"blurColorWhite": "白色",
+		"blurColorBlack": "黑色",
 		"blurShape": "模糊形状",
 		"blurIntensity": "模糊强度",
+		"mosaicBlockSize": "马赛克块大小",
 		"blurShapeRectangle": "矩形",
 		"blurShapeOval": "椭圆",
 		"blurShapeFreehand": "自由手绘",
@@ -161,14 +169,7 @@
 		"invalidImageType": "无效的文件类型",
 		"imageFormatsOnly": "请上传 JPG、PNG、GIF 或 WebP 格式的图片文件。",
 		"imageUploadSuccess": "图片上传成功！",
-		"failedImageUpload": "上传图片失败",
-		"blurColor": "模糊颜色",
-		"blurColorBlack": "黑色",
-		"blurColorWhite": "白色",
-		"blurType": "模糊类型",
-		"blurTypeBlur": "模糊",
-		"blurTypeMosaic": "马赛克模糊",
-		"mosaicBlockSize": "马赛克块大小"
+		"failedImageUpload": "上传图片失败"
 	},
 	"fontStyles": {
 		"classic": "经典",
@@ -179,6 +180,17 @@
 		"simple": "简约",
 		"modern": "现代",
 		"clean": "简洁"
+	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
 	},
 	"customFont": {
 		"dialogTitle": "添加 Google 字体",
@@ -207,7 +219,8 @@
 		"smoothing": "平滑",
 		"motionBlur": "运动模糊",
 		"clickBounce": "点击弹跳",
-		"clipToBounds": "裁剪到画布"
+		"clipToBounds": "裁剪到画布",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "语言"

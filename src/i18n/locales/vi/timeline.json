@@ -2,6 +2,10 @@
 	"buttons": {
 		"addZoom": "Thêm Thu phóng (Z)",
 		"suggestZooms": "Đề xuất Thu phóng từ Con trỏ",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "Thêm Cắt (T)",
 		"addAnnotation": "Thêm Chú thích (A)",
 		"addBlur": "Thêm Làm mờ (B)",
