@@ -8,9 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.worktrees/
 dist
 dist-electron
 dist-ssr
+/main.js
+/preload.mjs
+/index-*.js
 *.local
 .env
 
@@ -20,6 +24,7 @@ dist-ssr
 /electron/native/screencapturekit/.build/
 /electron/native/screencapturekit/.swiftpm/
 /electron/native/bin/
+/electron/native/captions/*/
 
 # Native macOS generated files
 DerivedData/
@@ -63,6 +68,3 @@ result-*
 #others
 
 **/*.import
-
-# Auto-caption model + ORT wasm — regenerated at build by scripts/fetch-caption-model.mjs
-/caption-assets/

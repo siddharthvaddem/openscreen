@@ -44,24 +44,12 @@
 		"permissionDenied": "Recording permission denied. Please allow screen recording.",
 		"accessibilityAllowAndRetry": "Allow Accessibility access for OpenScreen, then press record again to start the countdown."
 	},
-	"autoCaptions": {
-		"button": "Auto captions",
-		"dialogTitle": "Auto captions",
-		"dialogDescription": "Choose roughly how many words each caption shows at once. Timing is spread across the words in that phrase.",
-		"minWords": "Minimum words per caption",
-		"maxWords": "Maximum words per caption",
-		"wordsCount": "{{count}} words",
-		"generate": "Generate",
-		"dialogCancel": "Cancel",
-		"generating": "Generating captions from audio…",
-		"loadingModel": "Loading speech model (first use downloads ~75 MB)…",
-		"transcribing": "Transcribing speech…",
-		"busy": "Caption generation is already in progress.",
-		"done": "Added {{count}} captions.",
-		"noneHeard": "No speech was detected.",
-		"noAudio": "This video has no usable audio to transcribe.",
-		"failed": "Could not generate captions.",
-		"truncated": "Only the first {{minutes}} minutes were transcribed."
+	"captions": {
+		"generating": "Generating captions...",
+		"generated": "Generated {{count}} captions.",
+		"skippedNoAudio": "No audio track found; captions skipped.",
+		"unavailable": "Local caption model is not available.",
+		"failed": "Failed to generate captions."
 	},
 	"emptyState": {
 		"title": "No project open",

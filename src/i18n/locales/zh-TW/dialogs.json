@@ -57,6 +57,8 @@
 		"detailLoadProject": "是否在載入其他專案前儲存目前的專案？",
 		"saveAndLoadProject": "儲存並載入專案",
 		"discardAndLoadProject": "捨棄並載入專案",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "載入專案…",
 		"saveProject": "儲存專案…",
 		"saveProjectAs": "專案另存新檔…"

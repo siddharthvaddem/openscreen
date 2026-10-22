@@ -57,6 +57,8 @@
 		"detailLoadProject": "다른 프로젝트를 불러오기 전에 저장하시겠습니까?",
 		"saveAndLoadProject": "저장 후 프로젝트 불러오기",
 		"discardAndLoadProject": "저장하지 않고 프로젝트 불러오기",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "프로젝트 불러오기...",
 		"saveProject": "프로젝트 저장...",
 		"saveProjectAs": "다른 이름으로 프로젝트 저장..."

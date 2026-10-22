@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "押している間ズーム効果をプレビュー",
 		"level": "ズーム倍率",
+		"customScale": "カスタムズーム",
 		"selectRegion": "ズーム範囲を選択して調整",
 		"deleteZoom": "ズームを削除",
 		"focusMode": {
 			"title": "フォーカスモード",
 			"manual": "手動",
 			"auto": "自動",
-			"autoDescription": "表示範囲が録画中のカーソル位置に追従します"
+			"autoDescription": "表示範囲が録画中のカーソル位置に追従します",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D回転",
@@ -18,7 +20,6 @@
 				"right": "右"
 			}
 		},
-		"customScale": "カスタムズーム",
 		"position": {
 			"title": "フォーカス位置",
 			"x": "X (%)",
@@ -43,9 +44,9 @@
 		"pictureInPicture": "ピクチャーインピクチャ",
 		"verticalStack": "縦並び",
 		"dualFrame": "デュアルフレーム",
+		"noWebcam": "Webカメラなし",
 		"webcamShape": "カメラの形状",
 		"webcamSize": "カメラのサイズ",
-		"noWebcam": "Webカメラなし",
 		"mirrorWebcam": "Webカメラを反転",
 		"reactiveWebcam": "ズーム時に縮小",
 		"reactiveWebcamDescription": "ズーム中はカメラがスムーズに縮小し、邪魔になりません。"
@@ -55,10 +56,10 @@
 		"blurBg": "背景をぼかす",
 		"motionBlur": "モーションブラー",
 		"off": "オフ",
+		"on": "オン",
 		"shadow": "影",
 		"roundness": "丸み",
-		"padding": "余白",
-		"on": "オン"
+		"padding": "余白"
 	},
 	"background": {
 		"title": "背景",
@@ -143,6 +144,8 @@
 		"clearBackground": "背景をクリア",
 		"uploadImage": "画像を読み込む",
 		"supportedFormats": "サポートされている形式: JPG, PNG, GIF, WebP",
+		"stickerPresets": "ステッカープリセット",
+		"stickerPresetsDescription": "ステッカーをクリックすると、この画像注釈として使用します。",
 		"arrowDirection": "矢印の方向",
 		"strokeWidth": "線の太さ: {{width}}px",
 		"arrowColor": "矢印の色",
@@ -216,7 +219,8 @@
 		"smoothing": "スムージング",
 		"motionBlur": "モーションブラー",
 		"clickBounce": "クリックバウンス",
-		"clipToBounds": "キャンバスにクリップ"
+		"clipToBounds": "キャンバスにクリップ",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "言語"

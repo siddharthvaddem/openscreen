@@ -1,5 +1,6 @@
 {
 	"zoom": {
+		"previewHold": "Hold to preview zoom effect",
 		"level": "Nível de Zoom",
 		"customScale": "Zoom Personalizado",
 		"selectRegion": "Selecione uma região de zoom para ajustar",
@@ -8,7 +9,8 @@
 			"title": "Modo de Foco",
 			"manual": "Manual",
 			"auto": "Automático",
-			"autoDescription": "A câmera segue a posição do cursor gravado"
+			"autoDescription": "A câmera segue a posição do cursor gravado",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Rotação 3D",
@@ -45,6 +47,7 @@
 		"noWebcam": "Sem Webcam",
 		"webcamShape": "Formato da Câmera",
 		"webcamSize": "Tamanho da Webcam",
+		"mirrorWebcam": "Mirror Webcam",
 		"reactiveWebcam": "Encolher ao ampliar",
 		"reactiveWebcamDescription": "A câmera diminui suavemente enquanto o vídeo está ampliado, para não atrapalhar."
 	},
@@ -99,16 +102,18 @@
 	},
 	"project": {
 		"save": "Salvar Projeto",
-		"load": "Carregar Projeto"
+		"load": "Carregar Projeto",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Exportar Vídeo",
 		"gifButton": "Exportar GIF",
 		"chooseSaveLocation": "Escolher Local para Salvar"
 	},
-	"links": {
-		"reportBug": "Relatar Bug",
-		"starOnGithub": "Dar Estrela no GitHub"
+	"support": {
+		"reportBug": "Report Bug",
+		"saveDiagnostics": "Save Diagnostics",
+		"starOnGithub": "Star on GitHub"
 	},
 	"imageUpload": {
 		"invalidFileType": "Tipo de arquivo inválido",
@@ -139,6 +144,8 @@
 		"clearBackground": "Limpar Fundo",
 		"uploadImage": "Enviar Imagem",
 		"supportedFormats": "Formatos suportados: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Sticker presets",
+		"stickerPresetsDescription": "Click a sticker to use it as this image annotation.",
 		"arrowDirection": "Direção da Seta",
 		"strokeWidth": "Largura do Traço: {{width}}px",
 		"arrowColor": "Cor da Seta",
@@ -174,6 +181,17 @@
 		"modern": "Moderno",
 		"clean": "Clean"
 	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
+	},
 	"customFont": {
 		"dialogTitle": "Adicionar Google Font",
 		"urlLabel": "URL de Importação do Google Fonts",
@@ -206,5 +224,9 @@
 	},
 	"language": {
 		"title": "Idioma"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Show Audio Waveform on Trim Track"
 	}
 }

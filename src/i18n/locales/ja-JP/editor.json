@@ -16,10 +16,10 @@
 		"failedToSaveVideo": "動画の保存に失敗しました",
 		"exportFailed": "エクスポートに失敗しました",
 		"exportFailedWithError": "エクスポートに失敗しました: {{error}}",
+		"exportBackgroundLoadFailed": "エクスポートに失敗しました: 背景画像を読み込めませんでした ({{url}})",
 		"failedToSaveExport": "エクスポートの保存に失敗しました",
 		"failedToSaveExportedVideo": "エクスポートした動画の保存に失敗しました",
-		"failedToRevealInFolder": "フォルダの表示に失敗しました: {{error}}",
-		"exportBackgroundLoadFailed": "エクスポートに失敗しました: 背景画像を読み込めませんでした ({{url}})"
+		"failedToRevealInFolder": "フォルダの表示に失敗しました: {{error}}"
 	},
 	"export": {
 		"canceled": "エクスポートがキャンセルされました",
@@ -39,29 +39,17 @@
 		"systemAudioUnavailable": "システム音声を利用できません。システム音声なしで録画します。",
 		"microphoneDenied": "マイクへのアクセスが拒否されました。音声なしで録画を続行します。",
 		"cameraDenied": "カメラのアクセスが拒否されました。ウェブカメラなしで録画を続行します。",
-		"permissionDenied": "録画の権限が拒否されました。画面録画を許可してください。",
 		"cameraDisconnected": "ウェブカメラが切断されました。",
 		"cameraNotFound": "カメラが見つかりません。",
+		"permissionDenied": "録画の権限が拒否されました。画面録画を許可してください。",
 		"accessibilityAllowAndRetry": "OpenScreenにアクセシビリティアクセスを許可してから、もう一度録画を押してカウントダウンを開始してください。"
 	},
-	"autoCaptions": {
-		"button": "自動キャプション",
-		"dialogTitle": "自動キャプション",
-		"dialogDescription": "各キャプションに一度に表示する語数の目安を選びます。タイミングはそのフレーズ内の語に分配されます。",
-		"minWords": "キャプションあたりの最小語数",
-		"maxWords": "キャプションあたりの最大語数",
-		"wordsCount": "{{count}} 語",
-		"generate": "生成",
-		"dialogCancel": "キャンセル",
-		"generating": "音声からキャプションを生成しています…",
-		"loadingModel": "音声モデルを読み込んでいます（初回利用時は約 75 MB をダウンロードします）…",
-		"transcribing": "音声を文字起こししています…",
-		"busy": "キャプションの生成はすでに実行中です。",
-		"done": "{{count}} 件のキャプションを追加しました。",
-		"noneHeard": "音声が検出されませんでした。",
-		"noAudio": "この動画には書き起こしに使える音声がありません。",
-		"failed": "キャプションを生成できませんでした。",
-		"truncated": "最初の {{minutes}} 分のみが書き起こされました。"
+	"captions": {
+		"generating": "字幕を生成しています...",
+		"generated": "{{count}} 件の字幕を生成しました。",
+		"skippedNoAudio": "音声トラックが見つからないため、字幕生成をスキップしました。",
+		"unavailable": "ローカル字幕モデルを利用できません。",
+		"failed": "字幕の生成に失敗しました。"
 	},
 	"emptyState": {
 		"title": "プロジェクトが開かれていません",

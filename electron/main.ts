@@ -23,6 +23,7 @@ import {
 	createCountdownOverlayWindow,
 	createEditorWindow,
 	createHudOverlayWindow,
+	createRecordingAnnotationOverlayWindow,
 	createSourceSelectorWindow,
 } from "./windows";
 
@@ -82,6 +83,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let mainWindow: BrowserWindow | null = null;
 let sourceSelectorWindow: BrowserWindow | null = null;
 let countdownOverlayWindow: BrowserWindow | null = null;
+let recordingAnnotationOverlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let selectedSourceName = "";
 const isMac = process.platform === "darwin";
@@ -427,6 +429,21 @@ function createCountdownOverlayWindowWrapper() {
 	return countdownOverlayWindow;
 }
 
+function createRecordingAnnotationOverlayWindowWrapper(bounds?: Electron.Rectangle) {
+	if (recordingAnnotationOverlayWindow && !recordingAnnotationOverlayWindow.isDestroyed()) {
+		if (bounds) {
+			recordingAnnotationOverlayWindow.setBounds(bounds, false);
+		}
+		return recordingAnnotationOverlayWindow;
+	}
+
+	recordingAnnotationOverlayWindow = createRecordingAnnotationOverlayWindow(bounds);
+	recordingAnnotationOverlayWindow.on("closed", () => {
+		recordingAnnotationOverlayWindow = null;
+	});
+	return recordingAnnotationOverlayWindow;
+}
+
 // Closing every window quits the app (tray goes too). The in-app "Return to Recorder"
 // button covers the editor-to-HUD round-trip, so closing the last window means "I'm done".
 app.on("window-all-closed", () => {
@@ -442,7 +459,10 @@ app.on("activate", () => {
 
 		const url = window.webContents.getURL();
 		const isCountdownOverlayWindow = url.includes("windowType=countdown-overlay");
-		return !isCountdownOverlayWindow;
+		const isRecordingAnnotationOverlayWindow = url.includes(
+			"windowType=recording-annotation-overlay",
+		);
+		return !isCountdownOverlayWindow && !isRecordingAnnotationOverlayWindow;
 	});
 	if (!hasVisibleWindow) {
 		showMainWindow();
@@ -545,9 +565,11 @@ app.whenReady().then(async () => {
 		createEditorWindowWrapper,
 		createSourceSelectorWindowWrapper,
 		createCountdownOverlayWindowWrapper,
+		createRecordingAnnotationOverlayWindowWrapper,
 		() => mainWindow,
 		() => sourceSelectorWindow,
 		() => countdownOverlayWindow,
+		() => recordingAnnotationOverlayWindow,
 		(recording: boolean, sourceName: string) => {
 			selectedSourceName = sourceName;
 			if (!tray) createTray();

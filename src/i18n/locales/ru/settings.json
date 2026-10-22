@@ -2,13 +2,15 @@
 	"zoom": {
 		"previewHold": "Удерживайте для предпросмотра эффекта зума",
 		"level": "Уровень масштабирования",
+		"customScale": "Пользовательский масштаб",
 		"selectRegion": "Выберите область масштабирования для настройки",
 		"deleteZoom": "Удалить масштабирование",
 		"focusMode": {
 			"title": "Режим фокуса",
 			"manual": "Ручной",
 			"auto": "Авто",
-			"autoDescription": "Камера следует за записанной позицией курсора"
+			"autoDescription": "Камера следует за записанной позицией курсора",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D вращение",
@@ -18,7 +20,6 @@
 				"right": "Справа"
 			}
 		},
-		"customScale": "Пользовательский масштаб",
 		"position": {
 			"title": "Положение фокуса",
 			"x": "X (%)",
@@ -43,9 +44,9 @@
 		"pictureInPicture": "Картинка в картинке",
 		"verticalStack": "Вертикальный стек",
 		"dualFrame": "Двойной кадр",
+		"noWebcam": "Без веб-камеры",
 		"webcamShape": "Форма камеры",
 		"webcamSize": "Размер веб-камеры",
-		"noWebcam": "Без веб-камеры",
 		"mirrorWebcam": "Зеркалить веб-камеру",
 		"reactiveWebcam": "Уменьшать при зуме",
 		"reactiveWebcamDescription": "Камера плавно уменьшается во время приближения, чтобы не мешать."
@@ -143,6 +144,8 @@
 		"clearBackground": "Очистить фон",
 		"uploadImage": "Загрузить изображение",
 		"supportedFormats": "Поддерживаемые форматы: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Готовые стикеры",
+		"stickerPresetsDescription": "Нажмите стикер, чтобы использовать его как аннотацию-изображение.",
 		"arrowDirection": "Направление стрелки",
 		"strokeWidth": "Толщина линии: {{width}}px",
 		"arrowColor": "Цвет стрелки",
@@ -216,7 +219,8 @@
 		"smoothing": "Сглаживание",
 		"motionBlur": "Размытие движения",
 		"clickBounce": "Отскок при клике",
-		"clipToBounds": "Обрезать по холсту"
+		"clipToBounds": "Обрезать по холсту",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Язык"

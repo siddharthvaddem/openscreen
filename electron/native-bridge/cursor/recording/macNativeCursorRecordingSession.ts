@@ -85,7 +85,9 @@ export async function requestMacCursorAccessibilityAccess() {
 	}
 
 	try {
-		systemPreferences.isTrustedAccessibilityClient(true);
+		if (systemPreferences.isTrustedAccessibilityClient(true)) {
+			return { success: true, granted: true, status: "granted" };
+		}
 	} catch {
 		// Continue with helper probing; it can trigger the same macOS prompt.
 	}

@@ -9,7 +9,8 @@
 		"openVideoFile": "Mở tệp video",
 		"openProject": "Mở dự án",
 		"useVerticalTray": "Dùng khay dọc",
-		"useHorizontalTray": "Dùng khay ngang"
+		"useHorizontalTray": "Dùng khay ngang",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "Bật âm thanh hệ thống",
@@ -26,10 +27,17 @@
 		"noneFound": "Không tìm thấy máy ảnh",
 		"unavailable": "Máy ảnh không khả dụng"
 	},
+	"cursor": {
+		"useEditableCursor": "Dùng con trỏ có thể chỉnh sửa",
+		"useSystemCursor": "Dùng con trỏ hệ thống"
+	},
 	"sourceSelector": {
 		"loading": "Đang tải nguồn...",
 		"screens": "Màn hình ({{count}})",
 		"windows": "Cửa sổ ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "Màn hình"
 	},
 	"recording": {
@@ -41,9 +49,5 @@
 		"description": "Chúng tôi phát hiện {{language}} là ngôn ngữ hệ thống của bạn. Bạn có muốn chuyển OpenScreen sang {{language}} không?",
 		"switch": "Chuyển sang {{language}}",
 		"keepDefault": "Giữ ngôn ngữ hiện tại"
-	},
-	"cursor": {
-		"useEditableCursor": "Dùng con trỏ có thể chỉnh sửa",
-		"useSystemCursor": "Dùng con trỏ hệ thống"
 	}
 }

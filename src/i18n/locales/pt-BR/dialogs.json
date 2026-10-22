@@ -42,7 +42,6 @@
 		"step1Title": "1. Adicionar Recorte",
 		"step1DescriptionBefore": "Pressione ",
 		"step1DescriptionAfter": " ou clique no ícone da tesoura para marcar uma seção para remoção.",
-
 		"step2Title": "2. Ajustar",
 		"step2Description": "Arraste as bordas da região vermelha para cobrir exatamente o que você deseja cortar."
 	},
@@ -52,6 +51,14 @@
 		"detail": "Deseja salvar seu projeto antes de fechar?",
 		"saveAndClose": "Salvar e Fechar",
 		"discardAndClose": "Descartar e Fechar",
+		"detailNewProject": "Do you want to save your project before creating a new one?",
+		"saveAndNewProject": "Save & New Project",
+		"discardAndNewProject": "Discard & New Project",
+		"detailLoadProject": "Do you want to save your project before loading another one?",
+		"saveAndLoadProject": "Save & Load Project",
+		"discardAndLoadProject": "Discard & Load Project",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "Carregar Projeto…",
 		"saveProject": "Salvar Projeto…",
 		"saveProjectAs": "Salvar Projeto Como…"

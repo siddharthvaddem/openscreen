@@ -9,7 +9,8 @@
 		"openVideoFile": "打开视频文件",
 		"openProject": "打开项目",
 		"useVerticalTray": "使用竖向托盘",
-		"useHorizontalTray": "使用横向托盘"
+		"useHorizontalTray": "使用横向托盘",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "启用系统音频",
@@ -34,6 +35,9 @@
 		"loading": "正在加载源...",
 		"screens": "屏幕 ({{count}})",
 		"windows": "窗口 ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "屏幕"
 	},
 	"recording": {

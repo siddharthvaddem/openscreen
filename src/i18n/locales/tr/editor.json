@@ -1,4 +1,12 @@
 {
+	"newRecording": {
+		"title": "Kaydediciye Dön",
+		"description": "Mevcut oturumunuz kaydedildi.",
+		"cancel": "İptal",
+		"confirm": "Onayla"
+	},
+	"loadingVideo": "Video yükleniyor...",
+	"loadingEditor": "Editör yükleniyor...",
 	"errors": {
 		"noVideoLoaded": "Video yüklenmedi",
 		"videoNotReady": "Video hazır değil",
@@ -31,37 +39,17 @@
 		"systemAudioUnavailable": "Sistem sesi kullanılamıyor. Sistem sesi olmadan kaydediliyor.",
 		"microphoneDenied": "Mikrofon erişimi reddedildi. Kayıt ses olmadan devam edecek.",
 		"cameraDenied": "Kamera erişimi reddedildi. Kayıt kamera olmadan devam edecek.",
-		"permissionDenied": "Kayıt izni reddedildi. Lütfen ekran kaydına izin verin.",
 		"cameraDisconnected": "Webcam bağlantısı kesildi.",
 		"cameraNotFound": "Kamera bulunamadı.",
+		"permissionDenied": "Kayıt izni reddedildi. Lütfen ekran kaydına izin verin.",
 		"accessibilityAllowAndRetry": "OpenScreen için Erişilebilirlik erişimine izin verin, ardından geri sayımı başlatmak için tekrar kayda basın."
 	},
-	"loadingVideo": "Video yükleniyor...",
-	"loadingEditor": "Editör yükleniyor...",
-	"newRecording": {
-		"title": "Kaydediciye Dön",
-		"description": "Mevcut oturumunuz kaydedildi.",
-		"cancel": "İptal",
-		"confirm": "Onayla"
-	},
-	"autoCaptions": {
-		"button": "Otomatik altyazılar",
-		"dialogTitle": "Otomatik altyazılar",
-		"dialogDescription": "Her altyazının aynı anda yaklaşık kaç kelime göstermesini istediğinizi seçin. Zamanlama, o ifadedeki kelimelere dağıtılır.",
-		"minWords": "Altyazı başına en az kelime",
-		"maxWords": "Altyazı başına en fazla kelime",
-		"wordsCount": "{{count}} kelime",
-		"generate": "Oluştur",
-		"dialogCancel": "İptal",
-		"generating": "Sesten altyazılar oluşturuluyor…",
-		"loadingModel": "Konuşma modeli yükleniyor (ilk kullanımda ~75 MB indirilir)…",
-		"transcribing": "Konuşma yazıya dökülüyor…",
-		"busy": "Altyazı oluşturma zaten devam ediyor.",
-		"done": "{{count}} altyazı eklendi.",
-		"noneHeard": "Konuşma algılanmadı.",
-		"noAudio": "Bu videoda yazıya dökülebilecek kullanılabilir bir ses yok.",
-		"failed": "Altyazılar oluşturulamadı.",
-		"truncated": "Yalnızca ilk {{minutes}} dakika yazıya döküldü."
+	"captions": {
+		"generating": "Altyazılar oluşturuluyor...",
+		"generated": "{{count}} altyazı oluşturuldu.",
+		"skippedNoAudio": "Ses parçası bulunamadı; altyazılar atlandı.",
+		"unavailable": "Yerel altyazı modeli kullanılamıyor.",
+		"failed": "Altyazılar oluşturulamadı."
 	},
 	"emptyState": {
 		"title": "Açık proje yok",

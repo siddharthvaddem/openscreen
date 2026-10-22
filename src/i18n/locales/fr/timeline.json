@@ -2,17 +2,21 @@
 	"buttons": {
 		"addZoom": "Ajouter un zoom (Z)",
 		"suggestZooms": "Suggérer des zooms depuis le curseur",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "Ajouter une coupe (T)",
 		"addAnnotation": "Ajouter une annotation (A)",
-		"addSpeed": "Ajouter une vitesse (S)",
-		"addBlur": "Ajouter un flou (B)"
+		"addBlur": "Ajouter un flou (B)",
+		"addSpeed": "Ajouter une vitesse (S)"
 	},
 	"hints": {
 		"pressZoom": "Appuyez sur Z pour ajouter un zoom",
 		"pressTrim": "Appuyez sur T pour ajouter une coupe",
 		"pressAnnotation": "Appuyez sur A pour ajouter une annotation",
-		"pressSpeed": "Appuyez sur S pour ajouter une vitesse",
-		"pressBlur": "Appuyez sur B pour ajouter une zone de flou"
+		"pressBlur": "Appuyez sur B pour ajouter une zone de flou",
+		"pressSpeed": "Appuyez sur S pour ajouter une vitesse"
 	},
 	"labels": {
 		"pan": "Panoramique",
@@ -23,9 +27,9 @@
 		"trimItem": "Coupe {{index}}",
 		"speedItem": "Vitesse {{index}}",
 		"annotationItem": "Annotation",
+		"blurItem": "Flou {{index}}",
 		"imageItem": "Image",
-		"emptyText": "Texte vide",
-		"blurItem": "Flou {{index}}"
+		"emptyText": "Texte vide"
 	},
 	"emptyState": {
 		"noVideo": "Aucune vidéo chargée",
@@ -33,20 +37,20 @@
 	},
 	"errors": {
 		"cannotPlaceZoom": "Impossible de placer le zoom ici",
-		"zoomExistsAtLocation": "Un zoom existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant.",
+		"zoomExistsAtLocation": "Un zoom existe déjà à cet emplacement ou l'espace disponible est insuffisant.",
 		"zoomSuggestionUnavailable": "Gestionnaire de suggestions de zoom non disponible",
 		"noCursorTelemetry": "Aucune télémétrie de curseur disponible",
-		"noCursorTelemetryDescription": "Enregistrez d\u0027abord un screencast pour générer des suggestions basées sur le curseur.",
+		"noCursorTelemetryDescription": "Enregistrez d'abord un screencast pour générer des suggestions basées sur le curseur.",
 		"noUsableTelemetry": "Aucune télémétrie de curseur utilisable",
-		"noUsableTelemetryDescription": "L\u0027enregistrement ne contient pas suffisamment de données de mouvement du curseur.",
+		"noUsableTelemetryDescription": "L'enregistrement ne contient pas suffisamment de données de mouvement du curseur.",
 		"noDwellMoments": "Aucun moment de pause du curseur trouvé",
 		"noDwellMomentsDescription": "Essayez un enregistrement avec des pauses plus lentes du curseur sur les actions importantes.",
 		"noAutoZoomSlots": "Aucun emplacement de zoom automatique disponible",
 		"noAutoZoomSlotsDescription": "Les points de pause détectés chevauchent des régions de zoom existantes.",
 		"cannotPlaceTrim": "Impossible de placer la coupe ici",
-		"trimExistsAtLocation": "Une coupe existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant.",
+		"trimExistsAtLocation": "Une coupe existe déjà à cet emplacement ou l'espace disponible est insuffisant.",
 		"cannotPlaceSpeed": "Impossible de placer la vitesse ici",
-		"speedExistsAtLocation": "Une région de vitesse existe déjà à cet emplacement ou l\u0027espace disponible est insuffisant."
+		"speedExistsAtLocation": "Une région de vitesse existe déjà à cet emplacement ou l'espace disponible est insuffisant."
 	},
 	"success": {
 		"addedZoomSuggestions": "{{count}} suggestion de zoom basée sur le curseur ajoutée",

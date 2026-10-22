@@ -2,17 +2,21 @@
 	"buttons": {
 		"addZoom": "添加缩放 (Z)",
 		"suggestZooms": "根据光标建议缩放",
+		"autoZoomOn": "Auto zoom suggestions on — click to remove suggested zooms",
+		"autoZoomOff": "Auto zoom suggestions off — click to suggest zooms from cursor",
+		"autoFocusAllOn": "Auto-Focus on for all zooms — click to switch all to manual",
+		"autoFocusAllOff": "Auto-Focus all zooms (camera follows the cursor)",
 		"addTrim": "添加剪辑 (T)",
 		"addAnnotation": "添加标注 (A)",
-		"addSpeed": "添加速度 (S)",
-		"addBlur": "添加模糊 (B)"
+		"addBlur": "添加模糊 (B)",
+		"addSpeed": "添加速度 (S)"
 	},
 	"hints": {
 		"pressZoom": "按 Z 添加缩放",
 		"pressTrim": "按 T 添加剪辑",
 		"pressAnnotation": "按 A 添加标注",
-		"pressSpeed": "按 S 添加速度",
-		"pressBlur": "按 B 添加模糊区域"
+		"pressBlur": "按 B 添加模糊区域",
+		"pressSpeed": "按 S 添加速度"
 	},
 	"labels": {
 		"pan": "平移",
@@ -23,9 +27,9 @@
 		"trimItem": "剪辑 {{index}}",
 		"speedItem": "速度 {{index}}",
 		"annotationItem": "标注",
+		"blurItem": "模糊 {{index}}",
 		"imageItem": "图片",
-		"emptyText": "空文本",
-		"blurItem": "模糊 {{index}}"
+		"emptyText": "空文本"
 	},
 	"emptyState": {
 		"noVideo": "未加载视频",

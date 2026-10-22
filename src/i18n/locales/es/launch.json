@@ -9,7 +9,8 @@
 		"openVideoFile": "Abrir archivo de video",
 		"openProject": "Abrir proyecto",
 		"useVerticalTray": "Usar bandeja vertical",
-		"useHorizontalTray": "Usar bandeja horizontal"
+		"useHorizontalTray": "Usar bandeja horizontal",
+		"openStudio": "Open Studio"
 	},
 	"audio": {
 		"enableSystemAudio": "Activar audio del sistema",
@@ -34,6 +35,9 @@
 		"loading": "Cargando fuentes...",
 		"screens": "Pantallas ({{count}})",
 		"windows": "Ventanas ({{count}})",
+		"emptyTitle": "No screens or windows found",
+		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
+		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
 		"defaultSourceName": "Pantalla"
 	},
 	"recording": {

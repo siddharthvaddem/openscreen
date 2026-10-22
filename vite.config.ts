@@ -28,21 +28,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": path.resolve(__dirname, "src"),
-			// @xenova/transformers: env.js statically imports fs/path/url; onnx.js imports
-			// onnxruntime-node (must not be bundled in the renderer — it requires fs).
-			fs: path.resolve(__dirname, "src/lib/vite-stubs/empty-node-module.ts"),
-			path: path.resolve(__dirname, "src/lib/vite-stubs/empty-node-module.ts"),
-			url: path.resolve(__dirname, "src/lib/vite-stubs/empty-node-module.ts"),
-			"onnxruntime-node": path.resolve(__dirname, "src/lib/vite-stubs/onnxruntime-node-stub.ts"), // re-exports web ORT
 		},
-	},
-	optimizeDeps: {
-		exclude: ["@xenova/transformers"],
-	},
-	// The captioning worker dynamically imports @xenova/transformers, which makes the
-	// worker bundle code-split — unsupported by the default "iife" worker format.
-	worker: {
-		format: "es",
 	},
 	build: {
 		target: "esnext",

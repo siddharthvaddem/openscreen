@@ -57,6 +57,8 @@
 		"detailLoadProject": "Хотите сохранить проект перед загрузкой другого?",
 		"saveAndLoadProject": "Сохранить и загрузить проект",
 		"discardAndLoadProject": "Отменить и загрузить проект",
+		"newProject": "New Project",
+		"importVideo": "Import Video File…",
 		"loadProject": "Загрузить проект…",
 		"saveProject": "Сохранить проект…",
 		"saveProjectAs": "Сохранить проект как…"

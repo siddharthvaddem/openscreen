@@ -9,7 +9,8 @@
 			"title": "Modalità messa a fuoco",
 			"manual": "Manuale",
 			"auto": "Automatico",
-			"autoDescription": "La fotocamera segue la posizione del cursore registrato"
+			"autoDescription": "La fotocamera segue la posizione del cursore registrato",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "Rotazione 3D",
@@ -101,7 +102,8 @@
 	},
 	"project": {
 		"save": "Salva progetto",
-		"load": "Carica progetto"
+		"load": "Carica progetto",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Esporta video",
@@ -142,6 +144,8 @@
 		"clearBackground": "Rimuovi sfondo",
 		"uploadImage": "Carica immagine",
 		"supportedFormats": "Formati supportati: JPG, PNG, GIF, WebP",
+		"stickerPresets": "Sticker predefiniti",
+		"stickerPresetsDescription": "Fai clic su uno sticker per usarlo come annotazione immagine.",
 		"arrowDirection": "Direzione freccia",
 		"strokeWidth": "Larghezza tratto: {{width}}px",
 		"arrowColor": "Colore freccia",
@@ -215,7 +219,8 @@
 		"smoothing": "Smussatura",
 		"motionBlur": "Sfocatura movimento",
 		"clickBounce": "Rimbalzo clic",
-		"clipToBounds": "Ritaglia al canvas"
+		"clipToBounds": "Ritaglia al canvas",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
 	},
 	"language": {
 		"title": "Lingua"
