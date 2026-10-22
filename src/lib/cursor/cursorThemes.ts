@@ -61,6 +61,27 @@ export const CURSOR_THEMES: readonly CursorTheme[] = [
 		},
 	},
 	{
+		id: "thanos-infinity-gauntlet",
+		name: "Thanos & Infinity Gauntlet",
+		source: "sweezy-cursors.com",
+		assets: {
+			arrow: {
+				assetPath: "cursors/thanos-infinity-gauntlet/arrow.png",
+				width: 32,
+				height: 32,
+				hotspotX: 0.5,
+				hotspotY: 4,
+			},
+			pointer: {
+				assetPath: "cursors/thanos-infinity-gauntlet/pointer.png",
+				width: 32,
+				height: 32,
+				hotspotX: 14,
+				hotspotY: 3,
+			},
+		},
+	},
+	{
 		id: "among-us-sus-knife-and-red-animated",
 		name: "Among Us Sus Knife & Red Animated",
 		source: "sweezy-cursors.com",
